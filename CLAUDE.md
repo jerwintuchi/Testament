@@ -13,9 +13,9 @@
 
 ## Active Spec
 <!-- SWAP THESE THREE LINES when switching features — one of the few times you edit this file -->
-@specs/circulatory-board/requirements.md
-@specs/circulatory-board/design.md
-@specs/circulatory-board/tasks.md
+@specs/dungeon-generation/requirements.md
+@specs/dungeon-generation/design.md
+@specs/dungeon-generation/tasks.md
 
 ## Workflow Rules
 @.claude/rules/spec-workflow.md

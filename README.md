@@ -135,11 +135,16 @@ All procedural logic (dungeon gen, synergy evaluation, loot rolls) runs server-s
 - [x] T5: `BOARD_STATE_SYNC` on room join
 - [x] T6: Board persistence across floor transitions
 
+**Dungeon Generation** *(complete — 23 tests passing)*
+- [x] Seeded RNG (mulberry32, deterministic from run ID)
+- [x] BSP room generation (in-bounds, non-overlapping)
+- [x] Corridor connection (spanning tree, fully connected)
+- [x] `generateDungeon(runId, config)` (deterministic, < 5ms)
+
 **Up next**
-- [ ] Dungeon generation (seeded BSP)
+- [ ] Multiplayer lobby + room codes (wires Socket.io to board + dungeon logic)
 - [ ] Enemy system + combat
 - [ ] Bleed Clock
-- [ ] Multiplayer lobby + room codes
 - [ ] Mobile controls (virtual joystick + auto-aim)
 - [ ] PWA manifest (fullscreen on iOS)
 - [ ] Meta-progression (Supabase)

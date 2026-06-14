@@ -87,3 +87,29 @@
 **Decision**: First spec (Circulatory Board) is fully implemented. T1 through T6 done, 44 tests passing, clean typecheck.
 **Coverage**: R1 (board state), R2 (placement + validation), R3 (synergy adjacency), R4 (server-authoritative synergy), R5 (board persists across floors), R6 (Linked Fates), R7 (deterministic synergy). All five correctness properties (P1 to P5) have dedicated tests.
 **Note**: Socket.io wiring is deliberately deferred. The logic is complete and tested; the network layer is thin plumbing to be added when the multiplayer lobby/room spec begins. `SocketLike` interface in `room/sync.ts` is the seam.
+
+---
+
+## 2026-06-14 — Code Review: Circulatory Board PASS + deferred hardening
+**Decision**: Code-reviewer audit of the Circulatory Board returned PASS (no blockers, no warnings). 51 tests pass, clean typecheck, all invariants I1-I7 hold, all correctness properties P1-P5 tested.
+**Deferred hardening (from review NOTE)**: `placeRelic` emits `request.ownerId` (client-supplied) rather than `slot.ownerId`. A client could claim authorship of a relic placed into an empty slot. Not a current spec violation. Fix belongs in the multiplayer/rooms spec, where the placing player's identity will come from the authenticated socket rather than a request field. Track and resolve there.
+
+---
+
+## 2026-06-14 — Active Spec switched: Circulatory Board -> Dungeon Generation
+**Decision**: Circulatory Board complete; active spec in CLAUDE.md swapped to Dungeon Generation.
+**Reason**: Next core system per the roadmap. Its determinism requirement (same run ID -> same dungeon) pairs directly with netcode invariant I3 (seeded RNG, server-only) and enables daily challenges + bug reproduction.
+
+---
+
+## 2026-06-14 — Seeded RNG: mulberry32 + xfnv1a hash
+**Decision**: Implement the server seeded RNG as mulberry32 (PRNG) seeded by an xfnv1a string hash of the runId. Lives in `src/server/src/rng/seeded.ts`.
+**Rejected**: `Math.random()` (non-deterministic, violates I3); pulling in a third-party PRNG dependency (unnecessary weight for ~15 lines).
+**Reason**: Tiny, fast, dependency-free, fully deterministic. `hashSeed` maps a UUID runId to a uint32 seed; same runId always yields the same value sequence. This is the single randomness source for all server procedural systems (dungeon now; loot and spawns later), satisfying I3 across the board.
+
+---
+
+## 2026-06-14 — Dungeon Generation spec complete
+**Decision**: Dungeon Generation spec fully implemented. T1-T5 done, 23 tests passing (10 RNG + 13 BSP), clean typecheck.
+**Coverage**: R1 (determinism), R2 (multiple non-overlapping rooms), R3 (in-bounds), R4 (full connectivity via spanning-tree corridors), R5 (RNG-only, no Math.random/Date.now), R6 (<5ms perf, asserted), R7 (RNG determinism + ranges). Correctness properties P1-P5 each tested, with non-overlap, in-bounds, and connectivity also fuzzed across 50 distinct seeds.
+**Design note**: Corridors carry both room ids and geometric endpoints. The id graph makes connectivity provable/testable (BFS reaches all rooms); the geometry lets the client render L-shaped passages. BSP emits exactly (roomCount - 1) corridors = a spanning tree, so connectivity holds by construction. Socket.io `DUNGEON_LAYOUT` event deferred to the multiplayer/rooms spec.
