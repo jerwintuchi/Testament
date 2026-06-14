@@ -21,7 +21,7 @@ Each task cites R# and names its test before implementation begins.
   - Result is identical regardless of slot insertion order (P5)
   - Empty board returns empty SynergyMap
 
-- [ ] T3 [R2, R4] — Implement relic placement handler in `src/server/src/board/placement.ts`. Validates input, mutates board, re-evaluates synergies, emits `RELIC_PLACED` to room.
+- [x] T3 [R2, R4] — Implement relic placement handler in `src/server/src/board/placement.ts`. Validates input, mutates board, re-evaluates synergies, emits `RELIC_PLACED` to room.
   Test: `src/server/src/board/placement.test.ts`
   - Valid placement: board slot updated, `RELIC_PLACED` emitted to room with correct `synergyMap`
   - Occupied slot: no state mutation, `RELIC_PLACE_ERROR` emitted to requesting socket only, `code: 'SLOT_OCCUPIED'`
