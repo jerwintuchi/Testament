@@ -72,4 +72,4 @@
 **Decision**: Default to auto-aim when the right joystick (aim stick) is at rest. Manual aim activates when the player actively moves the aim joystick.
 **Rejected**: Manual-aim-only (too punishing for casual mobile players); auto-aim-only (removes strategic targeting for boss fights with minions).
 **Reason**: Mirrors Vampire Survivors' proven model — lowers skill floor for casual players, preserves ceiling for players who need to prioritize targets (e.g., targeting a specific minion during a boss fight). Desktop (mouse) is always explicit aim; the system applies primarily to mobile touch input.
-**Open question**: Auto-aim target priority rule — nearest enemy? Lowest HP? Highest threat? To be decided in the controls spec.
+**Auto-aim priority rule**: Nearest enemy (Euclidean distance from player position). No cone bias — enemies can approach from any direction, so a directional cone would create unfair dead zones. Lowest HP and highest threat rejected: counterintuitive during chaotic fights. To be implemented in the controls spec.
