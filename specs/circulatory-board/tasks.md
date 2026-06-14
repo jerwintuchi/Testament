@@ -5,7 +5,7 @@ Each task cites R# and names its test before implementation begins.
 
 ---
 
-- [ ] T1 [R1, R4, R7] — Define `HexCoord`, `RelicSlot`, `RelicBoard`, `Relic`, `SynergyMap`, `RelicTag` types in `src/shared/src/board.ts`. Implement `hexCoordKey(coord)` and `hexNeighbors(coord)`.
+- [x] T1 [R1, R4, R7] — Define `HexCoord`, `RelicSlot`, `RelicBoard`, `Relic`, `SynergyMap`, `RelicTag` types in `src/shared/src/board.ts`. Implement `hexCoordKey(coord)` and `hexNeighbors(coord)`.
   Test: `src/shared/src/board.test.ts`
   - `hexNeighbors` returns exactly 6 coords for any input
   - `hexNeighbors` returns the correct 6 axial offsets
