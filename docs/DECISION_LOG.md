@@ -51,3 +51,25 @@
 **Decision**: Switch active spec by manually editing 3 @import lines in CLAUDE.md.
 **Rejected**: Windows symlink pointing to `specs/ACTIVE/`.
 **Reason**: Windows symlinks require Developer Mode or Admin rights and fail silently when broken. Manual swap is explicit, shows in git diff, and impossible to accidentally skip.
+
+---
+
+## 2026-06-14 — Deployment: Browser-Only, No App Stores
+**Decision**: Ship as a browser game only. No iOS App Store, no Google Play.
+**Reason**: Avoids app store fees (~$25 one-time Android, $99/yr iOS), review delays, and platform policy risk. Browser covers the target audience (casual co-op, short sessions).
+**SSL**: Free via Vercel + Fly.io (Let's Encrypt auto-provisioned). Custom domain optional (~$10–15/yr) but not required at launch.
+
+---
+
+## 2026-06-14 — Mobile Fullscreen: PWA (Progressive Web App)
+**Decision**: Add PWA manifest (`manifest.json`, `"display": "standalone"`) so users can add the game to their home screen and play without browser chrome.
+**Rejected**: Relying solely on Fullscreen API — blocked on iOS Safari for non-video elements.
+**Reason**: PWA standalone mode is the standard cross-platform workaround. Hides URL bar and navigation on both iOS and Android once installed. Implementation cost is low (one JSON file + meta tags).
+
+---
+
+## 2026-06-14 — Control Scheme: Auto-Aim with Manual Override
+**Decision**: Default to auto-aim when the right joystick (aim stick) is at rest. Manual aim activates when the player actively moves the aim joystick.
+**Rejected**: Manual-aim-only (too punishing for casual mobile players); auto-aim-only (removes strategic targeting for boss fights with minions).
+**Reason**: Mirrors Vampire Survivors' proven model — lowers skill floor for casual players, preserves ceiling for players who need to prioritize targets (e.g., targeting a specific minion during a boss fight). Desktop (mouse) is always explicit aim; the system applies primarily to mobile touch input.
+**Open question**: Auto-aim target priority rule — nearest enemy? Lowest HP? Highest threat? To be decided in the controls spec.

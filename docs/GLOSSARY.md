@@ -40,5 +40,14 @@ The architectural line between `src/server/` (authoritative, trusted) and `src/c
 **Delta Event**
 A Socket.io event emitted by the server describing a *change* to game state (e.g., `RELIC_PLACED`, `BLEED_CLOCK_TICK`). Clients apply deltas to their local render state. Clients never compute state; they only render what the server tells them.
 
+**Auto-Aim**
+The default targeting behavior on mobile. When the aim joystick is at rest, the game automatically selects a target enemy using the priority rule (TBD in controls spec). Fires toward that target without player input. Desktop (mouse) users are always in manual aim.
+
+**Aim Override**
+Activated when the player actively moves the aim joystick (non-zero input). Disables auto-aim for that moment and fires in the joystick direction instead. Returns to auto-aim when the stick is released. Critical for targeting specific enemies during boss fights with minions.
+
+**PWA (Progressive Web App)**
+The mechanism for hiding browser chrome on mobile. Users add the game to their home screen via browser prompt; subsequent launches open in standalone mode with no URL bar or navigation buttons — indistinguishable from a native app. Requires `manifest.json` with `"display": "standalone"` and appropriate iOS meta tags.
+
 **R# / T# (Requirement / Task)**
 Traceability IDs used in specs. R# appears in `requirements.md`. T# appears in `tasks.md` and cites the R# it implements plus the test that verifies it. Nothing is done without this chain: R# → Design → T# → Test.
