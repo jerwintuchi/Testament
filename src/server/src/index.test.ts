@@ -120,4 +120,43 @@ describe('registerHandlers wiring (smoke)', () => {
     expect(err).toBeDefined();
     expect((err!.payload as { code: string }).code).toBe('NOT_OWNER');
   });
+
+  it('rejects a malformed place-relic payload with a targeted error, never throwing', () => {
+    const { io, connect } = makeFakeIo();
+    const manager = new RoomManager({ generateCode: () => 'ROOMZ', generateRunId: () => 'run-z' });
+    registerHandlers(io, manager);
+
+    const host = makeFakeSocket('host');
+    connect()!(host);
+    host.handlers.get('create-room')!(undefined);
+    const p2 = makeFakeSocket('p2');
+    connect()!(p2);
+    p2.handlers.get('join-room')!({ code: 'ROOMZ' });
+    host.handlers.get('start-run')!(undefined);
+
+    // Malformed payload: no coord. Must not throw inside the listener.
+    expect(() => host.handlers.get('place-relic')!({ relicId: 'r1' })).not.toThrow();
+    const err = host.emits.find(e => e.event === 'RELIC_PLACE_ERROR');
+    expect(err).toBeDefined();
+    expect((err!.payload as { code: string }).code).toBe('INVALID_COORD');
+  });
+
+  it('rejects a malformed revive payload with a targeted error, never throwing', () => {
+    const { io, connect } = makeFakeIo();
+    const manager = new RoomManager({ generateCode: () => 'ROOMW', generateRunId: () => 'run-w' });
+    registerHandlers(io, manager);
+
+    const host = makeFakeSocket('host');
+    connect()!(host);
+    host.handlers.get('create-room')!(undefined);
+    const p2 = makeFakeSocket('p2');
+    connect()!(p2);
+    p2.handlers.get('join-room')!({ code: 'ROOMW' });
+    host.handlers.get('start-run')!(undefined);
+
+    expect(() => host.handlers.get('revive')!({ sourceCoord: { q: 0 } })).not.toThrow();
+    const err = host.emits.find(e => e.event === 'LINKED_FATES_ERROR');
+    expect(err).toBeDefined();
+    expect((err!.payload as { code: string }).code).toBe('INVALID_COORD');
+  });
 });

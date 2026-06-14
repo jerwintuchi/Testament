@@ -37,6 +37,17 @@ export function summarizeRoom(room: Room): RoomSummary {
   return { code: room.code, status: room.status, hostId: room.hostId, players: room.players };
 }
 
+// Shape guards for untrusted socket payloads (I2). A malformed coord must yield
+// a targeted error, never an exception thrown inside an event listener.
+function isCoord(c: unknown): c is { q: number; r: number } {
+  return (
+    typeof c === 'object' &&
+    c !== null &&
+    typeof (c as { q: unknown }).q === 'number' &&
+    typeof (c as { r: unknown }).r === 'number'
+  );
+}
+
 export function registerHandlers(io: SocketIOServerLike, manager: RoomManager): void {
   io.on('connection', (socket) => {
     // In production, playerId comes from the authenticated handshake. Fall back
@@ -106,6 +117,10 @@ export function registerHandlers(io: SocketIOServerLike, manager: RoomManager): 
         return;
       }
       const req = payload as PlaceRelicRequest;
+      if (!req || !isCoord(req.coord) || typeof req.relicId !== 'string') {
+        socket.emit('RELIC_PLACE_ERROR', { code: 'INVALID_COORD', message: 'Malformed place-relic request.' });
+        return;
+      }
       const result = placeRelic(room.board, req, playerId, room.phase, room.registry);
       if (!result.ok) {
         socket.emit('RELIC_PLACE_ERROR', result.error);
@@ -122,6 +137,10 @@ export function registerHandlers(io: SocketIOServerLike, manager: RoomManager): 
         return;
       }
       const req = payload as LinkedFatesRequest;
+      if (!req || !isCoord(req.sourceCoord) || !isCoord(req.targetCoord)) {
+        socket.emit('LINKED_FATES_ERROR', { code: 'INVALID_COORD', message: 'Malformed revive request.' });
+        return;
+      }
       // reviverId is forced to the authenticated player, never trusted from the client.
       const result = reviveWithLinkedFates(
         room.board,

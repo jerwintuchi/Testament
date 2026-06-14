@@ -144,3 +144,10 @@
 **Decision**: Multiplayer spec fully implemented. T1-T6 done, 43 new tests (110 total across the project), clean typecheck.
 **Coverage**: R1 (create + unique codes), R2 (join + all four rejections), R3 (leave/cleanup/host reassignment), R4 (run lifecycle + deterministic dungeon), R5 (19-cell board, total ownership, cross-player adjacency), R6 (server-authoritative ownership), R7 (validated Socket.io handlers, delta broadcasts).
 **Design note**: Socket.io wiring is typed against minimal `SocketIOServerLike`/`ServerSocket` interfaces so the handler logic is fully testable with fakes (smoke + flow tests pass); the real socket.io Server is cast at a single boundary in `startServer`. Production bootstrap is guarded by an `isMain` check so importing the module under tests never opens a port. Rooms remain ephemeral and in-memory (I7).
+
+---
+
+## 2026-06-14 — Code Review #2 (Dungeon Gen + Multiplayer) PASS + socket payload hardening
+**Decision**: Second code review audited both Dungeon Generation and Multiplayer Rooms. Both PASS, no blockers. Confirmed R6 server-authoritative ownership is genuinely enforced and the deferred Circulatory Board ownership note is fully resolved.
+**Acted on review WARNING**: The `place-relic` and `revive` socket handlers cast untrusted payloads and relied on the pure handler to fault — a malformed `coord` would throw inside the listener (uncaught) instead of returning a targeted error. Added an `isCoord` shape guard at the socket boundary for both handlers; malformed payloads now emit `INVALID_COORD` to the requesting socket and never throw. Two regression tests added (102 server tests total).
+**Left as-is (documented)**: `join-room` emits `ROOM_NOT_FOUND` for a malformed code shape (slightly misleading vs a distinct bad-request code), and cross-player-adjacency is asserted only for the 2-player case (structurally guaranteed for 3-4 by the center cell bordering all arcs). Minor; revisit if it ever matters.
