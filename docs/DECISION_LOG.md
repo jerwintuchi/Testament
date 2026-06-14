@@ -159,3 +159,10 @@
 1. Added `INVALID_REQUEST` to `LobbyErrorEvent`; `join-room` now emits `INVALID_REQUEST` (not `ROOM_NOT_FOUND`) for a malformed payload, so a bad-shape request is no longer conflated with a genuinely missing room. Regression test added.
 2. Extended the cross-player adjacency test to assert the property for 2-, 3-, and 4-player boards (previously only 2). Confirms synergy is structurally possible at every supported player count.
 **Result**: 113 tests total (103 server + 10 shared), clean typecheck. No outstanding review findings.
+
+---
+
+## 2026-06-14 — Subagent frontmatter format + extension discovery limitation
+**Decision**: Converted the `tools:` frontmatter in all four `.claude/agents/*.md` files from YAML-list form to the canonical comma-separated inline form (e.g. `tools: Read, Grep, Glob`).
+**Reason**: Per Claude Code docs, the documented format is comma-separated; the YAML-list form is not the standard and may not parse. This makes the agents correctly loadable.
+**Known limitation (not fixable in-repo)**: Custom subagents in `.claude/agents/` are discoverable/invocable in the Claude Code **terminal CLI** (verify with `/agents`), but the **VS Code extension / Agent SDK harness** only exposes built-in agent types (claude, claude-code-guide, Explore, general-purpose, Plan, statusline-setup) and rejects custom names with "Agent type not found" (tracked upstream as claude-code issue #24439). This is why both code reviews this session were run via `general-purpose` with the `code-reviewer` role injected, rather than invoking the agent directly. When using the terminal CLI, the four agents should be directly invocable.

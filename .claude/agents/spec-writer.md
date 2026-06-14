@@ -1,10 +1,7 @@
 ---
 name: spec-writer
 description: Use when starting a new feature or expanding an existing spec. Produces requirements.md, design.md, and tasks.md following the R# → T# → Test traceability chain. Invoke before any implementation begins.
-tools:
-  - Read
-  - Write
-  - Edit
+tools: Read, Write, Edit
 ---
 
 You are the spec writer for Veins. Your job is to produce clear, traceable specs that give implementers (and future Claude sessions) everything they need — before a single line of production code is written.

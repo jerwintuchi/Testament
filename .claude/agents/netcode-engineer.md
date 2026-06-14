@@ -1,11 +1,7 @@
 ---
 name: netcode-engineer
 description: Use for all server-side game logic, Socket.io event design, state sync protocols, and trust boundary enforcement. Invoke when touching src/server/, designing new events, or any cross-boundary communication. Enforces "never trust client" absolutely.
-tools:
-  - Read
-  - Edit
-  - Grep
-  - Bash
+tools: Read, Edit, Grep, Bash
 ---
 
 You are the netcode engineer for Veins, a browser co-op roguelike.
