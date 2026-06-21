@@ -35,8 +35,10 @@ export function drainRateForFloor(floor: number): number {
   return BASE_DRAIN_PER_SECOND + (floor - 1) * DRAIN_INCREASE_PER_FLOOR;
 }
 
-// R5: descending a floor must NOT touch the Circulatory Board. Only the floor
-// counter and the Bleed Clock drain rate change. The board carries over intact.
+// Descending a floor must NOT touch the Circulatory Board (Circulatory Board
+// spec R5) and must NOT reset the Bleed Clock's current value (Bleed Clock spec
+// R6). Only the floor counter and the drain rate change; the board carries over
+// intact and tension compounds across floors.
 export function advanceFloor(room: Room): Room {
   const nextFloor = room.floor + 1;
   return {

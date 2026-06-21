@@ -192,6 +192,17 @@ describe('Bleed Clock loop + extract wiring (T5)', () => {
     expect(tick!.room).toBe('TICK1');
   });
 
+  it('a non-depleting tick emits ONLY the delta, never a full resync (R4/I6)', () => {
+    const { io, roomEmits } = makeFakeIo();
+    const manager = startedManager('TICK3');
+    runBleedTick(io, manager, 1);
+    // Exactly one broadcast, and it is the delta — no RUN_ENDED, no BOARD/STATE resync.
+    expect(roomEmits).toHaveLength(1);
+    expect(roomEmits[0]!.event).toBe('BLEED_CLOCK_TICK');
+    expect(roomEmits.some(e => e.event === 'RUN_ENDED')).toBe(false);
+    expect(roomEmits.some(e => /SYNC|RESYNC|STATE/.test(e.event))).toBe(false);
+  });
+
   it('runBleedTick broadcasts RUN_ENDED (wiped) when the clock depletes', () => {
     const { io, roomEmits } = makeFakeIo();
     const manager = startedManager('TICK2');

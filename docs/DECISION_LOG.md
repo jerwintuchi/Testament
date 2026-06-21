@@ -182,3 +182,13 @@
 - The `BleedClock` type moved from server `room/state.ts` to shared `bleedClock.ts` as `BleedClockState`, since the client must render it (I4). `Room` gained `outcome: RunOutcome | null`.
 - Drain math is a single pure function `tickBleedClock(clock, dt)`; room transitions (`advanceBleedForRoom`, `extractRun`) wrap it; `RoomManager` exposes `activeRooms/tickRoom/extractRoom`; the socket layer adds a `runBleedTick(io, manager, dt)` step (exported for tests) driven by a `setInterval` in `startServer` (guarded out of tests) plus an `extract` handler. Same thin-plumbing-over-pure-core pattern as prior specs.
 - Tuning (DUNGEON_START_HP=1000, drain rates) remains placeholder; balance belongs to a future gameplay-tuning pass, not this mechanic spec.
+
+---
+
+## 2026-06-14 — Code Review #3 (Bleed Clock) PASS + minor fixes
+**Decision**: Code-reviewer audited the Bleed Clock spec. PASS, no blockers. All R1-R8 ACs implemented and tested; R3/R5/R6/R8/P5/I2/I6 confirmed. This was the first review run via the actual `code-reviewer` subagent (the frontmatter fix made the custom agents addressable in this harness).
+**Acted on findings**:
+1. (WARNING) Added an explicit negative test asserting a non-depleting `runBleedTick` emits ONLY `BLEED_CLOCK_TICK` — exactly one broadcast, no `RUN_ENDED`, no full resync — closing R4's "no full game-state resync per tick" AC (I6).
+2. (NOTE) Fixed stale comment on `advanceFloor` in `state.ts`: it tagged "R5" referencing the Circulatory Board spec's numbering (ambiguous against Bleed Clock R5 = the clamp). Reworded to cite both Circulatory Board R5 (board untouched) and Bleed Clock R6 (current preserved) by description.
+**Documented follow-up (not in this spec's scope)**: `advanceFloor` is pure and unit-tested but has no live `descend`/`advance-floor` socket handler — R2/R6 floor-transition behavior is verified at the unit level only, not end-to-end. A future floor-progression spec should add the inbound handler that calls `advanceFloor` and broadcasts the new floor + dungeon. Tracked here.
+**Result**: 136 tests total (124 server + 12 shared), clean typecheck. Bleed Clock spec verified complete.
