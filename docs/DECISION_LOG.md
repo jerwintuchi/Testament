@@ -214,3 +214,10 @@
 - `descendFloor(room, config?)` reuses the pure `advanceFloor` for carry-over, then generates the new floor's dungeon and sets phase `combat`. It mutates the room in place (manager holds the reference), consistent with `advanceBleedForRoom`/`extractRun`.
 - Same thin-plumbing pattern: pure-ish core -> `RoomManager.descendRoom` -> `descend` socket handler broadcasting `FLOOR_ADVANCED`.
 - Note: combat->loot phase transition within a floor (which re-enables relic placement) is NOT part of this spec; it belongs to the future enemy/combat/encounter spec. Descending sets `combat`; nothing yet flips it back to `loot`.
+
+---
+
+## 2026-06-14 — Code Review #4 (Floor Progression) PASS
+**Decision**: Code-reviewer audited Floor Progression. PASS, no blockers, no warnings — only informational notes. Confirmed R1-R6 + P1-P4 covered, floor-1 default proven non-breaking against existing dungeon/manager suites, trust boundary + I1-I4/I6/I7 intact.
+**Acted on a NOTE**: Strengthened the R3 board-preservation test to also assert reference identity (`toBe`), not just deep equality — descend carries the board by reference and must never clone/rebuild it. Documents the stronger-than-required guarantee the reviewer highlighted.
+**Result**: 150 tests total (137 server + 13 shared), clean typecheck. Floor Progression verified complete. All five specs to date are code-reviewed PASS.

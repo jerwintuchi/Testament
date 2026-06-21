@@ -35,9 +35,13 @@ describe('descendFloor — happy path', () => {
 
   it('preserves the board and the clock current value (R3)', () => {
     const room = makeRoom();
+    const boardRef = room.board;
     const boardSnapshot = JSON.stringify(room.board);
     const currentBefore = room.bleedClock.current;
     descendFloor(room);
+    // Preserved by reference identity (stronger than deep equality): descend
+    // must never clone or rebuild the board.
+    expect(room.board).toBe(boardRef);
     expect(JSON.stringify(room.board)).toBe(boardSnapshot);
     expect(room.bleedClock.current).toBe(currentBefore);
   });
