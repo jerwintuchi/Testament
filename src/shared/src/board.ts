@@ -6,7 +6,8 @@ export type HexCoord = { q: number; r: number };
 export type RelicId = string;
 export type PlayerId = string;
 
-export type RelicTag = 'fire' | 'aoe' | 'party' | 'poison' | 'shield' | 'chain';
+export type RelicTag = 'fire' | 'aoe' | 'party' | 'poison' | 'shield' | 'chain' | 'precision'
+  | 'sanctum' | 'tumor' | 'chorus' | 'penitent';
 
 export type Effect = {
   description: string;

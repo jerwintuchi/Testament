@@ -13,9 +13,7 @@
 
 ## Active Spec
 <!-- SWAP THESE THREE LINES when switching features — one of the few times you edit this file -->
-@specs/floor-progression/requirements.md
-@specs/floor-progression/design.md
-@specs/floor-progression/tasks.md
+<!-- no active spec — all recent specs complete, awaiting new feature selection -->
 
 ## Workflow Rules
 @.claude/rules/spec-workflow.md

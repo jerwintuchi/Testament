@@ -17,6 +17,18 @@ function makeRoom(overrides: Partial<Room> = {}): Room {
     floor: 1,
     bleedClock: { current: 100, max: 100, drainPerSecond: 10 },
     outcome: null,
+    dungeon: null,
+    enemies: new Map(),
+    playerStates: new Map(),
+    aimStates: new Map(),
+    projectiles: new Map(),
+    weaponCooldowns: new Map(),
+    playerMoveInputs: new Map(),
+    nextProjectileId: 0,
+    lootPool: [],
+    fireDurations: new Map(),
+    combatRng: { next: () => 0 } as never,
+    enemiesKilled: 0,
     ...overrides,
   };
 }
@@ -35,10 +47,18 @@ describe('tickBleedClock', () => {
     expect(tickBleedClock(clock, 100).clock.current).toBe(0);
   });
 
-  it('reports depleted exactly when current reaches 0', () => {
-    const clock: BleedClockState = { current: 10, max: 100, drainPerSecond: 10 };
-    expect(tickBleedClock(clock, 0.5).depleted).toBe(false);
-    expect(tickBleedClock(clock, 1).depleted).toBe(true);
+  it('reports depleted exactly when current reaches 0 (stage 0, no multiplier)', () => {
+    // current=90/max=100 → 10% bled → stage 0 → base drain, no bonus
+    const clock: BleedClockState = { current: 90, max: 100, drainPerSecond: 90 };
+    expect(tickBleedClock(clock, 0.5).depleted).toBe(false); // drains 45, remains 45
+    expect(tickBleedClock(clock, 1).depleted).toBe(true);    // drains 90, reaches 0
+  });
+
+  it('stage 3 (≥80% bled) applies 2× drain multiplier', () => {
+    // current=5/max=100 → 95% bled → stage 3 → effective drain = drainPerSecond × 2.0
+    const clock: BleedClockState = { current: 5, max: 100, drainPerSecond: 5 };
+    expect(tickBleedClock(clock, 0.4).depleted).toBe(false); // effective drain=10, drains 4, remains 1
+    expect(tickBleedClock(clock, 0.5).depleted).toBe(true);  // effective drain=10, drains 5, reaches 0
   });
 
   it('is deterministic and does not mutate the input clock', () => {
@@ -66,7 +86,7 @@ describe('advanceBleedForRoom', () => {
     const res = advanceBleedForRoom(room, 1);
     expect(room.status).toBe('ended');
     expect(room.outcome).toBe('wiped');
-    expect(res.ended).toEqual({ outcome: 'wiped', finalFloor: 3 });
+    expect(res.ended).toEqual({ outcome: 'wiped', finalFloor: 3, enemiesKilled: 0 });
   });
 
   it('does not re-end an already-ended room (terminal once)', () => {
@@ -85,7 +105,7 @@ describe('extractRun', () => {
     if (!res.ok) return;
     expect(room.status).toBe('ended');
     expect(room.outcome).toBe('extracted');
-    expect(res.ended).toEqual({ outcome: 'extracted', finalFloor: 2 });
+    expect(res.ended).toEqual({ outcome: 'extracted', finalFloor: 2, enemiesKilled: 0 });
   });
 
   it('rejects extraction when the run is not in progress', () => {

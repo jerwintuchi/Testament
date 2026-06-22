@@ -24,6 +24,14 @@ function makeRoom(slots: RelicSlot[], relics: Relic[]): Room {
     floor: 1,
     bleedClock: { current: 100, max: 100, drainPerSecond: 1 },
     outcome: null,
+    dungeon: null,
+    enemies: new Map(),
+    playerStates: new Map(),
+    aimStates: new Map(),
+    projectiles: new Map(),
+    weaponCooldowns: new Map(),
+    playerMoveInputs: new Map(),
+    nextProjectileId: 0,
   };
 }
 

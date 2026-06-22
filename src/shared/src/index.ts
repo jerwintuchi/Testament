@@ -4,3 +4,5 @@ export * from './events.js';
 export * from './dungeon.js';
 export * from './lobby.js';
 export * from './bleedClock.js';
+export * from './combat.js';
+export * from './relics.js';

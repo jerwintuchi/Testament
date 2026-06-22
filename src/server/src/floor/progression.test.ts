@@ -18,6 +18,14 @@ function makeRoom(overrides: Partial<Room> = {}): Room {
     floor: 1,
     bleedClock: { current: 640, max: 1000, drainPerSecond: drainRateForFloor(1) },
     outcome: null,
+    dungeon: null,
+    enemies: new Map(),
+    playerStates: new Map(),
+    aimStates: new Map(),
+    projectiles: new Map(),
+    weaponCooldowns: new Map(),
+    playerMoveInputs: new Map(),
+    nextProjectileId: 0,
     ...overrides,
   };
 }

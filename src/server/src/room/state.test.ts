@@ -23,8 +23,60 @@ function makeRoom(slots: RelicSlot[], relics: Relic[]): Room {
     floor: 1,
     bleedClock: { current: 100, max: 100, drainPerSecond: drainRateForFloor(1) },
     outcome: null,
+    dungeon: null,
+    enemies: new Map(),
+    playerStates: new Map(),
+    aimStates: new Map(),
+    projectiles: new Map(),
+    weaponCooldowns: new Map(),
+    playerMoveInputs: new Map(),
+    nextProjectileId: 0,
   };
 }
+
+// T4 — R2: Room carries combat state maps.
+describe('Room combat state fields (T4, R2)', () => {
+  it('a freshly constructed room has an empty enemies map', () => {
+    const room = makeRoom([], []);
+    expect(room.enemies.size).toBe(0);
+  });
+
+  it('a freshly constructed room has an empty playerStates map (populated on run start)', () => {
+    const room = makeRoom([], []);
+    expect(room.playerStates.size).toBe(0);
+  });
+});
+
+// T3 — R4: Room carries aimStates map, initialized on run start.
+describe('Room.aimStates (T3, R4)', () => {
+  it('a freshly constructed room has an empty aimStates map', () => {
+    const room = makeRoom([], []);
+    expect(room.aimStates.size).toBe(0);
+  });
+});
+
+// T2 (weapon spec) — R3: Room carries weapon state maps.
+describe('Room weapon state fields (T2-weapon, R3)', () => {
+  it('projectiles is an empty Map on construction', () => {
+    const room = makeRoom([], []);
+    expect(room.projectiles.size).toBe(0);
+  });
+
+  it('weaponCooldowns is an empty Map on construction (populated on run start)', () => {
+    const room = makeRoom([], []);
+    expect(room.weaponCooldowns.size).toBe(0);
+  });
+
+  it('playerMoveInputs is an empty Map on construction (populated on run start)', () => {
+    const room = makeRoom([], []);
+    expect(room.playerMoveInputs.size).toBe(0);
+  });
+
+  it('nextProjectileId starts at 0', () => {
+    const room = makeRoom([], []);
+    expect(room.nextProjectileId).toBe(0);
+  });
+});
 
 // ---
 

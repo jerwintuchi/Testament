@@ -1,13 +1,19 @@
 import { randomUUID } from 'node:crypto';
-import type { DungeonLayout, LobbyErrorEvent, PlayerId, RoomCode } from '@veins/shared';
-import { MAX_PLAYERS, MIN_PLAYERS_TO_START, HEX_BOARD_RADIUS } from '@veins/shared';
+import type { AimState, DungeonLayout, LobbyErrorEvent, PlayerId, RoomCode, PlayerState } from '@veins/shared';
+import { MAX_PLAYERS, MIN_PLAYERS_TO_START as GAME_MIN_PLAYERS, HEX_BOARD_RADIUS, PLAYER_MAX_HP, STARTER_RELICS } from '@veins/shared';
+
+// Allow solo dev/test runs via DEV_MIN_PLAYERS=1 env var. Production always uses GAME_MIN_PLAYERS.
+const MIN_PLAYERS_TO_START = parseInt(process.env['DEV_MIN_PLAYERS'] ?? String(GAME_MIN_PLAYERS), 10);
 import type { BleedClockTickEvent, RunEndedEvent, FloorAdvancedEvent } from '@veins/shared';
 import { generateDungeon } from '../dungeon/bsp.js';
 import { buildInitialBoard } from '../board/layout.js';
 import { advanceBleedForRoom, extractRun } from '../bleed/clock.js';
 import { descendFloor } from '../floor/progression.js';
+import { spawnEnemies } from '../combat/spawn.js';
 import { drainRateForFloor, type Room } from './state.js';
 import { generateRoomCode } from './roomCode.js';
+import { generateLootPool } from '../loot/pool.js';
+import { createRng, hashSeed } from '../rng/seeded.js';
 
 const DUNGEON_START_HP = 1000;
 
@@ -62,6 +68,17 @@ export class RoomManager {
       floor: 0,
       bleedClock: { current: 0, max: 0, drainPerSecond: 0 },
       outcome: null,
+      dungeon: null,
+      enemies: new Map(),
+      playerStates: new Map(),
+      aimStates: new Map(),
+      projectiles: new Map(),
+      weaponCooldowns: new Map(),
+      playerMoveInputs: new Map(),
+      nextProjectileId: 0,
+      lootPool: [],
+      fireDurations: new Map(),
+      combatRng: createRng(0),
     };
     this.rooms.set(code, room);
     return { ok: true, room };
@@ -130,6 +147,41 @@ export class RoomManager {
       max: DUNGEON_START_HP,
       drainPerSecond: drainRateForFloor(1),
     };
+    room.dungeon = dungeon;
+    // Initialise per-player HP and position (R2). Players start at the dungeon
+    // entry point (room-0 centre); position refinement belongs to the encounter spec.
+    const entryRoom = dungeon.rooms[0];
+    const startX = entryRoom ? entryRoom.rect.x + entryRoom.rect.width / 2 : 0;
+    const startY = entryRoom ? entryRoom.rect.y + entryRoom.rect.height / 2 : 0;
+    room.playerStates = new Map<string, PlayerState>(
+      room.players.map(id => [id, { hp: PLAYER_MAX_HP, maxHp: PLAYER_MAX_HP, downed: false, x: startX, y: startY }])
+    );
+    // All players start in auto-aim mode; target is null until first combat tick (R4).
+    room.aimStates = new Map<string, AimState>(
+      room.players.map(id => [id, { mode: 'auto', targetId: null }])
+    );
+    // Weapon system: no projectiles yet, cooldowns start at 0 (fire immediately),
+    // move inputs start at rest (R3).
+    room.projectiles      = new Map();
+    room.weaponCooldowns  = new Map(room.players.map(id => [id, 0]));
+    room.playerMoveInputs = new Map(room.players.map(id => [id, { dx: 0, dy: 0 }]));
+    room.nextProjectileId = 0;
+    // Populate the relic registry with the starter set so placement is possible on floor 1.
+    room.registry = new Map(STARTER_RELICS.map(r => [r.id, r]));
+    // Floor-1 loot pool: seeded random selection of up to 3 unplaced relics.
+    room.lootPool = generateLootPool([...room.registry.keys()], room.board, runId, 1);
+    // Combat RNG seeded from runId; advances across floors (not reset on descend).
+    room.combatRng = createRng(hashSeed(`${runId}#combat`));
+    room.enemiesKilled = 0;
+
+    // Doctrine scoring state — initialized fresh each run.
+    room.doctrineScores = { sanctum: 0, tumor: 0, chorus: 0, penitent: 0 };
+    room.doctrineThresholdsFired = new Set();
+    room.bleedDrainMult = 1;
+    room.chorusVotiveBonus = false;
+    room.tumorAggressionActive = false;
+    room.penitentFreeRevive = false;
+    room.lastAttackerByEnemy = new Map();
 
     return { ok: true, room, dungeon };
   }
@@ -156,10 +208,21 @@ export class RoomManager {
     return extractRun(room);
   }
 
-  // Descends a room to the next floor (new dungeon, raised drain, board carried).
+  // Descends a room to the next floor. Updates the dungeon, spawns enemies for
+  // the new floor, and transitions phase to combat (T11, R3).
   descendRoom(code: RoomCode): { ok: true; event: FloorAdvancedEvent } | { ok: false } {
     const room = this.rooms.get(code);
     if (!room) return { ok: false };
-    return descendFloor(room);
+    const res = descendFloor(room); // sets room.floor, room.dungeon, room.phase='combat'
+    if (!res.ok) return { ok: false };
+    // Fire DoT does not persist across floor boundaries.
+    room.fireDurations = new Map();
+    // Spawn enemies for the new floor (deterministic from runId + floor).
+    room.enemies = spawnEnemies(room.runId, room.floor, res.event.dungeon);
+    // If the dungeon somehow has no non-entry rooms (degenerate case), skip straight
+    // to loot phase — combat with zero enemies would flip phase on the first tick
+    // anyway, but doing it here avoids a spurious PHASE_CHANGED event.
+    if (room.enemies.size === 0) room.phase = 'loot';
+    return res;
   }
 }

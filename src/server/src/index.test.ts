@@ -1,7 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { registerHandlers, summarizeRoom, runBleedTick, type ServerSocket, type SocketIOServerLike } from './index.js';
+import { registerHandlers, summarizeRoom, runBleedTick, runCombatTick, type ServerSocket, type SocketIOServerLike } from './index.js';
 import { RoomManager } from './room/manager.js';
 import type { Room } from './room/state.js';
+import { buildInitialBoard } from './board/layout.js';
+import { drainRateForFloor } from './room/state.js';
+import { generateDungeon, STANDARD_DUNGEON_CONFIG } from './dungeon/bsp.js';
+import { createRng, hashSeed } from './rng/seeded.js';
+import { STARTER_RELICS } from '@veins/shared';
+import { FIRE_DURATION_S } from './relic/effects.js';
 
 // A fake Socket.io server that captures the connection handler and records
 // room-broadcast emits, so we can drive the wiring without a real network.
@@ -85,17 +91,41 @@ describe('registerHandlers wiring (smoke)', () => {
     host.handlers.get('start-run')!(undefined);
     expect(roomEmits.some(e => e.event === 'RUN_STARTED')).toBe(true);
 
-    // Host places a relic into one of their own slots.
+    // Host places a relic from the loot pool into one of their own slots.
     const room = manager.getRoom('ROOMX')!;
     const ownSlot = Object.values(room.board.slots).find(s => s.ownerId === 'host')!;
-    room.registry.set('r1', {
-      id: 'r1', name: 'r1', tags: ['fire'], baseEffect: { description: '' }, synergyEffect: { description: '' },
-    });
-    host.handlers.get('place-relic')!({ coord: ownSlot.coord, relicId: 'r1' });
+    const relicId = room.lootPool[0]!;
+    host.handlers.get('place-relic')!({ coord: ownSlot.coord, relicId });
 
     const placed = roomEmits.find(e => e.event === 'RELIC_PLACED');
     expect(placed).toBeDefined();
     expect((placed!.payload as { ownerId: string }).ownerId).toBe('host');
+  });
+
+  it('RUN_STARTED carries relicRegistry with all STARTER_RELICS (T2-board-ui, R3)', async () => {
+    const { STARTER_RELICS } = await import('@veins/shared');
+    const { io, roomEmits, connect } = makeFakeIo();
+    const manager = new RoomManager({ generateCode: () => 'RROOM', generateRunId: () => 'run-rr' });
+    registerHandlers(io, manager);
+
+    const host = makeFakeSocket('host');
+    connect()!(host);
+    host.handlers.get('create-room')!(undefined);
+    const p2 = makeFakeSocket('p2');
+    connect()!(p2);
+    p2.handlers.get('join-room')!({ code: 'RROOM' });
+    host.handlers.get('start-run')!(undefined);
+
+    const ev = roomEmits.find(e => e.event === 'RUN_STARTED');
+    expect(ev).toBeDefined();
+    const payload = ev!.payload as { relicRegistry: Record<string, unknown>; board: unknown; synergyMap: unknown };
+    expect(payload.board).toBeDefined();
+    expect(payload.synergyMap).toBeDefined();
+    expect(typeof payload.relicRegistry).toBe('object');
+    expect(Object.keys(payload.relicRegistry)).toHaveLength(STARTER_RELICS.length);
+    for (const relic of STARTER_RELICS) {
+      expect(payload.relicRegistry[relic.id]).toBeDefined();
+    }
   });
 
   it('rejects placing into another player slot with NOT_OWNER (targeted error)', () => {
@@ -111,10 +141,11 @@ describe('registerHandlers wiring (smoke)', () => {
     p2.handlers.get('join-room')!({ code: 'ROOMY' });
     host.handlers.get('start-run')!(undefined);
 
-    // Host tries to place into a slot owned by p2.
+    // Host tries to place a pool relic into a slot owned by p2.
     const room = manager.getRoom('ROOMY')!;
     const otherSlot = Object.values(room.board.slots).find(s => s.ownerId === 'p2')!;
-    host.handlers.get('place-relic')!({ coord: otherSlot.coord, relicId: 'r1' });
+    const relicId = room.lootPool[0]!;
+    host.handlers.get('place-relic')!({ coord: otherSlot.coord, relicId });
 
     const err = host.emits.find(e => e.event === 'RELIC_PLACE_ERROR');
     expect(err).toBeDefined();
@@ -166,11 +197,85 @@ describe('registerHandlers wiring (smoke)', () => {
     connect()!(p2);
     p2.handlers.get('join-room')!({ code: 'ROOMW' });
     host.handlers.get('start-run')!(undefined);
+    // Descend so the room is in combat phase (revive is phase-gated to combat).
+    host.handlers.get('descend')!(undefined);
 
     expect(() => host.handlers.get('revive')!({ sourceCoord: { q: 0 } })).not.toThrow();
     const err = host.emits.find(e => e.event === 'LINKED_FATES_ERROR');
     expect(err).toBeDefined();
     expect((err!.payload as { code: string }).code).toBe('INVALID_COORD');
+  });
+
+  it('RUN_STARTED carries lootPool with valid relic ids (T2-loot, R3)', () => {
+    const { io, roomEmits, connect } = makeFakeIo();
+    const manager = new RoomManager({ generateCode: () => 'LPOOL1', generateRunId: () => 'run-lp1' });
+    registerHandlers(io, manager);
+
+    const host = makeFakeSocket('host');
+    connect()!(host);
+    host.handlers.get('create-room')!(undefined);
+    const p2 = makeFakeSocket('p2');
+    connect()!(p2);
+    p2.handlers.get('join-room')!({ code: 'LPOOL1' });
+    host.handlers.get('start-run')!(undefined);
+
+    const ev = roomEmits.find(e => e.event === 'RUN_STARTED');
+    expect(ev).toBeDefined();
+    const payload = ev!.payload as { lootPool: string[] };
+    expect(Array.isArray(payload.lootPool)).toBe(true);
+    expect(payload.lootPool.length).toBeGreaterThan(0);
+    const room = manager.getRoom('LPOOL1')!;
+    for (const id of payload.lootPool) {
+      expect(room.registry.has(id)).toBe(true);
+    }
+  });
+
+  it('place-relic rejects a relic not in lootPool with RELIC_NOT_IN_POOL (T2-loot, R4)', () => {
+    const { io, connect } = makeFakeIo();
+    const manager = new RoomManager({ generateCode: () => 'LPOOL2', generateRunId: () => 'run-lp2' });
+    registerHandlers(io, manager);
+
+    const host = makeFakeSocket('host');
+    connect()!(host);
+    host.handlers.get('create-room')!(undefined);
+    const p2 = makeFakeSocket('p2');
+    connect()!(p2);
+    p2.handlers.get('join-room')!({ code: 'LPOOL2' });
+    host.handlers.get('start-run')!(undefined);
+
+    const room = manager.getRoom('LPOOL2')!;
+    const ownSlot = Object.values(room.board.slots).find(s => s.ownerId === 'host')!;
+    // Use a relic that exists in the registry but is NOT in the loot pool.
+    const notInPool = [...room.registry.keys()].find(id => !room.lootPool.includes(id))!;
+    host.handlers.get('place-relic')!({ coord: ownSlot.coord, relicId: notInPool });
+
+    const err = host.emits.find(e => e.event === 'RELIC_PLACE_ERROR');
+    expect(err).toBeDefined();
+    expect((err!.payload as { code: string }).code).toBe('RELIC_NOT_IN_POOL');
+  });
+
+  it('successful placement removes relic from lootPool (T2-loot, R4)', () => {
+    const { io, connect } = makeFakeIo();
+    const manager = new RoomManager({ generateCode: () => 'LPOOL3', generateRunId: () => 'run-lp3' });
+    registerHandlers(io, manager);
+
+    const host = makeFakeSocket('host');
+    connect()!(host);
+    host.handlers.get('create-room')!(undefined);
+    const p2 = makeFakeSocket('p2');
+    connect()!(p2);
+    p2.handlers.get('join-room')!({ code: 'LPOOL3' });
+    host.handlers.get('start-run')!(undefined);
+
+    const room = manager.getRoom('LPOOL3')!;
+    const ownSlot = Object.values(room.board.slots).find(s => s.ownerId === 'host')!;
+    const relicId = room.lootPool[0]!;
+    const poolSizeBefore = room.lootPool.length;
+
+    host.handlers.get('place-relic')!({ coord: ownSlot.coord, relicId });
+
+    expect(room.lootPool).not.toContain(relicId);
+    expect(room.lootPool.length).toBe(poolSizeBefore - 1);
   });
 });
 
@@ -275,5 +380,61 @@ describe('Bleed Clock loop + extract wiring (T5)', () => {
     const err = sock.emits.find(e => e.event === 'LOBBY_ERROR');
     expect(err).toBeDefined();
     expect((err!.payload as { code: string }).code).toBe('NOT_IN_ROOM');
+  });
+});
+
+describe('runCombatTick — relic effect ENEMY_DAMAGED events (T5, R3, R4, R5)', () => {
+  const DUNGEON = generateDungeon('r', STANDARD_DUNGEON_CONFIG, 1);
+
+  function makeActiveRoom(overrides: Partial<Room> = {}): Room {
+    return {
+      id: 'r', code: 'R', hostId: 'p1', status: 'in-progress', runId: 'run-1',
+      players: ['p1', 'p2'],
+      board: buildInitialBoard(['p1', 'p2'], 2),
+      registry: new Map(STARTER_RELICS.map(r => [r.id, r])),
+      phase: 'combat', floor: 1,
+      bleedClock: { current: 1000, max: 1000, drainPerSecond: drainRateForFloor(1) },
+      outcome: null, dungeon: DUNGEON,
+      enemies: new Map(),
+      playerStates: new Map([
+        ['p1', { hp: 100, maxHp: 100, downed: false, x: 0, y: 0 }],
+        ['p2', { hp: 100, maxHp: 100, downed: false, x: 500, y: 500 }],
+      ]),
+      aimStates: new Map([
+        ['p1', { mode: 'auto' as const, targetId: null }],
+        ['p2', { mode: 'auto' as const, targetId: null }],
+      ]),
+      projectiles: new Map(),
+      weaponCooldowns: new Map([['p1', 0], ['p2', 0]]),
+      playerMoveInputs: new Map([['p1', { dx: 0, dy: 0 }], ['p2', { dx: 0, dy: 0 }]]),
+      nextProjectileId: 0,
+      lootPool: [],
+      fireDurations: new Map(),
+      combatRng: createRng(hashSeed('run-1#combat')),
+      ...overrides,
+    };
+  }
+
+  it('emits ENEMY_DAMAGED for fire DoT damage each combat tick (T5, R4)', () => {
+    const roomEmits: Array<{ room: string; event: string; payload: unknown }> = [];
+    const fakeIo: SocketIOServerLike = {
+      on: () => {},
+      to: (room: string) => ({ emit: (ev, payload) => roomEmits.push({ room, event: ev, payload }) }),
+    };
+    const manager = new RoomManager({ generateCode: () => 'FT5', generateRunId: () => 'run-t5' });
+    const room = makeActiveRoom({ code: 'FT5' });
+    // Enemy burning with enough HP to survive 1s of fire
+    room.enemies.set('e1', { id: 'e1', typeId: 'shambler', x: 400, y: 0, hp: 50, maxHp: 60, damage: 15, alive: true, attackCooldownRemaining: 999 });
+    room.fireDurations.set('e1', FIRE_DURATION_S);
+    // Inject room directly into the manager's internal map via startRun bypass:
+    // We need to inject the room. The cleanest way here is to place it via `(manager as any).rooms`.
+    (manager as unknown as { rooms: Map<string, Room> }).rooms.set('FT5', room);
+
+    runCombatTick(fakeIo, manager, 1.0);
+
+    const fireDamageEvents = roomEmits.filter(e => e.event === 'ENEMY_DAMAGED');
+    expect(fireDamageEvents.length).toBeGreaterThan(0);
+    const e1Events = fireDamageEvents.filter(e => (e.payload as { enemyId: string }).enemyId === 'e1');
+    expect(e1Events.length).toBeGreaterThan(0);
   });
 });

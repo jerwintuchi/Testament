@@ -8,5 +8,7 @@ export type BleedClockState = {
 
 export type RunOutcome = 'extracted' | 'wiped';
 
+export type RunEndedEvent = { outcome: RunOutcome; finalFloor: number; enemiesKilled: number };
+
 // How often the server ticks and broadcasts the clock.
 export const BLEED_TICK_INTERVAL_MS = 1000;

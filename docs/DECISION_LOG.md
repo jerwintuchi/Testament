@@ -217,7 +217,252 @@
 
 ---
 
+## 2026-06-21 — Active Spec switched: Floor Progression -> Enemy System + Combat
+**Decision**: Floor Progression complete; active spec swapped to Enemy System + Combat.
+**Reason**: Closes the documented open thread from Floor Progression: `descend` sets `phase = 'combat'` but nothing flips it back to `'loot'`. This spec adds enemy spawning, AI tick, attack resolution, player HP, the combat->loot phase transition (last enemy dies), and wires the `move-player` handler and Linked Fates phase guard.
+
+---
+
 ## 2026-06-14 — Code Review #4 (Floor Progression) PASS
 **Decision**: Code-reviewer audited Floor Progression. PASS, no blockers, no warnings — only informational notes. Confirmed R1-R6 + P1-P4 covered, floor-1 default proven non-breaking against existing dungeon/manager suites, trust boundary + I1-I4/I6/I7 intact.
 **Acted on a NOTE**: Strengthened the R3 board-preservation test to also assert reference identity (`toBe`), not just deep equality — descend carries the board by reference and must never clone/rebuild it. Documents the stronger-than-required guarantee the reviewer highlighted.
 **Result**: 150 tests total (137 server + 13 shared), clean typecheck. Floor Progression verified complete. All five specs to date are code-reviewed PASS.
+
+---
+
+## 2026-06-21 — Enemy System + Combat spec complete
+**Decision**: Enemy System + Combat spec fully implemented. T1-T14 done, 206 server + 28 shared = 234 tests passing, clean typecheck.
+**Coverage**: R1 (ENEMY_TYPES: shambler/spitter stats), R2 (PlayerState + per-player HP map), R3 (deterministic spawnEnemies), R4 (pure tickEnemies), R5 (applyEnemyAttacks + downed state), R6 (wipe check + terminal once), R7 (allEnemiesDead + combat->loot phase transition), R8 (move-player handler), R9 (server authority — no enemy state from client), R10 (delta events: ENEMY_SPAWNED/DAMAGED/DIED/PLAYER_DAMAGED/DOWNED/REVIVED/MOVED/PHASE_CHANGED), R11 (revive phase guard — combat only), R12 (COMBAT_TICK_MS=100ms loop, stops on phase leave).
+**Architecture decisions**:
+- Enemy IDs are deterministic strings `${runId}-${floor}-${room.id}-${i}` (not UUIDs) to keep `spawnEnemies` a pure function with no side effects.
+- Spawn seed `${runId}#${floor}#spawn` is distinct from dungeon layout seed `${runId}#${floor}` so the two procedural systems are independently reproducible but never collide.
+- `Room.dungeon: DungeonLayout | null` added so `stepCombat` can access dungeon bounds for `movePlayer` clamping (and future wall collision).
+- `stepCombat` returns a `CombatStepResult` discriminated union; the Socket.io tick driver (`runCombatTick`) is thin plumbing that fans out delta events. Same pure-core / thin-socket pattern as all prior specs.
+- Player positions initialized at the center of room-0 (entry room) on `startRun`. Per-room wall collision is a follow-up.
+- `newlyDeadEnemyIds` tracked in `stepCombat` for `ENEMY_DIED` events — currently always empty (player attacks not yet implemented), but the hook is in place for the weapon/attack spec.
+
+---
+
+## 2026-06-21 — Active Spec switched: Enemy System + Combat → Mobile Controls
+**Decision**: Enemy System + Combat complete; active spec swapped to Mobile Controls + Auto-Aim.
+**Reason**: Mobile controls unlock real playability — without a virtual joystick, the game is unplayable on any touch device. Auto-aim is tightly coupled to the client controls spec (the server must know which players are in manual vs auto mode to emit `PLAYER_AIM_CHANGED` correctly).
+
+---
+
+## 2026-06-21 — Code Review #5 (Enemy System + Combat) FAIL → fixed
+**Decision**: Code-reviewer audited the Enemy System + Combat spec. FAIL on first pass — 6 blockers found and all fixed before marking the spec complete.
+**Fixes applied**:
+1. (BLOCKER) `ENEMY_SPAWNED` was never emitted on floor entry. Added a loop over `room.enemies.values()` at the end of the `descend` socket handler emitting one `ENEMY_SPAWNED` per enemy (R10 AC).
+2. (BLOCKER) IEEE-754 float drift: `attackCooldownRemaining === 0` strict equality permanently blocked second+ attacks after the first (accumulated subtraction of 0.1 from 1.2 leaves ~2.7e-17, not 0.0). Fixed by comparing the pre-clamp value `drainedCooldown = remaining - dt` against `<= 0` instead of checking the post-clamp stored value against `=== 0`. Regression test added (25-tick multi-attack cycle).
+3. (BLOCKER) `descend` handler had no phase guard — a client could send `descend` during `combat` phase, silently replacing the enemy map mid-fight (I2 violation). Added `if (room.phase !== 'loot')` guard emitting `LOBBY_ERROR { code: 'WRONG_PHASE' }`. Tests added.
+4. (BLOCKER) Revive handler: if `playerStates.get(revivedId)` returned undefined (inconsistent state), the board mutation was already committed but `PLAYER_REVIVED` was never emitted and hp/downed were not restored. Added else branch emitting `LINKED_FATES_ERROR` to the requesting socket.
+5. (WARNING) Revive handler mutated the `PlayerState` object in-place (`ps.hp = ps.maxHp`) rather than calling `room.playerStates.set(...)` with a new object. Fixed to use `{ ...ps, hp: ps.maxHp, downed: false }` consistent with the codebase's immutability convention.
+6. (WARNING) If `spawnEnemies` returns an empty map (degenerate dungeon with no non-entry rooms), the room entered `combat` phase with zero enemies. `allEnemiesDead` vacuously returned true on the first tick, emitting a spurious `PHASE_CHANGED`. Fixed in `descendRoom`: if `room.enemies.size === 0` after spawn, set `room.phase = 'loot'` immediately.
+**Deferred (documented)**: `ENEMY_DAMAGED` has no emission path in `runCombatTick` — no player attack source exists yet. Hook is missing for when the weapon spec lands. `move-player` uses a fixed `COMBAT_TICK_MS/1000` dt, allowing event-flood speed exploit. Both deferred to the weapon/controls spec where rate-limiting and player attack logic will be added. Downed-player carry-over across floors is intentional design: players must be revived (costing a relic) before descending, or enter the next floor still downed and rely on a revive in the new combat phase.
+**Result**: 209 tests total (181 server + 28 shared), clean typecheck. All six specs to date are code-reviewed and verified complete.
+
+---
+
+## 2026-06-21 — Active Spec switched: Enemy System + Combat -> Mobile Controls
+**Decision**: Enemy System + Combat complete and code-reviewed; active spec swapped to Mobile Controls + Auto-Aim.
+**Reason**: Mobile controls is the next foundational layer — the `aim-player` event wires aim state that the weapon/attack spec will consume for projectile direction. PWA setup enables testing the game on mobile devices during development.
+**Scope decision**: Touch joystick for aiming (right stick) deferred to the weapon spec since there is nothing to aim at yet; the `aim-player` socket event is fully designed and wired. Mouse-aim world-to-screen coordinate math deferred until a Phaser camera reference exists.
+
+---
+
+## 2026-06-21 — Mobile Controls + Auto-Aim spec complete
+**Decision**: Mobile Controls spec fully implemented. T1-T10 done. 260 server/shared tests passing (root vitest) + 16 client tests passing (client vitest).
+**Coverage**: R1 (PWA manifest.json with `display:standalone` + iOS meta tags in index.html), R2 (vite.config.ts + App.tsx + useSocket.ts compile and socket connects once on mount), R3 (VirtualJoystick.tsx — left half moves, right half aims, rAF throttle, zero-vector on release), R4 (`AimState` discriminated union in shared, `Room.aimStates` initialized to auto on startRun), R5 (`selectAutoAimTarget` pure function returning nearest alive enemy within `AUTO_AIM_RANGE=250`), R6 (`aim-player` handler — zero vector → auto, non-zero → manual with server-normalized dx/dy), R7 (`PlayerAimChangedEvent` in shared), R8 (combat tick refreshes auto-aim targets; emits delta only on change), R9 (desktop mouse-aim: `mousemove` → `aim-player`; 500ms idle → zero vector auto-revert).
+**Architecture decisions**:
+- VirtualJoystick uses a `rafPending` boolean flag (not a null-sentinel handle) so the rAF scheduling check survives synchronous stub callbacks in tests. The handle from `requestAnimationFrame` is discarded; the pending flag drives scheduling.
+- Auto-aim refresh runs inside `runCombatTick` (post-stepCombat, before wipe/phase events) — same tick driver handles AI and aim, no second interval. Only emits `PLAYER_AIM_CHANGED` when `targetId` actually changes (P3: no duplicate deltas).
+- Client tests use `happy-dom` environment; root vitest config (`vitest.config.ts`) excludes `src/client/**` so root and client runners never conflict.
+- `@testing-library/react` + `happy-dom` installed as client devDependencies. `@vitest-environment happy-dom` docblock on each client test file makes the environment explicit.
+**Deferred (open threads)**: Right-stick aim joystick (needs a weapon to fire), gamepad support, service worker / offline mode, mouse world-to-screen coordinate projection (needs Phaser camera reference — closed in Rendering spec), `PLAYER_AIM_CHANGED` client rendering (needs game canvas — closed in Rendering spec).
+
+---
+
+## 2026-06-21 — Active Spec switched: Mobile Controls → Client Rendering (Phaser 3)
+**Decision**: Mobile Controls complete; active spec swapped to Client Rendering.
+**Reason**: Rendering is the next foundational layer — it closes the mouse world-coordinate thread from mobile controls (needs Phaser camera), makes all server-broadcast events visible, and enables manual testing of everything built so far. Weapon/Attack spec follows after rendering since it requires seeing hits land.
+**Scope decision**: All rendering uses Phaser primitive shapes (Graphics, Arc, Rectangle) — no sprite sheets or external assets. Art is a drop-in swap after the rendering pipeline is wired. This lets the spec ship before any pixel art exists.
+
+---
+
+## 2026-06-21 — Client Rendering (Phaser 3) spec complete
+**Decision**: Client Rendering spec fully implemented. T1-T9 done. 260 server/shared tests + 43 client tests, all passing.
+**Coverage**: R1 (Phaser.Game mounts in `#game-container`, destroyed on unmount), R2 (dungeon rooms + corridors drawn as Phaser Graphics primitives), R3 (local player Arc follows PLAYER_MOVED), R4 (remote player Arcs, PLAYER_DOWNED greys out, PLAYER_REVIVED restores), R5 (enemy rectangles created on ENEMY_SPAWNED, removed on ENEMY_DIED), R6 (HP bar fill scales by hp/maxHp), R7 (camera follows local player, setBounds = dungeon size), R8 (HUD.tsx Bleed Clock bar + floor/phase from sceneStore), R9 (auto-aim ring shows/hides on PLAYER_AIM_CHANGED for local player), R10 (mouse-aim uses camera.getWorldPoint when scene is ready, falls back to viewport-centre).
+**Architecture decisions**:
+- `SceneStore` is a typed EventEmitter singleton (no React state in game logic, no game logic in React — P1). Phaser scene writes to it; React HUD subscribes.
+- All Phaser objects are plain primitives (no sprite sheets). Real sprites are a drop-in: replace `add.circle/rectangle` calls in `GameScene.ts` with `add.sprite(...)` and the rest of the pipeline is unchanged.
+- `GameScene` is tested by mocking Phaser's scene methods (not by running a real Phaser instance). All stubs return `self` for chaining. Scene logic is separated from event-binding so `create()` is callable without a socket.
+- `ENEMY_MOVED` event does not exist yet (enemies move server-side but clients only see spawn positions until the weapon spec adds live position updates). Noted in R5 AC.
+**Deferred (open threads)**: `ENEMY_MOVED` delta for live enemy position updates (weapon spec), animation frames (art pass), camera smooth-follow / lerp (art pass), relic board overlay UI (separate spec), lobby join UI (separate spec).
+
+---
+
+## 2026-06-22 — Weapon / Attack System spec complete
+**Decision**: Weapon spec fully implemented. T1-T6 done. 297 server/shared + 48 client = 345 tests passing.
+**Coverage**: R1 (ProjectileState + weapon constants in shared), R2 (three new delta events in shared), R3 (Room weapon state maps initialized in startRun), R4 (move-player stores direction; combat tick applies movement once per tick — closes rate-limiting exploit), R5 (tryAutoFire per-player cooldown, aim-direction resolution), R6 (stepProjectiles advances positions, collision, hp clamp), R7 (PROJECTILE_FIRED / ENEMY_DAMAGED + PROJECTILE_REMOVED(hit) / PROJECTILE_REMOVED(range) events), R8 (ENEMY_MOVED for all alive enemies per tick, closes rendering spec open thread), R9 (GameScene.spawnProjectile/removeProjectile/moveEnemy wired).
+**Architecture decisions**:
+- `tickEnemies` now marks enemies dead when `hp <= 0` (added end-of-loop check). stepProjectiles reduces hp without touching alive; tickEnemies clones (sees hp=0, alive=true), sets alive=false; stepCombat newlyDeadEnemyIds comparison (before.alive=true && !after.alive) fires ENEMY_DIED correctly.
+- runCombatTick order: player move → auto-fire → step projectiles → stepCombat → ENEMY_MOVED → auto-aim refresh. Projectiles before stepCombat so hp=0 enemies die in the same tick.
+- No client fire-weapon event. Server auto-fires every WEAPON_COOLDOWN_MS — clients cannot trigger shots (P1, server authority).
+- Room carries playerMoveInputs + weaponCooldowns as separate maps; shared PlayerState unchanged (I4).
+**Closed open threads**: ENEMY_DAMAGED emission path (Enemy Combat spec), move-player rate-limiting (Enemy Combat spec), ENEMY_MOVED delta (Rendering spec).
+**Deferred**: Relic synergy on damage (relic spec), AoE projectiles (relic spec), multiple weapon types, ENEMY_MOVED delta-only optimization (currently emits for all alive enemies; can diff later).
+
+---
+
+## 2026-06-22 — Switched active spec: weapon → board-ui
+Weapon spec complete (T1-T6). Switching to Relic Board UI.
+
+---
+
+## 2026-06-22 — Relic Board UI spec complete
+**Decision**: Board UI spec fully implemented. T1-T3 done. 308 server/shared + 61 client = 369 tests passing.
+**Coverage**: R1 (STARTER_RELICS: 6 relics, 3 tag-pairs, in shared), R2 (startRun populates registry), R3 (RUN_STARTED carries relicRegistry as plain object), R4 (BoardPanel SVG hex grid, owner colors, synergy highlight, loot-phase visibility), R5 (RelicTray lists unplaced relics, selection state, deselect on re-click), R6 (clicking owned empty slot with selection emits place-relic, optimistic deselect), R7 (RELIC_PLACED updates slot + synergy; BOARD_STATE_SYNC replaces all), R8 (App.tsx renders BoardPanel; phase tracked from PHASE_CHANGED; localPlayerId from socket.id).
+**Architecture decisions**:
+- BoardPanel is a self-contained React component (not routed through sceneStore). Board state is UI state, not game-world state.
+- Players list for owner-color assignment comes from ROOM_UPDATE event stored in App.tsx state; no duplication in GameScene.
+- synergyMap received from server is the sole synergy truth — no client-side evaluation (P3, I5).
+- STARTER_RELICS hard-coded in shared for the prototype; loot-drop rewards (per-floor relic offers) deferred to a separate spec.
+**Deferred**: Per-floor loot drops (relic offers on floor clear), relic removal UI (Linked Fates removes via revive handler — already server-complete, needs client visual), drag-and-drop placement, synergy animation effects, lobby UI (create/join room screen).
+
+---
+
+## 2026-06-22 — Switched active spec: board-ui → lobby-ui
+Board UI spec complete (T1-T3). Switching to Lobby UI.
+
+---
+
+## 2026-06-22 — Switched active spec: lobby-ui → loot
+Lobby UI spec complete (T1-T3). Switching to Per-Floor Loot Drops + Synergy Animation.
+
+---
+
+## 2026-06-22 — Per-Floor Loot Drops + Synergy Animation spec complete
+**Decision**: Both specs fully implemented. 321 server/shared + 19 client = 340 tests passing.
+**Coverage (loot drops)**: R1 (generateLootPool: seeded Fisher-Yates shuffle, returns min(3, unplaced) relic IDs, deterministic per runId+floor), R2 (Room.lootPool added; createRoom initialises [], startRun generates floor-1 pool), R3 (PHASE_CHANGED carries lootPool when phase='loot'; RUN_STARTED carries lootPool), R4 (place-relic handler validates relic is in lootPool before calling placeRelic; on success removes placed relic from lootPool), R5 (BoardPanel RelicTray filters by lootPool only; updates on PHASE_CHANGED; RELIC_PLACED removes placed relic from tray).
+**Coverage (synergy animation)**: R1 (CSS @keyframes synergy-pulse injected via <style> tag on BoardPanel mount; removed on unmount), R2 (<g> elements for synergized slots have className="synergized" and data-synergized="true"), R3 (empty/unsynergized slots have neither attribute).
+**Architecture decisions**:
+- generateLootPool lives in src/server/src/loot/pool.ts — pure, seeded, server-only (I1, I3).
+- Seed namespace: \`${runId}#${floor}#loot\` — independent of enemy spawn seed (\`#spawn\`).
+- Loot pool validation in index.ts handler (before placeRelic) rather than inside placeRelic — keeps placeRelic focused on board manipulation; RELIC_NOT_IN_POOL error code added to RelicPlaceErrorEvent.
+- BoardPanel uses useState initial value pattern for lootPool (same as board/registry). PHASE_CHANGED handler updates only lootPool (not full board state); RELIC_PLACED handler removes placed relic from lootPool client-side.
+- Synergy animation uses CSS injection (not inline styles) so it works with SVG <g> elements; data-synergized attribute enables testability without CSS parser.
+**Deferred**: Per-floor loot drops from enemy kills (relics dropping in combat), relic rarities, multi-pick loot, relic upgrades.
+
+---
+
+## 2026-06-22 — Lobby UI spec complete
+**Decision**: Lobby UI spec fully implemented. T1-T3 done. 308 server/shared + 77 client = 385 tests passing.
+**Coverage**: R1 (LobbyScreen: create-room, join-room, LOBBY_ERROR display), R2 (WaitingRoom: room code, player list, host-only start button, ROOM_UPDATE updates list), R3 (App screen state machine: lobby→waiting→game; Phaser lazy mount on game screen), R4 (RUN_STARTED payload captured in App state; passed as initialBoard/initialSynergyMap/initialRegistry props to BoardPanel — fixes race where BoardPanel wasn't mounted when event fired), R5 (ROOM_UPDATE handler corrected to read ev.room.players, not ev.players; RoomUpdateEvent type confirms the nested shape).
+**Architecture decisions**:
+- Screen state machine in App.tsx: 'lobby' | 'waiting' | 'game'. Each screen renders exactly one top-level UI; Phaser only constructed in 'game'.
+- Child components (LobbyScreen, WaitingRoom) are self-contained with their own socket subscriptions. App.tsx drives transitions only.
+- BoardPanel accepts optional initialBoard/initialSynergyMap/initialRegistry props; uses them as useState initial values. RUN_STARTED listener kept as secondary path (for tests and future reconnect). Production path uses props.
+- players prop to BoardPanel derived from roomSummary?.players — no separate players state in App.
+**Fixed**: ROOM_UPDATE payload bug (ev.players → ev.room.players) — was a silent bug since players state was used only for BoardPanel coloring.
+**Deferred**: Auth/persistent player names, spectator mode, rematch flow, reconnection handling (currently room is lost on disconnect).
+
+## 2026-06-22 — Switched active spec: loot → linked-fates-ui
+**Decision**: Relic effects in combat (specs/relic-effects) is complete (T1–T5, 351 tests passing). Switched active spec to linked-fates-ui.
+**What shipped**:
+- `evaluateRelicHit` / `evaluateIncomingDamage` pure functions (effects.ts)
+- `fireDurations: Map<EnemyId, number>` and `combatRng: Rng` wired into Room state
+- `stepProjectiles` applies ember-core bonus/splash, torch-brand fire, arc-bolt chain
+- `stepCombat` ticks fire DoT per enemy, applies iron-skin damage reduction
+- `runCombatTick` emits `ENEMY_DAMAGED` for splash, chain, and fire DoT hits
+**Next**: Linked Fates client UI — downed player visual, revive button, relic sacrifice confirmation.
+
+## 2026-06-22 — Linked Fates client UI complete; switching to post-run screen
+**Decision**: Linked Fates UI (specs/linked-fates-ui) complete (T1–T2, 92 client tests passing).
+**What shipped**:
+- `BoardPanel` handles `RELIC_REMOVED` — clears relic from slot; synergy pulse removed
+- `BoardPanel` shows revive panel on `PLAYER_DOWNED` (teammate only); hides on `PLAYER_REVIVED`
+- Two-step revive flow: select source relic → select downed player's empty slot → emit 'revive'
+- `LINKED_FATES_ERROR` shows inline error; slots highlighted with `data-revive-source` / `data-revive-target`
+**Next**: Post-run screen spec + implementation.
+
+## 2026-06-22 — Post-run screen complete; no active spec
+**Decision**: Post-run screen (specs/post-run) complete (T1, 98 client tests passing).
+**What shipped**:
+- `PostRunScreen` component: shows WIPED/EXTRACTED outcome + final floor + return button
+- `App` handles `RUN_ENDED` → transitions to `'post-run'` screen (Phaser + overlays unmounted)
+- Return to Lobby clears runEndData and returns to `'lobby'` screen
+**Next**: No active spec. Update CLAUDE.md active spec when next feature begins.
+
+## 2026-06-22 — Player HUD + lootPool bug fix; switching active spec to player-hud (complete)
+**Decision**: Fixed a bug where `lootPool` from `RUN_STARTED` was dropped by `App`
+(RunData type missing the field; initialLootPool never passed to BoardPanel). Floor 1 loot
+placement was completely broken. Also added player HP display to the HUD.
+**Why**: Both gaps were discovered by reading the code — not spec-driven regressions.
+**What shipped**:
+- `RunData` in App gains `lootPool: string[]`; `initialLootPool` prop passed to BoardPanel
+- `HUD` accepts `socketRef` + `localPlayerId`; subscribes to `PLAYER_DAMAGED`/`PLAYER_DOWNED`/`RUN_STARTED`
+- `data-testid="player-hp"` renders current HP / max HP in the HUD
+**How to apply**: When touching App data flow, check all props passed to children match the server payload shape.
+
+## 2026-06-22 — Descend/Extract buttons complete
+**Decision**: DescendPanel component ships, wired into App alongside BoardPanel.
+**What shipped**:
+- `DescendPanel` renders during loot phase only; hidden during combat
+- "Descend ↓" emits `descend`; "Extract ↑" emits `extract`
+- Both buttons disable immediately on click (pending guard) to prevent double-tap
+- Re-enable on `FLOOR_ADVANCED`, `RUN_ENDED`, or `LOBBY_ERROR`
+- `LOBBY_ERROR` message surfaced in `data-testid="descend-error"`
+**Impact**: Core run loop is now fully playable — loot → place relics → descend/extract → combat → repeat.
+
+## 2026-06-22 — Combat HUD improvements + relic detail panel
+**What shipped**:
+- HUD: enemy count (tracks ENEMY_SPAWNED/ENEMY_DIED/FLOOR_ADVANCED/PHASE_CHANGED/RUN_STARTED)
+- HUD: teammate HP rows for all players other than local (data-testid="teammate-hp-{id}")
+- HUD: PLAYER_REVIVED restores teammate HP display to PLAYER_MAX_HP
+- BoardPanel: relic detail card appears on selection — shows base effect + synergy effect text
+- App now passes `players` prop to HUD
+**Impact**: Players can see enemy count during combat and all teammates' HP; relic decision-making is now informed.
+
+## 2026-06-22 — Placement feedback, empty tray hint, phase toast
+**What shipped**:
+- BoardPanel: RELIC_PLACE_ERROR → shows `placement-error` with server message; cleared on next attempt or on RELIC_PLACED
+- BoardPanel: Empty tray shows `tray-ready-hint` ("All relics placed — ready to descend!") instead of blank space when all lootPool relics are placed
+- PhaseToast: New component, absolute-positioned, listens for PHASE_CHANGED and FLOOR_ADVANCED; COMBAT/FLOOR CLEARED/FLOOR N shown for 2.5s with auto-dismiss; timer resets on new event
+- App: PhaseToast mounted in game screen alongside HUD and DescendPanel
+**Impact**: Silent placement failures now give user feedback; phase transitions are clearly announced.
+
+## 2026-06-22 — Doctrine Tracking System designed (R8-R11)
+**Decision**: Added doctrine scoring, threshold effects, and the BOARD_DOCTRINE_SHIFT event to the Circulatory Board design spec. R8 (Sanctum), R9 (Tumor), R10 (Chorus), R11 (Penitent) are now formal requirements.
+**Key design choices**:
+- Scores are server-only integers on Room state; no score value is ever sent to the client. Only flavor-text toasts via BOARD_DOCTRINE_SHIFT reveal that a threshold was crossed (and the doctrine is intentionally omitted from the payload).
+- Scoring hooks into existing events only: RELIC_PLACED, ENEMY_DIED, RELIC_REMOVED(linked-fates), extract, and the wipe outcome. No new event needed for scoring itself.
+- Threshold effects are all expressible as server-side number changes: drain rate multiplier (Sanctum), enemy attack speed multiplier (Tumor), ward protection doubling (Chorus), free revive flag (Penitent). No art assets or animations required.
+- Scores do not decay in v1. Decay formula (multiply by 0.85 on floor descent) is documented in the spec as a future balance option, not implemented now.
+- Doctrine tags ('sanctum', 'tumor', 'chorus', 'penitent') should be added to the RelicTag union and applied to the 10 existing relics. void-lens is intentionally left neutral (no doctrine tag).
+**Reason**: The LORE_DESIGN.md and SYSTEM DESIGN DOC.md both establish doctrine tracking as a core v1 system. All effects are scoped to what the current server implementation can express without new subsystems.
+
+## 2026-06-22 — GameScene rendering fixes + copy button + post-run stats
+**What shipped**:
+- GameScene: RUN_STARTED handler added — draws floor-1 dungeon, spawns all players at initial positions
+- GameScene: `localPlayerId` now read from game registry (set by App.tsx at game creation time)
+- GameScene: camera startFollow called on local player arc when first spawned (smooth lerp 0.08)
+- GameScene: projectile interpolation — spawnProjectile now stores vx/vy from dx*PROJECTILE_SPEED,dy*PROJECTILE_SPEED; update() loop moves all live projectiles every frame
+- Server: RUN_STARTED event now includes `playerPositions` record for initial spawn coordinates
+- WaitingRoom: Copy Code button with 1.5s "Copied!" flash feedback
+- PostRunScreen: shows enemiesKilled count with singular/plural label
+- Server+shared: `RunEndedEvent` extended with `enemiesKilled: number`; Room state tracks cumulative kills via `room.enemiesKilled`; incremented in stepCombat on each enemy death (projectile + fire DoT kills both counted)
+**Impact**: Game is now visually playable — players appear on screen, move, projectiles travel, camera follows. Post-run screen shows a meaningful stat.
+
+## 2026-06-22 — Bleed Clock stage escalation (R8-stage, SYSTEM DESIGN DOC §2.2)
+**What shipped**:
+- `bleedStageOf(current, max)` pure function in `state.ts`: returns 0/1/2/3 based on % bled (0-30%/30-60%/60-80%/80-100%)
+- `AGGRESSION_COOLDOWN_MULT = 0.7`: stage 1+ makes enemies attack 30% faster; applied in `tickEnemies` via new optional `aggressionCooldownMult` param
+- Stage 2 drain bonus (1.5×) and stage 3 drain bonus (2.0×) applied in `clock.ts` `effectiveDrain()`
+- `BleedClockTickEvent` extended with `stage: 0|1|2|3` so client receives current stage on every tick
+- New `BleedStageChangedEvent` broadcast when stage escalates; client plays `bleedWarning` sound on stage change
+- Doctrine tags (`sanctum`, `tumor`, `chorus`, `penitent`) added to `RelicTag` union and applied to all 10 existing relics; `void-lens` intentionally left neutral
+**Key choices**:
+- Stage tracked by computing before/after in `runBleedTick` rather than storing on Room — no Room schema change
+- Aggression is a cooldown multiplier on reset (not on drain) so the enemy attacks `def.attackCooldown × 0.7` seconds after each hit — cleanly decoupled from the cooldown drain path
+- Drain bonus is separate from floor scaling — stages activate within-floor as the clock depletes; floor depth multiplies the base rate
+**Impact**: Bleed Clock now has meaningful escalation. At 30% remaining, combat pressure increases; at 40% and 20% remaining, the drain itself accelerates, ratcheting tension toward forced extraction.

@@ -1,6 +1,7 @@
 import type { HexCoord, RelicId, PlayerId, SynergyMap, RelicBoard, Relic } from './board.js';
 import type { BleedClockState, RunOutcome } from './bleedClock.js';
 import type { DungeonLayout } from './dungeon.js';
+import type { EnemyTypeId, PlayerState } from './combat.js';
 
 export type GamePhase = 'loot' | 'combat' | 'transition';
 
@@ -21,7 +22,7 @@ export type RelicPlacedEvent = {
 
 // Server -> Socket (targeted error)
 export type RelicPlaceErrorEvent = {
-  code: 'SLOT_OCCUPIED' | 'WRONG_PHASE' | 'INVALID_COORD' | 'NOT_OWNER';
+  code: 'SLOT_OCCUPIED' | 'WRONG_PHASE' | 'INVALID_COORD' | 'NOT_OWNER' | 'RELIC_NOT_IN_POOL';
   message: string;
 };
 
@@ -53,10 +54,90 @@ export type LinkedFatesErrorEvent = {
 };
 
 // Server -> Room (delta, every Bleed Clock tick)
-export type BleedClockTickEvent = { clock: BleedClockState };
+// stage: 0=normal, 1=aggression(30-60% bled), 2=drain bonus(60-80%), 3=critical(80-100%)
+export type BleedClockTickEvent = { clock: BleedClockState; stage: 0 | 1 | 2 | 3 };
+
+// Server -> Room (broadcast once when stage crosses a new threshold)
+export type BleedStageChangedEvent = { stage: 0 | 1 | 2 | 3 };
 
 // Server -> Room (broadcast when a run ends)
-export type RunEndedEvent = { outcome: RunOutcome; finalFloor: number };
+export type RunEndedEvent = { outcome: RunOutcome; finalFloor: number; enemiesKilled: number };
 
 // Server -> Room (broadcast when the party descends to a new floor)
 export type FloorAdvancedEvent = { floor: number; dungeon: DungeonLayout };
+
+// --- Enemy + Combat events (server -> room, delta only, I6) ---
+
+// Emitted once per enemy when enemies are spawned on floor entry.
+export type EnemySpawnedEvent = {
+  enemyId: string;
+  typeId: EnemyTypeId;
+  x: number;
+  y: number;
+  hp: number;
+};
+
+// Emitted when an enemy takes damage; carries the new HP.
+export type EnemyDamagedEvent = { enemyId: string; hp: number };
+
+// Emitted when an enemy's HP reaches 0.
+export type EnemyDiedEvent = { enemyId: string };
+
+// Emitted when a player takes damage; carries the new HP.
+export type PlayerDamagedEvent = { playerId: PlayerId; hp: number };
+
+// Emitted when a player's HP reaches 0 (they become downed).
+export type PlayerDownedEvent = { playerId: PlayerId };
+
+// Emitted after a successful Linked Fates revive; carries the restored HP.
+export type PlayerRevivedEvent = { playerId: PlayerId; hp: number };
+
+// Emitted after the server validates and applies a move-player intention.
+export type PlayerMovedEvent = { playerId: PlayerId; x: number; y: number };
+
+// Emitted when the phase changes (e.g., combat -> loot when last enemy dies).
+// lootPool is included when phase === 'loot'.
+export type PhaseChangedEvent = { phase: GamePhase; lootPool?: RelicId[] };
+
+// Emitted when a player's aim state changes (mode flip or auto-aim target shift).
+export type PlayerAimChangedEvent = {
+  playerId: PlayerId;
+  mode:     'auto' | 'manual';
+  targetId?: string | null; // present when mode === 'auto'
+  dx?:      number;         // present when mode === 'manual'
+  dy?:      number;         // present when mode === 'manual'
+};
+
+// Emitted once per frame when a projectile is spawned.
+export type ProjectileFiredEvent = {
+  projectileId: string;
+  playerId:     string;
+  x: number; y: number;
+  dx: number; dy: number;
+};
+
+// Emitted when a projectile is destroyed (hit or range expiry).
+export type ProjectileRemovedEvent = {
+  projectileId: string;
+  reason: 'hit' | 'range';
+};
+
+// Emitted each combat tick for every alive enemy that moved.
+export type EnemyMovedEvent = { enemyId: string; x: number; y: number };
+
+// Server -> Room (broadcast when a doctrine score threshold is crossed).
+// Deliberately carries only flavor text — clients never learn which doctrine fired or its score.
+export type BoardDoctrineShiftEvent = { flavor: string };
+
+// Re-export PlayerState from combat.ts so socket consumers import from one place.
+export type { PlayerState };
+
+// Server -> Room (broadcast when a run starts).
+export type RunStartedEvent = {
+  dungeon: DungeonLayout;
+  board: RelicBoard;
+  synergyMap: SynergyMap;
+  relicRegistry: Record<RelicId, Relic>;
+  lootPool: RelicId[];
+  playerPositions: Record<PlayerId, { x: number; y: number }>;
+};

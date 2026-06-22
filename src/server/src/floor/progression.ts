@@ -19,5 +19,6 @@ export function descendFloor(
   // room.board is intentionally untouched (R3).
 
   const dungeon = generateDungeon(room.runId, config, room.floor);
+  room.dungeon = dungeon; // stored so combat tick can reference bounds (R8)
   return { ok: true, event: { floor: room.floor, dungeon } };
 }
