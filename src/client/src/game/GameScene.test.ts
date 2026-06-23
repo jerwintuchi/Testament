@@ -54,6 +54,8 @@ vi.mock('phaser', () => {
         setZoom: vi.fn(),
       },
     };
+    // scale.height drives dynamic zoom; scale.on registers the resize listener.
+    protected scale = { height: 390, on: vi.fn() };
     protected events = { once: vi.fn(), emit: vi.fn() };
     // delayedCall fires immediately in tests so flash-and-restore is synchronous.
     protected time = { delayedCall: vi.fn((_ms: number, cb: () => void) => cb()) };
@@ -69,6 +71,7 @@ vi.mock('phaser', () => {
 });
 
 import { GameScene } from './GameScene.js';
+import { DESIGN_VIEW_HEIGHT } from '@veins/shared';
 
 // Build a GameScene that bypasses socket event binding.
 function makeScene(): GameScene {
@@ -121,6 +124,21 @@ describe('GameScene.drawDungeon (T3, R2)', () => {
     expect(gfx.clear).toHaveBeenCalledTimes(2);
     // fillRect called 5 each time (2 corridors + 3 rooms) → 10 total.
     expect(gfx.fillRect).toHaveBeenCalledTimes(10);
+  });
+});
+
+describe('GameScene dynamic zoom (T4, R1)', () => {
+  it('setZoom called with scale.height / DESIGN_VIEW_HEIGHT on create', () => {
+    const scene = makeScene();
+    const cam = (scene as unknown as { cameras: { main: { setZoom: ReturnType<typeof vi.fn> } } }).cameras.main;
+    const mockScale = (scene as unknown as { scale: { height: number; on: ReturnType<typeof vi.fn> } }).scale;
+    expect(cam.setZoom).toHaveBeenCalledWith(mockScale.height / DESIGN_VIEW_HEIGHT);
+  });
+
+  it('resize listener registered on scale', () => {
+    const scene = makeScene();
+    const mockScale = (scene as unknown as { scale: { height: number; on: ReturnType<typeof vi.fn> } }).scale;
+    expect(mockScale.on).toHaveBeenCalledWith('resize', expect.any(Function));
   });
 });
 

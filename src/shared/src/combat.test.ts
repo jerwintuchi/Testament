@@ -4,6 +4,9 @@ import {
   SHAMBLER_DEF,
   SPITTER_DEF,
   PLAYER_MAX_HP,
+  PLAYER_RADIUS,
+  ENEMY_RADIUS_SHAMBLER,
+  ENEMY_RADIUS_SPITTER,
   WEAPON_COOLDOWN_MS,
   PROJECTILE_SPEED,
   PROJECTILE_DAMAGE,
@@ -14,6 +17,7 @@ import {
   type AimState,
   type ProjectileState,
 } from './combat.js';
+import { CORRIDOR_HALF_WIDTH } from './dungeon.js';
 
 describe('ENEMY_TYPES (R1)', () => {
   it('contains entries for shambler and spitter', () => {
@@ -76,6 +80,21 @@ describe('ProjectileState type (T1, R1)', () => {
     expect(p.id).toBe('proj-0');
     expect(p.ownerId).toBe('p1');
     expect(typeof p.distanceTravelled).toBe('number');
+  });
+});
+
+describe('Body radii (T1, R1)', () => {
+  it('PLAYER_RADIUS is positive', () => expect(PLAYER_RADIUS).toBeGreaterThan(0));
+  it('ENEMY_RADIUS_SHAMBLER is positive', () => expect(ENEMY_RADIUS_SHAMBLER).toBeGreaterThan(0));
+  it('ENEMY_RADIUS_SPITTER is positive', () => expect(ENEMY_RADIUS_SPITTER).toBeGreaterThan(0));
+  it('spitter radius < shambler radius (smaller, faster enemy)', () => {
+    expect(ENEMY_RADIUS_SPITTER).toBeLessThan(ENEMY_RADIUS_SHAMBLER);
+  });
+  it('corridor width >= player diameter so players can navigate (R1 AC)', () => {
+    expect(CORRIDOR_HALF_WIDTH * 2).toBeGreaterThanOrEqual(PLAYER_RADIUS * 2);
+  });
+  it('two shamblers combined diameter > corridor width — forces single-file (R2 AC)', () => {
+    expect(ENEMY_RADIUS_SHAMBLER * 2 + ENEMY_RADIUS_SHAMBLER * 2).toBeGreaterThan(CORRIDOR_HALF_WIDTH * 2);
   });
 });
 

@@ -21,7 +21,13 @@ export type PlayerState = {
 };
 
 export const PLAYER_MAX_HP = 100;
-export const PLAYER_SPEED = 120; // world units per second
+export const PLAYER_SPEED  = 120; // world units per second
+
+// Body radii used by both the server collision system and client rendering.
+// Client renders entities as circles/rects whose half-size equals these values.
+export const PLAYER_RADIUS         = 12; // diameter 24 — fills ~60% of a corridor
+export const ENEMY_RADIUS_SHAMBLER = 12; // same footprint as player; one shambler blocks a corridor
+export const ENEMY_RADIUS_SPITTER  =  8; // smaller — two can stand side-by-side in a corridor
 
 export const SHAMBLER_DEF: EnemyTypeDef = {
   typeId: 'shambler',

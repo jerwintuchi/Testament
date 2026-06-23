@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { stepCombat } from './roomCombat.js';
-import { SHAMBLER_DEF, PLAYER_MAX_HP, STARTER_RELICS } from '@veins/shared';
+import { SHAMBLER_DEF, PLAYER_MAX_HP, STARTER_RELICS, PLAYER_RADIUS, ENEMY_RADIUS_SHAMBLER } from '@veins/shared';
 import type { PlayerState } from '@veins/shared';
 import type { EnemyState } from './types.js';
 import type { Room } from '../room/state.js';
@@ -232,5 +232,27 @@ describe('stepCombat — calcified-shell damage reduction (T4, R6)', () => {
     const room = makeRoom({ enemies: new Map([['e1', enemy]]), playerStates: players });
     stepCombat(room, 0.1);
     expect(room.playerStates.get('p1')!.hp).toBe(PLAYER_MAX_HP - SHAMBLER_DEF.damage);
+  });
+});
+
+describe('stepCombat — body separation integration (T3, R2)', () => {
+  it('after one step where enemy starts coincident with player, post-step distance >= combined radii', () => {
+    // Place the enemy exactly coincident with the player — worst-case overlap.
+    // The flat DUNGEON has a single large room so no wall clamping interferes.
+    const flatDungeon = { runId: 'flat', width: 512, height: 512, rooms: [{ id: 'room-0', rect: { x: 0, y: 0, width: 512, height: 512 } }], corridors: [] };
+    const enemy = makeEnemy({ x: 256, y: 256 });
+    const player = makePlayer({ x: 256, y: 256 });
+    const room = makeRoom({
+      dungeon: flatDungeon,
+      enemies: new Map([['e1', enemy]]),
+      playerStates: new Map([['p1', player]]),
+    });
+    stepCombat(room, 0.05);
+    const e = room.enemies.get('e1')!;
+    const p = room.playerStates.get('p1')!;
+    const dx = e.x - p.x;
+    const dy = e.y - p.y;
+    const d  = Math.sqrt(dx * dx + dy * dy);
+    expect(d).toBeGreaterThanOrEqual(PLAYER_RADIUS + ENEMY_RADIUS_SHAMBLER - 0.01);
   });
 });

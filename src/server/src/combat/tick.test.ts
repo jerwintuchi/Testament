@@ -296,6 +296,9 @@ describe('Spitter vs Shambler range distinction', () => {
   });
 });
 
+// T3: body separation is applied in stepCombat (roomCombat.ts) after tickEnemies.
+// Integration test for T3 lives in roomCombat.test.ts.
+
 // --- T6: pathfinding integration (R3) ---
 
 describe('tickEnemies — A* pathfinding (T6, R3)', () => {

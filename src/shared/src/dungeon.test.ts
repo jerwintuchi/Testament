@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { CORRIDOR_HALF_WIDTH, DESIGN_VIEW_HEIGHT } from './dungeon.js';
 import type {
   Point,
   Rect,
@@ -7,6 +8,14 @@ import type {
   DungeonLayout,
   DungeonConfig,
 } from './dungeon.js';
+
+describe('dungeon constants (T1, R1)', () => {
+  it('CORRIDOR_HALF_WIDTH is positive', () => expect(CORRIDOR_HALF_WIDTH).toBeGreaterThan(0));
+  it('DESIGN_VIEW_HEIGHT is positive',  () => expect(DESIGN_VIEW_HEIGHT).toBeGreaterThan(0));
+  it('DESIGN_VIEW_HEIGHT > CORRIDOR_HALF_WIDTH * 2 (corridor fits in view)', () => {
+    expect(DESIGN_VIEW_HEIGHT).toBeGreaterThan(CORRIDOR_HALF_WIDTH * 2);
+  });
+});
 
 // Compile-time smoke test: instantiate each type to confirm the shapes are
 // exported and compile under strict mode.

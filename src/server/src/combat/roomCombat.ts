@@ -1,5 +1,6 @@
 import type { RunEndedEvent } from '@veins/shared';
 import { tickEnemies, applyEnemyAttacks, allEnemiesDead } from './tick.js';
+import { separateBodies } from './separation.js';
 import type { CombatEvent } from './types.js';
 import type { Room } from '../room/state.js';
 import { bleedStageOf, AGGRESSION_COOLDOWN_MULT } from '../room/state.js';
@@ -56,6 +57,9 @@ export function stepCombat(room: Room, dt: number): CombatStepResult {
 
   room.enemies = nextEnemies;
   room.playerStates = players;
+
+  // Body separation: push overlapping entity pairs apart after all movement.
+  separateBodies(room.playerStates, room.enemies, dungeon);
 
   // Tick fire DoT on burning enemies.
   const fireDamagedEnemies: Array<{ enemyId: string; newHp: number }> = [];

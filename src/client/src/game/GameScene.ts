@@ -23,7 +23,14 @@ import type {
   EnemyMovedEvent,
   RunStartedEvent,
 } from '@veins/shared';
-import { PROJECTILE_SPEED, CORRIDOR_HALF_WIDTH } from '@veins/shared';
+import {
+  PROJECTILE_SPEED,
+  CORRIDOR_HALF_WIDTH,
+  PLAYER_RADIUS,
+  ENEMY_RADIUS_SHAMBLER,
+  ENEMY_RADIUS_SPITTER,
+  DESIGN_VIEW_HEIGHT,
+} from '@veins/shared';
 import { sceneStore } from './SceneStore.js';
 import { SoundManager } from './SoundManager.js';
 
@@ -41,9 +48,10 @@ const COLOR_AIM_RING      = 0xffff00;
 const COLOR_ROOM          = 0x2a2a2a;
 const COLOR_CORRIDOR      = 0x1a1a1a;
 
-const PLAYER_RADIUS = 12;
-const ENEMY_SIZE_SHAMBLER = 24;
-const ENEMY_SIZE_SPITTER  = 16; // smaller — spitters are squishy
+// PLAYER_RADIUS, ENEMY_RADIUS_SHAMBLER, ENEMY_RADIUS_SPITTER imported from @veins/shared.
+// Visual sizes are 2× the collision radius so the render footprint matches the server hitbox.
+const ENEMY_SIZE_SHAMBLER = ENEMY_RADIUS_SHAMBLER * 2;
+const ENEMY_SIZE_SPITTER  = ENEMY_RADIUS_SPITTER  * 2;
 const HP_BAR_W      = 24;
 const HP_BAR_H      = 4;
 const HP_BAR_OFFSET = 16; // px above enemy centre
@@ -85,9 +93,14 @@ export class GameScene extends Phaser.Scene {
     this.socket = socketRef?.current ?? null;
     this.localPlayerId = (this.game.registry.get('localPlayerId') as PlayerId | undefined) ?? null;
 
-    // 3× zoom: 1200-unit dungeon renders across ~400 screen pixels per axis,
-    // giving a comfortable "one floor visible" framing at 1080p.
-    this.cameras.main.setZoom(3);
+    // Dynamic zoom: everyone sees the same world area regardless of device.
+    // scale.height is the CSS-pixel viewport height; dividing by DESIGN_VIEW_HEIGHT
+    // gives the pixels-per-world-unit ratio that fills the screen with exactly
+    // DESIGN_VIEW_HEIGHT world units vertically.
+    this.cameras.main.setZoom(this.scale.height / DESIGN_VIEW_HEIGHT);
+    this.scale.on('resize', (_size: Phaser.Structs.Size) => {
+      this.cameras.main.setZoom(this.scale.height / DESIGN_VIEW_HEIGHT);
+    });
 
     this.dungeonGraphics = this.add.graphics();
 

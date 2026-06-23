@@ -5,6 +5,12 @@
 // Must be ≥ PLAYER_RADIUS so players can navigate corridors without clipping walls.
 export const CORRIDOR_HALF_WIDTH = 20;
 
+// Target visible height in world units on all devices (mobile and PC).
+// Dynamic zoom = viewport.height / DESIGN_VIEW_HEIGHT.
+// At 390px viewport height (iPhone 14 landscape): zoom ≈ 1.5, player = 9.2% of view height.
+// At 1080px (1080p desktop): zoom ≈ 4.15, same world area, crisper pixels.
+export const DESIGN_VIEW_HEIGHT = 260;
+
 export type Point = { x: number; y: number };
 
 export type Rect = { x: number; y: number; width: number; height: number };
