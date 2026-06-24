@@ -5,7 +5,7 @@ import { MAX_PLAYERS, MIN_PLAYERS_TO_START, HEX_BOARD_RADIUS } from './lobby.js'
 describe('lobby constants', () => {
   it('have the expected values', () => {
     expect(MAX_PLAYERS).toBe(4);
-    expect(MIN_PLAYERS_TO_START).toBe(2);
+    expect(MIN_PLAYERS_TO_START).toBe(1); // solo play supported — see specs/solo-play
     expect(HEX_BOARD_RADIUS).toBe(2);
   });
 });

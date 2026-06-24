@@ -2,14 +2,42 @@ import { useState, useEffect, useCallback } from 'react';
 import type { RefObject } from 'react';
 import type { Socket } from 'socket.io-client';
 import type { RoomSummary, RoomUpdateEvent } from '@veins/shared';
+import { MAX_PLAYERS, MIN_PLAYERS_TO_START } from '@veins/shared';
 
 type Props = {
   socketRef: RefObject<Socket | null>;
   room: RoomSummary;
   localPlayerId: string;
+  connected: boolean;
 };
 
-export function WaitingRoom({ socketRef, room: initialRoom, localPlayerId }: Props) {
+// Best-effort clipboard copy with a legacy fallback for insecure origins
+// (navigator.clipboard is undefined on plain http:// and in some webviews).
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through to legacy path
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+export function WaitingRoom({ socketRef, room: initialRoom, localPlayerId, connected }: Props) {
   const [room, setRoom] = useState<RoomSummary>(initialRoom);
 
   useEffect(() => {
@@ -21,12 +49,13 @@ export function WaitingRoom({ socketRef, room: initialRoom, localPlayerId }: Pro
     }
 
     socket.on('ROOM_UPDATE', onRoomUpdate);
-    return () => socket.off('ROOM_UPDATE', onRoomUpdate);
+    return () => { socket.off('ROOM_UPDATE', onRoomUpdate); };
   }, [socketRef]);
 
   const [copied, setCopied] = useState(false);
 
   const isHost = localPlayerId === room.hostId;
+  const enoughPlayers = room.players.length >= MIN_PLAYERS_TO_START;
 
   function startRun() {
     socketRef.current?.emit('start-run', undefined);
@@ -37,11 +66,20 @@ export function WaitingRoom({ socketRef, room: initialRoom, localPlayerId }: Pro
   }
 
   const copyCode = useCallback(() => {
-    navigator.clipboard.writeText(room.code).then(() => {
+    void copyToClipboard(room.code).then(ok => {
+      if (!ok) return;
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
   }, [room.code]);
+
+  // Stable, friendly label per player: "Player N", with markers for self/host.
+  function playerLabel(id: string, index: number): string {
+    const base = id === localPlayerId ? 'You' : `Player ${index + 1}`;
+    return id === room.hostId ? `${base} ★` : base;
+  }
+
+  const emptySlots = Math.max(0, MAX_PLAYERS - room.players.length);
 
   return (
     <div
@@ -59,6 +97,12 @@ export function WaitingRoom({ socketRef, room: initialRoom, localPlayerId }: Pro
       }}
     >
       <h1 style={{ fontSize: '2rem', color: '#cc2222', margin: 0 }}>Veins</h1>
+
+      {!connected && (
+        <p data-testid="connection-status" role="status" style={{ color: '#e0a000', margin: 0 }}>
+          Disconnected — reconnecting…
+        </p>
+      )}
 
       <div style={{ textAlign: 'center' }}>
         <p style={{ color: '#888', margin: 0, fontSize: '0.85rem' }}>ROOM CODE</p>
@@ -81,25 +125,51 @@ export function WaitingRoom({ socketRef, room: initialRoom, localPlayerId }: Pro
         data-testid="player-list"
         style={{ listStyle: 'none', padding: 0, margin: 0, textAlign: 'center' }}
       >
-        {room.players.map(p => (
+        {room.players.map((p, i) => (
           <li key={p} style={{ padding: '4px 0' }}>
-            {p === localPlayerId ? 'You' : p}
-            {p === room.hostId ? ' ★' : ''}
+            {playerLabel(p, i)}
+          </li>
+        ))}
+        {Array.from({ length: emptySlots }).map((_, i) => (
+          <li
+            key={`empty-${i}`}
+            data-testid="empty-slot"
+            style={{ padding: '4px 0', color: '#444', fontStyle: 'italic' }}
+          >
+            Empty
           </li>
         ))}
       </ul>
 
-      <p style={{ color: '#555', margin: 0 }}>{room.players.length}/4 players</p>
+      <p style={{ color: '#555', margin: 0 }}>
+        {room.players.length}/{MAX_PLAYERS} players
+      </p>
 
-      {isHost && (
-        <button
-          data-testid="start-run-btn"
-          onClick={startRun}
-          disabled={room.players.length < 2}
-          style={{ ...btnStyle, background: room.players.length < 2 ? '#222' : '#550000' }}
-        >
-          Start Run
-        </button>
+      {isHost ? (
+        <>
+          <button
+            data-testid="start-run-btn"
+            onClick={startRun}
+            disabled={!enoughPlayers || !connected}
+            style={{ ...btnStyle, background: !enoughPlayers || !connected ? '#222' : '#550000' }}
+          >
+            Start Run
+          </button>
+          {!enoughPlayers && (
+            <p data-testid="start-hint" style={{ color: '#888', margin: 0, fontSize: '0.8rem' }}>
+              Need {MIN_PLAYERS_TO_START}+ players to start.
+            </p>
+          )}
+          {enoughPlayers && room.players.length === 1 && (
+            <p data-testid="solo-hint" style={{ color: '#888', margin: 0, fontSize: '0.8rem' }}>
+              Start solo, or share the code to add friends.
+            </p>
+          )}
+        </>
+      ) : (
+        <p data-testid="waiting-hint" style={{ color: '#888', margin: 0, fontSize: '0.9rem' }}>
+          Waiting for host to start…
+        </p>
       )}
 
       <button data-testid="leave-btn" onClick={leaveRoom} style={btnStyle}>

@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { AimState, DungeonLayout, LobbyErrorEvent, PlayerId, RoomCode, PlayerState } from '@veins/shared';
 import { MAX_PLAYERS, MIN_PLAYERS_TO_START as GAME_MIN_PLAYERS, HEX_BOARD_RADIUS, PLAYER_MAX_HP, STARTER_RELICS } from '@veins/shared';
 
-// Allow solo dev/test runs via DEV_MIN_PLAYERS=1 env var. Production always uses GAME_MIN_PLAYERS.
+// Solo play is supported (GAME_MIN_PLAYERS === 1). Set DEV_MIN_PLAYERS higher (e.g. 2)
+// to force co-op-only behaviour for testing.
 const MIN_PLAYERS_TO_START = parseInt(process.env['DEV_MIN_PLAYERS'] ?? String(GAME_MIN_PLAYERS), 10);
 import type { BleedClockTickEvent, RunEndedEvent, FloorAdvancedEvent } from '@veins/shared';
 import { generateDungeon } from '../dungeon/bsp.js';
@@ -131,7 +132,7 @@ export class RoomManager {
       return { ok: false, error: { code: 'ALREADY_STARTED', message: 'That run has already started.' } };
     }
     if (room.players.length < MIN_PLAYERS_TO_START) {
-      return { ok: false, error: { code: 'NOT_ENOUGH_PLAYERS', message: 'Need at least 2 players to start.' } };
+      return { ok: false, error: { code: 'NOT_ENOUGH_PLAYERS', message: `Need at least ${MIN_PLAYERS_TO_START} player(s) to start.` } };
     }
 
     const runId = this.generateRunId();

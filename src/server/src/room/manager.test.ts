@@ -124,13 +124,17 @@ describe('RoomManager.leaveRoom', () => {
 });
 
 describe('RoomManager.startRun', () => {
-  it('rejects NOT_ENOUGH_PLAYERS with fewer than 2 players', () => {
-    const mgr = new RoomManager({ generateCode: seqCodes() });
+  // R1 (solo-play): a lone host can start a run; the board is fully owned by them.
+  it('starts a solo run with a single player and a fully-owned board', () => {
+    const mgr = new RoomManager({ generateCode: seqCodes(), generateRunId: () => 'solo-run' });
     const { room } = mgr.createRoom('h1');
     const res = mgr.startRun(room.code);
-    expect(res.ok).toBe(false);
-    if (res.ok) return;
-    expect(res.error.code).toBe('NOT_ENOUGH_PLAYERS');
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.room.status).toBe('in-progress');
+    const slots = Object.values(res.room.board.slots);
+    expect(slots).toHaveLength(19);
+    for (const slot of slots) expect(slot.ownerId).toBe('h1');
   });
 
   it('starts the run: in-progress status, generated dungeon, fully-owned board', () => {

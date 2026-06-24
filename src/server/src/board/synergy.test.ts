@@ -50,17 +50,59 @@ describe('evaluateSynergies', () => {
     expect(evaluateSynergies(board, registry)).toEqual(evaluateSynergies(board, registry));
   });
 
-  // P2 — Owner isolation
-  it('P2: does not fire synergy when adjacent relics belong to the same player', () => {
+  // P2 / R3 — Owner isolation on a co-op board (>=2 distinct owners). The extra
+  // p2-owned empty slot makes this a multi-owner (co-op) board so the solo relaxation
+  // does not apply; same-owner adjacency must still NOT synergize.
+  it('R3: does not fire synergy when adjacent relics belong to the same player (co-op board)', () => {
     const r1 = makeRelic('r1', ['fire']);
     const r2 = makeRelic('r2', ['fire']);
     const board = makeBoard([
       { coord: { q: 0, r: 0 }, ownerId: 'p1', relicId: 'r1' },
       { coord: { q: 1, r: 0 }, ownerId: 'p1', relicId: 'r2' },
+      { coord: { q: 5, r: 0 }, ownerId: 'p2', relicId: null }, // makes the board co-op
     ]);
     const result = evaluateSynergies(board, makeRegistry(r1, r2));
     expect(result['r1']).toBe(false);
     expect(result['r2']).toBe(false);
+  });
+
+  // R2 — Solo board: every slot owned by one player; the owner rule is relaxed so
+  // adjacent shared-tag relics DO synergize.
+  it('R2: fires synergy for adjacent same-owner shared-tag relics on a solo board', () => {
+    const r1 = makeRelic('r1', ['fire']);
+    const r2 = makeRelic('r2', ['fire']);
+    const board = makeBoard([
+      { coord: { q: 0, r: 0 }, ownerId: 'solo', relicId: 'r1' },
+      { coord: { q: 1, r: 0 }, ownerId: 'solo', relicId: 'r2' },
+    ]);
+    const result = evaluateSynergies(board, makeRegistry(r1, r2));
+    expect(result['r1']).toBe(true);
+    expect(result['r2']).toBe(true);
+  });
+
+  // R2 — Solo relaxation does not bypass the tag rule.
+  it('R2: solo board still requires a shared tag to synergize', () => {
+    const r1 = makeRelic('r1', ['fire']);
+    const r2 = makeRelic('r2', ['poison']);
+    const board = makeBoard([
+      { coord: { q: 0, r: 0 }, ownerId: 'solo', relicId: 'r1' },
+      { coord: { q: 1, r: 0 }, ownerId: 'solo', relicId: 'r2' },
+    ]);
+    const result = evaluateSynergies(board, makeRegistry(r1, r2));
+    expect(result['r1']).toBe(false);
+    expect(result['r2']).toBe(false);
+  });
+
+  // P2 — Determinism on a solo board.
+  it('P2: solo board result is deterministic across calls', () => {
+    const r1 = makeRelic('r1', ['fire']);
+    const r2 = makeRelic('r2', ['fire']);
+    const board = makeBoard([
+      { coord: { q: 0, r: 0 }, ownerId: 'solo', relicId: 'r1' },
+      { coord: { q: 1, r: 0 }, ownerId: 'solo', relicId: 'r2' },
+    ]);
+    const registry = makeRegistry(r1, r2);
+    expect(evaluateSynergies(board, registry)).toEqual(evaluateSynergies(board, registry));
   });
 
   // P3 — Mutual synergy

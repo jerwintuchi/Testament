@@ -39,6 +39,7 @@ export function App() {
   const [runEndData, setRunEndData] = useState<RunEndData | null>(null);
   const [phase, setPhase] = useState<GamePhase>('loot');
   const [localPlayerId, setLocalPlayerId] = useState<string>('');
+  const [connected, setConnected] = useState<boolean>(false);
 
   // Derived — no extra state.
   const players = roomSummary?.players ?? [];
@@ -79,8 +80,10 @@ export function App() {
     if (!socket) return;
 
     if (socket.id) setLocalPlayerId(socket.id);
+    if (socket.connected) setConnected(true);
 
-    function onConnect() { setLocalPlayerId(socket!.id ?? ''); }
+    function onConnect() { setLocalPlayerId(socket!.id ?? ''); setConnected(true); }
+    function onDisconnect() { setConnected(false); }
 
     // P2: read ev.room (RoomUpdateEvent shape) — not ev directly.
     function onRoomUpdate(ev: RoomUpdateEvent) {
@@ -105,12 +108,14 @@ export function App() {
     }
 
     socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
     socket.on('ROOM_UPDATE', onRoomUpdate);
     socket.on('RUN_STARTED', onRunStarted);
     socket.on('PHASE_CHANGED', onPhaseChanged);
     socket.on('RUN_ENDED', onRunEnded);
     return () => {
       socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
       socket.off('ROOM_UPDATE', onRoomUpdate);
       socket.off('RUN_STARTED', onRunStarted);
       socket.off('PHASE_CHANGED', onPhaseChanged);
@@ -218,10 +223,10 @@ export function App() {
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      {screen === 'lobby' && <LobbyScreen socketRef={socketRef} />}
+      {screen === 'lobby' && <LobbyScreen socketRef={socketRef} connected={connected} />}
 
       {screen === 'waiting' && roomSummary && (
-        <WaitingRoom socketRef={socketRef} room={roomSummary} localPlayerId={localPlayerId} />
+        <WaitingRoom socketRef={socketRef} room={roomSummary} localPlayerId={localPlayerId} connected={connected} />
       )}
 
       {screen === 'game' && (

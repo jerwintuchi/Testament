@@ -21,6 +21,7 @@ A single hex cell on the Circulatory Board. Has a coordinate (HexCoord), an owne
 
 **Synergy**
 The bonus effect a relic gains when it is adjacent to another relic (owned by a different player) that shares at least one tag. Evaluated server-side only. Pure function of board state.
+*Solo exception:* on a single-owner board (a solo run), the different-player requirement is relaxed — adjacent same-tag relics synergize regardless of owner — so the board still functions for one player. Co-op (two or more owners) is unchanged. See specs/solo-play.
 
 **HexCoord**
 Axial coordinate pair `{ q: number, r: number }` used to address cells on the Circulatory Board. Six neighbors at offsets `(±1, 0)`, `(0, ±1)`, `(+1, −1)`, `(−1, +1)`.

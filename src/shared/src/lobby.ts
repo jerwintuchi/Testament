@@ -3,7 +3,9 @@ import type { PlayerId, RelicBoard, SynergyMap } from './board.js';
 import type { DungeonLayout } from './dungeon.js';
 
 export const MAX_PLAYERS = 4;
-export const MIN_PLAYERS_TO_START = 2;
+// Solo play is supported: a lone host can start a run (synergy relaxes for solo
+// boards — see specs/solo-play). Set DEV_MIN_PLAYERS higher to force co-op-only.
+export const MIN_PLAYERS_TO_START = 1;
 export const HEX_BOARD_RADIUS = 2; // radius-2 hexagon = 19 cells
 
 export type RoomCode = string;

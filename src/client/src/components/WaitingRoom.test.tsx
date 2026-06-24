@@ -9,6 +9,7 @@ function makeSocket() {
   const handlers = new Map<string, (...args: unknown[]) => void>();
   const emits: Array<{ event: string; payload: unknown }> = [];
   return {
+    connected: true,
     on: vi.fn((event: string, handler: (...args: unknown[]) => void) => { handlers.set(event, handler); }),
     off: vi.fn(),
     emit: vi.fn((event: string, payload: unknown) => { emits.push({ event, payload }); }),
@@ -32,6 +33,16 @@ const BASE_ROOM: RoomSummary = {
   players: [HOST_ID, GUEST_ID],
 };
 
+function renderRoom(
+  socket: FakeSocket,
+  opts: { room?: RoomSummary; localPlayerId?: string; connected?: boolean } = {}
+) {
+  const { room = BASE_ROOM, localPlayerId = HOST_ID, connected = true } = opts;
+  return render(
+    <WaitingRoom socketRef={makeRef(socket) as never} room={room} localPlayerId={localPlayerId} connected={connected} />
+  );
+}
+
 describe('WaitingRoom (T2, R2)', () => {
   beforeEach(() => {
     Object.defineProperty(navigator, 'clipboard', {
@@ -40,74 +51,100 @@ describe('WaitingRoom (T2, R2)', () => {
       configurable: true,
     });
   });
+
   it('displays the room code', () => {
-    const socket = makeSocket();
-    render(<WaitingRoom socketRef={makeRef(socket) as never} room={BASE_ROOM} localPlayerId={HOST_ID} />);
+    renderRoom(makeSocket());
     expect(screen.getByTestId('room-code').textContent).toBe('ABCD12');
   });
 
-  it('renders all players in the player list', () => {
-    const socket = makeSocket();
-    render(<WaitingRoom socketRef={makeRef(socket) as never} room={BASE_ROOM} localPlayerId={HOST_ID} />);
+  it('renders friendly labels: "You" for self and "Player N" for others', () => {
+    renderRoom(makeSocket());
     const list = screen.getByTestId('player-list');
     expect(list.textContent).toContain('You');
-    expect(list.textContent).toContain(GUEST_ID);
+    expect(list.textContent).toContain('Player 2');
+    // raw socket ids must never leak into the UI
+    expect(list.textContent).not.toContain(GUEST_ID);
   });
 
   it('shows Start Run button when localPlayerId === hostId', () => {
-    const socket = makeSocket();
-    render(<WaitingRoom socketRef={makeRef(socket) as never} room={BASE_ROOM} localPlayerId={HOST_ID} />);
+    renderRoom(makeSocket());
     expect(screen.getByTestId('start-run-btn')).toBeTruthy();
   });
 
   it('hides Start Run button when localPlayerId !== hostId', () => {
-    const socket = makeSocket();
-    render(<WaitingRoom socketRef={makeRef(socket) as never} room={BASE_ROOM} localPlayerId={GUEST_ID} />);
+    renderRoom(makeSocket(), { localPlayerId: GUEST_ID });
     expect(screen.queryByTestId('start-run-btn')).toBeNull();
+  });
+
+  it('non-host sees a "waiting for host" hint', () => {
+    renderRoom(makeSocket(), { localPlayerId: GUEST_ID });
+    expect(screen.getByTestId('waiting-hint').textContent).toContain('Waiting for host');
   });
 
   it('clicking Start Run emits start-run', () => {
     const socket = makeSocket();
-    render(<WaitingRoom socketRef={makeRef(socket) as never} room={BASE_ROOM} localPlayerId={HOST_ID} />);
+    renderRoom(socket);
     fireEvent.click(screen.getByTestId('start-run-btn'));
     expect(socket.emits.some(e => e.event === 'start-run')).toBe(true);
   });
 
   it('clicking Leave Room emits leave-room', () => {
     const socket = makeSocket();
-    render(<WaitingRoom socketRef={makeRef(socket) as never} room={BASE_ROOM} localPlayerId={HOST_ID} />);
+    renderRoom(socket);
     fireEvent.click(screen.getByTestId('leave-btn'));
     expect(socket.emits.some(e => e.event === 'leave-room')).toBe(true);
   });
 
   it('ROOM_UPDATE event updates the player list', async () => {
     const socket = makeSocket();
-    render(<WaitingRoom socketRef={makeRef(socket) as never} room={BASE_ROOM} localPlayerId={HOST_ID} />);
+    renderRoom(socket);
     const newRoom: RoomSummary = { ...BASE_ROOM, players: [HOST_ID, GUEST_ID, 'player-3'] };
     await act(async () => {
       socket.handlers.get('ROOM_UPDATE')!({ room: newRoom });
     });
-    expect(screen.getByTestId('player-list').textContent).toContain('player-3');
+    expect(screen.getByTestId('player-list').textContent).toContain('Player 3');
+  });
+
+  // R4 (solo-play) — a lone host can start solo; Start Run is enabled, no blocking hint.
+  it('enables Start Run for a solo host and shows a solo hint', () => {
+    const soloRoom: RoomSummary = { ...BASE_ROOM, players: [HOST_ID] };
+    renderRoom(makeSocket(), { room: soloRoom });
+    expect((screen.getByTestId('start-run-btn') as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.queryByTestId('start-hint')).toBeNull();
+    expect(screen.getByTestId('solo-hint').textContent).toContain('Start solo');
+  });
+
+  // #8 — empty slots are visualized
+  it('renders empty slots up to the max player count', () => {
+    const soloRoom: RoomSummary = { ...BASE_ROOM, players: [HOST_ID] };
+    renderRoom(makeSocket(), { room: soloRoom });
+    expect(screen.getAllByTestId('empty-slot').length).toBe(3); // MAX_PLAYERS(4) - 1
+  });
+
+  // #1/#10 — connection feedback
+  it('shows a reconnecting banner and disables Start Run when disconnected', () => {
+    renderRoom(makeSocket(), { connected: false });
+    expect(screen.getByTestId('connection-status').textContent).toContain('reconnecting');
+    expect((screen.getByTestId('start-run-btn') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('copy-code-btn is rendered', () => {
-    const socket = makeSocket();
-    render(<WaitingRoom socketRef={makeRef(socket) as never} room={BASE_ROOM} localPlayerId={HOST_ID} />);
+    renderRoom(makeSocket());
     expect(screen.getByTestId('copy-code-btn')).not.toBeNull();
   });
 
   it('copy-code-btn calls navigator.clipboard.writeText with room code', async () => {
-    const socket = makeSocket();
-    render(<WaitingRoom socketRef={makeRef(socket) as never} room={BASE_ROOM} localPlayerId={HOST_ID} />);
+    renderRoom(makeSocket());
     await act(async () => { fireEvent.click(screen.getByTestId('copy-code-btn')); });
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ABCD12');
   });
 
   it('copy-code-btn shows "Copied!" briefly after click', async () => {
     vi.useFakeTimers();
-    const socket = makeSocket();
-    render(<WaitingRoom socketRef={makeRef(socket) as never} room={BASE_ROOM} localPlayerId={HOST_ID} />);
+    renderRoom(makeSocket());
     await act(async () => { fireEvent.click(screen.getByTestId('copy-code-btn')); });
+    // allow the writeText promise microtask to resolve under fake timers
+    await act(async () => { await Promise.resolve(); });
     expect(screen.getByTestId('copy-code-btn').textContent).toBe('Copied!');
     await act(async () => { vi.advanceTimersByTime(1500); });
     expect(screen.getByTestId('copy-code-btn').textContent).toBe('Copy Code');

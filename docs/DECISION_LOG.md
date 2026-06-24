@@ -508,3 +508,23 @@ placement was completely broken. Also added player HP display to the HUD.
 ## 2026-06-23 — Body collision spec complete (T1–T4)
 **Decision**: `separateBodies` is called from `stepCombat` in `roomCombat.ts` (not from inside `tickEnemies`).
 **Reason**: `tickEnemies` is a pure function — it clones enemies but never mutates the input `players` map. Calling `separateBodies` inside it would violate that purity guarantee (confirmed by a failing test: "does not mutate the input player map"). The correct integration point is `stepCombat`, after both `room.enemies = nextEnemies` and `room.playerStates = players` have been assigned — at that point both maps are the live mutable room maps. tasks.md T3 updated to reflect this.
+
+---
+
+## 2026-06-24 — Active Spec switched: (none) → Solo Play
+**Decision**: Started a new spec `specs/solo-play/` and pointed CLAUDE.md's Active Spec block at it.
+**Reason**: User decision that solo play should be supported. This required a spec because it changes a core mechanic rule (synergy ownership), not just a config value.
+
+---
+
+## 2026-06-24 — Solo Play: relax synergy ownership for single-owner boards
+**Decision**: Solo runs are now first-class. Two changes: (1) `MIN_PLAYERS_TO_START` lowered 2 → 1 in `@veins/shared` so a lone host can start; (2) `evaluateSynergies` relaxes the "different owner" rule **only** when the board has a single distinct owner (a solo run). Co-op boards (≥2 owners) keep the original rule unchanged.
+**Chosen approach — board-derived solo detection**: `evaluateSynergies` computes `soloBoard = (distinct slot owners) <= 1` and skips the `ownerId === slot.ownerId` guard when true. This is exact because `buildInitialBoard` assigns every one of the 19 cells an owner, so distinct-owner count equals party size. Kept the function pure (no flag threaded through its six call sites; no player-count parameter), satisfying I4/I5's "synergy is a pure server-side function of board state" (P1).
+**Rejected**:
+- Threading an explicit `solo` flag through all six callers — more surface area, more drift risk, and every caller would have to re-derive the same fact.
+- "Practice mode" solo where synergies never fire — honest to the original pitch but a degenerate solo experience.
+- Multi-quadrant solo (one player owns several virtual owners) — closest to co-op feel but the largest change; deferred as a possible future mode.
+**Edge case (documented)**: a co-op run that loses players mid-run keeps its multi-owner board, so it retains co-op synergy rules — solo relaxation applies only to runs *started* solo. Intended.
+**Test impact**: the prior `synergy.test.ts` "owner isolation" case (P2) built a single-owner board to encode the co-op rule; that now reads as solo. Updated it to a genuine multi-owner (co-op) board, which is what the rule is actually about, and added solo-board synergy + determinism cases. `manager.test.ts` "rejects NOT_ENOUGH_PLAYERS" replaced with a solo-start success case. `lobby.test.ts` expects `MIN_PLAYERS_TO_START === 1`.
+**Conflicts with the pitch (flagged for product)**: DESIGN.md and the GLOSSARY frame Veins as forced co-op ("a roguelike you literally cannot beat by yourself"), and that exact tagline now sits on the lobby. Co-op remains the intended/headline experience; solo is a relaxed secondary mode. GLOSSARY "Synergy" annotated with the solo exception; DESIGN.md gained a Solo Play note. The literal lobby tagline was left as-is pending a product call on wording.
+**Result**: 625 tests passing (60 shared + 394 server + 171 client). Zero new typecheck errors (pre-existing baselines unchanged: shared 4, server 41, client 13).
