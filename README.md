@@ -117,54 +117,43 @@ All procedural logic (dungeon gen, synergy evaluation, loot rolls) runs server-s
 
 ---
 
+## 📖 Design Bible
+
+The full design, lore, systems, and engineering docs live in [`docs/`](docs/README.md) — a structured design bible built around one equation:
+
+> **Lore = Mechanics · Mechanics = Theology · Theology = Player Behavior.**
+
+Start with the [pitch](docs/pitch.md) and [vision](docs/vision.md), then browse [systems/](docs/systems/), [content/](docs/content/), and [technical/](docs/technical/). Each file states its canon/draft status and how it serves the spine. Dated build history is the append-only [DECISION_LOG](docs/DECISION_LOG.md).
+
+---
+
 ## Project Status
 
-> Spec-driven development: every feature follows `R# -> Design -> T# -> Test -> Implementation`.
+> Spec-driven: every feature follows `R# -> Design -> T# -> Test -> Implementation`.
+> **628 tests passing** — 60 shared · 394 server · 174 client.
 
-**Foundation**
-- [x] Workspace setup (pnpm workspaces, Vitest, strict TypeScript)
-- [x] Shared type system (`HexCoord`, `RelicBoard`, `SynergyMap`)
-- [x] Agent roster (netcode-engineer, gameplay-designer, spec-writer, code-reviewer)
+**Implemented**
+- [x] **Circulatory Board** — shared hex board, cross-player synergy, server-authoritative + deterministic (pure `evaluateSynergies`)
+- [x] **Seeded dungeon generation** — BSP, < 5ms, reproducible per `runId` + floor
+- [x] **Multiplayer lobby & rooms** — crypto room codes, join/leave, host reassignment, ephemeral in-memory
+- [x] **Bleed Clock** — real-time drain, depth scaling, 4-stage escalation (enemy aggression + drain bonuses)
+- [x] **Floor progression** — `descend` / `extract`, board + clock carry-over, per-floor dungeons
+- [x] **Enemy system & combat** — AI tick, attack resolution, downed/wipe, floor-scaled spawns, elite last room
+- [x] **Weapons & projectiles** — server auto-fire, collision, relic effects (fire DoT, chain, splash, damage reduction)
+- [x] **Collision & A\* pathfinding** — wall-slide, line-of-sight shortcut, body separation
+- [x] **Relics** — 10 starter relics, seeded per-floor loot pools, in-combat effect resolution
+- [x] **Linked Fates** — relic-sacrifice revive (server logic + two-step client UI)
+- [x] **Solo play** — single-owner synergy relaxation (co-op rules unchanged)
+- [x] **Client** — Phaser 3 rendering, HUD, board UI, lobby / waiting / post-run screens
+- [x] **Mobile** — virtual joystick, auto-aim + manual override, PWA manifest
+- [x] **Doctrine tags** on relics + hidden-scoring design (`BOARD_DOCTRINE_SHIFT`, no doctrine UI)
+- [x] **Deploy config** — Fly.io (server) + Vercel (client)
 
-**Circulatory Board** *(complete — 44 tests passing)*
-- [x] Requirements (R1-R7) + design (types, algorithms, Socket.io events)
-- [x] T1: `hexNeighbors` + `hexCoordKey` with tests
-- [x] T2: `evaluateSynergies` (pure, deterministic) with property tests
-- [x] T3: Relic placement handler + `RELIC_PLACED` event
-- [x] T4: Linked Fates revive mechanic
-- [x] T5: `BOARD_STATE_SYNC` on room join
-- [x] T6: Board persistence across floor transitions
-
-**Dungeon Generation** *(complete — 23 tests passing)*
-- [x] Seeded RNG (mulberry32, deterministic from run ID)
-- [x] BSP room generation (in-bounds, non-overlapping)
-- [x] Corridor connection (spanning tree, fully connected)
-- [x] `generateDungeon(runId, config)` (deterministic, < 5ms)
-
-**Multiplayer Lobby + Rooms** *(complete — 43 tests passing)*
-- [x] Lobby types + room codes (unambiguous alphabet, crypto-random)
-- [x] Hex board construction (radius-2, 19 cells, angular home regions)
-- [x] Placement hardening (server-authoritative ownership, no client spoofing)
-- [x] `RoomManager` (create/join/leave/start, ephemeral in-memory)
-- [x] Socket.io wiring (authoritative handlers, delta broadcasts)
-
-**Bleed Clock** *(complete — 24 tests passing)*
-- [x] Real-time drain math (pure, clamped, deterministic)
-- [x] Depth scaling (deeper floors drain faster, tension carries over)
-- [x] Run-end on depletion (wipe) + voluntary extraction
-- [x] Delta broadcast (`BLEED_CLOCK_TICK`) + server game loop
-
-**Floor Progression** *(complete — 14 tests passing)*
-- [x] Live `descend` path (wires `advanceFloor` to a socket handler)
-- [x] Per-floor dungeons (deterministic from runId + floor)
-- [x] Board + clock carry-over, drain rises, combat phase on arrival
-- [x] `FLOOR_ADVANCED` delta broadcast
-
-**Up next**
-- [ ] Enemy system + combat
-- [ ] Mobile controls (virtual joystick + auto-aim)
-- [ ] PWA manifest (fullscreen on iOS)
-- [ ] Meta-progression (Supabase)
+**Designed — not yet implemented**
+- [ ] Boss encounter — *The Pulsing Interpreter*, adapts to the party's dominant doctrine
+- [ ] Doctrine threshold effects (scoring scaffolding landed; effects partially wired)
+- [ ] Meta-progression persistence (Supabase unlocks / relic roster expansion)
+- [ ] Mutation system, additional biomes, real art pass (sprites replace primitives)
 
 ---
 
