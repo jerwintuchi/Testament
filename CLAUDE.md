@@ -1,6 +1,7 @@
 # Veins — Root Context
 
-@docs/DESIGN.md
+@docs/pitch.md
+@docs/vision.md
 @docs/GLOSSARY.md
 
 ## Trust Boundary
@@ -12,9 +13,9 @@
 | Client | `src/client/`  | Render + UI only. Untrusted. Zero game logic.                 |
 
 ## Active Spec
-@specs/body-collision/requirements.md
-@specs/body-collision/design.md
-@specs/body-collision/tasks.md
+@specs/solo-play/requirements.md
+@specs/solo-play/design.md
+@specs/solo-play/tasks.md
 
 ## Workflow Rules
 @.claude/rules/spec-workflow.md

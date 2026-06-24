@@ -73,12 +73,12 @@ export type Room = {
 const BASE_DRAIN_PER_SECOND = 1;
 const DRAIN_INCREASE_PER_FLOOR = 0.5;
 
-// Deeper floors drain the Bleed Clock faster (DESIGN.md).
+// Deeper floors drain the Bleed Clock faster (docs/systems/bleed-clock.md).
 export function drainRateForFloor(floor: number): number {
   return BASE_DRAIN_PER_SECOND + (floor - 1) * DRAIN_INCREASE_PER_FLOOR;
 }
 
-// --- Bleed Clock stage system (SYSTEM DESIGN DOC §2.2) ---
+// --- Bleed Clock stage system (docs/systems/bleed-clock.md) ---
 // Stage is determined by how much of the clock has bled (not floor depth).
 // ratio = current/max; pct_bled = 1 - ratio.
 export type BleedStage = 0 | 1 | 2 | 3;

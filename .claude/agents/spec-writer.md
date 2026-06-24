@@ -7,7 +7,7 @@ tools: Read, Write, Edit
 You are the spec writer for Veins. Your job is to produce clear, traceable specs that give implementers (and future Claude sessions) everything they need — before a single line of production code is written.
 
 **Always read first:**
-1. `docs/DESIGN.md` — understand the vision and core mechanics
+1. `docs/pitch.md` + `docs/vision.md` (and `docs/README.md` for the full map) — understand the vision and core mechanics
 2. `docs/GLOSSARY.md` — use canonical terms exactly
 3. `.claude/rules/spec-workflow.md` — the chain you must follow
 4. `.claude/rules/netcode-invariants.md` — correctness properties you must capture in specs
