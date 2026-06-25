@@ -4,37 +4,57 @@
 > **Sources:** .claude/rules/netcode-invariants.md (I1–I7); DECISION_LOG.md (authoritative-server, delta-updates, socket-payload hardening entries)
 > **See also:** [technical/architecture.md](architecture.md) · [technical/determinism-and-rng.md](determinism-and-rng.md) · [systems/combat.md](../systems/combat.md)
 
-## Model
+## Purpose
 
-Single authoritative server (Node + Socket.io). Clients receive **delta events** and render them only. Client-side prediction is deliberately deferred — room-based play with forgiving hit windows makes 50–80ms RTT imperceptible. An authoritative server is simpler, correct by construction, and required for anti-cheat.
+This file specifies **how server and clients communicate** and the seven invariants that keep the game authoritative, fair, and reproducible. Its job is to make "never trust the client" a checklist, not a slogan, so every new event handler is correct by construction.
 
-## The seven invariants (I1–I7)
+## Concepts
 
-1. **I1 — Server is the only source of truth.** All game state lives in `src/server/`. Clients send *intentions*; the server validates and applies.
-2. **I2 — Never trust client input.** Validate payload shape (shared types) → validate the action is legal given current state → only then mutate. On failure, emit an error to that socket only; never mutate, never broadcast.
-3. **I3 — Seeded RNG is server-only and deterministic.** The `runId` never leaves the server. ([determinism-and-rng.md](determinism-and-rng.md))
-4. **I4 — `src/shared` contains no game logic.** Types, interfaces, enums, constants, and pure non-domain helpers (e.g. `hexCoordKey`) only.
-5. **I5 — All synergy evaluation is server-side and pure.** `evaluateSynergies` lives in `src/server/`, never called from the client; broadcast via `RELIC_PLACED` / `RELIC_REMOVED`.
-6. **I6 — Delta events, not full state pushes.** After the initial `BOARD_STATE_SYNC`, send deltas only. Exceptions: reconnection / explicit `STATE_RESYNC`.
-7. **I7 — Room state is ephemeral.** Active runs are never written to the DB; lost on server restart (acceptable for 20–40 min sessions). Only post-run meta-progression persists.
+### Model
+Single authoritative server (Node + Socket.io). Clients receive **delta events** and render them only. Client-side prediction is deliberately deferred — room-based play with forgiving hit windows makes 50–80ms RTT imperceptible. Authoritative is simpler, correct by construction, and required for anti-cheat.
 
-## New-handler checklist
+### The seven invariants (I1–I7)
+1. **I1 — Server is the only source of truth.** All state in `src/server/`; clients send *intentions*, the server validates and applies.
+2. **I2 — Never trust client input.** Validate shape (shared types) → validate legality given state → only then mutate. On failure, error to that socket only; never mutate, never broadcast.
+3. **I3 — Seeded RNG is server-only and deterministic.** `runId` never leaves the server. ([determinism-and-rng.md](determinism-and-rng.md))
+4. **I4 — `src/shared` contains no game logic.** Types, enums, constants, pure non-domain helpers only.
+5. **I5 — All synergy evaluation is server-side and pure.** `evaluateSynergies` lives server-side, never called from the client; broadcast via `RELIC_PLACED` / `RELIC_REMOVED`.
+6. **I6 — Delta events, not full state pushes.** After initial `BOARD_STATE_SYNC`, deltas only. Exceptions: reconnection / explicit `STATE_RESYNC`.
+7. **I7 — Room state is ephemeral.** Active runs never persisted; lost on restart (acceptable for 20–40 min sessions). Only post-run meta persists.
 
+### New-handler checklist
 - [ ] Input validated against shared type before any mutation
 - [ ] Action authorized (player in this room; legal in current phase)
 - [ ] State mutation synchronous, returns new state
-- [ ] Delta event(s) broadcast to room after mutation
-- [ ] Error path emits to the requesting socket only; no broadcast
+- [ ] Delta event(s) broadcast after mutation
+- [ ] Error path emits to requesting socket only; no broadcast
 
-## Hardening already done
+### Hardening already done
+Identity is server-derived everywhere: `placeRelic`/`revive` use the authenticated socket's player id, not a client field. Handlers shape-guard untrusted payloads (`isCoord`) and emit targeted error codes (`INVALID_COORD`, `INVALID_REQUEST`, `WRONG_PHASE`, …) instead of throwing. Room codes use `node:crypto` (unpredictable), deliberately outside the seeded-RNG mandate.
 
-Identity is server-derived everywhere: `placeRelic` and `revive` use the authenticated socket's player id, not a client-supplied field. Socket handlers shape-guard untrusted payloads (`isCoord`) and emit targeted error codes (`INVALID_COORD`, `INVALID_REQUEST`, `WRONG_PHASE`, etc.) rather than throwing. Room codes use `node:crypto` (unpredictable), deliberately outside the seeded-RNG mandate.
-
-## Event catalog (representative)
-
+### Event catalogue (representative)
 - **Lobby/room:** `ROOM_UPDATE`, `RUN_STARTED`, `RUN_ENDED`, `LOBBY_ERROR`, `FLOOR_ADVANCED`, `PHASE_CHANGED`.
 - **Board:** `BOARD_STATE_SYNC`, `RELIC_PLACED`, `RELIC_REMOVED`, `RELIC_PLACE_ERROR`, `LINKED_FATES_ERROR`, `BOARD_DOCTRINE_SHIFT`.
 - **Bleed:** `BLEED_CLOCK_TICK`, `BLEED_STAGE_CHANGED`.
 - **Combat:** `ENEMY_SPAWNED/DAMAGED/DIED/MOVED`, `PLAYER_DAMAGED/DOWNED/REVIVED/MOVED`, `PLAYER_AIM_CHANGED`, `PROJECTILE_FIRED/REMOVED`.
 
-> Socket wiring is typed against minimal `SocketIOServerLike` / `ServerSocket` interfaces so handler logic is fully testable with fakes; the real socket.io `Server` is cast at a single boundary in `startServer` (guarded by an `isMain` check so importing under tests never opens a port).
+## Player Experience (indirect)
+
+Players never see netcode, but they feel its absence-of-failure: no rubber-banding exploits, no desync where your board differs from a teammate's, no cheater spawning relics. The delta model keeps the game light enough to *open a URL and play* on a phone. `BOARD_DOCTRINE_SHIFT` carrying a doctrine-omitting payload is netcode directly enforcing the design's "no doctrine UI."
+
+## Design alignment
+
+The invariants are the spine's enforcement layer. I1/I2/I5 make *Theology = Behavior* tamper-proof (belief inferred from authenticated action). I3 makes *delayed consequence* and "the world reacted to us" reproducible. I6/I7 keep the game *browser-light and ephemeral* (supporting the $0 instant-play pitch). The "no client game logic" rule is the technical face of *no generic-client-trust*.
+
+## Implementation Considerations
+
+- **Testability seam:** sockets are typed against minimal `SocketIOServerLike` / `ServerSocket` interfaces so handlers test with fakes; the real `Server` is cast at one boundary in `startServer` (guarded by an `isMain` check so importing under tests never opens a port).
+- **No new client-facing event for doctrine scoring** — it rides existing events; the only outward doctrine signal is the name-omitting `BOARD_DOCTRINE_SHIFT` (see [../systems/doctrine-tracking.md](../systems/doctrine-tracking.md)).
+- **Reconnection/resync** is the *only* sanctioned full-state path (`STATE_RESYNC`); never re-push full state per tick (I6).
+
+## Future Expansion
+
+- **Reconnection handling** (today a room is effectively lost to a disconnected player) — `STATE_RESYNC` on rejoin. **TODO(build):** reconnection/resync is designed but unbuilt. See [OPEN-QUESTIONS.md](../OPEN-QUESTIONS.md) §C.
+- **Client-side prediction** for movement if latency complaints arise (authority boundary unchanged).
+- **Rate-limiting / abuse guards** at the socket layer as player counts grow.
+- **Generated event contracts** from shared types to keep this catalogue honest.
