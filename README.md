@@ -123,7 +123,12 @@ The full design, lore, systems, and engineering docs live in [`docs/`](docs/READ
 
 > **Lore = Mechanics · Mechanics = Theology · Theology = Player Behavior.**
 
-Start with the [pitch](docs/pitch.md) and [vision](docs/vision.md), then browse [systems/](docs/systems/), [content/](docs/content/), and [technical/](docs/technical/). Each file states its canon/draft status and how it serves the spine. Dated build history is the append-only [DECISION_LOG](docs/DECISION_LOG.md).
+Start with the [pitch](docs/pitch.md) and [vision](docs/vision.md), then browse [systems/](docs/systems/), [content/](docs/content/), and [technical/](docs/technical/). Each file states its canon/draft status and how it serves the spine.
+
+**Built to be self-sufficient for future contributors (human or AI):**
+- [OPEN-QUESTIONS.md](docs/OPEN-QUESTIONS.md) — the unknown / undecided / unbuilt register. **Read before guessing.**
+- [technical/code-map.md](docs/technical/code-map.md) — concept → source file → test, so you can jump from design to code.
+- [DECISION_LOG.md](docs/DECISION_LOG.md) — append-only dated build & architecture history.
 
 ---
 
