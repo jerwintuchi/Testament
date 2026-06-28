@@ -1,6 +1,6 @@
 # Spec Workflow
 
-Every feature in Veins follows this chain. Nothing skips a step.
+Every feature in Testament follows this chain. Nothing skips a step.
 
 ## The Chain
 ```
@@ -15,26 +15,26 @@ R# (requirement) → design.md entry → T# (task) → test → implementation �
 - Each requirement gets an `R#` ID (R1, R2, …)
 - Format: user story + testable acceptance criterion
   ```
-  **R3**: As a player, when my relic is adjacent to a teammate's compatible relic,
-  both relics trigger their synergy effects.
-  - AC: evaluateSynergies returns true for both relics given a valid adjacent board state
-  - AC: synergy does NOT fire if both relics have the same ownerId
+  **R3**: As a Seeker, when I probe an Incarnate on a channel I perceive, the server
+  returns the sign for that channel derived from the Incarnate's hidden trait.
+  - AC: deriveSign returns the same sign for the same trait value (determinism)
+  - AC: the response never includes the underlying trait value (trait roll stays server-side)
   ```
-- Correctness properties (determinism, server authority, etc.) are requirements too — give them R# IDs
+- Correctness properties (determinism, server authority, trait-roll-never-on-wire) are requirements too: give them R# IDs
 
 ### 2. Write the design entry (`design.md`)
 - Data models for new types
 - Algorithm description with inputs/outputs
 - Correctness properties (P#) that the implementation must satisfy
-- Socket.io events emitted/received (name, payload shape)
+- Wire-protocol messages emitted/received (name, JSON payload shape). Signs cross the wire; trait rolls never do.
 - Reference the R# IDs this design satisfies
 
 ### 3. Write tasks (`tasks.md`)
 - Each task gets a `T#` ID
 - Format:
   ```
-  - [ ] T2 [R3, P1, P2] — Implement `evaluateSynergies` in `src/server/src/board/synergy.ts`
-    Test: `synergy.test.ts` — property: same input → same output; solo owner never synergizes; mutual firing confirmed
+  - [ ] T2 [R3, P1] — Implement `deriveSign` in `src/server/src/incarnate/signs.ts`
+    Test: `signs.test.ts` — property: same trait → same sign; the trait value never appears in the output
   ```
 - The test file and test description must be named BEFORE writing implementation code
 
@@ -52,10 +52,10 @@ R# (requirement) → design.md entry → T# (task) → test → implementation �
 - If you discover the requirement was wrong or incomplete, update requirements.md and add an entry to DECISION_LOG.md explaining why
 
 ## Switching Active Spec
-When moving from one feature to another, update CLAUDE.md's `## Active Spec` block:
+When moving from one feature to another, update CLAUDE.md's active-work block:
 ```markdown
-## Active Spec
-<!-- SWAP THESE THREE LINES when switching features -->
+## Active Work
+<!-- SWAP THESE LINES when switching features -->
 @specs/<new-feature>/requirements.md
 @specs/<new-feature>/design.md
 @specs/<new-feature>/tasks.md

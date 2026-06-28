@@ -391,11 +391,11 @@ describe('RoomManager — Bleed Clock integration', () => {
   });
 });
 
-describe('test arena env toggle (VEINS_TEST_ARENA)', () => {
-  afterEach(() => { delete process.env['VEINS_TEST_ARENA']; });
+describe('test arena env toggle (TESTAMENT_TEST_ARENA)', () => {
+  afterEach(() => { delete process.env['TESTAMENT_TEST_ARENA']; });
 
   it('OFF by default: startRun builds a normal multi-room dungeon (production unaffected)', () => {
-    delete process.env['VEINS_TEST_ARENA'];
+    delete process.env['TESTAMENT_TEST_ARENA'];
     const mgr = new RoomManager({ generateCode: seqCodes(), generateRunId: () => 'run-real' });
     const { room } = mgr.createRoom('h1');
     mgr.joinRoom(room.code, 'p2');
@@ -407,7 +407,7 @@ describe('test arena env toggle (VEINS_TEST_ARENA)', () => {
   });
 
   it('ON: startRun builds a single-room arena with one enemy per type', () => {
-    process.env['VEINS_TEST_ARENA'] = '1';
+    process.env['TESTAMENT_TEST_ARENA'] = '1';
     const mgr = new RoomManager({ generateCode: seqCodes(), generateRunId: () => 'run-arena' });
     const { room } = mgr.createRoom('h1');
     mgr.joinRoom(room.code, 'p2');
@@ -422,7 +422,7 @@ describe('test arena env toggle (VEINS_TEST_ARENA)', () => {
   });
 
   it('ON: descend keeps the arena (single room, one enemy per type)', () => {
-    process.env['VEINS_TEST_ARENA'] = '1';
+    process.env['TESTAMENT_TEST_ARENA'] = '1';
     const mgr = new RoomManager({ generateCode: seqCodes(), generateRunId: () => 'run-arena2' });
     const { room } = mgr.createRoom('h1');
     mgr.startRun(room.code);
@@ -436,7 +436,7 @@ describe('test arena env toggle (VEINS_TEST_ARENA)', () => {
 });
 
 describe('descend repositions players to the new floor entry (regression)', () => {
-  afterEach(() => { delete process.env['VEINS_TEST_ARENA']; });
+  afterEach(() => { delete process.env['TESTAMENT_TEST_ARENA']; });
 
   it('moves every player to the new floor entry-room centre, carrying HP', () => {
     const mgr = new RoomManager({ generateCode: seqCodes(), generateRunId: () => 'run-pos' });
@@ -465,7 +465,7 @@ describe('descend repositions players to the new floor entry (regression)', () =
   });
 
   it('in the arena, players land at the arena centre, away from the enemy spawns', () => {
-    process.env['VEINS_TEST_ARENA'] = '1';
+    process.env['TESTAMENT_TEST_ARENA'] = '1';
     const mgr = new RoomManager({ generateCode: seqCodes(), generateRunId: () => 'run-pos2' });
     const { room } = mgr.createRoom('h1');
     mgr.startRun(room.code);

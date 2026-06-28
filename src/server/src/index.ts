@@ -596,7 +596,7 @@ export async function startServer(port: number): Promise<void> {
   setInterval(() => runBleedTick(ioLike, manager, BLEED_TICK_INTERVAL_MS / 1000), BLEED_TICK_INTERVAL_MS);
   setInterval(() => runCombatTick(ioLike, manager, COMBAT_TICK_MS / 1000), COMBAT_TICK_MS);
   // eslint-disable-next-line no-console
-  console.log(`Veins server listening on :${port}`);
+  console.log(`Testament server listening on :${port}`);
 }
 
 const isMain = process.argv[1] !== undefined && process.argv[1] === fileURLToPath(import.meta.url);

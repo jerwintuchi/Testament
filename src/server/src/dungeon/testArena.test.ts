@@ -6,7 +6,7 @@ import {
 } from './testArena.js';
 import { ENEMY_TYPES } from '@testament/shared';
 
-const ENV_KEY = 'VEINS_TEST_ARENA';
+const ENV_KEY = 'TESTAMENT_TEST_ARENA';
 
 afterEach(() => {
   delete process.env[ENV_KEY];

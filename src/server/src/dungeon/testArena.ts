@@ -1,4 +1,4 @@
-// Test-only arena. OFF by default; enabled with the env var VEINS_TEST_ARENA=1.
+// Test-only arena. OFF by default; enabled with the env var TESTAMENT_TEST_ARENA=1.
 // Purpose: skip dungeon navigation while iterating on combat/loot. The run becomes
 // a single open room seeded with exactly one enemy of each type, so clearing the
 // floor (and reaching the loot phase) takes seconds. Production/the real game is
@@ -17,7 +17,7 @@ const ARENA_HEIGHT = 500;
 const ENEMY_SPAWN_DISTANCE = 200;
 
 export function isTestArenaEnabled(): boolean {
-  const v = process.env['VEINS_TEST_ARENA'];
+  const v = process.env['TESTAMENT_TEST_ARENA'];
   return v === '1' || v === 'true';
 }
 

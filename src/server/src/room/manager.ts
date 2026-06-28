@@ -188,7 +188,7 @@ export class RoomManager {
     }
 
     const runId = this.generateRunId();
-    // Test arena (VEINS_TEST_ARENA=1): single room, fast loot. Off → real dungeon.
+    // Test arena (TESTAMENT_TEST_ARENA=1): single room, fast loot. Off → real dungeon.
     const dungeon = isTestArenaEnabled() ? generateTestArenaDungeon(runId) : generateDungeon(runId);
 
     room.runId = runId;
