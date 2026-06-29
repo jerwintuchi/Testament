@@ -1,10 +1,9 @@
 # Testament — Root Context
 
 > Testament is a cooperative hunting RPG with roguelike expedition structure.
-> You are hunter-scholars of the Collegium. The game is built on the technical
-> foundations of the Veins prototype (authoritative Node server, ephemeral rooms,
-> seeded procedural generation), which validated the multiplayer architecture this
-> game keeps. The Veins game design is retired: see `docs/archive/veins/`.
+> You are hunter-scholars of the Collegium. It runs on an authoritative Node
+> server (ephemeral in-memory rooms, seeded procedural generation) with a Godot
+> client. The reboot and design history live in `docs/DECISION_LOG.md`.
 
 @docs/README.md
 @docs/vision.md
