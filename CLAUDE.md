@@ -31,14 +31,34 @@ TypeScript server and the GDScript client both honor the same message shapes.
 
 ## Active Work
 
-Phase: **Phase 1 — Godot client & transport**. Active spec: the raw WebSocket
-transport (server done; Godot client next).
+Phase: **Phase 2 — Protocol contract & shared codegen**. Active spec: the wire
+protocol as one language-neutral source of truth (a shared message-name registry
+plus a `tools/` codegen emitting GDScript constants). Commits no gameplay.
 
-@specs/raw-ws-transport/requirements.md
-@specs/raw-ws-transport/design.md
-@specs/raw-ws-transport/tasks.md
+@specs/protocol-contract/requirements.md
+@specs/protocol-contract/design.md
+@specs/protocol-contract/tasks.md
 @.claude/rules/spec-workflow.md
 @.claude/rules/netcode-invariants.md
+
+## Local Tooling (Godot MCP)
+
+A Godot MCP server may be registered in this environment, exposing `mcp__godot__*`
+tools (`run_project`, `get_debug_output`, `launch_editor`, `get_project_info`, plus
+scene/node helpers). When those tools are present, use them to drive the client
+directly instead of asking the user to press Play and paste errors:
+
+- The Godot client is the `client/` folder (the directory holding `project.godot`).
+- To check it: call `run_project` on `client/`, read `get_debug_output` for GDScript
+  errors and runtime logs, then `stop_project` when done.
+- A live server round-trip needs the Node server up first (`pnpm dev:server`,
+  `ws://localhost:3001`); without it the client reports "server offline" and idles,
+  which is not an error.
+- The MCP reaches only the render client. It does not relax the trust boundary:
+  never move game logic into the client to make a check pass.
+
+If the `mcp__godot__*` tools are absent, fall back to asking the user to run the
+client manually.
 
 ## Immutable Design Pillars (never violate)
 

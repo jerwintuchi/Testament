@@ -333,3 +333,52 @@ skeleton; both packages type-check clean and tests pass. `PlayerId` moved to
 references remain in `src/`; the only ones left are the historical entries in this
 append-only log (TD-001..002), which document the reboot itself. Git history
 preserves everything removed.
+
+## TD-020 - Active spec switched from raw-ws-transport to protocol-contract; Phase 2 begins (2026-06-29)
+
+**Decision.** Close out the raw-ws-transport spec (Phase 1, server and client both
+green) and open `specs/protocol-contract/` as the active spec. CLAUDE.md's
+Active-Work block now points at the protocol-contract spec. Phase 2 makes the wire
+protocol one language-neutral source of truth: a canonical message-name registry
+plus shared enums in `src/shared`, and a `tools/` codegen that emits a GDScript
+constants file the Godot client consumes. It commits no gameplay (gameplay is gated
+to Phase 3).
+
+**Context.** Phase 1 left the message-type strings ("create-room", "ROOM_UPDATE",
+and the rest) as scattered literals in both `src/server/src/index.ts` and
+`client/main.gd`. Two hand-maintained copies of the same vocabulary will drift. The
+roadmap's Phase 2 exit gate requires server and client to reference the same names
+from one source.
+
+**Consequences.** The registry and the codegen-able enums are authored as runtime
+values (const objects and const string arrays) with the TypeScript types derived
+from them, because TS union types are erased at runtime and a codegen cannot
+introspect them otherwise. This keeps `src/shared` types-and-constants-only
+(invariant I4): const data, no logic. The codegen output is deterministic and
+checked into git, so a drift between the registry and the generated GDScript fails a
+test. The transport lifecycle events `connection` and `disconnect` are explicitly
+not wire messages and stay out of the registry.
+
+## TD-021 - Generated GDScript protocol is preload-consumed, not a global class_name (2026-06-29)
+
+**Decision.** The codegen emits `client/protocol/protocol.gd` as a plain constants
+script with no `class_name`, and the client consumes it with
+`const Protocol = preload("res://protocol/protocol.gd")`. This amends the
+protocol-contract spec's R4 acceptance criterion, which originally specified
+`class_name Protocol`.
+
+**Context.** A Godot `class_name` global is only registered after the editor scans
+and reimports the project. Because `protocol.gd` is generated outside the editor, a
+headless run (the Godot MCP launching the game) and a fresh `git clone` before the
+editor is opened both fail to resolve `Protocol`, with `Parser Error: Identifier
+"Protocol" not declared in the current scope`. The stale global-class cache also
+collided with a local `const Protocol`.
+
+**Consequences.** `preload` resolves at compile time straight from the res:// path,
+so the file works in a headless run, in the editor, and in an export with no
+dependency on the global-class cache state. This let the Phase-1 round-trip be
+verified through the MCP (Godot 4.7) rather than only by hand: the client compiles
+and runs with no errors, and an instrumented run observed
+`RUN_STARTED rooms=12 seekers=1`. The change is value-preserving (each generated
+constant equals the literal it replaced), so the wire behaviour is unchanged. The
+`.godot/` cache stays gitignored and regenerates per checkout.

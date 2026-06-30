@@ -5,6 +5,7 @@
 // behind the `ServerHub` seam ([transport/types.ts], [transport/wsHub.ts]).
 import { fileURLToPath } from 'node:url';
 import type { JoinRoomRequest, MovePlayerRequest, RoomSummary, PlayerId } from '@testament/shared';
+import { CLIENT_MESSAGES, SERVER_MESSAGES } from '@testament/shared';
 import { RoomManager } from './room/manager.js';
 import type { Room } from './room/state.js';
 import { buildStateResync } from './room/sync.js';
@@ -33,72 +34,72 @@ export function registerHandlers(io: ServerHub, manager: RoomManager): void {
     const currentRoom = (): Room | undefined =>
       socket.data.roomCode ? manager.getRoom(socket.data.roomCode) : undefined;
 
-    socket.on('create-room', () => {
+    socket.on(CLIENT_MESSAGES.CREATE_ROOM, () => {
       const { room } = manager.createRoom(playerId);
       socket.data.roomCode = room.code;
       socket.join(room.code);
-      socket.emit('ROOM_UPDATE', { room: summarizeRoom(room) });
+      socket.emit(SERVER_MESSAGES.ROOM_UPDATE, { room: summarizeRoom(room) });
     });
 
-    socket.on('join-room', (payload) => {
+    socket.on(CLIENT_MESSAGES.JOIN_ROOM, (payload) => {
       const req = payload as JoinRoomRequest;
       if (!req || typeof req.code !== 'string') {
-        socket.emit('LOBBY_ERROR', { code: 'INVALID_REQUEST', message: 'Malformed join-room request.' });
+        socket.emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_REQUEST', message: 'Malformed join-room request.' });
         return;
       }
       const res = manager.joinRoom(req.code, playerId);
       if (!res.ok) {
-        socket.emit('LOBBY_ERROR', res.error);
+        socket.emit(SERVER_MESSAGES.LOBBY_ERROR, res.error);
         return;
       }
       socket.data.roomCode = res.room.code;
       socket.join(res.room.code);
-      io.to(res.room.code).emit('ROOM_UPDATE', { room: summarizeRoom(res.room) });
+      io.to(res.room.code).emit(SERVER_MESSAGES.ROOM_UPDATE, { room: summarizeRoom(res.room) });
     });
 
     // Reconnection: a returning player re-associates with an in-progress run they
     // still belong to and receives a full STATE_RESYNC snapshot — to this socket
     // only (the sanctioned I6 full-state exception), never a room broadcast.
-    socket.on('rejoin', (payload) => {
+    socket.on(CLIENT_MESSAGES.REJOIN, (payload) => {
       const req = payload as { code?: unknown };
       if (!req || typeof req.code !== 'string') {
-        socket.emit('LOBBY_ERROR', { code: 'INVALID_REQUEST', message: 'Malformed rejoin request.' });
+        socket.emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_REQUEST', message: 'Malformed rejoin request.' });
         return;
       }
       const res = manager.rejoin(req.code, playerId);
       if (!res.ok) {
-        socket.emit('LOBBY_ERROR', res.error);
+        socket.emit(SERVER_MESSAGES.LOBBY_ERROR, res.error);
         return;
       }
       socket.data.roomCode = res.room.code;
       socket.join(res.room.code);
-      socket.emit('STATE_RESYNC', buildStateResync(res.room));
-      io.to(res.room.code).emit('PLAYER_CONNECTION_CHANGED', { playerId, connected: true });
+      socket.emit(SERVER_MESSAGES.STATE_RESYNC, buildStateResync(res.room));
+      io.to(res.room.code).emit(SERVER_MESSAGES.PLAYER_CONNECTION_CHANGED, { playerId, connected: true });
     });
 
-    socket.on('leave-room', () => {
+    socket.on(CLIENT_MESSAGES.LEAVE_ROOM, () => {
       const code = socket.data.roomCode;
       if (!code) return;
       const res = manager.leaveRoom(code, playerId);
       socket.data.roomCode = undefined;
       socket.leave?.(code); // stop receiving this room's broadcasts after leaving
       if (res.ok && !res.deleted && res.room) {
-        io.to(code).emit('ROOM_UPDATE', { room: summarizeRoom(res.room) });
+        io.to(code).emit(SERVER_MESSAGES.ROOM_UPDATE, { room: summarizeRoom(res.room) });
       }
     });
 
-    socket.on('start-run', () => {
+    socket.on(CLIENT_MESSAGES.START_RUN, () => {
       const code = socket.data.roomCode;
       if (!code) {
-        socket.emit('LOBBY_ERROR', { code: 'NOT_IN_ROOM', message: 'You are not in a room.' });
+        socket.emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_IN_ROOM', message: 'You are not in a room.' });
         return;
       }
       const res = manager.startRun(code);
       if (!res.ok) {
-        socket.emit('LOBBY_ERROR', res.error);
+        socket.emit(SERVER_MESSAGES.LOBBY_ERROR, res.error);
         return;
       }
-      io.to(code).emit('RUN_STARTED', {
+      io.to(code).emit(SERVER_MESSAGES.RUN_STARTED, {
         dungeon: res.dungeon,
         playerPositions: Object.fromEntries(
           [...res.room.playerStates.entries()].map(([id, s]) => [id, { x: s.x, y: s.y }])
@@ -109,18 +110,20 @@ export function registerHandlers(io: ServerHub, manager: RoomManager): void {
     // Per-frame input: store the latest move direction; the tick applies it once
     // per frame regardless of how many events arrive (closes the event-flood
     // speed exploit). Silently ignore when not in an active run (I2).
-    socket.on('move-player', (payload) => {
+    socket.on(CLIENT_MESSAGES.MOVE_PLAYER, (payload) => {
       const room = currentRoom();
       if (!room) return;
       const req = payload as MovePlayerRequest;
       if (!req || typeof req.dx !== 'number' || typeof req.dy !== 'number') {
-        socket.emit('LOBBY_ERROR', { code: 'INVALID_REQUEST', message: 'Malformed move-player request.' });
+        socket.emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_REQUEST', message: 'Malformed move-player request.' });
         return;
       }
       if (!room.playerMoveInputs.has(playerId)) return; // run not yet started
       room.playerMoveInputs.set(playerId, { dx: req.dx, dy: req.dy });
     });
 
+    // Transport lifecycle, not a wire message: the hub fires 'disconnect' on raw
+    // socket close, so it is intentionally not part of the shared message registry.
     socket.on('disconnect', () => {
       const code = socket.data.roomCode;
       if (!code) return;
@@ -131,10 +134,10 @@ export function registerHandlers(io: ServerHub, manager: RoomManager): void {
       if (!res.ok) return;
       if (res.mode === 'disconnected') {
         if (!res.deleted) {
-          io.to(code).emit('PLAYER_CONNECTION_CHANGED', { playerId, connected: false });
+          io.to(code).emit(SERVER_MESSAGES.PLAYER_CONNECTION_CHANGED, { playerId, connected: false });
         }
       } else if (!res.deleted && res.room) {
-        io.to(code).emit('ROOM_UPDATE', { room: summarizeRoom(res.room) });
+        io.to(code).emit(SERVER_MESSAGES.ROOM_UPDATE, { room: summarizeRoom(res.room) });
       }
     });
   });
@@ -152,7 +155,7 @@ export function runMovementTick(io: ServerHub, manager: RoomManager, deltaSecond
       const next = movePlayer(ps, input.dx, input.dy, deltaSeconds, room.dungeon);
       if (next.x !== ps.x || next.y !== ps.y) {
         room.playerStates.set(pid, next);
-        io.to(room.code).emit('PLAYER_MOVED', { playerId: pid, x: next.x, y: next.y });
+        io.to(room.code).emit(SERVER_MESSAGES.PLAYER_MOVED, { playerId: pid, x: next.x, y: next.y });
       }
     }
   }

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev:server": "pnpm --filter @testament/server dev",
+    "gen:protocol": "pnpm --filter @testament/protocol-codegen generate",
     "test": "pnpm -r test",
     "test:watch": "pnpm -r test:watch",
     "build": "pnpm --filter @testament/shared build && pnpm --filter @testament/server build"
