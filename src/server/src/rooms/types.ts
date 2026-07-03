@@ -1,5 +1,5 @@
 // Server-only room types. Never exported from @testament/shared (I4).
-import type { RoomCode, RoomPhase, LobbyPlayer, StubFieldData, Sign, Channel } from '@testament/shared';
+import type { RoomCode, RoomPhase, LobbyPlayer, StubFieldData, Sign, Channel, ItemId } from '@testament/shared';
 import type { ContractRecord } from '../incarnate/contractRecord.js';
 
 export type { RoomCode };
@@ -14,6 +14,8 @@ export type ServerPlayerEntry = {
   // Distributed Perception (R61): empty until DEPLOY assigns. Keyed to the
   // player entry (playerId), not the socket, so it survives reconnection (R63).
   perceivedChannels: Channel[];
+  // Loadout (R68): empty until REQUISITION during DEPLOYING; survives reconnection.
+  bag: ItemId[];
 };
 
 export type RoomRecord = {
@@ -41,11 +43,13 @@ export type EmitToFn = (socketId: string, type: string, payload: unknown) => voi
 export type BroadcastFn = (roomCode: RoomCode, type: string, payload: unknown) => void;
 
 // Converts a ServerPlayerEntry to the shared LobbyPlayer type (strips server-only fields).
+// Bags are party-visible coordination state (TD-007), not secrets.
 export function toPublicPlayer(p: ServerPlayerEntry): LobbyPlayer {
   return {
     playerId: p.playerId,
     displayName: p.displayName,
     isLeader: p.isLeader,
     readyState: p.readyState,
+    bag: p.bag,
   };
 }

@@ -21,7 +21,9 @@ function makeEmitTo(): { fn: EmitToFn; calls: Array<[string, string, unknown]> }
 
 // Creates a solo room, walks it to FIELD phase, and pins a JOURNEYMAN contract
 // with ward COLD so reaction outcomes are deterministic. The solo host perceives
-// all channels (P27), so their probe results always carry the sign.
+// all channels (P27) and packs all four probe kits, so their probes are always legal.
+const ALL_KITS = ['censer-of-embers', 'phial-of-hoarfrost', 'consecrated-salt', 'lantern-of-the-creed'];
+
 function setupFieldRoom() {
   const mgr = new RoomManager();
   const store = new ReconnectTokenStore();
@@ -34,6 +36,7 @@ function setupFieldRoom() {
     tier: 'JOURNEYMAN',
     traitRoll: { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE', ward: 'COLD', disposition: 'STALKER' },
   };
+  room.players[0]!.bag = [...ALL_KITS];
   handleDeploy('host', mgr, store, () => {}, () => {}, () => {});
   return { mgr, room };
 }
@@ -43,7 +46,7 @@ function addPlayer(room: ReturnType<typeof setupFieldRoom>['room'], channels: Ch
   room.players.push({
     playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
     isLeader: false, readyState: true, disconnectedAt: null,
-    perceivedChannels: channels,
+    perceivedChannels: channels, bag: [],
   });
 }
 
@@ -130,6 +133,7 @@ describe('handleProbe — success path (R54, R57)', () => {
   it('any player may probe, not only the leader', () => {
     const { mgr, room } = setupFieldRoom();
     addPlayer(room, ['REACTION', 'SPOOR']);
+    room.players[1]!.bag = ['consecrated-salt'];
     const { fn: emitTo, calls: sent } = makeEmitTo();
 
     handleProbe('p2-sock', { stimulus: 'SALT' }, mgr, () => {}, emitTo);
@@ -151,6 +155,47 @@ describe('handleProbe — success path (R54, R57)', () => {
       { channel: 'REACTION', token: 'drinks-cold' },
       { channel: 'REACTION', token: 'no-reaction' },
     ]);
+  });
+});
+
+describe('handleProbe — gear gating (T73, R67, P33)', () => {
+  it('probe without the matching kit → MISSING_GEAR to sender only, no mutation, no delivery', () => {
+    const { mgr, room } = setupFieldRoom();
+    room.players[0]!.bag = ['phial-of-hoarfrost'];  // COLD kit only
+    const { fn: emit, calls } = makeEmit();
+    const { fn: emitTo, calls: sent } = makeEmitTo();
+
+    handleProbe('host', { stimulus: 'FLAME' }, mgr, emit, emitTo);
+
+    expect((calls[0]?.[1] as { code: string }).code).toBe('MISSING_GEAR');
+    expect(sent).toHaveLength(0);
+    expect(room.exposure).toBe(0);
+    expect(room.revealedSigns).toEqual([]);
+  });
+
+  it('solo needs the kit too — reading is free, testing is not', () => {
+    const { mgr, room } = setupFieldRoom();
+    room.players[0]!.bag = [];
+    const { fn: emit, calls } = makeEmit();
+    const { fn: emitTo, calls: sent } = makeEmitTo();
+
+    handleProbe('host', { stimulus: 'COLD' }, mgr, emit, emitTo);
+
+    expect((calls[0]?.[1] as { code: string }).code).toBe('MISSING_GEAR');
+    expect(sent).toHaveLength(0);
+    expect(room.exposure).toBe(0);
+  });
+
+  it('with the kit, the probe behaves exactly as before (P33)', () => {
+    const { mgr, room } = setupFieldRoom();
+    room.players[0]!.bag = ['phial-of-hoarfrost'];
+    const { fn: emitTo, calls: sent } = makeEmitTo();
+
+    handleProbe('host', { stimulus: 'COLD' }, mgr, () => {}, emitTo);
+
+    const payload = sent[0]?.[2] as ProbeResultPayload;
+    expect(payload.sign).toEqual({ channel: 'REACTION', token: 'drinks-cold' });
+    expect(room.exposure).toBe(1);
   });
 });
 

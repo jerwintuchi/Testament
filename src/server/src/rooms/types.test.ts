@@ -13,7 +13,7 @@ describe('ServerPlayerEntry', () => {
       socketId: 'sock-1',
       isLeader: true,
       readyState: false,
-      disconnectedAt: null, perceivedChannels: [],
+      disconnectedAt: null, perceivedChannels: [], bag: [],
     };
     expect(entry.socketId).toBe('sock-1');
     expect(entry.disconnectedAt).toBeNull();
@@ -28,7 +28,7 @@ describe('toPublicPlayer', () => {
       socketId: 'sock-1',
       isLeader: true,
       readyState: false,
-      disconnectedAt: 1234567890, perceivedChannels: [],
+      disconnectedAt: 1234567890, perceivedChannels: [], bag: [],
     };
     const pub: LobbyPlayer = toPublicPlayer(entry);
     expect(pub.playerId).toBe('p1');
@@ -58,11 +58,23 @@ describe('RoomRecord shape', () => {
   it('fieldData is absent from LobbyPlayer (server-only field)', () => {
     const entry: ServerPlayerEntry = {
       playerId: 'p1', displayName: 'Aldric', socketId: 's1',
-      isLeader: true, readyState: false, disconnectedAt: null, perceivedChannels: [],
+      isLeader: true, readyState: false, disconnectedAt: null, perceivedChannels: [], bag: [],
     };
     const pub = toPublicPlayer(entry);
     expect('fieldData' in pub).toBe(false);
     expect('socketId' in pub).toBe(false);
     expect('disconnectedAt' in pub).toBe(false);
+  });
+
+  it('toPublicPlayer includes bag but not perceivedChannels (T70, R64/R68)', () => {
+    const entry: ServerPlayerEntry = {
+      playerId: 'p1', displayName: 'Aldric', socketId: 's1',
+      isLeader: true, readyState: false, disconnectedAt: null,
+      perceivedChannels: [], bag: ['ashen-lens', 'censer-of-embers'],
+    };
+    const pub = toPublicPlayer(entry);
+    expect(pub.bag).toEqual(['ashen-lens', 'censer-of-embers']);
+    // perceivedChannels stays server-side (delivered per player at DEPLOY, never in snapshots).
+    expect('perceivedChannels' in pub).toBe(false);
   });
 });

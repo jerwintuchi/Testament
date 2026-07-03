@@ -1,19 +1,11 @@
-// T63: perception assignment — channelsForTier, assignPerception, filterSigns (R60, P25–P27)
+// T63: channelsForTier, filterSigns (R60, P26)
+// T69: perceivedChannelsFor, hasProbeKit — perception follows gear (R66, R67, P32)
 import { describe, it, expect } from 'vitest';
-import { channelsForTier, assignPerception, filterSigns, MIN_CHANNELS_PER_PLAYER } from './perception.js';
-import { createRng, hashSeed } from '../rng/seeded.js';
-import type { Channel, Sign, Tier } from '@testament/shared';
+import { channelsForTier, perceivedChannelsFor, hasProbeKit, filterSigns } from './perception.js';
+import type { Sign, Tier } from '@testament/shared';
 import { CHANNELS } from '@testament/shared';
 
 const TIERS: Tier[] = ['APPRENTICE', 'JOURNEYMAN', 'MASTER'];
-
-function playerIds(n: number): string[] {
-  return Array.from({ length: n }, (_, i) => `p${i + 1}`);
-}
-
-function canonicalIndex(c: Channel): number {
-  return CHANNELS.indexOf(c);
-}
 
 describe('channelsForTier', () => {
   it('Apprentice: ambient channels plus REACTION, canonical order', () => {
@@ -29,71 +21,53 @@ describe('channelsForTier', () => {
   });
 });
 
-describe('assignPerception', () => {
-  it('is deterministic: same seed → identical assignment (P25)', () => {
-    const ids = playerIds(3);
-    const chans = channelsForTier('MASTER');
-    const a = assignPerception(createRng(hashSeed('seed-x:perception')), ids, chans);
-    const b = assignPerception(createRng(hashSeed('seed-x:perception')), ids, chans);
-    expect([...a.entries()]).toEqual([...b.entries()]);
-  });
-
-  it('different seeds can produce different assignments', () => {
-    const ids = playerIds(3);
-    const chans = channelsForTier('MASTER');
-    const seen = new Set<string>();
-    for (let i = 0; i < 20; i++) {
-      const m = assignPerception(createRng(hashSeed(`seed-${i}:perception`)), ids, chans);
-      seen.add(JSON.stringify([...m.entries()]));
-    }
-    expect(seen.size).toBeGreaterThan(1);
-  });
-
-  it('union of all sets equals the input channels at every party size and tier (P26)', () => {
+describe('perceivedChannelsFor (T69, P32)', () => {
+  it('solo perceives the full tier set regardless of bag (TD-008)', () => {
     for (const tier of TIERS) {
-      const chans = channelsForTier(tier);
-      for (let n = 1; n <= 4; n++) {
-        const m = assignPerception(createRng(hashSeed(`u-${tier}-${n}`)), playerIds(n), chans);
-        const union = new Set([...m.values()].flat());
-        expect([...union].sort()).toEqual([...chans].sort());
-      }
+      expect(perceivedChannelsFor([], true, tier)).toEqual(channelsForTier(tier));
+      expect(perceivedChannelsFor(['censer-of-embers'], true, tier)).toEqual(channelsForTier(tier));
     }
   });
 
-  it('every player holds at least MIN_CHANNELS_PER_PLAYER channels (P27)', () => {
-    for (const tier of TIERS) {
-      const chans = channelsForTier(tier);
-      for (let n = 2; n <= 4; n++) {
-        const m = assignPerception(createRng(hashSeed(`m-${tier}-${n}`)), playerIds(n), chans);
-        for (const set of m.values()) {
-          expect(set.length).toBeGreaterThanOrEqual(MIN_CHANNELS_PER_PLAYER);
-          expect(new Set(set).size).toBe(set.length); // no duplicates within a set
-        }
-      }
-    }
+  it('party perception equals exactly the carried PERCEPTION channels, canonical order', () => {
+    const bag = ['augurs-bead', 'ashen-lens'];  // OMEN + RESIDUE, packed out of order
+    expect(perceivedChannelsFor(bag, false, 'MASTER')).toEqual(['RESIDUE', 'OMEN']);
   });
 
-  it('solo player receives all channels (P27)', () => {
-    for (const tier of TIERS) {
-      const chans = channelsForTier(tier);
-      const m = assignPerception(createRng(hashSeed(`s-${tier}`)), ['solo'], chans);
-      expect(m.get('solo')).toEqual(chans);
-    }
+  it('probe kits contribute no perception', () => {
+    const bag = ['censer-of-embers', 'phial-of-hoarfrost', 'consecrated-salt', 'lantern-of-the-creed'];
+    expect(perceivedChannelsFor(bag, false, 'MASTER')).toEqual([]);
   });
 
-  it('each assigned list is sorted in canonical CHANNELS order', () => {
-    const m = assignPerception(createRng(hashSeed('order')), playerIds(4), channelsForTier('MASTER'));
-    for (const set of m.values()) {
-      const idx = set.map(canonicalIndex);
-      expect([...idx].sort((a, b) => a - b)).toEqual(idx);
-    }
+  it('empty bag in a party → empty set (blindness is a legal bad bet)', () => {
+    expect(perceivedChannelsFor([], false, 'JOURNEYMAN')).toEqual([]);
   });
 
-  it('4 Seekers at Apprentice (4 channels): every player gets exactly 2 via overlap', () => {
-    const m = assignPerception(createRng(hashSeed('ov')), playerIds(4), channelsForTier('APPRENTICE'));
-    for (const set of m.values()) {
-      expect(set).toHaveLength(2);
-    }
+  it('gear is not filtered by tier relevance (a wasted slot is the player\'s bet)', () => {
+    // Cantor's Ear reads LITURGY, which carries no sign at Apprentice — still assigned.
+    expect(perceivedChannelsFor(['cantors-ear'], false, 'APPRENTICE')).toEqual(['LITURGY']);
+  });
+
+  it('unknown ids are ignored', () => {
+    expect(perceivedChannelsFor(['not-a-real-item'], false, 'MASTER')).toEqual([]);
+  });
+});
+
+describe('hasProbeKit (T69, R67)', () => {
+  it('true only for the matching carried kit', () => {
+    const bag = ['phial-of-hoarfrost', 'ashen-lens'];
+    expect(hasProbeKit(bag, 'COLD')).toBe(true);
+    expect(hasProbeKit(bag, 'FLAME')).toBe(false);
+    expect(hasProbeKit(bag, 'SALT')).toBe(false);
+    expect(hasProbeKit(bag, 'LIGHT')).toBe(false);
+  });
+
+  it('false for an empty bag', () => {
+    expect(hasProbeKit([], 'COLD')).toBe(false);
+  });
+
+  it('perception gear is not a probe kit', () => {
+    expect(hasProbeKit(['witness-prism'], 'COLD')).toBe(false);
   });
 });
 

@@ -31,7 +31,10 @@ TypeScript server and the GDScript client both honor the same message shapes.
 
 ## Active Work
 
-Phase: **Phase 4 — Core systems v1**. Next spec: Loadout & Bag Economy (spec 6).
+Phase: **Phase 4 — Core systems v1**. All five Phase 4 deliverables exist
+server-side (TD-027); the exit gate is walkable over the wire. Next: bring the
+Godot client from the transport spike up to the Testament protocol (lobby →
+requisition → field → probe) so the exit gate can be played, then Phase 5.
 
 Completed Phase 4 specs:
 - `specs/raw-ws-transport/`: raw WebSocket transport (wsHub, protocol envelope) + Godot client spike
@@ -40,6 +43,7 @@ Completed Phase 4 specs:
 - `specs/ambient-signs/` (T50–T53): signs in FIELD_STARTED and FieldSnapshot (reconnect)
 - `specs/probe-handler/` (T54–T61): PROBE intent, deriveReaction, exposure, probe-gated REACTION channel
 - `specs/distributed-perception/` (T62–T67): per-player perception sets, filtered sign delivery
+- `specs/loadout-economy/` (T68–T74): GEAR_CATALOG v1, REQUISITION, gear-derived perception, kit-gated probes
 
 @.claude/rules/spec-workflow.md
 @.claude/rules/netcode-invariants.md

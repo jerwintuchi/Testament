@@ -512,3 +512,35 @@ to playerId and survives reconnection; a non-REACTION perceiver does not recover
 revealed reaction signs on resync. When the loadout economy lands it replaces the
 assignment source only — the filtering machinery stays. All 347 tests green
 (44 shared + 303 server); both packages typecheck clean.
+
+## TD-027 — Phase 4 spec 6: Loadout & Bag Economy v1, with a minimal gear catalog (2026-07-02)
+
+**Decision.** The bag is implemented (specs/loadout-economy, T68–T74) with a v1
+catalog shipped inside the spec, following the SIGN_LEXICON precedent: 6 perception
+gear items (one per channel: Ashen Lens, Chirurgeon's Glass, Witness Prism,
+Tracker's Fetish, Cantor's Ear, Augur's Bead) and 4 reusable probe kits (one per
+stimulus: Censer of Embers, Phial of Hoarfrost, Consecrated Salt, Lantern of the
+Creed). `BAG_SLOTS = 4`. A `REQUISITION` intent (DEPLOYING phase only,
+replace-not-merge) packs the sender's own bag; bags are party-visible via
+`LobbyPlayer.bag` in every snapshot. Perception is now gear-derived for parties
+(`perceivedChannelsFor`); spec 5's interim seeded `assignPerception` is deleted as
+planned (TD-026). Probing now requires the matching kit (`MISSING_GEAR` otherwise).
+
+**Context.** TD-007: distributing the bags and distributing perception must be the
+same decision. The catalog lives in `@testament/shared` (unlike SIGN_LEXICON, which
+maps hidden trait values and stays server-only) because it is public requisition
+data the Godot client renders; it carries channels and stimuli only, never axis
+values. Solo perceives all tier channels regardless of gear (TD-008: solo is
+balanced by tempo and bag pressure, never by withholding information) but still
+needs kits to probe.
+
+**Consequences.** Union coverage of the party's channels is no longer a server
+guarantee — a party that packs badly is blind on a channel, which is the design
+(preparation is a bet, falsifiable like the intel it is placed on). Deferred
+deliberately: Stipend pricing and the Surety (economy spec), rites and combat tools
+(nothing consumes them yet), consumable probes and cache resupply (sites), and the
+Blessing. New error codes: UNKNOWN_ITEM, BAG_OVERFLOW, MISSING_GEAR. With this,
+all five Phase 4 deliverables (contract axes v1, sign language, probing, loadout,
+distributed perception) exist server-side; the exit gate ("a party reads an
+Incarnate from signs and probes and forms a theory") is walkable over the wire.
+All 372 tests green (50 shared + 322 server); both packages typecheck clean.

@@ -27,6 +27,12 @@ describe('RoomManager.createRoom', () => {
     expect(room.exposure).toBe(0);
     expect(room.revealedSigns).toEqual([]);
   });
+
+  it('the creator starts with an empty bag (T70, R68)', () => {
+    const mgr = new RoomManager();
+    const room = mgr.createRoom('sock-1', 'Aldric');
+    expect(room.players[0]!.bag).toEqual([]);
+  });
 });
 
 describe('RoomManager.getRoom', () => {

@@ -65,6 +65,15 @@ describe('routeMessage', () => {
     expect((calls[0]?.[1] as { code: string }).code).toBe('NOT_IN_ROOM');
   });
 
+  it('dispatches REQUISITION envelope to the requisition handler (T71)', () => {
+    const mgr = new RoomManager();
+    const store = new ReconnectTokenStore();
+    const { fn: emit, calls } = makeEmit();
+    routeMessage('sock-1', JSON.stringify({ type: 'REQUISITION', payload: { itemIds: [] } }), mgr, store, emit, noEmitTo, noBroadcast, new SessionArchive());
+    // NOT_IN_ROOM confirms the REQUISITION handler was reached (not handleUnknownMessage).
+    expect((calls[0]?.[1] as { code: string }).code).toBe('NOT_IN_ROOM');
+  });
+
   it('dispatches PROBE envelope to the probe handler (T59)', () => {
     const mgr = new RoomManager();
     const store = new ReconnectTokenStore();

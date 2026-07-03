@@ -4,8 +4,7 @@ import type { EmitFn, EmitToFn, BroadcastFn } from '../types.js';
 import { buildStubFieldData } from '../fieldData.js';
 import { assertPhase } from '../phaseGuard.js';
 import { deriveAmbientSigns } from '../../incarnate/deriveSigns.js';
-import { assignPerception, channelsForTier, filterSigns } from '../perception.js';
-import { createRng, hashSeed } from '../../rng/seeded.js';
+import { perceivedChannelsFor, filterSigns } from '../perception.js';
 
 export function handleDeploy(
   socketId: string,
@@ -35,18 +34,13 @@ export function handleDeploy(
   room.exposure      = 0;
   room.revealedSigns = [];
 
-  // Distributed Perception (R61): a domain-suffixed sub-seed keeps the assignment
-  // deterministic per expedition (I3) without replaying the contract rng sequence.
-  const perceptionRng = createRng(hashSeed(contract.expeditionSeed + ':perception'));
-  const assignment = assignPerception(
-    perceptionRng,
-    room.players.map(p => p.playerId),
-    channelsForTier(contract.tier),
-  );
+  // Distributed Perception (R66): perception is a consequence of the bag (TD-007).
+  // Solo perceives all tier channels regardless of gear (TD-008).
+  const isSolo = room.players.length === 1;
 
   // FIELD_STARTED is per-player: own reconnect token, own filtered signs.
   for (const player of room.players) {
-    player.perceivedChannels = assignment.get(player.playerId)!;
+    player.perceivedChannels = perceivedChannelsFor(player.bag, isSolo, contract.tier);
     const token = tokenStore.issue(player.playerId, room.code);
     emitTo(player.socketId, 'FIELD_STARTED', {
       fieldData,

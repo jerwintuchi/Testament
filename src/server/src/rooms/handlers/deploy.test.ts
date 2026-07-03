@@ -108,9 +108,9 @@ describe('handleDeploy', () => {
     expect(payload.signs.map(s => s.channel)).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN', 'SPOOR']);
   });
 
-  // T64: distributed perception at deploy (R61, P25, P27, P28)
+  // T64/T72: perception at deploy — solo rule, then gear-derived (R61, R66, P28, P32)
 
-  it('solo player perceives the full tier channel set and receives all ambient signs (P27)', () => {
+  it('solo with an empty bag still perceives the full tier channel set and all ambient signs (P32)', () => {
     const { mgr, store } = setupDeployingRoom();
     const { fn: emitTo, calls: emitToCalls } = makeEmitTo();
 
@@ -122,46 +122,45 @@ describe('handleDeploy', () => {
     expect(payload.signs.map(s => s.channel)).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN']);
   });
 
-  it('2-player room: every sign is within the receiving player\'s set; union covers the tier (P26, P28)', () => {
+  it('2-player room: each player\'s signs match their gear channels exactly (P32, P28)', () => {
     const { mgr, store } = setupDeployingRoom();
     const room = mgr.getRoomBySocketId('host')!;
+    room.players[0]!.bag = ['ashen-lens', 'censer-of-embers'];  // RESIDUE + a probe kit
     room.players.push({
       playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
       isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [],
+      bag: ['augurs-bead', 'chirurgeons-glass'],                // OMEN + STRESS_MARK
     });
     const { fn: emitTo, calls: emitToCalls } = makeEmitTo();
 
     handleDeploy('host', mgr, store, () => {}, emitTo, noBroadcast);
 
-    const payloads = emitToCalls
+    const byId = new Map(emitToCalls
       .filter(([, t]) => t === 'FIELD_STARTED')
-      .map(([, , p]) => p as { signs: Array<{ channel: string }>; perceivedChannels: string[] });
-    expect(payloads).toHaveLength(2);
-    const union = new Set<string>();
-    for (const p of payloads) {
-      expect(p.perceivedChannels.length).toBeGreaterThanOrEqual(2);
-      for (const s of p.signs) expect(p.perceivedChannels).toContain(s.channel);
-      p.perceivedChannels.forEach(c => union.add(c));
-    }
-    expect([...union].sort()).toEqual(['OMEN', 'REACTION', 'RESIDUE', 'STRESS_MARK']);
-    // Assignment is stored server-side, keyed to the player entry (R63).
-    expect(room.players[0]!.perceivedChannels.length).toBeGreaterThanOrEqual(2);
-    expect(room.players[1]!.perceivedChannels.length).toBeGreaterThanOrEqual(2);
+      .map(([sid, , p]) => [sid, p as { signs: Array<{ channel: string }>; perceivedChannels: string[] }]));
+    expect(byId.get('host')?.perceivedChannels).toEqual(['RESIDUE']);
+    expect(byId.get('host')?.signs.map(s => s.channel)).toEqual(['RESIDUE']);
+    expect(byId.get('p2-sock')?.perceivedChannels).toEqual(['STRESS_MARK', 'OMEN']);
+    expect(byId.get('p2-sock')?.signs.map(s => s.channel)).toEqual(['STRESS_MARK', 'OMEN']);
+    // Stored server-side, keyed to the player entry (R63).
+    expect(room.players[0]!.perceivedChannels).toEqual(['RESIDUE']);
   });
 
-  it('the same expedition seed yields the same assignment (P25)', () => {
-    const run = () => {
-      const { mgr, store } = setupDeployingRoom();
-      const room = mgr.getRoomBySocketId('host')!;
-      room.contract = { ...room.contract!, expeditionSeed: 'pinned-seed' };
-      room.players.push({
-        playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
-        isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [],
-      });
-      handleDeploy('host', mgr, store, () => {}, () => {}, noBroadcast);
-      return room.players.map(p => p.perceivedChannels);
-    };
-    expect(run()).toEqual(run());
+  it('a party member with no perception gear receives no signs (blindness is a legal bad bet)', () => {
+    const { mgr, store } = setupDeployingRoom();
+    const room = mgr.getRoomBySocketId('host')!;
+    room.players.push({
+      playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
+      isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [],
+    });
+    const { fn: emitTo, calls: emitToCalls } = makeEmitTo();
+
+    handleDeploy('host', mgr, store, () => {}, emitTo, noBroadcast);
+
+    const p2Payload = emitToCalls.find(([sid, t]) => sid === 'p2-sock' && t === 'FIELD_STARTED')?.[2] as
+      { signs: unknown[]; perceivedChannels: string[] };
+    expect(p2Payload.perceivedChannels).toEqual([]);
+    expect(p2Payload.signs).toEqual([]);
   });
 
   it('non-leader sender emits LOBBY_ERROR NOT_LEADER with zero state mutations', () => {
@@ -170,7 +169,7 @@ describe('handleDeploy', () => {
     const room = mgr.getRoomBySocketId('host')!;
     room.players.push({
       playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
-      isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [],
+      isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [],
     });
 
     const { fn: emit, calls } = makeEmit();

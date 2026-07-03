@@ -10,3 +10,4 @@ export * from './fieldPhase.js';
 export * from './fieldMessages.js';
 export * from './signs.js';
 export * from './contract.js';
+export * from './gear.js';

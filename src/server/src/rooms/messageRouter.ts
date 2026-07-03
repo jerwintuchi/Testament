@@ -11,6 +11,7 @@ import { handleReconnect } from './handlers/reconnect.js';
 import { handleDeploy } from './handlers/deploy.js';
 import { handleExtract } from './handlers/extract.js';
 import { handleProbe } from './handlers/probe.js';
+import { handleRequisition } from './handlers/requisition.js';
 import { handleUnknownMessage } from './handlers/unknown.js';
 
 export function routeMessage(
@@ -65,6 +66,9 @@ export function routeMessage(
       break;
     case 'PROBE':
       handleProbe(socketId, payload, roomManager, emit, emitTo);
+      break;
+    case 'REQUISITION':
+      handleRequisition(socketId, payload, roomManager, emit, broadcast);
       break;
     default:
       handleUnknownMessage(socketId, type, emit);

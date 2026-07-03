@@ -1,6 +1,7 @@
 // Lobby and room types and constants. Types/constants only (invariant I4).
 import type { PlayerId } from './ids.js';
 import type { ContractIntel } from './contract.js';
+import type { ItemId } from './gear.js';
 
 export const MAX_PLAYERS = 4;
 // Solo play is supported: a lone host can start a run. Set DEV_MIN_PLAYERS higher
@@ -26,6 +27,7 @@ export type LobbyPlayer = {
   displayName: string;
   isLeader: boolean;
   readyState: boolean;
+  bag: ItemId[];   // party-visible: coordinating the bags IS coordinating perception (TD-007)
 };
 
 export type LobbySnapshot = {

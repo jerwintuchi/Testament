@@ -5,6 +5,7 @@
 import type { LobbySnapshot, RoomCode } from './lobby.js';
 import type { ContractIntel } from './contract.js';
 import type { FieldSnapshot } from './fieldPhase.js';
+import type { ItemId } from './gear.js';
 
 // ── Client → Server ───────────────────────────────────────────────────────────
 
@@ -25,6 +26,13 @@ export type LeaveRoomPayload = Record<string, never>;
 
 export type ReconnectPayload = {
   token: string;
+};
+
+// The whole bag, replace-not-merge: requisition is idempotent and an empty
+// array un-packs. Legal only during DEPLOYING (the contract is known, so
+// packing is a bet on its intel).
+export type RequisitionPayload = {
+  itemIds: ItemId[];
 };
 
 // ── Server → Client ───────────────────────────────────────────────────────────
@@ -58,7 +66,10 @@ export type LobbyErrorCode =
   | 'NOT_IN_ROOM'
   | 'TOKEN_EXPIRED'
   | 'TOKEN_NOT_FOUND'
-  | 'WRONG_PHASE';
+  | 'WRONG_PHASE'
+  | 'UNKNOWN_ITEM'    // REQUISITION: an itemId not in GEAR_CATALOG
+  | 'BAG_OVERFLOW'    // REQUISITION: more items than BAG_SLOTS
+  | 'MISSING_GEAR';   // PROBE: sender does not carry the matching probe kit
 
 export type LobbyErrorPayload = {
   code: LobbyErrorCode;

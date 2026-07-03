@@ -159,6 +159,19 @@ describe('T38: field-phase integration — Scenario A (happy path)', () => {
     expect(dep1.type).toBe('ROOM_DEPLOYING');
     expect(dep2.type).toBe('ROOM_DEPLOYING');
 
+    // 4b. The party requisitions during DEPLOYING (T74, R65): split the four
+    // Apprentice-relevant channels across the two bags.
+    host.send('REQUISITION', { itemIds: ['ashen-lens', 'witness-prism'] });          // RESIDUE + REACTION
+    const req1 = await host.next(); // LOBBY_UPDATED broadcast
+    await p2.next();
+    expect(req1.type).toBe('LOBBY_UPDATED');
+    // Bags are party-visible in the snapshot (R64/R68).
+    const reqSnap = (req1.payload as { snapshot: { players: Array<{ bag: string[] }> } }).snapshot;
+    expect(reqSnap.players[0]?.bag).toEqual(['ashen-lens', 'witness-prism']);
+
+    p2.send('REQUISITION', { itemIds: ['chirurgeons-glass', 'augurs-bead'] });       // STRESS_MARK + OMEN
+    await host.next(); await p2.next(); // LOBBY_UPDATED broadcast
+
     // 5. Leader deploys.
     host.send('DEPLOY');
     const fs1 = await host.next(); // per-player FIELD_STARTED
@@ -304,13 +317,16 @@ describe('T38: field-phase integration — Scenario C (reconnect during FIELD)',
     await p2.next();   // LOBBY_UPDATED
     await p2.next();   // RECONNECT_TOKEN
 
-    // Both ready → accept → deploy.
+    // Both ready → accept → requisition → deploy.
     host.send('TOGGLE_READY');
     await host.next(); await p2.next();
     p2.send('TOGGLE_READY');
     await host.next(); await p2.next();
     host.send('ACCEPT_CONTRACT');
     await host.next(); await p2.next(); // ROOM_DEPLOYING
+
+    host.send('REQUISITION', { itemIds: ['ashen-lens', 'augurs-bead'] });   // RESIDUE + OMEN
+    await host.next(); await p2.next(); // LOBBY_UPDATED
 
     host.send('DEPLOY');
     const hostFieldStarted = await host.next(); // FIELD_STARTED (per-player)
@@ -391,6 +407,13 @@ describe('T61: probe integration — miss, match, reconnect, extraction', () => 
       tier: 'JOURNEYMAN',
       traitRoll: { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE', ward: 'COLD', disposition: 'STALKER' },
     };
+
+    // Requisition the kits each prober will use (T74, R67): host probes COLD,
+    // p2 probes FLAME.
+    host.send('REQUISITION', { itemIds: ['phial-of-hoarfrost', 'ashen-lens'] });
+    await host.next(); await p2.next(); // LOBBY_UPDATED
+    p2.send('REQUISITION', { itemIds: ['censer-of-embers', 'witness-prism'] });
+    await host.next(); await p2.next(); // LOBBY_UPDATED
 
     host.send('DEPLOY');
     const hostFieldStarted = await host.next();
@@ -493,6 +516,29 @@ describe('T61: probe integration — miss, match, reconnect, extraction', () => 
     expect((err.payload as { code: string }).code).toBe('INVALID_PAYLOAD');
     expect(mgr.getRoom(code)?.exposure).toBe(0);
     expect(mgr.getRoom(code)?.revealedSigns).toEqual([]);
+
+    host.close();
+  }, 10000);
+
+  it('PROBE without the matching kit emits LOBBY_ERROR MISSING_GEAR and changes nothing (T74, R67)', async () => {
+    const host = await connect(port);
+    host.send('CREATE_ROOM', { displayName: 'Host' });
+    const created = await host.next();
+    const code = (created.payload as { snapshot: { roomCode: string } }).snapshot.roomCode;
+
+    host.send('TOGGLE_READY');
+    await host.next();
+    host.send('ACCEPT_CONTRACT');
+    await host.next();
+    // No requisition: the bag is empty.
+    host.send('DEPLOY');
+    await host.next(); // FIELD_STARTED
+
+    host.send('PROBE', { stimulus: 'FLAME' });
+    const err = await host.next();
+    expect(err.type).toBe('LOBBY_ERROR');
+    expect((err.payload as { code: string }).code).toBe('MISSING_GEAR');
+    expect(mgr.getRoom(code)?.exposure).toBe(0);
 
     host.close();
   }, 10000);

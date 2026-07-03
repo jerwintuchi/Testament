@@ -22,7 +22,7 @@ export class RoomManager {
       isLeader: true,
       readyState: false,
       disconnectedAt: null,
-      perceivedChannels: [],
+      perceivedChannels: [], bag: [],
     };
     const room: RoomRecord = {
       code,

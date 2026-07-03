@@ -3,6 +3,7 @@ import { STIMULI } from '@testament/shared';
 import type { RoomManager } from '../RoomManager.js';
 import type { EmitFn, EmitToFn } from '../types.js';
 import { assertPhase } from '../phaseGuard.js';
+import { hasProbeKit } from '../perception.js';
 import { deriveReaction, PROBE_EXPOSURE_COST } from '../../incarnate/deriveReaction.js';
 
 export function handleProbe(
@@ -24,6 +25,13 @@ export function handleProbe(
 
   // Any player may probe — probing is party behavior, not a leader action.
   const sender = room.players.find(pl => pl.socketId === socketId)!;
+
+  // No kit, no probe (R67): you can only present a stimulus you packed. Solo too —
+  // solo's balance is bag pressure, reading is free but testing is not.
+  if (!hasProbeKit(sender.bag, stimulus as Stimulus)) {
+    emit('LOBBY_ERROR', { code: 'MISSING_GEAR', message: 'You do not carry the probe kit for that stimulus.' });
+    return;
+  }
 
   // room.contract is guaranteed non-null in FIELD phase (set by acceptContract).
   const contract = room.contract!;
