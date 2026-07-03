@@ -65,8 +65,6 @@ func _ready() -> void:
 	_reconnect_token = _load_token()
 	_net.open(SERVER_URL)
 	_show_menu()
-	if _reconnect_token != "":
-		_set_status("found an unfinished expedition — reconnecting...")
 
 # ── Inbound messages (the only source of state) ──────────────────────────────
 
@@ -159,8 +157,10 @@ func _ingest_probe_result(payload: Dictionary) -> void:
 
 func _on_socket_opened() -> void:
 	_set_status("connected")
-	# Resume: after a drop (RECONNECTING) or a relaunch (MENU with a saved token).
-	if _reconnect_token != "" and (_screen == Screen.RECONNECTING or _screen == Screen.MENU):
+	# Auto-resume only after a live drop. A fresh launch offers a Resume button
+	# instead: instances on one machine share the token file, so resuming
+	# silently would let a second window hijack the first one's identity.
+	if _reconnect_token != "" and _screen == Screen.RECONNECTING:
 		_net.send_message("RECONNECT", {"token": _reconnect_token})
 
 func _on_socket_closed() -> void:
@@ -176,15 +176,22 @@ func _show_menu() -> void:
 	_clear()
 	_h1("TESTAMENT")
 	_label("The Collegium is hiring. We seek truth, not certainty.")
-	_name_input = _input("display name", "Seeker")
+	_name_input = _make_line_edit("display name", "Seeker")
 	_button("Create Room", func():
 		_pending_join = true
 		_net.send_message("CREATE_ROOM", {"displayName": _name_input.text}))
 	_label("")
-	_code_input = _input("room code (e.g. ABC234)", "")
+	_code_input = _make_line_edit("room code (e.g. ABC234)", "")
 	_button("Join Room", func():
 		_pending_join = true
 		_net.send_message("JOIN_ROOM", {"code": _code_input.text.strip_edges().to_upper(), "displayName": _name_input.text}))
+	if _reconnect_token != "":
+		_label("")
+		_button("Resume unfinished expedition", func():
+			if _net.is_open():
+				_net.send_message("RECONNECT", {"token": _reconnect_token})
+			else:
+				_set_status("still connecting — try again in a moment"))
 
 func _show_lobby() -> void:
 	_screen = Screen.LOBBY
@@ -388,7 +395,7 @@ func _button(text: String, on_pressed: Callable) -> void:
 	b.pressed.connect(on_pressed)
 	_root.add_child(b)
 
-func _input(placeholder: String, initial: String) -> LineEdit:
+func _make_line_edit(placeholder: String, initial: String) -> LineEdit:
 	var e := LineEdit.new()
 	e.placeholder_text = placeholder
 	e.text = initial
