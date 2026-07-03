@@ -46,6 +46,14 @@ export type LobbyUpdatedPayload = {
   snapshot: LobbySnapshot;
 };
 
+// Sent to a joiner alongside the LOBBY_UPDATED broadcast. Carries the joiner's
+// own playerId (self-identification): the broadcast snapshot alone cannot tell
+// a joining client which entry is itself.
+export type ReconnectTokenPayload = {
+  reconnectToken: string;
+  playerId: string;
+};
+
 export type RoomDeployingPayload = {
   contract: ContractIntel;
 };
@@ -54,6 +62,8 @@ export type StateResyncPayload = {
   snapshot: LobbySnapshot;
   fieldSnapshot: FieldSnapshot | null;  // null when phase is WAITING or DEPLOYING
   reconnectToken: string;
+  playerId: string;   // the reconnecting player's own id — a relaunched client
+                      // holds only the token and must relearn which entry it is (R71/R75)
 };
 
 export type LobbyErrorCode =

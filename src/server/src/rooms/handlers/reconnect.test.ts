@@ -43,6 +43,10 @@ describe('handleReconnect', () => {
     expect(emitCalls.some(([t]) => t === 'STATE_RESYNC')).toBe(true);
     expect(bcastCalls.some(([, t]) => t === 'LOBBY_UPDATED')).toBe(true);
     expect(bcastCalls.some(([, t]) => t === 'STATE_RESYNC')).toBe(false);
+    // Self-identification survives a client relaunch (R71/R75): the resync
+    // names the reconnecting player, who may hold nothing but the token.
+    const resync = emitCalls.find(([t]) => t === 'STATE_RESYNC');
+    expect((resync?.[1] as { playerId: string }).playerId).toBe(room.players[0]!.playerId);
   });
 
   it('STATE_RESYNC includes fieldSnapshot: null when room is in WAITING phase', () => {

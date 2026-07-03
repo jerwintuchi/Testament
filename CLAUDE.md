@@ -31,10 +31,11 @@ TypeScript server and the GDScript client both honor the same message shapes.
 
 ## Active Work
 
-Phase: **Phase 4 — Core systems v1**. All five Phase 4 deliverables exist
-server-side (TD-027); the exit gate is walkable over the wire. Next: bring the
-Godot client from the transport spike up to the Testament protocol (lobby →
-requisition → field → probe) so the exit gate can be played, then Phase 5.
+Phase: **Phase 4 — Core systems v1, closing**. All five deliverables exist
+server-side (TD-027) and the Godot client now speaks the full Testament
+protocol over the production-wired bootstrap (TD-028); the spike room system is
+retired. Remaining before Phase 5 (combat & Incarnate v1): the manual
+two-instance playtest (checklist in `client/README.md`).
 
 Completed Phase 4 specs:
 - `specs/raw-ws-transport/`: raw WebSocket transport (wsHub, protocol envelope) + Godot client spike
@@ -44,6 +45,7 @@ Completed Phase 4 specs:
 - `specs/probe-handler/` (T54–T61): PROBE intent, deriveReaction, exposure, probe-gated REACTION channel
 - `specs/distributed-perception/` (T62–T67): per-player perception sets, filtered sign delivery
 - `specs/loadout-economy/` (T68–T74): GEAR_CATALOG v1, REQUISITION, gear-derived perception, kit-gated probes
+- `specs/godot-client-catchup/` (T75–T82): production bootstrap for the Testament protocol, spike retirement, full Godot protocol client
 
 @.claude/rules/spec-workflow.md
 @.claude/rules/netcode-invariants.md

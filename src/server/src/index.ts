@@ -1,173 +1,30 @@
-// Authoritative game server. Thin transport plumbing over the unit-tested core
-// (RoomManager, dungeon generation, movement). Every inbound message is validated;
-// only the server mutates room state (invariants I1, I2). Transport is raw
-// WebSocket with a JSON envelope (TD-002); the handler core stays transport-neutral
-// behind the `ServerHub` seam ([transport/types.ts], [transport/wsHub.ts]).
+// Authoritative game server entry point. Boots the Testament protocol: raw
+// WebSocket + JSON envelope (TD-002) wired to the unit-tested message router
+// via attachTestamentServer ([bootstrap.ts]). Every inbound message is
+// validated by its handler; only the server mutates room state (I1, I2).
 import { fileURLToPath } from 'node:url';
-import type { JoinRoomRequest, MovePlayerRequest, RoomSummary, PlayerId } from '@testament/shared';
-import { RoomManager } from './room/manager.js';
-import type { Room } from './room/state.js';
-import { buildStateResync } from './room/sync.js';
-import { movePlayer } from './combat/movement.js';
-import type { ServerHub, ServerSocket } from './transport/types.js';
-import { attachWebSocketServer, type WebSocketServerLike } from './transport/wsHub.js';
+import { attachTestamentServer } from './bootstrap.js';
 
-// How often the server applies movement and broadcasts positions (20Hz / 50ms).
-const MOVEMENT_TICK_MS = 50;
+// Handle returned to callers (tests boot on port 0 and need the real port).
+export type RunningServer = { port: number; close: () => void };
 
-export function summarizeRoom(room: Room): RoomSummary {
-  return { code: room.code, status: room.status, hostId: room.hostId, players: room.players };
-}
-
-export function registerHandlers(io: ServerHub, manager: RoomManager): void {
-  io.on('connection', (socket: ServerSocket) => {
-    // Identity comes from the connection handshake (a stable client-held token,
-    // used for reconnection), falling back to any pre-set data id, then the socket
-    // id. It is connection-derived, never a per-message client field (invariant I2).
-    const authId = typeof socket.handshake?.auth?.['playerId'] === 'string'
-      ? (socket.handshake.auth['playerId'] as PlayerId)
-      : undefined;
-    const playerId: PlayerId = authId ?? socket.data.playerId ?? socket.id;
-    socket.data.playerId = playerId;
-
-    const currentRoom = (): Room | undefined =>
-      socket.data.roomCode ? manager.getRoom(socket.data.roomCode) : undefined;
-
-    socket.on('create-room', () => {
-      const { room } = manager.createRoom(playerId);
-      socket.data.roomCode = room.code;
-      socket.join(room.code);
-      socket.emit('ROOM_UPDATE', { room: summarizeRoom(room) });
-    });
-
-    socket.on('join-room', (payload) => {
-      const req = payload as JoinRoomRequest;
-      if (!req || typeof req.code !== 'string') {
-        socket.emit('LOBBY_ERROR', { code: 'INVALID_REQUEST', message: 'Malformed join-room request.' });
-        return;
-      }
-      const res = manager.joinRoom(req.code, playerId);
-      if (!res.ok) {
-        socket.emit('LOBBY_ERROR', res.error);
-        return;
-      }
-      socket.data.roomCode = res.room.code;
-      socket.join(res.room.code);
-      io.to(res.room.code).emit('ROOM_UPDATE', { room: summarizeRoom(res.room) });
-    });
-
-    // Reconnection: a returning player re-associates with an in-progress run they
-    // still belong to and receives a full STATE_RESYNC snapshot — to this socket
-    // only (the sanctioned I6 full-state exception), never a room broadcast.
-    socket.on('rejoin', (payload) => {
-      const req = payload as { code?: unknown };
-      if (!req || typeof req.code !== 'string') {
-        socket.emit('LOBBY_ERROR', { code: 'INVALID_REQUEST', message: 'Malformed rejoin request.' });
-        return;
-      }
-      const res = manager.rejoin(req.code, playerId);
-      if (!res.ok) {
-        socket.emit('LOBBY_ERROR', res.error);
-        return;
-      }
-      socket.data.roomCode = res.room.code;
-      socket.join(res.room.code);
-      socket.emit('STATE_RESYNC', buildStateResync(res.room));
-      io.to(res.room.code).emit('PLAYER_CONNECTION_CHANGED', { playerId, connected: true });
-    });
-
-    socket.on('leave-room', () => {
-      const code = socket.data.roomCode;
-      if (!code) return;
-      const res = manager.leaveRoom(code, playerId);
-      socket.data.roomCode = undefined;
-      socket.leave?.(code); // stop receiving this room's broadcasts after leaving
-      if (res.ok && !res.deleted && res.room) {
-        io.to(code).emit('ROOM_UPDATE', { room: summarizeRoom(res.room) });
-      }
-    });
-
-    socket.on('start-run', () => {
-      const code = socket.data.roomCode;
-      if (!code) {
-        socket.emit('LOBBY_ERROR', { code: 'NOT_IN_ROOM', message: 'You are not in a room.' });
-        return;
-      }
-      const res = manager.startRun(code);
-      if (!res.ok) {
-        socket.emit('LOBBY_ERROR', res.error);
-        return;
-      }
-      io.to(code).emit('RUN_STARTED', {
-        dungeon: res.dungeon,
-        playerPositions: Object.fromEntries(
-          [...res.room.playerStates.entries()].map(([id, s]) => [id, { x: s.x, y: s.y }])
-        ),
-      });
-    });
-
-    // Per-frame input: store the latest move direction; the tick applies it once
-    // per frame regardless of how many events arrive (closes the event-flood
-    // speed exploit). Silently ignore when not in an active run (I2).
-    socket.on('move-player', (payload) => {
-      const room = currentRoom();
-      if (!room) return;
-      const req = payload as MovePlayerRequest;
-      if (!req || typeof req.dx !== 'number' || typeof req.dy !== 'number') {
-        socket.emit('LOBBY_ERROR', { code: 'INVALID_REQUEST', message: 'Malformed move-player request.' });
-        return;
-      }
-      if (!room.playerMoveInputs.has(playerId)) return; // run not yet started
-      room.playerMoveInputs.set(playerId, { dx: req.dx, dy: req.dy });
-    });
-
-    socket.on('disconnect', () => {
-      const code = socket.data.roomCode;
-      if (!code) return;
-      // In a lobby this removes the player (ROOM_UPDATE). In an in-progress run the
-      // player is retained and only flagged disconnected, so they can rejoin —
-      // teammates get PLAYER_CONNECTION_CHANGED.
-      const res = manager.markDisconnected(code, playerId);
-      if (!res.ok) return;
-      if (res.mode === 'disconnected') {
-        if (!res.deleted) {
-          io.to(code).emit('PLAYER_CONNECTION_CHANGED', { playerId, connected: false });
-        }
-      } else if (!res.deleted && res.room) {
-        io.to(code).emit('ROOM_UPDATE', { room: summarizeRoom(res.room) });
-      }
-    });
-  });
-}
-
-// One movement step across all active rooms: apply each player's stored input and
-// broadcast new positions. Exported so the loop can be driven in tests.
-export function runMovementTick(io: ServerHub, manager: RoomManager, deltaSeconds: number): void {
-  for (const room of manager.activeRooms()) {
-    if (!room.dungeon) continue;
-    for (const pid of room.players) {
-      const ps = room.playerStates.get(pid);
-      if (!ps) continue;
-      const input = room.playerMoveInputs.get(pid) ?? { dx: 0, dy: 0 };
-      const next = movePlayer(ps, input.dx, input.dy, deltaSeconds, room.dungeon);
-      if (next.x !== ps.x || next.y !== ps.y) {
-        room.playerStates.set(pid, next);
-        io.to(room.code).emit('PLAYER_MOVED', { playerId: pid, x: next.x, y: next.y });
-      }
-    }
-  }
-}
-
-// Production bootstrap. Imported lazily so tests never open a port.
-export async function startServer(port: number): Promise<void> {
+// Production bootstrap. `ws` is imported lazily so importing this module never
+// opens a port; resolves once the server is actually listening.
+export async function startServer(port: number): Promise<RunningServer> {
   const { WebSocketServer } = await import('ws');
   const wss = new WebSocketServer({ port });
-  const hub = attachWebSocketServer(wss as unknown as WebSocketServerLike);
-  const manager = new RoomManager();
-  registerHandlers(hub, manager);
-  setInterval(() => runMovementTick(hub, manager, MOVEMENT_TICK_MS / 1000), MOVEMENT_TICK_MS);
+  attachTestamentServer(wss);
+  await new Promise<void>((resolve) => wss.on('listening', () => resolve()));
+  const actualPort = (wss.address() as { port: number }).port;
   // eslint-disable-next-line no-console
-  console.log(`Testament server listening on :${port}`);
+  console.log(`Testament server listening on :${actualPort}`);
+  return {
+    port: actualPort,
+    close: () => {
+      wss.clients.forEach((c) => c.terminate());
+      wss.close();
+    },
+  };
 }
 
 const isMain = process.argv[1] !== undefined && process.argv[1] === fileURLToPath(import.meta.url);

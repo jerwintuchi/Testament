@@ -48,6 +48,7 @@ export function handleReconnect(
     snapshot: toSnapshot(room),
     fieldSnapshot: buildFieldSnapshot(room, sessionArchive, player.playerId),
     reconnectToken: newToken,
+    playerId: player.playerId,
   });
   broadcast(room.code, 'LOBBY_UPDATED', { snapshot: toSnapshot(room) });
 }

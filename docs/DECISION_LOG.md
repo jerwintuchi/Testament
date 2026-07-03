@@ -544,3 +544,41 @@ all five Phase 4 deliverables (contract axes v1, sign language, probing, loadout
 distributed perception) exist server-side; the exit gate ("a party reads an
 Incarnate from signs and probes and forms a theory") is walkable over the wire.
 All 372 tests green (50 shared + 322 server); both packages typecheck clean.
+
+## TD-028 — Godot client catch-up: one protocol, production-wired, playable exit gate (2026-07-03)
+
+**Decision.** The transport spike is retired and both ends now speak only the
+Testament protocol (specs/godot-client-catchup, T75–T82). Server: a new
+`bootstrap.ts` (`attachTestamentServer`) wires `routeMessage` +
+`handleSocketDisconnect` over raw WebSocket in production — previously the
+router was only ever reachable from tests while `index.ts` still booted the
+spike. The bootstrap owns nothing but a socketId→socket map; broadcast
+membership derives from RoomManager player entries. The spike's parallel room
+system (`src/server/src/room/`) and its transport hub (`src/server/src/transport/`)
+are deleted; `combat/` and `dungeon/` stay as dormant pure modules for Phase 5,
+`rng/` stays live. Client: `main.gd` is rewritten from the dungeon-render spike
+into the full Phase 4 walk (menu → lobby → contract/requisition → field with
+probes → Field Testament), with `net.gd` (envelope transport) and `catalog.gd`
+(a hand-kept protocol mirror of GEAR_CATALOG/BAG_SLOTS/STIMULI from
+@testament/shared, since GDScript cannot import TypeScript).
+
+**Context.** Two wire additions were needed for client self-identification,
+both server-generated identity already public in snapshots, never trait data:
+`RECONNECT_TOKEN` and `STATE_RESYNC` now carry `playerId`
+(`ReconnectTokenPayload` added to shared; `StateResyncPayload` extended). A
+joiner only ever saw a broadcast snapshot and could not tell which entry was
+itself; a relaunched client holds only its persisted reconnect token (the one
+thing the client is allowed to remember — an opaque secret, not game state)
+and must relearn its identity from the resync.
+
+**Consequences.** The Phase 4 exit gate is now playable, pending the manual
+two-instance playtest (checklist in client/README.md — GDScript has no test
+harness here, so client rendering is verified manually while the protocol
+itself is verified by `bootstrap.integration.test.ts` walking the production
+wiring end to end, including two-room broadcast isolation). Movement and
+dungeon rendering left the client with the spike and return in Phase 5 through
+the Testament field phase. `catalog.gd` drifts silently if shared constants
+change — acceptable at one mirror; codegen becomes worth it at the second
+consumer. Spike-era shared types (RoomSummary, MovePlayerRequest, dungeon wire
+types) remain in shared untouched; pruning them is Phase 5 housekeeping.
+All 352 tests green (51 shared + 301 server); both packages typecheck clean.

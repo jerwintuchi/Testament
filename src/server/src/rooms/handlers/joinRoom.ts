@@ -55,5 +55,5 @@ export function handleJoinRoom(
   const token = tokenStore.issue(player.playerId, room.code);
   const snap = toSnapshot(room);
   broadcast(code, 'LOBBY_UPDATED', { snapshot: snap });
-  emit('RECONNECT_TOKEN', { reconnectToken: token });
+  emit('RECONNECT_TOKEN', { reconnectToken: token, playerId: player.playerId });
 }

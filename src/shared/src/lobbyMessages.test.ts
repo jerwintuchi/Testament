@@ -4,6 +4,7 @@ import type {
   RoomDeployingPayload,
   RoomCreatedPayload,
   LobbyUpdatedPayload,
+  ReconnectTokenPayload,
   StateResyncPayload,
 } from './lobbyMessages.js';
 import type { ContractIntel } from './contract.js';
@@ -79,6 +80,17 @@ describe('RoomCreatedPayload shape', () => {
   });
 });
 
+describe('ReconnectTokenPayload shape', () => {
+  it('carries the token and the receiving player\'s own id (R71)', () => {
+    const payload: ReconnectTokenPayload = {
+      reconnectToken: 'some-uuid',
+      playerId: 'p2',
+    };
+    expect(typeof payload.reconnectToken).toBe('string');
+    expect(typeof payload.playerId).toBe('string');
+  });
+});
+
 describe('StateResyncPayload shape', () => {
   it('is assignable with fieldSnapshot: null', () => {
     const payload: StateResyncPayload = {
@@ -90,6 +102,7 @@ describe('StateResyncPayload shape', () => {
       },
       fieldSnapshot: null,
       reconnectToken: 'tok',
+      playerId: 'p1',
     };
     expect(payload.fieldSnapshot).toBeNull();
   });
@@ -110,6 +123,7 @@ describe('StateResyncPayload shape', () => {
       },
       fieldSnapshot: fs,
       reconnectToken: 'tok',
+      playerId: 'p1',
     };
     expect(payload.fieldSnapshot?.fieldData.fieldId).toBe('FIELD-001');
   });

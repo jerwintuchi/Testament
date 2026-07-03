@@ -1,151 +1,397 @@
 extends Node2D
-## Testament — Phase 1 transport spike client.
+## Testament client — the Phase 4 protocol walk: lobby → requisition → field → probe.
 ##
-## Connects to the authoritative server over raw WebSocket, auto-creates a room,
-## auto-starts a run, renders the dungeon, and moves a Seeker with the arrow keys.
-## Positions are authoritative: the client sends a direction; the server replies with
-## PLAYER_MOVED. Render + input only, zero game logic (the trust boundary).
+## Render + input only (trust boundary): every screen transition is caused by a
+## server event; user input only ever *sends* an intention. All session state
+## below is a render copy of what the server said, never locally derived.
+
+enum Screen { MENU, LOBBY, DEPLOYING, FIELD, TESTAMENT, RECONNECTING }
 
 const SERVER_URL := "ws://localhost:3001"
-const CORRIDOR_HALF_WIDTH := 20.0
-const DESIGN_VIEW_HEIGHT := 260.0
+# The reconnect token survives a client relaunch (R75). It is an opaque server
+# secret, not game state — the one thing the client is allowed to remember.
+const TOKEN_PATH := "user://reconnect-token.txt"
 
-var _socket := WebSocketPeer.new()
-var _player_id := ""
-var _opened := false
-var _run_started := false
-var _last_dir := Vector2.ZERO
+var _net: NetClient
+var _screen: Screen = Screen.MENU
 
-var _rooms: Array = []        # Array[Rect2]
-var _corridors: Array = []    # Array[{from: Vector2, to: Vector2}]
-var _players: Dictionary = {} # player_id -> Vector2 (authoritative world position)
+# ── Server-derived session state ─────────────────────────────────────────────
+var _self_id := ""
+var _reconnect_token := ""
+var _snapshot: Dictionary = {}    # last LobbySnapshot
+var _field: Dictionary = {}       # StubFieldData
+var _channels: Array = []         # own perceived channels (never other players')
+var _signs: Array = []            # [{channel, token}] — the only Incarnate info that exists client-side
+var _probe_log: Array = []        # display strings, newest last
+var _exposure := 0
+var _testament: Dictionary = {}
+var _archive: Array = []
 
-var _camera: Camera2D
+# ── Client-only UI state ─────────────────────────────────────────────────────
+var _selected_items: Array = []   # requisition picks before sending
+var _pending_join := false        # sent CREATE/JOIN, awaiting the server's verdict
+
+# ── UI shell ─────────────────────────────────────────────────────────────────
+var _root: VBoxContainer
 var _status: Label
+var _name_input: LineEdit
+var _code_input: LineEdit
 
 func _ready() -> void:
-	_player_id = "seeker-%d" % (randi() % 100000)
-
-	_camera = Camera2D.new()
-	add_child(_camera)
-	_camera.make_current()
+	_net = NetClient.new()
+	add_child(_net)
+	_net.message_received.connect(_on_message)
+	_net.socket_opened.connect(_on_socket_opened)
+	_net.socket_closed.connect(_on_socket_closed)
 
 	var layer := CanvasLayer.new()
 	add_child(layer)
+	var margin := MarginContainer.new()
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
+		margin.add_theme_constant_override(side, 24)
+	layer.add_child(margin)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	margin.add_child(column)
+	_root = VBoxContainer.new()
+	_root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_root.add_theme_constant_override("separation", 8)
+	column.add_child(_root)
 	_status = Label.new()
-	_status.position = Vector2(8, 8)
-	layer.add_child(_status)
+	_status.modulate = Color(0.85, 0.7, 0.5)
+	column.add_child(_status)
 
-	var url := "%s/?playerId=%s" % [SERVER_URL, _player_id]
-	var err := _socket.connect_to_url(url)
-	if err != OK:
-		push_error("Testament client: connect_to_url failed (%d). Is the server running on :3001?" % err)
+	_reconnect_token = _load_token()
+	_net.open(SERVER_URL)
+	_show_menu()
+	if _reconnect_token != "":
+		_set_status("found an unfinished expedition — reconnecting...")
 
-func _process(_delta: float) -> void:
-	_socket.poll()
-	var state := _socket.get_ready_state()
-	match state:
-		WebSocketPeer.STATE_OPEN:
-			if not _opened:
-				_opened = true
-				_send("create-room", null)
-			while _socket.get_available_packet_count() > 0:
-				_handle_message(_socket.get_packet().get_string_from_utf8())
-			_send_input()
-		WebSocketPeer.STATE_CLOSED:
-			if _opened:
-				_opened = false
-				push_warning("Testament client: connection closed.")
+# ── Inbound messages (the only source of state) ──────────────────────────────
 
-	_update_camera()
-	_update_status(state)
-	queue_redraw()
-
-func _send(type: String, payload: Variant) -> void:
-	_socket.send_text(JSON.stringify({"type": type, "payload": payload}))
-
-func _send_input() -> void:
-	if not _run_started:
-		return
-	var dir := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	if dir != _last_dir:
-		_last_dir = dir
-		_send("move-player", {"dx": dir.x, "dy": dir.y})
-
-func _handle_message(text: String) -> void:
-	var data: Variant = JSON.parse_string(text)
-	if typeof(data) != TYPE_DICTIONARY or not data.has("type"):
-		return
-	var type: String = data["type"]
-	var payload: Variant = data.get("payload")
+func _on_message(type: String, payload: Variant) -> void:
 	match type:
-		"ROOM_UPDATE":
-			# Fresh room created; auto-start the run (transport spike).
-			if not _run_started:
-				_send("start-run", null)
-		"RUN_STARTED":
-			_ingest_dungeon(payload["dungeon"])
-			var positions: Dictionary = payload["playerPositions"]
-			for pid in positions:
-				var p: Dictionary = positions[pid]
-				_players[pid] = Vector2(p["x"], p["y"])
-			_run_started = true
-		"PLAYER_MOVED":
-			_players[payload["playerId"]] = Vector2(payload["x"], payload["y"])
+		"ROOM_CREATED":
+			_snapshot = payload["snapshot"]
+			_set_token(payload["reconnectToken"])
+			_self_id = _snapshot["players"][0]["playerId"]  # creator is the only player
+			_pending_join = false
+			_show_lobby()
+		"RECONNECT_TOKEN":
+			_set_token(payload["reconnectToken"])
+			_self_id = payload["playerId"]
+			_pending_join = false
+			_show_lobby()
+		"LOBBY_UPDATED":
+			_snapshot = payload["snapshot"]
+			match _snapshot["phase"]:
+				"WAITING":
+					# A joiner's first LOBBY_UPDATED precedes its RECONNECT_TOKEN;
+					# without _self_id the lobby can't mark "you" yet, so wait.
+					if _screen == Screen.LOBBY or (_pending_join and _self_id != ""):
+						_show_lobby()
+				"DEPLOYING":
+					if _screen == Screen.DEPLOYING:
+						_show_deploying()  # party bags updated
+		"ROOM_DEPLOYING":
+			_snapshot["phase"] = "DEPLOYING"
+			_snapshot["contract"] = payload["contract"]
+			_selected_items = []
+			_show_deploying()
+		"FIELD_STARTED":
+			_field = payload["fieldData"]
+			_set_token(payload["reconnectToken"])
+			_signs = payload["signs"]
+			_channels = payload["perceivedChannels"]
+			_probe_log = []
+			_exposure = 0
+			_snapshot["phase"] = "FIELD"
+			_show_field()
+		"PROBE_RESULT":
+			_ingest_probe_result(payload)
+		"FIELD_TESTAMENT":
+			_testament = payload["testament"]
+			_show_testament()
+		"ARCHIVE_UPDATED":
+			_archive = payload["entries"]
+			if _screen == Screen.TESTAMENT:
+				_show_testament()
+		"STATE_RESYNC":
+			_snapshot = payload["snapshot"]
+			_set_token(payload["reconnectToken"])
+			_self_id = payload["playerId"]  # a relaunched client holds only the token
+			var fs: Variant = payload["fieldSnapshot"]
+			if fs != null:
+				_field = fs["fieldData"]
+				_signs = fs["signs"]
+				_channels = fs["perceivedChannels"]
+				_archive = fs["archiveEntries"]
+				_probe_log = []
+				_show_field()
+			elif _snapshot["phase"] == "DEPLOYING":
+				_show_deploying()
+			else:
+				_show_lobby()
+			_set_status("resynced")
 		"LOBBY_ERROR":
-			push_warning("Testament LOBBY_ERROR: %s" % str(payload))
+			_pending_join = false
+			if payload["code"] in ["TOKEN_EXPIRED", "TOKEN_NOT_FOUND"]:
+				_set_token("")
+			_set_status("✝ %s — %s" % [payload["code"], payload["message"]])
 
-func _ingest_dungeon(dungeon: Dictionary) -> void:
-	_rooms.clear()
-	for room in dungeon["rooms"]:
-		var r: Dictionary = room["rect"]
-		_rooms.append(Rect2(r["x"], r["y"], r["width"], r["height"]))
-	_corridors.clear()
-	for c in dungeon["corridors"]:
-		_corridors.append({
-			"from": Vector2(c["from"]["x"], c["from"]["y"]),
-			"to": Vector2(c["to"]["x"], c["to"]["y"]),
-		})
+func _ingest_probe_result(payload: Dictionary) -> void:
+	_exposure = int(payload["exposure"])
+	var who: String = _display_name(payload["playerId"])
+	var line: String
+	if payload["sign"] != null:
+		var sign: Dictionary = payload["sign"]
+		line = "%s presented %s — [%s] %s" % [who, payload["stimulus"], sign["channel"], sign["token"]]
+		if not _signs.any(func(s): return s["channel"] == sign["channel"] and s["token"] == sign["token"]):
+			_signs.append(sign)
+	else:
+		line = "%s presented %s — you cannot read it" % [who, payload["stimulus"]]
+	_probe_log.append(line)
+	if _screen == Screen.FIELD:
+		_show_field()
 
-func _update_camera() -> void:
-	var vh := get_viewport_rect().size.y
-	var z := vh / DESIGN_VIEW_HEIGHT
-	_camera.zoom = Vector2(z, z)
-	if _players.has(_player_id):
-		_camera.global_position = _players[_player_id]
+# ── Connection lifecycle ─────────────────────────────────────────────────────
 
-func _update_status(state: int) -> void:
-	var label := "connecting..."
-	match state:
-		WebSocketPeer.STATE_OPEN:
-			label = "connected as %s" % _player_id
-			if _run_started:
-				label += "  |  in run  |  seekers: %d  |  arrow keys to move" % _players.size()
-		WebSocketPeer.STATE_CLOSED:
-			label = "server offline (start it: pnpm dev:server on :3001)"
-	_status.text = "Testament  —  %s" % label
+func _on_socket_opened() -> void:
+	_set_status("connected")
+	# Resume: after a drop (RECONNECTING) or a relaunch (MENU with a saved token).
+	if _reconnect_token != "" and (_screen == Screen.RECONNECTING or _screen == Screen.MENU):
+		_net.send_message("RECONNECT", {"token": _reconnect_token})
 
-func _draw() -> void:
-	var floor_col := Color(0.16, 0.14, 0.19)
-	var edge_col := Color(0.42, 0.36, 0.48)
-	# Corridors first (drawn beneath the rooms).
-	for c in _corridors:
-		_draw_corridor(c["from"], c["to"], floor_col)
-	for rect in _rooms:
-		draw_rect(rect, floor_col, true)
-		draw_rect(rect, edge_col, false, 2.0)
-	# Seekers: the local one gold, others blue.
-	for pid in _players:
-		var pos: Vector2 = _players[pid]
-		var col := Color(0.88, 0.76, 0.45) if pid == _player_id else Color(0.5, 0.62, 0.88)
-		draw_circle(pos, 12.0, col)
+func _on_socket_closed() -> void:
+	if _screen == Screen.MENU or _screen == Screen.TESTAMENT:
+		_set_status("server offline — start it with: pnpm dev:server")
+	else:
+		_show_reconnecting()
 
-func _draw_corridor(from: Vector2, to: Vector2, col: Color) -> void:
-	var hw := CORRIDOR_HALF_WIDTH
-	# L-shaped: a horizontal leg at from.y, then a vertical leg at to.x.
-	var x0 := minf(from.x, to.x)
-	var x1 := maxf(from.x, to.x)
-	draw_rect(Rect2(x0 - hw, from.y - hw, (x1 - x0) + 2.0 * hw, 2.0 * hw), col, true)
-	var y0 := minf(from.y, to.y)
-	var y1 := maxf(from.y, to.y)
-	draw_rect(Rect2(to.x - hw, y0 - hw, 2.0 * hw, (y1 - y0) + 2.0 * hw), col, true)
+# ── Screens ──────────────────────────────────────────────────────────────────
+
+func _show_menu() -> void:
+	_screen = Screen.MENU
+	_clear()
+	_h1("TESTAMENT")
+	_label("The Collegium is hiring. We seek truth, not certainty.")
+	_name_input = _input("display name", "Seeker")
+	_button("Create Room", func():
+		_pending_join = true
+		_net.send_message("CREATE_ROOM", {"displayName": _name_input.text}))
+	_label("")
+	_code_input = _input("room code (e.g. ABC234)", "")
+	_button("Join Room", func():
+		_pending_join = true
+		_net.send_message("JOIN_ROOM", {"code": _code_input.text.strip_edges().to_upper(), "displayName": _name_input.text}))
+
+func _show_lobby() -> void:
+	_screen = Screen.LOBBY
+	_clear()
+	_h1("Lobby — room %s" % _snapshot.get("roomCode", "?"))
+	_label("share the code aloud; the Collegium sends up to four")
+	for p in _snapshot.get("players", []):
+		_label(_player_row(p))
+	_label("")
+	_button("Toggle Ready", func(): _net.send_message("TOGGLE_READY"))
+	if _is_leader():
+		_button("Accept Contract  (leader — needs all ready)", func(): _net.send_message("ACCEPT_CONTRACT"))
+	_button("Leave Room", func():
+		_net.send_message("LEAVE_ROOM")
+		_reset_session()
+		_show_menu())
+
+func _show_deploying() -> void:
+	_screen = Screen.DEPLOYING
+	_clear()
+	var c: Dictionary = _snapshot.get("contract") if _snapshot.get("contract") != null else {}
+	_h1("Contract — %s" % c.get("targetName", "?"))
+	_label("site: %s    tier: %s    verb: %s" % [c.get("siteName", "?"), c.get("tier", "?"), c.get("primaryVerb", "?")])
+	_label("")
+	_h2("Requisition (%d of %d slots)" % [_selected_items.size(), Catalog.BAG_SLOTS])
+	for item in Catalog.GEAR:
+		var id: String = item["id"]
+		var check := CheckBox.new()
+		check.text = Catalog.item_label(item)
+		check.button_pressed = id in _selected_items
+		check.toggled.connect(func(on: bool): _on_item_toggled(id, on))
+		_root.add_child(check)
+	_button("Requisition (replaces your bag)", func():
+		_net.send_message("REQUISITION", {"itemIds": _selected_items.duplicate()}))
+	_label("")
+	_h2("Party bags")
+	for p in _snapshot.get("players", []):
+		var bag: Array = p.get("bag", [])
+		var names := ", ".join(bag.map(func(i): return Catalog.short_name(i)))
+		_label("%s: %s" % [p["displayName"], names if names != "" else "(empty)"])
+	if _is_leader():
+		_label("")
+		_button("DEPLOY  (leader)", func(): _net.send_message("DEPLOY"))
+
+func _show_field() -> void:
+	_screen = Screen.FIELD
+	_clear()
+	_h1("The Field — %s" % _field.get("siteName", "?"))
+	_label("target: %s" % _field.get("incarnateName", "?"))
+	_label("you perceive: %s" % (", ".join(_channels) if not _channels.is_empty() else "nothing — you packed no perception gear"))
+	_label("party exposure: %d" % _exposure)
+	_label("")
+	_h2("Signs you can read")
+	if _signs.is_empty():
+		_label("(nothing yet — observe, then probe)")
+	for s in _signs:
+		_label("[%s]  %s" % [s["channel"], s["token"]])
+	_label("")
+	_h2("Probe (needs the matching kit)")
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	_root.add_child(row)
+	for stim in Catalog.STIMULI:
+		var b := Button.new()
+		b.text = "Present %s" % stim
+		b.pressed.connect(func(): _net.send_message("PROBE", {"stimulus": stim}))
+		row.add_child(b)
+	for line in _probe_log:
+		_label(line)
+	_label("")
+	_button("EXTRACT — leave with what you learned", func(): _net.send_message("EXTRACT"))
+
+func _show_testament() -> void:
+	_screen = Screen.TESTAMENT
+	_clear()
+	_h1("Field Testament")
+	_label("outcome: %s" % _testament.get("outcome", "?"))
+	_label("expedition: %s" % _testament.get("expeditionId", "?"))
+	_label("")
+	_h2("The Archive")
+	for e in _archive:
+		_label("%s at %s — %s: %s" % [e.get("targetName", "?"), e.get("siteName", "?"), e.get("outcome", "?"), e.get("notes", "")])
+	_label("")
+	_button("Return to the Collegium", func():
+		_reset_session()
+		_show_menu())
+
+func _show_reconnecting() -> void:
+	_screen = Screen.RECONNECTING
+	_clear()
+	_h1("Connection lost")
+	if _reconnect_token == "":
+		_label("No expedition to return to.")
+		_button("Back to menu", func():
+			_reset_session()
+			_show_menu())
+	else:
+		_label("Your party holds your place. Reconnect to resume.")
+		_button("Reconnect", func():
+			_set_status("reconnecting...")
+			_net.open(SERVER_URL))
+		_button("Abandon (back to menu)", func():
+			_reset_session()
+			_show_menu()
+			_net.open(SERVER_URL))
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+func _on_item_toggled(id: String, on: bool) -> void:
+	if on and id not in _selected_items:
+		if _selected_items.size() >= Catalog.BAG_SLOTS:
+			_set_status("the bag holds at most %d items" % Catalog.BAG_SLOTS)
+		else:
+			_selected_items.append(id)
+	elif not on:
+		_selected_items.erase(id)
+	_show_deploying()
+
+func _player_row(p: Dictionary) -> String:
+	var marks := ""
+	if p.get("isLeader", false):
+		marks += " ★"
+	if p["playerId"] == _self_id:
+		marks += " (you)"
+	var ready := "ready" if p.get("readyState", false) else "not ready"
+	var bag: Array = p.get("bag", [])
+	var bag_note := "" if bag.is_empty() else "  |  bag: " + ", ".join(bag.map(func(i): return Catalog.short_name(i)))
+	return "%s%s — %s%s" % [p["displayName"], marks, ready, bag_note]
+
+func _display_name(player_id: String) -> String:
+	for p in _snapshot.get("players", []):
+		if p["playerId"] == player_id:
+			return p["displayName"] + (" (you)" if player_id == _self_id else "")
+	return player_id
+
+func _is_leader() -> bool:
+	for p in _snapshot.get("players", []):
+		if p["playerId"] == _self_id:
+			return p.get("isLeader", false)
+	return false
+
+func _reset_session() -> void:
+	_self_id = ""
+	_set_token("")
+	_snapshot = {}
+	_field = {}
+	_channels = []
+	_signs = []
+	_probe_log = []
+	_exposure = 0
+	_testament = {}
+	_archive = []
+	_selected_items = []
+	_pending_join = false
+
+func _set_status(text: String) -> void:
+	_status.text = text
+
+func _set_token(token: String) -> void:
+	_reconnect_token = token
+	if token == "":
+		DirAccess.remove_absolute(TOKEN_PATH)
+	else:
+		var f := FileAccess.open(TOKEN_PATH, FileAccess.WRITE)
+		if f:
+			f.store_string(token)
+
+func _load_token() -> String:
+	if not FileAccess.file_exists(TOKEN_PATH):
+		return ""
+	var f := FileAccess.open(TOKEN_PATH, FileAccess.READ)
+	return f.get_as_text().strip_edges() if f else ""
+
+# ── UI builders ──────────────────────────────────────────────────────────────
+
+func _clear() -> void:
+	for child in _root.get_children():
+		child.queue_free()
+
+func _h1(text: String) -> void:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 26)
+	_root.add_child(l)
+
+func _h2(text: String) -> void:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 18)
+	_root.add_child(l)
+
+func _label(text: String) -> void:
+	var l := Label.new()
+	l.text = text
+	_root.add_child(l)
+
+func _button(text: String, on_pressed: Callable) -> void:
+	var b := Button.new()
+	b.text = text
+	b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	b.pressed.connect(on_pressed)
+	_root.add_child(b)
+
+func _input(placeholder: String, initial: String) -> LineEdit:
+	var e := LineEdit.new()
+	e.placeholder_text = placeholder
+	e.text = initial
+	e.custom_minimum_size = Vector2(280, 0)
+	_root.add_child(e)
+	return e

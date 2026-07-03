@@ -42,8 +42,13 @@ describe('handleJoinRoom', () => {
     const snap = (bcastCalls[0]?.[2] as { snapshot: { players: Array<{ readyState: boolean }> } }).snapshot;
     expect(snap.players).toHaveLength(2);
     expect(snap.players[1]?.readyState).toBe(false);
-    // joiner gets a reconnect token
-    expect(emitCalls.some(([t]) => t === 'RECONNECT_TOKEN')).toBe(true);
+    // joiner gets a reconnect token carrying their own playerId (R71)
+    const tokenMsg = emitCalls.find(([t]) => t === 'RECONNECT_TOKEN');
+    expect(tokenMsg).toBeDefined();
+    const tokenPayload = tokenMsg![1] as { reconnectToken: string; playerId: string };
+    expect(typeof tokenPayload.reconnectToken).toBe('string');
+    const joined = mgr.getRoom(code)!.players.find(p => p.socketId === 'joiner-sock')!;
+    expect(tokenPayload.playerId).toBe(joined.playerId);
   });
 
   it('emits LOBBY_ERROR ROOM_NOT_FOUND for an unknown code', () => {
