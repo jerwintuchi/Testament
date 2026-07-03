@@ -4,6 +4,7 @@ import type { EmitFn, BroadcastFn } from '../types.js';
 import { allReady } from '../readyCheck.js';
 import { createRng, hashSeed } from '../../rng/seeded.js';
 import { generateContract, toContractIntel } from '../../incarnate/generateContract.js';
+import { SERVER_MESSAGES } from '@testament/shared';
 
 export function handleAcceptContract(
   socketId: string,
@@ -13,17 +14,17 @@ export function handleAcceptContract(
 ): void {
   const room = roomManager.getRoomBySocketId(socketId);
   if (!room) {
-    emit('LOBBY_ERROR', { code: 'NOT_IN_ROOM', message: 'You are not in any room.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_IN_ROOM', message: 'You are not in any room.' });
     return;
   }
 
   const player = room.players.find(p => p.socketId === socketId)!;
   if (!player.isLeader) {
-    emit('LOBBY_ERROR', { code: 'NOT_LEADER', message: 'Only the room leader can accept a contract.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_LEADER', message: 'Only the room leader can accept a contract.' });
     return;
   }
   if (!allReady(room.players)) {
-    emit('LOBBY_ERROR', { code: 'PARTY_NOT_READY', message: 'All players must be ready before accepting a contract.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'PARTY_NOT_READY', message: 'All players must be ready before accepting a contract.' });
     return;
   }
 
@@ -34,5 +35,5 @@ export function handleAcceptContract(
 
   room.phase    = 'DEPLOYING';
   room.contract = contract;
-  broadcast(room.code, 'ROOM_DEPLOYING', { contract: toContractIntel(contract) });
+  broadcast(room.code, SERVER_MESSAGES.ROOM_DEPLOYING, { contract: toContractIntel(contract) });
 }

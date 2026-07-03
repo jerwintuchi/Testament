@@ -2,6 +2,7 @@ import type { RoomManager } from '../RoomManager.js';
 import type { BroadcastFn } from '../types.js';
 import { reassignLeader } from '../leaderElection.js';
 import { toSnapshot } from '../snapshot.js';
+import { SERVER_MESSAGES } from '@testament/shared';
 
 export function handleSocketDisconnect(
   socketId: string,
@@ -34,5 +35,5 @@ export function handleSocketDisconnect(
     }
   }
 
-  broadcast(room.code, 'LOBBY_UPDATED', { snapshot: toSnapshot(room) });
+  broadcast(room.code, SERVER_MESSAGES.LOBBY_UPDATED, { snapshot: toSnapshot(room) });
 }

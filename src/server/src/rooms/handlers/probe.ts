@@ -5,6 +5,7 @@ import type { EmitFn, EmitToFn } from '../types.js';
 import { assertPhase } from '../phaseGuard.js';
 import { hasProbeKit } from '../perception.js';
 import { deriveReaction, PROBE_EXPOSURE_COST } from '../../incarnate/deriveReaction.js';
+import { SERVER_MESSAGES } from '@testament/shared';
 
 export function handleProbe(
   socketId: string,
@@ -16,7 +17,7 @@ export function handleProbe(
   const p = payload as Record<string, unknown> | null;
   const stimulus = p !== null && typeof p === 'object' ? p['stimulus'] : undefined;
   if (typeof stimulus !== 'string' || !(STIMULI as ReadonlyArray<string>).includes(stimulus)) {
-    emit('LOBBY_ERROR', { code: 'INVALID_PAYLOAD', message: 'Payload must include a valid stimulus.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_PAYLOAD', message: 'Payload must include a valid stimulus.' });
     return;
   }
 
@@ -29,7 +30,7 @@ export function handleProbe(
   // No kit, no probe (R67): you can only present a stimulus you packed. Solo too —
   // solo's balance is bag pressure, reading is free but testing is not.
   if (!hasProbeKit(sender.bag, stimulus as Stimulus)) {
-    emit('LOBBY_ERROR', { code: 'MISSING_GEAR', message: 'You do not carry the probe kit for that stimulus.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'MISSING_GEAR', message: 'You do not carry the probe kit for that stimulus.' });
     return;
   }
 
@@ -51,6 +52,6 @@ export function handleProbe(
       sign:     player.perceivedChannels.includes('REACTION') ? sign : null,
       exposure: room.exposure,
     };
-    emitTo(player.socketId, 'PROBE_RESULT', result);
+    emitTo(player.socketId, SERVER_MESSAGES.PROBE_RESULT, result);
   }
 }

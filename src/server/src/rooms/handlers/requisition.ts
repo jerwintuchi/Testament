@@ -4,6 +4,7 @@ import type { RoomManager } from '../RoomManager.js';
 import type { EmitFn, BroadcastFn } from '../types.js';
 import { assertPhase } from '../phaseGuard.js';
 import { toSnapshot } from '../snapshot.js';
+import { SERVER_MESSAGES } from '@testament/shared';
 
 const CATALOG_IDS = new Set(GEAR_CATALOG.map(g => g.id));
 
@@ -17,22 +18,22 @@ export function handleRequisition(
   const p = payload as Record<string, unknown> | null;
   const itemIds = p !== null && typeof p === 'object' ? p['itemIds'] : undefined;
   if (!Array.isArray(itemIds) || itemIds.some(id => typeof id !== 'string')) {
-    emit('LOBBY_ERROR', { code: 'INVALID_PAYLOAD', message: 'Payload must include an itemIds array of strings.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_PAYLOAD', message: 'Payload must include an itemIds array of strings.' });
     return;
   }
   const ids = itemIds as ItemId[];
 
   const unknown = ids.find(id => !CATALOG_IDS.has(id));
   if (unknown !== undefined) {
-    emit('LOBBY_ERROR', { code: 'UNKNOWN_ITEM', message: `No such item in the catalog: ${unknown}` });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'UNKNOWN_ITEM', message: `No such item in the catalog: ${unknown}` });
     return;
   }
   if (new Set(ids).size !== ids.length) {
-    emit('LOBBY_ERROR', { code: 'INVALID_PAYLOAD', message: 'Duplicate items in requisition.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_PAYLOAD', message: 'Duplicate items in requisition.' });
     return;
   }
   if (ids.length > BAG_SLOTS) {
-    emit('LOBBY_ERROR', { code: 'BAG_OVERFLOW', message: `The bag holds at most ${BAG_SLOTS} items.` });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'BAG_OVERFLOW', message: `The bag holds at most ${BAG_SLOTS} items.` });
     return;
   }
 
@@ -46,5 +47,5 @@ export function handleRequisition(
   const sender = room.players.find(pl => pl.socketId === socketId)!;
   sender.bag = ids;
 
-  broadcast(room.code, 'LOBBY_UPDATED', { snapshot: toSnapshot(room) });
+  broadcast(room.code, SERVER_MESSAGES.LOBBY_UPDATED, { snapshot: toSnapshot(room) });
 }

@@ -3,6 +3,7 @@ import type { ReconnectTokenStore } from '../ReconnectTokenStore.js';
 import type { EmitFn } from '../types.js';
 import { sanitizeDisplayName } from '../sanitize.js';
 import { toSnapshot } from '../snapshot.js';
+import { SERVER_MESSAGES } from '@testament/shared';
 
 export function handleCreateRoom(
   socketId: string,
@@ -13,18 +14,18 @@ export function handleCreateRoom(
 ): void {
   const p = payload as Record<string, unknown> | null;
   if (typeof p !== 'object' || p === null) {
-    emit('LOBBY_ERROR', { code: 'INVALID_PAYLOAD', message: 'Payload must be an object.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_PAYLOAD', message: 'Payload must be an object.' });
     return;
   }
 
   const nameResult = sanitizeDisplayName(p['displayName']);
   if (typeof nameResult === 'object') {
-    emit('LOBBY_ERROR', { code: 'INVALID_PAYLOAD', message: nameResult.reason });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_PAYLOAD', message: nameResult.reason });
     return;
   }
 
   const room = roomManager.createRoom(socketId, nameResult);
   const player = room.players[0]!;
   const token = tokenStore.issue(player.playerId, room.code);
-  emit('ROOM_CREATED', { snapshot: toSnapshot(room), reconnectToken: token });
+  emit(SERVER_MESSAGES.ROOM_CREATED, { snapshot: toSnapshot(room), reconnectToken: token });
 }

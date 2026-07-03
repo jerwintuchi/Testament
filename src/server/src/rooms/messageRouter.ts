@@ -13,6 +13,7 @@ import { handleExtract } from './handlers/extract.js';
 import { handleProbe } from './handlers/probe.js';
 import { handleRequisition } from './handlers/requisition.js';
 import { handleUnknownMessage } from './handlers/unknown.js';
+import { CLIENT_MESSAGES, SERVER_MESSAGES } from '@testament/shared';
 
 export function routeMessage(
   socketId: string,
@@ -28,46 +29,46 @@ export function routeMessage(
   try {
     parsed = JSON.parse(raw) as { type?: unknown; payload?: unknown };
   } catch {
-    emit('LOBBY_ERROR', { code: 'INVALID_PAYLOAD', message: 'Message is not valid JSON.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_PAYLOAD', message: 'Message is not valid JSON.' });
     return;
   }
 
   if (typeof parsed.type !== 'string') {
-    emit('LOBBY_ERROR', { code: 'INVALID_PAYLOAD', message: 'Message must have a string "type" field.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_PAYLOAD', message: 'Message must have a string "type" field.' });
     return;
   }
 
   const { type, payload } = parsed;
 
   switch (type) {
-    case 'CREATE_ROOM':
+    case CLIENT_MESSAGES.CREATE_ROOM:
       handleCreateRoom(socketId, payload, roomManager, tokenStore, emit);
       break;
-    case 'JOIN_ROOM':
+    case CLIENT_MESSAGES.JOIN_ROOM:
       handleJoinRoom(socketId, payload, roomManager, tokenStore, emit, broadcast);
       break;
-    case 'TOGGLE_READY':
+    case CLIENT_MESSAGES.TOGGLE_READY:
       handleToggleReady(socketId, roomManager, emit, broadcast);
       break;
-    case 'ACCEPT_CONTRACT':
+    case CLIENT_MESSAGES.ACCEPT_CONTRACT:
       handleAcceptContract(socketId, roomManager, emit, broadcast);
       break;
-    case 'LEAVE_ROOM':
+    case CLIENT_MESSAGES.LEAVE_ROOM:
       handleLeaveRoom(socketId, roomManager, emit, broadcast);
       break;
-    case 'RECONNECT':
+    case CLIENT_MESSAGES.RECONNECT:
       handleReconnect(socketId, payload, roomManager, tokenStore, sessionArchive, emit, broadcast);
       break;
-    case 'DEPLOY':
+    case CLIENT_MESSAGES.DEPLOY:
       handleDeploy(socketId, roomManager, tokenStore, emit, emitTo, broadcast);
       break;
-    case 'EXTRACT':
+    case CLIENT_MESSAGES.EXTRACT:
       handleExtract(socketId, roomManager, sessionArchive, emit, broadcast);
       break;
-    case 'PROBE':
+    case CLIENT_MESSAGES.PROBE:
       handleProbe(socketId, payload, roomManager, emit, emitTo);
       break;
-    case 'REQUISITION':
+    case CLIENT_MESSAGES.REQUISITION:
       handleRequisition(socketId, payload, roomManager, emit, broadcast);
       break;
     default:

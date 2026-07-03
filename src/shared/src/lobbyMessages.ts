@@ -66,20 +66,24 @@ export type StateResyncPayload = {
                       // holds only the token and must relearn which entry it is (R71/R75)
 };
 
-export type LobbyErrorCode =
-  | 'ROOM_NOT_FOUND'
-  | 'ROOM_FULL'
-  | 'ALREADY_DEPLOYING'
-  | 'NOT_LEADER'
-  | 'PARTY_NOT_READY'
-  | 'INVALID_PAYLOAD'
-  | 'NOT_IN_ROOM'
-  | 'TOKEN_EXPIRED'
-  | 'TOKEN_NOT_FOUND'
-  | 'WRONG_PHASE'
-  | 'UNKNOWN_ITEM'    // REQUISITION: an itemId not in GEAR_CATALOG
-  | 'BAG_OVERFLOW'    // REQUISITION: more items than BAG_SLOTS
-  | 'MISSING_GEAR';   // PROBE: sender does not carry the matching probe kit
+// Authored as a runtime array so the GDScript codegen can read it; the
+// LobbyErrorCode type is derived from it (one declaration site — protocol-contract R3).
+export const LOBBY_ERROR_CODES = [
+  'ROOM_NOT_FOUND',
+  'ROOM_FULL',
+  'ALREADY_DEPLOYING',
+  'NOT_LEADER',
+  'PARTY_NOT_READY',
+  'INVALID_PAYLOAD',
+  'NOT_IN_ROOM',
+  'TOKEN_EXPIRED',
+  'TOKEN_NOT_FOUND',
+  'WRONG_PHASE',
+  'UNKNOWN_ITEM',    // REQUISITION: an itemId not in GEAR_CATALOG
+  'BAG_OVERFLOW',    // REQUISITION: more items than BAG_SLOTS
+  'MISSING_GEAR',    // PROBE: sender does not carry the matching probe kit
+] as const;
+export type LobbyErrorCode = (typeof LOBBY_ERROR_CODES)[number];
 
 export type LobbyErrorPayload = {
   code: LobbyErrorCode;

@@ -582,3 +582,91 @@ change — acceptable at one mirror; codegen becomes worth it at the second
 consumer. Spike-era shared types (RoomSummary, MovePlayerRequest, dungeon wire
 types) remain in shared untouched; pruning them is Phase 5 housekeeping.
 All 352 tests green (51 shared + 301 server); both packages typecheck clean.
+
+## TD-029 — Wire protocol becomes one language-neutral source of truth: registry + codegen (2026-06-29, imported 2026-07-03)
+
+> Imported from branch `feat/protocol-contract` (D: clone), where it was numbered
+> TD-020; renumbered on import because this log already assigned TD-020/021 to
+> other decisions. Original text below, unedited. Its "active spec" swap and
+> phase framing describe that branch's timeline, not this log's.
+
+**Decision.** Close out the raw-ws-transport spec (Phase 1, server and client both
+green) and open `specs/protocol-contract/` as the active spec. CLAUDE.md's
+Active-Work block now points at the protocol-contract spec. Phase 2 makes the wire
+protocol one language-neutral source of truth: a canonical message-name registry
+plus shared enums in `src/shared`, and a `tools/` codegen that emits a GDScript
+constants file the Godot client consumes. It commits no gameplay (gameplay is gated
+to Phase 3).
+
+**Context.** Phase 1 left the message-type strings ("create-room", "ROOM_UPDATE",
+and the rest) as scattered literals in both `src/server/src/index.ts` and
+`client/main.gd`. Two hand-maintained copies of the same vocabulary will drift. The
+roadmap's Phase 2 exit gate requires server and client to reference the same names
+from one source.
+
+**Consequences.** The registry and the codegen-able enums are authored as runtime
+values (const objects and const string arrays) with the TypeScript types derived
+from them, because TS union types are erased at runtime and a codegen cannot
+introspect them otherwise. This keeps `src/shared` types-and-constants-only
+(invariant I4): const data, no logic. The codegen output is deterministic and
+checked into git, so a drift between the registry and the generated GDScript fails a
+test. The transport lifecycle events `connection` and `disconnect` are explicitly
+not wire messages and stay out of the registry.
+
+## TD-030 — Generated GDScript protocol is preload-consumed, not a global class_name (2026-06-29, imported 2026-07-03)
+
+> Imported from branch `feat/protocol-contract`, originally TD-021 there.
+
+**Decision.** The codegen emits `client/protocol/protocol.gd` as a plain constants
+script with no `class_name`, and the client consumes it with
+`const Protocol = preload("res://protocol/protocol.gd")`. This amends the
+protocol-contract spec's R4 acceptance criterion, which originally specified
+`class_name Protocol`.
+
+**Context.** A Godot `class_name` global is only registered after the editor scans
+and reimports the project. Because `protocol.gd` is generated outside the editor, a
+headless run (the Godot MCP launching the game) and a fresh `git clone` before the
+editor is opened both fail to resolve `Protocol`, with `Parser Error: Identifier
+"Protocol" not declared in the current scope`. The stale global-class cache also
+collided with a local `const Protocol`.
+
+**Consequences.** `preload` resolves at compile time straight from the res:// path,
+so the file works in a headless run, in the editor, and in an export with no
+dependency on the global-class cache state. This let the Phase-1 round-trip be
+verified through the MCP (Godot 4.7) rather than only by hand: the client compiles
+and runs with no errors, and an instrumented run observed
+`RUN_STARTED rooms=12 seekers=1`. The change is value-preserving (each generated
+constant equals the literal it replaced), so the wire behaviour is unchanged. The
+`.godot/` cache stays gitignored and regenerates per checkout.
+
+## TD-031 — feat/protocol-contract reconciled: the registry now covers the Testament protocol (2026-07-03)
+
+**Decision.** The protocol-contract branch (TD-029/TD-030, authored 2026-06-29 on
+the D: clone against the Phase 1 spike) is merged and re-targeted at the live
+protocol (specs/protocol-contract reconciliation addendum, T84–T87). The registry
+in `src/shared/src/messages.ts` now names the ten client intents and ten server
+events of Phases 3–4, with payload maps referencing the existing wire types.
+`LobbyErrorCode` and `RoomPhase` are derived from runtime arrays declared beside
+them. The codegen emits the full contract — messages, error codes, phases,
+channels, stimuli, scalars, and GEAR_CATALOG — into `client/protocol/protocol.gd`;
+`client/catalog.gd` keeps only display helpers over that generated data. The
+server's router and every handler reference the registry constants, enforced by a
+position-aware guard (`rooms/wireLiterals.test.ts`) instead of the old
+index.ts-only scan.
+
+**Context.** TD-028 shipped `catalog.gd` as a hand-kept mirror and noted "codegen
+becomes worth it at the second consumer" — the codegen already existed, unmerged
+on the Windows clone. Two decision logs had diverged after TD-019 with colliding
+TD-020/021 numbers; the imported entries were appended renumbered (TD-029/TD-030)
+with provenance notes rather than editing either history (the log stays
+append-only). The port is value-preserving: every registry constant equals the
+literal it replaced, so the wire behaviour and all existing tests are unchanged.
+
+**Consequences.** Client/server drift in message names, error codes, phases, or
+the gear catalog now fails a test (byte-equality reproducibility gate + the wire-
+literal guard) instead of failing a playtest. Adding a wire message means: add it
+to the registry, `pnpm gen:protocol`, commit both — anything less breaks the
+suite. The spike-era shared types (events.ts, RoomSummary, dungeon wire types)
+remain and are still Phase 5 pruning work; the registry simply does not name
+them. All 372 tests green (60 shared + 7 tools + 305 server); three packages
+typecheck clean; headless Godot 4.7 runs the ported client with zero errors.

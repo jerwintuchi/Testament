@@ -5,6 +5,7 @@ import type { ReconnectTokenStore } from '../ReconnectTokenStore.js';
 import type { EmitFn, BroadcastFn, ServerPlayerEntry } from '../types.js';
 import { sanitizeDisplayName } from '../sanitize.js';
 import { toSnapshot } from '../snapshot.js';
+import { SERVER_MESSAGES } from '@testament/shared';
 
 export function handleJoinRoom(
   socketId: string,
@@ -16,28 +17,28 @@ export function handleJoinRoom(
 ): void {
   const p = payload as Record<string, unknown> | null;
   if (typeof p !== 'object' || p === null || typeof p['code'] !== 'string') {
-    emit('LOBBY_ERROR', { code: 'INVALID_PAYLOAD', message: 'Payload must include a string code.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_PAYLOAD', message: 'Payload must include a string code.' });
     return;
   }
 
   const nameResult = sanitizeDisplayName(p['displayName']);
   if (typeof nameResult === 'object') {
-    emit('LOBBY_ERROR', { code: 'INVALID_PAYLOAD', message: nameResult.reason });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'INVALID_PAYLOAD', message: nameResult.reason });
     return;
   }
 
   const code = p['code'] as string;
   const room = roomManager.getRoom(code);
   if (!room) {
-    emit('LOBBY_ERROR', { code: 'ROOM_NOT_FOUND', message: 'No room with that code.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'ROOM_NOT_FOUND', message: 'No room with that code.' });
     return;
   }
   if (room.phase !== 'WAITING') {
-    emit('LOBBY_ERROR', { code: 'ALREADY_DEPLOYING', message: 'That room is no longer accepting players.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'ALREADY_DEPLOYING', message: 'That room is no longer accepting players.' });
     return;
   }
   if (room.players.length >= MAX_ROOM_PLAYERS) {
-    emit('LOBBY_ERROR', { code: 'ROOM_FULL', message: 'That room is full.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'ROOM_FULL', message: 'That room is full.' });
     return;
   }
 
@@ -54,6 +55,6 @@ export function handleJoinRoom(
 
   const token = tokenStore.issue(player.playerId, room.code);
   const snap = toSnapshot(room);
-  broadcast(code, 'LOBBY_UPDATED', { snapshot: snap });
-  emit('RECONNECT_TOKEN', { reconnectToken: token, playerId: player.playerId });
+  broadcast(code, SERVER_MESSAGES.LOBBY_UPDATED, { snapshot: snap });
+  emit(SERVER_MESSAGES.RECONNECT_TOKEN, { reconnectToken: token, playerId: player.playerId });
 }

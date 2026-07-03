@@ -20,7 +20,10 @@ export const ROOM_CODE_LENGTH = 6;
 // No I, O, 0, 1 to avoid visual ambiguity when sharing codes verbally.
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-export type RoomPhase = 'WAITING' | 'DEPLOYING' | 'FIELD' | 'COMPLETE';
+// Authored as a runtime array so the GDScript codegen can read it; the RoomPhase
+// type is derived from it (one declaration site — protocol-contract R3).
+export const ROOM_PHASES = ['WAITING', 'DEPLOYING', 'FIELD', 'COMPLETE'] as const;
+export type RoomPhase = (typeof ROOM_PHASES)[number];
 
 export type LobbyPlayer = {
   playerId: string;

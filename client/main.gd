@@ -7,6 +7,11 @@ extends Node2D
 
 enum Screen { MENU, LOBBY, DEPLOYING, FIELD, TESTAMENT, RECONNECTING }
 
+# The wire-protocol contract, codegen'd from src/shared (pnpm gen:protocol). The
+# server references the same names, so message types, error codes, phases, and the
+# gear catalog never drift (TD-029/TD-030: preload, not a global class_name).
+const Protocol = preload("res://protocol/protocol.gd")
+
 const SERVER_URL := "ws://localhost:3001"
 # The reconnect token survives a client relaunch (R75). It is an opaque server
 # secret, not game state — the one thing the client is allowed to remember.
@@ -70,52 +75,52 @@ func _ready() -> void:
 
 func _on_message(type: String, payload: Variant) -> void:
 	match type:
-		"ROOM_CREATED":
+		Protocol.ROOM_CREATED:
 			_snapshot = payload["snapshot"]
 			_set_token(payload["reconnectToken"])
 			_self_id = _snapshot["players"][0]["playerId"]  # creator is the only player
 			_pending_join = false
 			_show_lobby()
-		"RECONNECT_TOKEN":
+		Protocol.RECONNECT_TOKEN:
 			_set_token(payload["reconnectToken"])
 			_self_id = payload["playerId"]
 			_pending_join = false
 			_show_lobby()
-		"LOBBY_UPDATED":
+		Protocol.LOBBY_UPDATED:
 			_snapshot = payload["snapshot"]
 			match _snapshot["phase"]:
-				"WAITING":
+				Protocol.PHASE_WAITING:
 					# A joiner's first LOBBY_UPDATED precedes its RECONNECT_TOKEN;
 					# without _self_id the lobby can't mark "you" yet, so wait.
 					if _screen == Screen.LOBBY or (_pending_join and _self_id != ""):
 						_show_lobby()
-				"DEPLOYING":
+				Protocol.PHASE_DEPLOYING:
 					if _screen == Screen.DEPLOYING:
 						_show_deploying()  # party bags updated
-		"ROOM_DEPLOYING":
-			_snapshot["phase"] = "DEPLOYING"
+		Protocol.ROOM_DEPLOYING:
+			_snapshot["phase"] = Protocol.PHASE_DEPLOYING
 			_snapshot["contract"] = payload["contract"]
 			_selected_items = []
 			_show_deploying()
-		"FIELD_STARTED":
+		Protocol.FIELD_STARTED:
 			_field = payload["fieldData"]
 			_set_token(payload["reconnectToken"])
 			_signs = payload["signs"]
 			_channels = payload["perceivedChannels"]
 			_probe_log = []
 			_exposure = 0
-			_snapshot["phase"] = "FIELD"
+			_snapshot["phase"] = Protocol.PHASE_FIELD
 			_show_field()
-		"PROBE_RESULT":
+		Protocol.PROBE_RESULT:
 			_ingest_probe_result(payload)
-		"FIELD_TESTAMENT":
+		Protocol.FIELD_TESTAMENT:
 			_testament = payload["testament"]
 			_show_testament()
-		"ARCHIVE_UPDATED":
+		Protocol.ARCHIVE_UPDATED:
 			_archive = payload["entries"]
 			if _screen == Screen.TESTAMENT:
 				_show_testament()
-		"STATE_RESYNC":
+		Protocol.STATE_RESYNC:
 			_snapshot = payload["snapshot"]
 			_set_token(payload["reconnectToken"])
 			_self_id = payload["playerId"]  # a relaunched client holds only the token
@@ -127,14 +132,14 @@ func _on_message(type: String, payload: Variant) -> void:
 				_archive = fs["archiveEntries"]
 				_probe_log = []
 				_show_field()
-			elif _snapshot["phase"] == "DEPLOYING":
+			elif _snapshot["phase"] == Protocol.PHASE_DEPLOYING:
 				_show_deploying()
 			else:
 				_show_lobby()
 			_set_status("resynced")
-		"LOBBY_ERROR":
+		Protocol.LOBBY_ERROR:
 			_pending_join = false
-			if payload["code"] in ["TOKEN_EXPIRED", "TOKEN_NOT_FOUND"]:
+			if payload["code"] in [Protocol.ERR_TOKEN_EXPIRED, Protocol.ERR_TOKEN_NOT_FOUND]:
 				_set_token("")
 			_set_status("✝ %s — %s" % [payload["code"], payload["message"]])
 
@@ -161,7 +166,7 @@ func _on_socket_opened() -> void:
 	# instead: instances on one machine share the token file, so resuming
 	# silently would let a second window hijack the first one's identity.
 	if _reconnect_token != "" and _screen == Screen.RECONNECTING:
-		_net.send_message("RECONNECT", {"token": _reconnect_token})
+		_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
 
 func _on_socket_closed() -> void:
 	if _screen == Screen.MENU or _screen == Screen.TESTAMENT:
@@ -179,17 +184,17 @@ func _show_menu() -> void:
 	_name_input = _make_line_edit("display name", "Seeker")
 	_button("Create Room", func():
 		_pending_join = true
-		_net.send_message("CREATE_ROOM", {"displayName": _name_input.text}))
+		_net.send_message(Protocol.CREATE_ROOM, {"displayName": _name_input.text}))
 	_label("")
 	_code_input = _make_line_edit("room code (e.g. ABC234)", "")
 	_button("Join Room", func():
 		_pending_join = true
-		_net.send_message("JOIN_ROOM", {"code": _code_input.text.strip_edges().to_upper(), "displayName": _name_input.text}))
+		_net.send_message(Protocol.JOIN_ROOM, {"code": _code_input.text.strip_edges().to_upper(), "displayName": _name_input.text}))
 	if _reconnect_token != "":
 		_label("")
 		_button("Resume unfinished expedition", func():
 			if _net.is_open():
-				_net.send_message("RECONNECT", {"token": _reconnect_token})
+				_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
 			else:
 				_set_status("still connecting — try again in a moment"))
 
@@ -201,11 +206,11 @@ func _show_lobby() -> void:
 	for p in _snapshot.get("players", []):
 		_label(_player_row(p))
 	_label("")
-	_button("Toggle Ready", func(): _net.send_message("TOGGLE_READY"))
+	_button("Toggle Ready", func(): _net.send_message(Protocol.TOGGLE_READY))
 	if _is_leader():
-		_button("Accept Contract  (leader — needs all ready)", func(): _net.send_message("ACCEPT_CONTRACT"))
+		_button("Accept Contract  (leader — needs all ready)", func(): _net.send_message(Protocol.ACCEPT_CONTRACT))
 	_button("Leave Room", func():
-		_net.send_message("LEAVE_ROOM")
+		_net.send_message(Protocol.LEAVE_ROOM)
 		_reset_session()
 		_show_menu())
 
@@ -225,7 +230,7 @@ func _show_deploying() -> void:
 		check.toggled.connect(func(on: bool): _on_item_toggled(id, on))
 		_root.add_child(check)
 	_button("Requisition (replaces your bag)", func():
-		_net.send_message("REQUISITION", {"itemIds": _selected_items.duplicate()}))
+		_net.send_message(Protocol.REQUISITION, {"itemIds": _selected_items.duplicate()}))
 	_label("")
 	_h2("Party bags")
 	for p in _snapshot.get("players", []):
@@ -234,7 +239,7 @@ func _show_deploying() -> void:
 		_label("%s: %s" % [p["displayName"], names if names != "" else "(empty)"])
 	if _is_leader():
 		_label("")
-		_button("DEPLOY  (leader)", func(): _net.send_message("DEPLOY"))
+		_button("DEPLOY  (leader)", func(): _net.send_message(Protocol.DEPLOY))
 
 func _show_field() -> void:
 	_screen = Screen.FIELD
@@ -257,12 +262,12 @@ func _show_field() -> void:
 	for stim in Catalog.STIMULI:
 		var b := Button.new()
 		b.text = "Present %s" % stim
-		b.pressed.connect(func(): _net.send_message("PROBE", {"stimulus": stim}))
+		b.pressed.connect(func(): _net.send_message(Protocol.PROBE, {"stimulus": stim}))
 		row.add_child(b)
 	for line in _probe_log:
 		_label(line)
 	_label("")
-	_button("EXTRACT — leave with what you learned", func(): _net.send_message("EXTRACT"))
+	_button("EXTRACT — leave with what you learned", func(): _net.send_message(Protocol.EXTRACT))
 
 func _show_testament() -> void:
 	_screen = Screen.TESTAMENT

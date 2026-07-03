@@ -1,5 +1,4 @@
 packages:
   - 'src/server'
   - 'src/shared'
-allowBuilds:
-  esbuild: set this to true or false
+  - 'tools'

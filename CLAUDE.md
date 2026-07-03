@@ -34,8 +34,9 @@ TypeScript server and the GDScript client both honor the same message shapes.
 Phase: **Phase 4 — Core systems v1, closing**. All five deliverables exist
 server-side (TD-027) and the Godot client now speaks the full Testament
 protocol over the production-wired bootstrap (TD-028); the spike room system is
-retired. Remaining before Phase 5 (combat & Incarnate v1): the manual
-two-instance playtest (checklist in `client/README.md`).
+retired and the manual two-instance playtest has passed. Remaining before
+Phase 5 (combat & Incarnate v1): reconcile the protocol-codegen contract
+(specs/protocol-contract) with the current protocol.
 
 Completed Phase 4 specs:
 - `specs/raw-ws-transport/`: raw WebSocket transport (wsHub, protocol envelope) + Godot client spike
@@ -45,10 +46,30 @@ Completed Phase 4 specs:
 - `specs/probe-handler/` (T54–T61): PROBE intent, deriveReaction, exposure, probe-gated REACTION channel
 - `specs/distributed-perception/` (T62–T67): per-player perception sets, filtered sign delivery
 - `specs/loadout-economy/` (T68–T74): GEAR_CATALOG v1, REQUISITION, gear-derived perception, kit-gated probes
-- `specs/godot-client-catchup/` (T75–T82): production bootstrap for the Testament protocol, spike retirement, full Godot protocol client
+- `specs/godot-client-catchup/` (T75–T83): production bootstrap for the Testament protocol, spike retirement, full Godot protocol client
+- `specs/protocol-contract/`: shared message-name registry + `tools/` GDScript codegen (authored against the spike protocol on `feat/protocol-contract`, reconciled to the Testament protocol in TD-031)
 
 @.claude/rules/spec-workflow.md
 @.claude/rules/netcode-invariants.md
+
+## Local Tooling (Godot MCP)
+
+A Godot MCP server may be registered in this environment, exposing `mcp__godot__*`
+tools (`run_project`, `get_debug_output`, `launch_editor`, `get_project_info`, plus
+scene/node helpers). When those tools are present, use them to drive the client
+directly instead of asking the user to press Play and paste errors:
+
+- The Godot client is the `client/` folder (the directory holding `project.godot`).
+- To check it: call `run_project` on `client/`, read `get_debug_output` for GDScript
+  errors and runtime logs, then `stop_project` when done.
+- A live server round-trip needs the Node server up first (`pnpm dev:server`,
+  `ws://localhost:3001`); without it the client reports "server offline" and idles,
+  which is not an error.
+- The MCP reaches only the render client. It does not relax the trust boundary:
+  never move game logic into the client to make a check pass.
+
+If the `mcp__godot__*` tools are absent, fall back to asking the user to run the
+client manually.
 
 ## Immutable Design Pillars (never violate)
 

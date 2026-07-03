@@ -5,6 +5,7 @@ import { buildStubFieldData } from '../fieldData.js';
 import { assertPhase } from '../phaseGuard.js';
 import { deriveAmbientSigns } from '../../incarnate/deriveSigns.js';
 import { perceivedChannelsFor, filterSigns } from '../perception.js';
+import { SERVER_MESSAGES } from '@testament/shared';
 
 export function handleDeploy(
   socketId: string,
@@ -19,7 +20,7 @@ export function handleDeploy(
 
   const sender = room.players.find(p => p.socketId === socketId);
   if (!sender?.isLeader) {
-    emit('LOBBY_ERROR', { code: 'NOT_LEADER', message: 'Only the leader can initiate deployment.' });
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_LEADER', message: 'Only the leader can initiate deployment.' });
     return;
   }
 
@@ -42,7 +43,7 @@ export function handleDeploy(
   for (const player of room.players) {
     player.perceivedChannels = perceivedChannelsFor(player.bag, isSolo, contract.tier);
     const token = tokenStore.issue(player.playerId, room.code);
-    emitTo(player.socketId, 'FIELD_STARTED', {
+    emitTo(player.socketId, SERVER_MESSAGES.FIELD_STARTED, {
       fieldData,
       reconnectToken:    token,
       signs:             filterSigns(signs, player.perceivedChannels),
