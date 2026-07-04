@@ -15,7 +15,8 @@ describe('CLIENT_MESSAGES / SERVER_MESSAGES registry', () => {
   it('contains exactly the Testament protocol names, nothing else', () => {
     expect(Object.values(CLIENT_MESSAGES).sort()).toEqual([
       'ACCEPT_CONTRACT', 'CREATE_ROOM', 'DEPLOY', 'EXTRACT', 'JOIN_ROOM',
-      'LEAVE_ROOM', 'PROBE', 'RECONNECT', 'REQUISITION', 'TOGGLE_READY',
+      'KICK_PLAYER', 'LEAVE_ROOM', 'PROBE', 'RECONNECT', 'REQUISITION',
+      'TOGGLE_READY',
     ]);
     expect(Object.values(SERVER_MESSAGES).sort()).toEqual([
       'ARCHIVE_UPDATED', 'FIELD_STARTED', 'FIELD_TESTAMENT', 'LOBBY_ERROR',
@@ -57,9 +58,9 @@ describe('CLIENT_MESSAGES / SERVER_MESSAGES registry', () => {
 });
 
 describe('codegen-able enums and scalars', () => {
-  it('LOBBY_ERROR_CODES holds exactly the thirteen codes', () => {
-    expect(LOBBY_ERROR_CODES).toHaveLength(13);
-    expect(new Set(LOBBY_ERROR_CODES).size).toBe(13);
+  it('LOBBY_ERROR_CODES holds exactly the fourteen codes', () => {
+    expect(LOBBY_ERROR_CODES).toHaveLength(14);
+    expect(new Set(LOBBY_ERROR_CODES).size).toBe(14);
   });
 
   it('ROOM_PHASES holds exactly the four phases in lifecycle order', () => {

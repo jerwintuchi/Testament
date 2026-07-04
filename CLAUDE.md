@@ -32,11 +32,12 @@ TypeScript server and the GDScript client both honor the same message shapes.
 ## Active Work
 
 Phase: **Phase 4 — Core systems v1, closing**. All five deliverables exist
-server-side (TD-027) and the Godot client now speaks the full Testament
-protocol over the production-wired bootstrap (TD-028); the spike room system is
-retired and the manual two-instance playtest has passed. Remaining before
-Phase 5 (combat & Incarnate v1): reconcile the protocol-codegen contract
-(specs/protocol-contract) with the current protocol.
+server-side (TD-027), the Godot client speaks the full Testament protocol over
+the production-wired bootstrap (TD-028), the protocol-codegen contract is
+reconciled and load-bearing on both sides (TD-031), and the disconnect
+playtest's lobby gaps are fixed (TD-032). Next: **Phase 5 — combat & Incarnate
+v1** (start from `docs/systems/encounter-flow.md` on the D: clone; prune
+spike-era shared types as housekeeping).
 
 Completed Phase 4 specs:
 - `specs/raw-ws-transport/`: raw WebSocket transport (wsHub, protocol envelope) + Godot client spike
@@ -48,6 +49,7 @@ Completed Phase 4 specs:
 - `specs/loadout-economy/` (T68–T74): GEAR_CATALOG v1, REQUISITION, gear-derived perception, kit-gated probes
 - `specs/godot-client-catchup/` (T75–T83): production bootstrap for the Testament protocol, spike retirement, full Godot protocol client
 - `specs/protocol-contract/`: shared message-name registry + `tools/` GDScript codegen (authored against the spike protocol on `feat/protocol-contract`, reconciled to the Testament protocol in TD-031)
+- `specs/lobby-resilience/` (T88–T94): `LobbyPlayer.connected`, ghost-proof `allReady`, leader `KICK_PLAYER`, client ghost UI + scroll layout (TD-032)
 
 @.claude/rules/spec-workflow.md
 @.claude/rules/netcode-invariants.md

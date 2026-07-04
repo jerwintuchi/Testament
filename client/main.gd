@@ -35,6 +35,7 @@ var _archive: Array = []
 # ── Client-only UI state ─────────────────────────────────────────────────────
 var _selected_items: Array = []   # requisition picks before sending
 var _pending_join := false        # sent CREATE/JOIN, awaiting the server's verdict
+var _awaiting_resume := false     # sent RECONNECT, awaiting STATE_RESYNC or an error
 
 # ── UI shell ─────────────────────────────────────────────────────────────────
 var _root: VBoxContainer
@@ -59,10 +60,16 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	margin.add_child(column)
+	# Screens can outgrow the window; they scroll while the status line below
+	# stays visible (R80 — no more resizing the window to find it).
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(scroll)
 	_root = VBoxContainer.new()
-	_root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_root.add_theme_constant_override("separation", 8)
-	column.add_child(_root)
+	scroll.add_child(_root)
 	_status = Label.new()
 	_status.modulate = Color(0.85, 0.7, 0.5)
 	column.add_child(_status)
@@ -121,6 +128,7 @@ func _on_message(type: String, payload: Variant) -> void:
 			if _screen == Screen.TESTAMENT:
 				_show_testament()
 		Protocol.STATE_RESYNC:
+			_awaiting_resume = false
 			_snapshot = payload["snapshot"]
 			_set_token(payload["reconnectToken"])
 			_self_id = payload["playerId"]  # a relaunched client holds only the token
@@ -139,8 +147,11 @@ func _on_message(type: String, payload: Variant) -> void:
 			_set_status("resynced")
 		Protocol.LOBBY_ERROR:
 			_pending_join = false
-			if payload["code"] in [Protocol.ERR_TOKEN_EXPIRED, Protocol.ERR_TOKEN_NOT_FOUND]:
+			# A failed resume means the seat is gone (kicked, or the room died):
+			# forget the token so the client does not retry a dead seat forever.
+			if _awaiting_resume or payload["code"] in [Protocol.ERR_TOKEN_EXPIRED, Protocol.ERR_TOKEN_NOT_FOUND]:
 				_set_token("")
+			_awaiting_resume = false
 			_set_status("✝ %s — %s" % [payload["code"], payload["message"]])
 
 func _ingest_probe_result(payload: Dictionary) -> void:
@@ -166,6 +177,7 @@ func _on_socket_opened() -> void:
 	# instead: instances on one machine share the token file, so resuming
 	# silently would let a second window hijack the first one's identity.
 	if _reconnect_token != "" and _screen == Screen.RECONNECTING:
+		_awaiting_resume = true
 		_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
 
 func _on_socket_closed() -> void:
@@ -194,6 +206,7 @@ func _show_menu() -> void:
 		_label("")
 		_button("Resume unfinished expedition", func():
 			if _net.is_open():
+				_awaiting_resume = true
 				_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
 			else:
 				_set_status("still connecting — try again in a moment"))
@@ -204,7 +217,7 @@ func _show_lobby() -> void:
 	_h1("Lobby — room %s" % _snapshot.get("roomCode", "?"))
 	_label("share the code aloud; the Collegium sends up to four")
 	for p in _snapshot.get("players", []):
-		_label(_player_row(p))
+		_party_row(p)
 	_label("")
 	_button("Toggle Ready", func(): _net.send_message(Protocol.TOGGLE_READY))
 	if _is_leader():
@@ -234,9 +247,7 @@ func _show_deploying() -> void:
 	_label("")
 	_h2("Party bags")
 	for p in _snapshot.get("players", []):
-		var bag: Array = p.get("bag", [])
-		var names := ", ".join(bag.map(func(i): return Catalog.short_name(i)))
-		_label("%s: %s" % [p["displayName"], names if names != "" else "(empty)"])
+		_party_row(p)
 	if _is_leader():
 		_label("")
 		_button("DEPLOY  (leader)", func(): _net.send_message(Protocol.DEPLOY))
@@ -321,10 +332,29 @@ func _player_row(p: Dictionary) -> String:
 		marks += " ★"
 	if p["playerId"] == _self_id:
 		marks += " (you)"
+	if not p.get("connected", true):
+		marks += " (disconnected)"
 	var ready := "ready" if p.get("readyState", false) else "not ready"
 	var bag: Array = p.get("bag", [])
 	var bag_note := "" if bag.is_empty() else "  |  bag: " + ", ".join(bag.map(func(i): return Catalog.short_name(i)))
 	return "%s%s — %s%s" % [p["displayName"], marks, ready, bag_note]
+
+# One party member as a row: the text plus, for the leader looking at a
+# disconnected teammate, a Kick button (server re-validates everything; P39
+# means a connected player can never be kicked even if a stale row shows one).
+func _party_row(p: Dictionary) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	_root.add_child(row)
+	var l := Label.new()
+	l.text = _player_row(p)
+	row.add_child(l)
+	if _is_leader() and not p.get("connected", true) and p["playerId"] != _self_id:
+		var pid: String = p["playerId"]
+		var b := Button.new()
+		b.text = "Kick"
+		b.pressed.connect(func(): _net.send_message(Protocol.KICK_PLAYER, {"playerId": pid}))
+		row.add_child(b)
 
 func _display_name(player_id: String) -> String:
 	for p in _snapshot.get("players", []):

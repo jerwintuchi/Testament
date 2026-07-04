@@ -13,7 +13,7 @@ import type { FieldSnapshot } from './fieldPhase.js';
 // T2: wire-protocol message payload types
 
 describe('LobbyErrorCode', () => {
-  it('contains exactly the thirteen expected error codes', () => {
+  it('contains exactly the fourteen expected error codes', () => {
     // Exhaustive switch — TypeScript compiler enforces this at compile time.
     const check = (code: LobbyErrorCode): number => {
       switch (code) {
@@ -30,17 +30,18 @@ describe('LobbyErrorCode', () => {
         case 'UNKNOWN_ITEM':      return 11;
         case 'BAG_OVERFLOW':      return 12;
         case 'MISSING_GEAR':      return 13;
+        case 'CANNOT_KICK':       return 14;
       }
     };
-    // Verify all thirteen codes resolve to distinct values.
+    // Verify all fourteen codes resolve to distinct values.
     const codes: LobbyErrorCode[] = [
       'ROOM_NOT_FOUND', 'ROOM_FULL', 'ALREADY_DEPLOYING', 'NOT_LEADER',
       'PARTY_NOT_READY', 'INVALID_PAYLOAD', 'NOT_IN_ROOM', 'TOKEN_EXPIRED',
       'TOKEN_NOT_FOUND', 'WRONG_PHASE', 'UNKNOWN_ITEM', 'BAG_OVERFLOW',
-      'MISSING_GEAR',
+      'MISSING_GEAR', 'CANNOT_KICK',
     ];
     const values = codes.map(check);
-    expect(new Set(values).size).toBe(13);
+    expect(new Set(values).size).toBe(14);
   });
 });
 
@@ -70,7 +71,7 @@ describe('RoomCreatedPayload shape', () => {
       snapshot: {
         roomCode: 'ABC123',
         phase: 'WAITING',
-        players: [{ playerId: 'p1', displayName: 'Aldric', isLeader: true, readyState: false, bag: [] }],
+        players: [{ playerId: 'p1', displayName: 'Aldric', isLeader: true, readyState: false, connected: true, bag: [] }],
         contract: null,
       },
       reconnectToken: 'some-uuid',

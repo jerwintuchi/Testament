@@ -670,3 +670,36 @@ suite. The spike-era shared types (events.ts, RoomSummary, dungeon wire types)
 remain and are still Phase 5 pruning work; the registry simply does not name
 them. All 372 tests green (60 shared + 7 tools + 305 server); three packages
 typecheck clean; headless Godot 4.7 runs the ported client with zero errors.
+
+## TD-032 — Lobby resilience: visible ghosts, ghost-proof readiness, leader kick (2026-07-04)
+
+**Decision.** Three fixes from the 2026-07-03 disconnect playtest
+(specs/lobby-resilience, T88–T94). (1) `LobbyPlayer.connected` crosses the wire
+in every snapshot, derived in `toPublicPlayer` from `disconnectedAt` — derived,
+never stored twice. (2) `allReady` counts connected players only: a ghost's
+seat is held for reconnection, not for veto, so a not-ready disconnect can no
+longer deadlock ACCEPT_CONTRACT. (3) New leader-only `KICK_PLAYER` intent frees
+a seat held by a disconnected player in WAITING/DEPLOYING; new error code
+`CANNOT_KICK` deliberately covers both "no such player" and "player is
+connected" so the response reveals neither. Kicking is illegal in FIELD —
+mid-expedition seats stay sacred — and can never remove a connected player (no
+griefing lever). A kicked player's resume fails (`ROOM_NOT_FOUND`) and the
+client forgets its token on any failed resume. Client also renders the
+`(disconnected)` marker, gives the leader a Kick button, and moves screen
+content into a ScrollContainer with the status line pinned (the playtest's
+clipped-window complaint).
+
+**Context.** The playtest (two windows plus a scripted bot Seeker) showed a
+lobby ghost was invisible to teammates, blocked acceptance forever if
+not-ready, and held one of four seats with no recourse (`ROOM_FULL` for a
+would-be replacement). The registry+codegen pipeline (TD-031) carried the
+whole change: KICK_PLAYER and CANNOT_KICK were added once in shared and
+regenerated into protocol.gd.
+
+**Consequences.** A party can now always proceed or recover from a lobby
+disconnect; the reconnect contract is unweakened (a ghost that returns before
+being kicked resumes with ready state and bag intact). Deferred deliberately:
+auto-removal timeouts (adds server timers for a problem the kick already
+solves) and kicking connected players (a social feature with griefing
+implications, not a resilience fix). All 386 tests green (60 shared + 7 tools
++ 319 server); typecheck clean; headless Godot 4.7 check + run clean.

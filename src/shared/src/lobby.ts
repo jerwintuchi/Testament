@@ -30,6 +30,7 @@ export type LobbyPlayer = {
   displayName: string;
   isLeader: boolean;
   readyState: boolean;
+  connected: boolean;  // derived from the server's disconnectedAt at snapshot time (R77, P38)
   bag: ItemId[];   // party-visible: coordinating the bags IS coordinating perception (TD-007)
 };
 

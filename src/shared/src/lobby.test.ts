@@ -82,7 +82,7 @@ describe('ContractIntel has no traitRoll or expeditionSeed field', () => {
 
 describe('LobbySnapshot shape', () => {
   it('constructs with null contract while WAITING', () => {
-    const player: LobbyPlayer = { playerId: 'p1', displayName: 'Aldric', isLeader: true, readyState: false, bag: [] };
+    const player: LobbyPlayer = { playerId: 'p1', displayName: 'Aldric', isLeader: true, readyState: false, connected: true, bag: [] };
     const snap: LobbySnapshot = {
       roomCode: 'ABC123',
       phase: 'WAITING',

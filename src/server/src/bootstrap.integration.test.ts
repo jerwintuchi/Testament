@@ -258,3 +258,80 @@ describe('T76: delivery scope (P35, P36)', () => {
     expect(room.players.find(p => p.displayName === 'Joiner')?.disconnectedAt).not.toBeNull();
   });
 });
+
+// ── T92 (R78, R79): lobby resilience over the wire ────────────────────────────
+
+describe('T92: ghost-proof acceptance and KICK_PLAYER over real WebSockets', () => {
+  let wss: WebSocketServer;
+  let port: number;
+
+  beforeEach(async () => {
+    wss = new WebSocketServer({ port: 0 });
+    attachTestamentServer(wss);
+    await new Promise<void>((resolve) => wss.on('listening', () => resolve()));
+    port = (wss.address() as AddressInfo).port;
+  });
+
+  afterEach(() => {
+    wss.clients.forEach(c => c.terminate());
+    wss.close();
+  });
+
+  async function hostAndGhost() {
+    const host = await connect(port);
+    host.send('CREATE_ROOM', { displayName: 'Host' });
+    const created = await host.next();
+    const roomCode = (created.payload as { snapshot: { roomCode: string } }).snapshot.roomCode;
+
+    const p2 = await connect(port);
+    p2.send('JOIN_ROOM', { code: roomCode, displayName: 'Ghost' });
+    await host.next();                    // LOBBY_UPDATED (join)
+    await p2.next();                      // LOBBY_UPDATED (join)
+    const tokenMsg = await p2.next();     // RECONNECT_TOKEN
+    const { reconnectToken, playerId } = tokenMsg.payload as { reconnectToken: string; playerId: string };
+
+    // Drop WITHOUT readying; the disconnect broadcast is the sync point.
+    p2.close();
+    const afterDrop = await host.next();
+    expect(afterDrop.type).toBe('LOBBY_UPDATED');
+    const ghostRow = (afterDrop.payload as {
+      snapshot: { players: Array<{ playerId: string; connected: boolean }> };
+    }).snapshot.players.find(pl => pl.playerId === playerId);
+    expect(ghostRow?.connected).toBe(false);   // R77 visible on the wire
+
+    return { host, roomCode, ghostId: playerId, ghostToken: reconnectToken };
+  }
+
+  it('R78: a not-ready ghost does not block ACCEPT_CONTRACT', async () => {
+    const { host } = await hostAndGhost();
+    host.send('TOGGLE_READY');
+    await host.next();                    // LOBBY_UPDATED (ready)
+    host.send('ACCEPT_CONTRACT');
+    const deploying = await host.next();
+    expect(deploying.type).toBe('ROOM_DEPLOYING');
+    host.close();
+  });
+
+  it('R79: kick frees the seat, a replacement joins, the kicked token is dead', async () => {
+    const { host, roomCode, ghostId, ghostToken } = await hostAndGhost();
+
+    host.send('KICK_PLAYER', { playerId: ghostId });
+    const afterKick = await host.next();
+    expect(afterKick.type).toBe('LOBBY_UPDATED');
+    expect((afterKick.payload as { snapshot: { players: unknown[] } }).snapshot.players).toHaveLength(1);
+
+    const p3 = await connect(port);
+    p3.send('JOIN_ROOM', { code: roomCode, displayName: 'Replacement' });
+    await host.next();                    // LOBBY_UPDATED (join)
+    await p3.next();                      // LOBBY_UPDATED
+    expect((await p3.next()).type).toBe('RECONNECT_TOKEN');
+
+    const ghostReturn = await connect(port);
+    ghostReturn.send('RECONNECT', { token: ghostToken });
+    const denied = await ghostReturn.next();
+    expect(denied.type).toBe('LOBBY_ERROR');
+    expect((denied.payload as { code: string }).code).toBe('ROOM_NOT_FOUND');
+
+    host.close(); p3.close(); ghostReturn.close();
+  });
+});

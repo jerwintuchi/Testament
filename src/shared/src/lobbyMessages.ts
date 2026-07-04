@@ -35,6 +35,13 @@ export type RequisitionPayload = {
   itemIds: ItemId[];
 };
 
+// Leader-only: free a seat held by a DISCONNECTED player (never a connected
+// one — P39) in WAITING or DEPLOYING. Illegal in FIELD: mid-expedition seats
+// are sacred (R79).
+export type KickPlayerPayload = {
+  playerId: string;
+};
+
 // ── Server → Client ───────────────────────────────────────────────────────────
 
 export type RoomCreatedPayload = {
@@ -82,6 +89,7 @@ export const LOBBY_ERROR_CODES = [
   'UNKNOWN_ITEM',    // REQUISITION: an itemId not in GEAR_CATALOG
   'BAG_OVERFLOW',    // REQUISITION: more items than BAG_SLOTS
   'MISSING_GEAR',    // PROBE: sender does not carry the matching probe kit
+  'CANNOT_KICK',     // KICK_PLAYER: target unknown or still connected (deliberately one code for both)
 ] as const;
 export type LobbyErrorCode = (typeof LOBBY_ERROR_CODES)[number];
 

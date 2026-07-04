@@ -22,6 +22,7 @@ import type {
   LeaveRoomPayload,
   ReconnectPayload,
   RequisitionPayload,
+  KickPlayerPayload,
   RoomCreatedPayload,
   LobbyUpdatedPayload,
   ReconnectTokenPayload,
@@ -49,6 +50,7 @@ export const CLIENT_MESSAGES = {
   LEAVE_ROOM: 'LEAVE_ROOM',
   RECONNECT: 'RECONNECT',
   REQUISITION: 'REQUISITION',
+  KICK_PLAYER: 'KICK_PLAYER',
   DEPLOY: 'DEPLOY',
   PROBE: 'PROBE',
   EXTRACT: 'EXTRACT',
@@ -80,6 +82,7 @@ export type ClientMessagePayloads = {
   LEAVE_ROOM: LeaveRoomPayload;
   RECONNECT: ReconnectPayload;
   REQUISITION: RequisitionPayload;
+  KICK_PLAYER: KickPlayerPayload;
   DEPLOY: DeployPayload;
   PROBE: ProbePayload;
   EXTRACT: ExtractPayload;

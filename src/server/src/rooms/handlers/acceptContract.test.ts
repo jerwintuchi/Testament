@@ -68,4 +68,19 @@ describe('handleAcceptContract', () => {
     expect((calls[0]?.[1] as { code: string }).code).toBe('PARTY_NOT_READY');
     expect(mgr.getRoomBySocketId('host')!.phase).toBe('WAITING');
   });
+
+  // T89 (R78): a not-ready GHOST does not block acceptance.
+  it('succeeds with a not-ready disconnected player in the room', () => {
+    const { mgr } = setup();
+    handleToggleReady('host', mgr, () => {}, () => {});
+    const room = mgr.getRoomBySocketId('host')!;
+    room.players.push({
+      playerId: 'ghost', displayName: 'Ghost', socketId: '', isLeader: false,
+      readyState: false, disconnectedAt: Date.now(), perceivedChannels: [], bag: [],
+    });
+    const { fn: broadcast, calls } = makeBroadcast();
+    handleAcceptContract('host', mgr, () => {}, broadcast);
+    expect(room.phase).toBe('DEPLOYING');
+    expect(calls.some(([, t]) => t === 'ROOM_DEPLOYING')).toBe(true);
+  });
 });

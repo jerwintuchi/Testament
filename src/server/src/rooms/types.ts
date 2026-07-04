@@ -43,13 +43,15 @@ export type EmitToFn = (socketId: string, type: string, payload: unknown) => voi
 export type BroadcastFn = (roomCode: RoomCode, type: string, payload: unknown) => void;
 
 // Converts a ServerPlayerEntry to the shared LobbyPlayer type (strips server-only fields).
-// Bags are party-visible coordination state (TD-007), not secrets.
+// Bags are party-visible coordination state (TD-007), not secrets. `connected` is
+// derived here from disconnectedAt — the single stored source of liveness (P38).
 export function toPublicPlayer(p: ServerPlayerEntry): LobbyPlayer {
   return {
     playerId: p.playerId,
     displayName: p.displayName,
     isLeader: p.isLeader,
     readyState: p.readyState,
+    connected: p.disconnectedAt === null,
     bag: p.bag,
   };
 }

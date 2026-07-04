@@ -35,6 +35,23 @@ describe('toPublicPlayer', () => {
     expect('socketId' in pub).toBe(false);
     expect('disconnectedAt' in pub).toBe(false);
   });
+
+  // T88 (R77, P38): connected is derived from disconnectedAt at snapshot time.
+  it('derives connected=false from a set disconnectedAt', () => {
+    const entry: ServerPlayerEntry = {
+      playerId: 'p1', displayName: 'Aldric', socketId: '', isLeader: false,
+      readyState: true, disconnectedAt: 1234567890, perceivedChannels: [], bag: [],
+    };
+    expect(toPublicPlayer(entry).connected).toBe(false);
+  });
+
+  it('derives connected=true from a null disconnectedAt', () => {
+    const entry: ServerPlayerEntry = {
+      playerId: 'p1', displayName: 'Aldric', socketId: 'sock-1', isLeader: false,
+      readyState: false, disconnectedAt: null, perceivedChannels: [], bag: [],
+    };
+    expect(toPublicPlayer(entry).connected).toBe(true);
+  });
 });
 
 describe('RoomRecord shape', () => {

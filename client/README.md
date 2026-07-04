@@ -24,7 +24,8 @@ event; the client only ever sends *intentions*.
 |------|------|
 | `main.gd` | Screen state machine + code-built UI. All state is a render copy of server events. |
 | `net.gd` | `WebSocketPeer` + JSON envelope transport. No game knowledge. |
-| `catalog.gd` | **Protocol mirror** of `src/shared/src/gear.ts` + `signs.ts` (gear catalog, `BAG_SLOTS`, stimuli). Keep in lockstep when shared constants change. |
+| `protocol/protocol.gd` | **Generated** wire contract (messages, error codes, phases, channels, stimuli, gear catalog, scalars). Regenerate with `pnpm gen:protocol`; never edit by hand. |
+| `catalog.gd` | Display helpers over `Protocol.GEAR` — no hand-copied data. |
 
 ## Protocol
 
@@ -33,7 +34,7 @@ Payload shapes are the shared types in `src/shared/src/lobbyMessages.ts` and
 `fieldMessages.ts` — the single source of truth.
 
 - **Out:** `CREATE_ROOM`, `JOIN_ROOM`, `TOGGLE_READY`, `ACCEPT_CONTRACT`,
-  `LEAVE_ROOM`, `REQUISITION`, `DEPLOY`, `PROBE`, `EXTRACT`, `RECONNECT`
+  `LEAVE_ROOM`, `REQUISITION`, `KICK_PLAYER`, `DEPLOY`, `PROBE`, `EXTRACT`, `RECONNECT`
 - **In:** `ROOM_CREATED`, `LOBBY_UPDATED`, `RECONNECT_TOKEN`, `ROOM_DEPLOYING`,
   `FIELD_STARTED`, `PROBE_RESULT`, `FIELD_TESTAMENT`, `ARCHIVE_UPDATED`,
   `STATE_RESYNC`, `LOBBY_ERROR`
@@ -78,3 +79,8 @@ Two instances (A = host, B = joiner) unless noted.
     perceived channels intact (`STATE_RESYNC`).
 13. **Server down.** Stop the server: both instances show the connection-lost
     screen; Abandon returns to the menu once the server is back.
+14. **Ghost marker.** Close B while in the lobby: A's list marks B
+    "(disconnected)" within a moment; B's ready state is preserved for resume.
+15. **Kick.** As leader, A sees a Kick button on B's disconnected row; kicking
+    removes the seat, a new player can join it, and B's later Resume fails
+    (its client forgets the dead token instead of retrying).

@@ -12,6 +12,7 @@ import { handleDeploy } from './handlers/deploy.js';
 import { handleExtract } from './handlers/extract.js';
 import { handleProbe } from './handlers/probe.js';
 import { handleRequisition } from './handlers/requisition.js';
+import { handleKickPlayer } from './handlers/kickPlayer.js';
 import { handleUnknownMessage } from './handlers/unknown.js';
 import { CLIENT_MESSAGES, SERVER_MESSAGES } from '@testament/shared';
 
@@ -70,6 +71,9 @@ export function routeMessage(
       break;
     case CLIENT_MESSAGES.REQUISITION:
       handleRequisition(socketId, payload, roomManager, emit, broadcast);
+      break;
+    case CLIENT_MESSAGES.KICK_PLAYER:
+      handleKickPlayer(socketId, payload, roomManager, emit, broadcast);
       break;
     default:
       handleUnknownMessage(socketId, type, emit);
