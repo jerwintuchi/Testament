@@ -65,7 +65,7 @@ describe('RoomRecord shape', () => {
       exposure: 0,
       revealedSigns: [],
       site: null,
-      fieldTick: null,
+      moveTick: null,
     };
     expect(room.phase).toBe('WAITING');
     expect(room.contract).toBeNull();

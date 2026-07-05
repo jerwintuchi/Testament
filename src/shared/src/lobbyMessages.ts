@@ -90,6 +90,10 @@ export const LOBBY_ERROR_CODES = [
   'BAG_OVERFLOW',    // REQUISITION: more items than BAG_SLOTS
   'MISSING_GEAR',    // PROBE: sender does not carry the matching probe kit
   'CANNOT_KICK',     // KICK_PLAYER: target unknown or still connected (deliberately one code for both)
+  'NOT_AT_EXTRACTION',      // EXTRACT: sender not within EXTRACTION_RADIUS of the Extraction node (field-space R90)
+  'NOT_AT_CONTRACT_BOARD',  // ACCEPT_CONTRACT: leader not within STATION_RADIUS of the Contract Board (R99)
+  'NOT_AT_QUARTERMASTER',   // REQUISITION: sender not within STATION_RADIUS of the Quartermaster (R100)
+  'NOT_AT_DEPLOY_GATE',     // DEPLOY: leader not within STATION_RADIUS of the Deploy Gate (R101)
 ] as const;
 export type LobbyErrorCode = (typeof LOBBY_ERROR_CODES)[number];
 

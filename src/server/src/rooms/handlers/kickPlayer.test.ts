@@ -29,7 +29,7 @@ function setup() {
   let code = '';
   handleCreateRoom('host-sock', { displayName: 'Host' }, mgr, store, (t, p) => {
     if (t === 'ROOM_CREATED') code = (p as { snapshot: { roomCode: string } }).snapshot.roomCode;
-  });
+  }, () => {});
   let ghostId = '';
   let ghostToken = '';
   handleJoinRoom('ghost-sock', { code, displayName: 'Ghost' }, mgr, store, (t, p) => {

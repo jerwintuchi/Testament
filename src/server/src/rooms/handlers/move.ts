@@ -1,12 +1,12 @@
 import { SERVER_MESSAGES } from '@testament/shared';
 import type { RoomManager } from '../RoomManager.js';
 import type { EmitFn } from '../types.js';
-import { assertPhase } from '../phaseGuard.js';
 
-// MOVE (R86, invariant I2): the client sends a *direction intent*, never a
-// position. We validate the payload, confirm the room is in FIELD, then store
-// the sender's intent. No position math and no broadcast happen here — the
-// authoritative field tick (fieldTick.ts) is the sole mover (I1/P44), so client
+// MOVE (R86/R97, invariant I2): the client sends a *direction intent*, never a
+// position. We validate the payload, confirm the sender has a body (any walkable
+// phase — WAITING/DEPLOYING in the Collegium, FIELD in the site), then store the
+// intent. No position math and no broadcast happen here — the authoritative
+// movement tick (movementTick.ts) is the sole mover (I1/P44/P50), so client
 // message rate can never outrun SEEKER_SPEED.
 
 function isDirComponent(v: unknown): v is number {
@@ -31,7 +31,18 @@ export function handleMove(
   }
 
   const room = roomManager.getRoomBySocketId(socketId);
-  if (!assertPhase(room, 'FIELD', emit)) return;
+  if (room === undefined) {
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_IN_ROOM', message: 'You are not in any room.' });
+    return;
+  }
+  // Legal in any walkable phase; only COMPLETE has no body to move.
+  if (room.phase === 'COMPLETE') {
+    emit(SERVER_MESSAGES.LOBBY_ERROR, {
+      code: 'WRONG_PHASE',
+      message: `Cannot move in ${room.phase}.`,
+    });
+    return;
+  }
 
   const sender = room.players.find(pl => pl.socketId === socketId)!;
   sender.moveIntent = { dx, dy };

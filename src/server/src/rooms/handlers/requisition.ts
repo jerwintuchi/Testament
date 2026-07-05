@@ -3,6 +3,7 @@ import { BAG_SLOTS, GEAR_CATALOG } from '@testament/shared';
 import type { RoomManager } from '../RoomManager.js';
 import type { EmitFn, BroadcastFn } from '../types.js';
 import { assertPhase } from '../phaseGuard.js';
+import { atStation } from '../stations.js';
 import { toSnapshot } from '../snapshot.js';
 import { SERVER_MESSAGES } from '@testament/shared';
 
@@ -45,6 +46,11 @@ export function handleRequisition(
   // Own bag only: the sender is resolved by socket, so there is no way to pack
   // another Seeker's bag. Replace-not-merge: the payload is the whole bag.
   const sender = room.players.find(pl => pl.socketId === socketId)!;
+  // Requisition is an action at the Quartermaster (R100): stand there to pack.
+  if (!atStation(sender.pos, 'QUARTERMASTER')) {
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_AT_QUARTERMASTER', message: 'Stand at the Quartermaster to requisition gear.' });
+    return;
+  }
   sender.bag = ids;
 
   broadcast(room.code, SERVER_MESSAGES.LOBBY_UPDATED, { snapshot: toSnapshot(room) });

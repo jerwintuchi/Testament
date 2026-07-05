@@ -7,8 +7,14 @@ import { handleAcceptContract } from './acceptContract.js';
 import { handleDeploy } from './deploy.js';
 import { RoomManager } from '../RoomManager.js';
 import { ReconnectTokenStore } from '../ReconnectTokenStore.js';
+import { stationCenterPx } from '../stations.js';
 import type { EmitFn, EmitToFn } from '../types.js';
 import type { Channel, ProbeResultPayload } from '@testament/shared';
+
+function standAt(mgr: RoomManager, socketId: string, kind: 'CONTRACT_BOARD' | 'QUARTERMASTER' | 'DEPLOY_GATE'): void {
+  const room = mgr.getRoomBySocketId(socketId)!;
+  room.players.find(p => p.socketId === socketId)!.pos = stationCenterPx(kind);
+}
 
 function makeEmit(): { fn: EmitFn; calls: Array<[string, unknown]> } {
   const calls: Array<[string, unknown]> = [];
@@ -27,9 +33,10 @@ const ALL_KITS = ['censer-of-embers', 'phial-of-hoarfrost', 'consecrated-salt', 
 function setupFieldRoom() {
   const mgr = new RoomManager();
   const store = new ReconnectTokenStore();
-  handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {});
+  handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
   const room = mgr.getRoomBySocketId('host')!;
   room.players[0]!.readyState = true;
+  standAt(mgr, 'host', 'CONTRACT_BOARD');
   handleAcceptContract('host', mgr, () => {}, () => {});
   room.contract = {
     ...room.contract!,
@@ -37,6 +44,7 @@ function setupFieldRoom() {
     traitRoll: { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE', ward: 'COLD', disposition: 'STALKER' },
   };
   room.players[0]!.bag = [...ALL_KITS];
+  standAt(mgr, 'host', 'DEPLOY_GATE');
   handleDeploy('host', mgr, store, () => {}, () => {}, () => {});
   return { mgr, room };
 }
@@ -89,7 +97,7 @@ describe('handleProbe — validation (R54)', () => {
   it('PROBE outside FIELD phase → WRONG_PHASE, no mutation', () => {
     const mgr = new RoomManager();
     const store = new ReconnectTokenStore();
-    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {});
+    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
     const room = mgr.getRoomBySocketId('host')!;
     const { fn: emit, calls } = makeEmit();
     const { fn: emitTo, calls: sent } = makeEmitTo();

@@ -39,15 +39,20 @@ and the disconnect playtest's lobby gaps are fixed (TD-032). Phase 5 lead-in is
 done: the encounter cadence doc is in-repo (`docs/systems/encounter-flow.md`)
 and the spike-era dungeon/movement chain is pruned (TD-034).
 
-Active spec: **`specs/field-space/`** (T95–T103) — the spatial substrate combat
-needs, rebuilt on the canonical 16×16 grid: seeded tile-based site generation
-with the TD-018 node vocabulary, authoritative 20Hz movement with feet-AABB
-collision, and position-gated extraction. Combat/melee/Omen/verb systems follow
-once positions and collision exist.
+Field Space v1 is shipped (TD-036): `specs/field-space/` (T95–T103) — seeded
+tile site, authoritative 20Hz movement with feet-AABB collision, position-gated
+extraction, on the canonical 16×16 grid.
 
-@specs/field-space/requirements.md
-@specs/field-space/design.md
-@specs/field-space/tasks.md
+Active spec: **`specs/collegium/`** (T104–T114) — the party's preparation map: a
+fixed, walkable Collegium occupied during the lobby phases (WAITING + DEPLOYING),
+built on the field-space movement stack. Prep actions are gated to spatial
+stations (accept at the Contract Board, requisition at the Quartermaster, deploy
+at the Deploy Gate), mirroring field extraction. Full spatial prep (new verbs,
+per-station UIs, the Archive as a room) is deferred to a later spec.
+
+@specs/collegium/requirements.md
+@specs/collegium/design.md
+@specs/collegium/tasks.md
 
 Completed Phase 4 specs:
 - `specs/raw-ws-transport/`: raw WebSocket transport (wsHub, protocol envelope) + Godot client spike
@@ -60,6 +65,7 @@ Completed Phase 4 specs:
 - `specs/godot-client-catchup/` (T75–T83): production bootstrap for the Testament protocol, spike retirement, full Godot protocol client
 - `specs/protocol-contract/`: shared message-name registry + `tools/` GDScript codegen (authored against the spike protocol on `feat/protocol-contract`, reconciled to the Testament protocol in TD-031)
 - `specs/lobby-resilience/` (T88–T94): `LobbyPlayer.connected`, ghost-proof `allReady`, leader `KICK_PLAYER`, client ghost UI + scroll layout (TD-032)
+- `specs/field-space/` (T95–T103): seeded tile site (`generateSite`), authoritative 20Hz movement (`stepPlayer`, movement tick), position-gated extraction (TD-035/036)
 
 @.claude/rules/spec-workflow.md
 @.claude/rules/netcode-invariants.md

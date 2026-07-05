@@ -7,8 +7,22 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { WebSocketServer, WebSocket } from 'ws';
 import type { AddressInfo } from 'node:net';
 import { attachTestamentServer, type BootServer, type BootSocket, type TestamentServer } from './bootstrap.js';
+import { stationCenterPx } from './rooms/stations.js';
 
 type Msg = { type: string; payload: unknown };
+
+// Prep actions are station-gated in the Collegium (R99–R101). Stand every player
+// on the station so the gated ACCEPT/REQUISITION/DEPLOY is legal in an end-to-end
+// walk; no MOVE is sent, so the movement tick stays silent.
+function standAll(
+  rm: TestamentServer['roomManager'],
+  code: string,
+  kind: 'CONTRACT_BOARD' | 'QUARTERMASTER' | 'DEPLOY_GATE',
+): void {
+  const room = rm.getRoom(code)!;
+  const center = stationCenterPx(kind);
+  for (const p of room.players) p.pos = { ...center };
+}
 
 // ── Real-WebSocket harness (the full walk) ────────────────────────────────────
 
@@ -109,7 +123,8 @@ describe('T76: production bootstrap — full protocol walk over real WebSockets 
     const readySnap = (afterReady.payload as { snapshot: { players: Array<{ readyState: boolean }> } }).snapshot;
     expect(readySnap.players.every(p => p.readyState)).toBe(true);
 
-    // ── Accept contract ──
+    // ── Accept contract (at the Contract Board) ──
+    standAll(testament.roomManager, roomCode, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     const deploying = await host.next();
     expect(deploying.type).toBe('ROOM_DEPLOYING');
@@ -119,9 +134,11 @@ describe('T76: production bootstrap — full protocol walk over real WebSockets 
     expect(Object.keys(intel)).not.toContain('traitRoll');
     expect((await p2.next()).type).toBe('ROOM_DEPLOYING');
 
-    // ── Requisition (host reads REACTION + carries the FLAME kit; p2 reads RESIDUE) ──
+    // ── Requisition (at the Quartermaster) ──
+    standAll(testament.roomManager, roomCode, 'QUARTERMASTER');
     host.send('REQUISITION', { itemIds: ['witness-prism', 'censer-of-embers'] });
     await host.next(); await p2.next();
+    standAll(testament.roomManager, roomCode, 'QUARTERMASTER');
     p2.send('REQUISITION', { itemIds: ['ashen-lens'] });
     await host.next();
     const bagsSnap = ((await p2.next()).payload as {
@@ -132,6 +149,7 @@ describe('T76: production bootstrap — full protocol walk over real WebSockets 
     expect(bagsSnap.players.find(p => p.playerId === p2Id)?.bag).toEqual(['ashen-lens']);
 
     // ── Deploy: FIELD_STARTED is per-player (own channels, own token) ──
+    standAll(testament.roomManager, roomCode, 'DEPLOY_GATE');
     host.send('DEPLOY');
     const hostField = await host.next();
     const p2Field = await p2.next();
@@ -164,9 +182,9 @@ describe('T76: production bootstrap — full protocol walk over real WebSockets 
     // ── Extract ──
     standAtExtraction(roomCode);
     host.send('EXTRACT');
-    const testament = await host.next();
-    expect(testament.type).toBe('FIELD_TESTAMENT');
-    expect((testament.payload as { testament: { outcome: string } }).testament.outcome).toBe('success');
+    const testamentMsg = await host.next();
+    expect(testamentMsg.type).toBe('FIELD_TESTAMENT');
+    expect((testamentMsg.payload as { testament: { outcome: string } }).testament.outcome).toBe('success');
     const archive = await host.next();
     expect(archive.type).toBe('ARCHIVE_UPDATED');
     expect((archive.payload as { entries: unknown[] }).entries.length).toBeGreaterThan(0);
@@ -275,10 +293,11 @@ describe('T76: delivery scope (P35, P36)', () => {
 describe('T92: ghost-proof acceptance and KICK_PLAYER over real WebSockets', () => {
   let wss: WebSocketServer;
   let port: number;
+  let testament: TestamentServer;
 
   beforeEach(async () => {
     wss = new WebSocketServer({ port: 0 });
-    attachTestamentServer(wss);
+    testament = attachTestamentServer(wss);
     await new Promise<void>((resolve) => wss.on('listening', () => resolve()));
     port = (wss.address() as AddressInfo).port;
   });
@@ -314,9 +333,10 @@ describe('T92: ghost-proof acceptance and KICK_PLAYER over real WebSockets', () 
   }
 
   it('R78: a not-ready ghost does not block ACCEPT_CONTRACT', async () => {
-    const { host } = await hostAndGhost();
+    const { host, roomCode } = await hostAndGhost();
     host.send('TOGGLE_READY');
     await host.next();                    // LOBBY_UPDATED (ready)
+    standAll(testament.roomManager, roomCode, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     const deploying = await host.next();
     expect(deploying.type).toBe('ROOM_DEPLOYING');

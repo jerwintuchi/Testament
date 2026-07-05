@@ -5,7 +5,13 @@ import { handleAcceptContract } from './acceptContract.js';
 import { handleToggleReady } from './toggleReady.js';
 import { RoomManager } from '../RoomManager.js';
 import { ReconnectTokenStore } from '../ReconnectTokenStore.js';
+import { stationCenterPx } from '../stations.js';
 import type { EmitFn, EmitToFn, BroadcastFn } from '../types.js';
+
+function standAt(mgr: RoomManager, socketId: string, kind: 'CONTRACT_BOARD' | 'QUARTERMASTER' | 'DEPLOY_GATE'): void {
+  const room = mgr.getRoomBySocketId(socketId)!;
+  room.players.find(p => p.socketId === socketId)!.pos = stationCenterPx(kind);
+}
 
 function makeEmit(): { fn: EmitFn; calls: Array<[string, unknown]> } {
   const calls: Array<[string, unknown]> = [];
@@ -26,13 +32,17 @@ function setupDeployingRoom() {
   const mgr = new RoomManager();
   const store = new ReconnectTokenStore();
 
-  handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {});
+  handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
   const room = mgr.getRoomBySocketId('host')!;
   room.players[0]!.readyState = true;
 
-  // acceptContract transitions to DEPLOYING and attaches contract.
+  // acceptContract is gated to the Contract Board (R99); deploy to the Deploy
+  // Gate (R101). Walk the leader through both, ending on the gate so the deploy
+  // under test is allowed.
+  standAt(mgr, 'host', 'CONTRACT_BOARD');
   const { fn: emit } = makeEmit();
   handleAcceptContract('host', mgr, emit, noBroadcast);
+  standAt(mgr, 'host', 'DEPLOY_GATE');
   return { mgr, store, room };
 }
 
@@ -190,7 +200,7 @@ describe('handleDeploy', () => {
   it('DEPLOY in a WAITING room emits LOBBY_ERROR WRONG_PHASE', () => {
     const mgr = new RoomManager();
     const store = new ReconnectTokenStore();
-    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {});
+    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
     const { fn: emit, calls } = makeEmit();
     handleDeploy('host', mgr, store, emit, () => {}, noBroadcast);
     expect((calls[0]?.[1] as { code: string }).code).toBe('WRONG_PHASE');
@@ -200,6 +210,20 @@ describe('handleDeploy', () => {
     const { fn: emit, calls } = makeEmit();
     handleDeploy('unknown-sock', new RoomManager(), new ReconnectTokenStore(), emit, () => {}, noBroadcast);
     expect((calls[0]?.[1] as { code: string }).code).toBe('NOT_IN_ROOM');
+  });
+
+  // T114 (R101): deploy is gated to the Deploy Gate.
+  it('leader away from the Deploy Gate emits NOT_AT_DEPLOY_GATE, stays DEPLOYING, no FIELD_STARTED', () => {
+    const { mgr, store } = setupDeployingRoom();
+    // Walk the leader off the gate (to the far Contract Board).
+    standAt(mgr, 'host', 'CONTRACT_BOARD');
+    const { fn: emit, calls } = makeEmit();
+    const { fn: emitTo, calls: emitToCalls } = makeEmitTo();
+    handleDeploy('host', mgr, store, emit, emitTo, noBroadcast);
+
+    expect((calls[0]?.[1] as { code: string }).code).toBe('NOT_AT_DEPLOY_GATE');
+    expect(emitToCalls).toHaveLength(0);
+    expect(mgr.getRoomBySocketId('host')!.phase).toBe('DEPLOYING');
   });
 });
 

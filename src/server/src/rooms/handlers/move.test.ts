@@ -16,7 +16,7 @@ function makeEmit(): { fn: EmitFn; calls: Array<[string, unknown]> } {
 // A solo room forced into FIELD phase; MOVE's only phase precondition is FIELD.
 function fieldRoom() {
   const mgr = new RoomManager();
-  handleCreateRoom('host', { displayName: 'Host' }, mgr, new ReconnectTokenStore(), () => {});
+  handleCreateRoom('host', { displayName: 'Host' }, mgr, new ReconnectTokenStore(), () => {}, () => {});
   const room = mgr.getRoomBySocketId('host')!;
   room.phase = 'FIELD';
   room.players[0]!.pos = { x: 100, y: 100 };
@@ -52,16 +52,27 @@ describe('handleMove — validation (R86)', () => {
     expect((calls[0]?.[1] as { code: string }).code).toBe('NOT_IN_ROOM');
   });
 
-  for (const phase of ['WAITING', 'DEPLOYING', 'COMPLETE'] as RoomPhase[]) {
-    it(`MOVE in ${phase} phase → WRONG_PHASE, no intent stored`, () => {
+  // T110 (R97): MOVE is legal in any walkable phase (a Seeker has a body in the
+  // Collegium too), rejected only once the expedition is COMPLETE.
+  for (const phase of ['WAITING', 'DEPLOYING', 'FIELD'] as RoomPhase[]) {
+    it(`MOVE in ${phase} phase stores intent, emits nothing`, () => {
       const { mgr, room } = fieldRoom();
       room.phase = phase;
       const { fn: emit, calls } = makeEmit();
       handleMove('host', { dx: 1, dy: 0 }, mgr, emit);
-      expect((calls[0]?.[1] as { code: string }).code).toBe('WRONG_PHASE');
-      expect(room.players[0]!.moveIntent).toEqual({ dx: 0, dy: 0 });
+      expect(calls).toHaveLength(0);
+      expect(room.players[0]!.moveIntent).toEqual({ dx: 1, dy: 0 });
     });
   }
+
+  it('MOVE in COMPLETE phase → WRONG_PHASE, no intent stored', () => {
+    const { mgr, room } = fieldRoom();
+    room.phase = 'COMPLETE';
+    const { fn: emit, calls } = makeEmit();
+    handleMove('host', { dx: 1, dy: 0 }, mgr, emit);
+    expect((calls[0]?.[1] as { code: string }).code).toBe('WRONG_PHASE');
+    expect(room.players[0]!.moveIntent).toEqual({ dx: 0, dy: 0 });
+  });
 });
 
 describe('handleMove — success (P44)', () => {

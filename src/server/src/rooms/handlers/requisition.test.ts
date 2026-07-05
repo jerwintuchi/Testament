@@ -5,8 +5,14 @@ import { handleCreateRoom } from './createRoom.js';
 import { handleAcceptContract } from './acceptContract.js';
 import { RoomManager } from '../RoomManager.js';
 import { ReconnectTokenStore } from '../ReconnectTokenStore.js';
+import { stationCenterPx } from '../stations.js';
 import type { EmitFn, BroadcastFn } from '../types.js';
 import type { LobbySnapshot } from '@testament/shared';
+
+function standAt(mgr: RoomManager, socketId: string, kind: 'CONTRACT_BOARD' | 'QUARTERMASTER' | 'DEPLOY_GATE'): void {
+  const room = mgr.getRoomBySocketId(socketId)!;
+  room.players.find(p => p.socketId === socketId)!.pos = stationCenterPx(kind);
+}
 
 function makeEmit(): { fn: EmitFn; calls: Array<[string, unknown]> } {
   const calls: Array<[string, unknown]> = [];
@@ -21,10 +27,14 @@ function makeBroadcast(): { fn: BroadcastFn; calls: Array<[string, string, unkno
 function setupDeployingRoom() {
   const mgr = new RoomManager();
   const store = new ReconnectTokenStore();
-  handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {});
+  handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
   const room = mgr.getRoomBySocketId('host')!;
   room.players[0]!.readyState = true;
+  // Accept at the Contract Board, then stand the host at the Quartermaster where
+  // requisition is legal (R99/R100).
+  standAt(mgr, 'host', 'CONTRACT_BOARD');
   handleAcceptContract('host', mgr, () => {}, () => {});
+  standAt(mgr, 'host', 'QUARTERMASTER');
   return { mgr, room };
 }
 
@@ -87,7 +97,7 @@ describe('handleRequisition — validation (R65, P31)', () => {
   it('WAITING phase → WRONG_PHASE (contract not yet known)', () => {
     const mgr = new RoomManager();
     const store = new ReconnectTokenStore();
-    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {});
+    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
     const { fn: emit, calls } = makeEmit();
 
     handleRequisition('host', { itemIds: ['ashen-lens'] }, mgr, emit, () => {});
@@ -129,6 +139,20 @@ describe('handleRequisition — success path (R65)', () => {
     expect(bcasts).toHaveLength(1);
   });
 
+  // T113 (R100): requisition is gated to the Quartermaster.
+  it('away from the Quartermaster → NOT_AT_QUARTERMASTER, bag untouched, no broadcast', () => {
+    const { mgr, room } = setupDeployingRoom();
+    standAt(mgr, 'host', 'CONTRACT_BOARD');  // anywhere but the Quartermaster
+    const { fn: emit, calls } = makeEmit();
+    const { fn: broadcast, calls: bcasts } = makeBroadcast();
+
+    handleRequisition('host', { itemIds: ['witness-prism'] }, mgr, emit, broadcast);
+
+    expect((calls[0]?.[1] as { code: string }).code).toBe('NOT_AT_QUARTERMASTER');
+    expect(room.players[0]!.bag).toEqual([]);
+    expect(bcasts).toHaveLength(0);
+  });
+
   it('only sets the sender\'s own bag', () => {
     const { mgr, room } = setupDeployingRoom();
     room.players.push({
@@ -136,6 +160,7 @@ describe('handleRequisition — success path (R65)', () => {
       isLeader: false, readyState: true, disconnectedAt: null,
       perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     });
+    standAt(mgr, 'p2-sock', 'QUARTERMASTER');
 
     handleRequisition('p2-sock', { itemIds: ['augurs-bead'] }, mgr, () => {}, () => {});
 

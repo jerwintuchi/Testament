@@ -7,6 +7,7 @@ import { ReconnectTokenStore } from './ReconnectTokenStore.js';
 import { SessionArchive } from './SessionArchive.js';
 import { routeMessage } from './messageRouter.js';
 import { handleSocketDisconnect } from './handlers/disconnect.js';
+import { stationCenterPx } from './stations.js';
 
 type Msg = { type: string; payload: unknown };
 
@@ -143,7 +144,8 @@ describe('T22: lobby integration — full flow', () => {
     await host.next(); // LOBBY_UPDATED to host
     await p2.next();   // LOBBY_UPDATED to p2
 
-    // Leader accepts contract.
+    // Leader accepts contract (at the Contract Board — R99).
+    mgr.getRoom(code)!.players.find(p => p.isLeader)!.pos = stationCenterPx('CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     const deployingHost = await host.next();
     const deployingP2 = await p2.next();

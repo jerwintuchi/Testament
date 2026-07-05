@@ -2,6 +2,7 @@
 import type { RoomCode } from '@testament/shared';
 import type { RoomRecord, ServerPlayerEntry } from './types.js';
 import { generateRoomCode } from './roomCode.js';
+import { stopMovementTick } from './movementTick.js';
 import { randomUUID } from 'node:crypto';
 
 export class RoomManager {
@@ -34,7 +35,7 @@ export class RoomManager {
       exposure: 0,
       revealedSigns: [],
       site: null,
-      fieldTick: null,
+      moveTick: null,
     };
     this.rooms.set(code, room);
     return room;
@@ -52,13 +53,11 @@ export class RoomManager {
   }
 
   destroyRoom(code: RoomCode): void {
-    // Stop the field tick so no timer outlives its room (R91/P46). Covers both
-    // room destruction and last-player removal, which both route through here.
+    // Stop the movement tick so no timer outlives its room (R96/P52). This is the
+    // single teardown choke point — extract-completion, last-player removal, and
+    // all-disconnected all route through here, in whatever phase the room died in.
     const room = this.rooms.get(code);
-    if (room?.fieldTick) {
-      clearInterval(room.fieldTick);
-      room.fieldTick = null;
-    }
+    if (room) stopMovementTick(room);
     this.rooms.delete(code);
   }
 }

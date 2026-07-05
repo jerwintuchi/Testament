@@ -6,8 +6,14 @@ import { handleDeploy } from './deploy.js';
 import { RoomManager } from '../RoomManager.js';
 import { ReconnectTokenStore } from '../ReconnectTokenStore.js';
 import { SessionArchive } from '../SessionArchive.js';
+import { stationCenterPx } from '../stations.js';
 import type { EmitFn, BroadcastFn, RoomRecord } from '../types.js';
 import { TILE_SIZE } from '@testament/shared';
+
+function standAt(mgr: RoomManager, socketId: string, kind: 'CONTRACT_BOARD' | 'QUARTERMASTER' | 'DEPLOY_GATE'): void {
+  const room = mgr.getRoomBySocketId(socketId)!;
+  room.players.find(p => p.socketId === socketId)!.pos = stationCenterPx(kind);
+}
 
 // The EXTRACTION node's tile-center in px — where a Seeker must stand to leave.
 function extractionCenter(room: RoomRecord): { x: number; y: number } {
@@ -32,10 +38,13 @@ function setupFieldRoom() {
 
   handleCreateRoom('host', { displayName: 'Host' }, mgr, store, (t, p) => {
     if (t === 'ROOM_CREATED') code = (p as { snapshot: { roomCode: string } }).snapshot.roomCode;
-  });
+  }, () => {});
   const room = mgr.getRoomBySocketId('host')!;
   room.players[0]!.readyState = true;
+  // Walk the leader through the gated prep stations to reach FIELD (R99/R101).
+  standAt(mgr, 'host', 'CONTRACT_BOARD');
   handleAcceptContract('host', mgr, () => {}, () => {});
+  standAt(mgr, 'host', 'DEPLOY_GATE');
   handleDeploy('host', mgr, store, () => {}, (sid, t, p) => {}, () => {});
 
   // Stand the host at the Extraction so the success-path tests extract legally
@@ -86,9 +95,10 @@ describe('handleExtract', () => {
     const mgr = new RoomManager();
     const store = new ReconnectTokenStore();
     const archive = new SessionArchive();
-    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {});
+    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
     const room = mgr.getRoomBySocketId('host')!;
     room.players[0]!.readyState = true;
+    standAt(mgr, 'host', 'CONTRACT_BOARD');
     handleAcceptContract('host', mgr, () => {}, () => {});
     // Room is now DEPLOYING, not FIELD.
     const { fn: emit, calls } = makeEmit();

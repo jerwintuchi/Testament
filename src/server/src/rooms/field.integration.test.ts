@@ -8,6 +8,7 @@ import { ReconnectTokenStore } from './ReconnectTokenStore.js';
 import { SessionArchive } from './SessionArchive.js';
 import { routeMessage } from './messageRouter.js';
 import { handleSocketDisconnect } from './handlers/disconnect.js';
+import { stationCenterPx } from './stations.js';
 
 type Msg = { type: string; payload: unknown };
 
@@ -115,6 +116,15 @@ function standAtExtraction(code: string): void {
   for (const p of room.players) p.pos = { ...center };
 }
 
+// Prep actions are now station-gated in the Collegium (R99–R101). Stand every
+// player on the station so the gated ACCEPT/REQUISITION/DEPLOY is legal; no MOVE
+// is sent, so the movement tick stays silent (no stray POSITIONS deltas).
+function standAll(code: string, kind: 'CONTRACT_BOARD' | 'QUARTERMASTER' | 'DEPLOY_GATE'): void {
+  const room = mgr.getRoom(code)!;
+  const center = stationCenterPx(kind);
+  for (const p of room.players) p.pos = { ...center };
+}
+
 // ── Test state ────────────────────────────────────────────────────────────────
 
 let wss: WebSocketServer;
@@ -163,6 +173,7 @@ describe('T38: field-phase integration — Scenario A (happy path)', () => {
     await p2.next();
 
     // 4. Leader accepts contract.
+    standAll(code, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     const dep1 = await host.next();
     const dep2 = await p2.next();
@@ -171,6 +182,7 @@ describe('T38: field-phase integration — Scenario A (happy path)', () => {
 
     // 4b. The party requisitions during DEPLOYING (T74, R65): split the four
     // Apprentice-relevant channels across the two bags.
+    standAll(code, 'QUARTERMASTER');
     host.send('REQUISITION', { itemIds: ['ashen-lens', 'witness-prism'] });          // RESIDUE + REACTION
     const req1 = await host.next(); // LOBBY_UPDATED broadcast
     await p2.next();
@@ -179,10 +191,12 @@ describe('T38: field-phase integration — Scenario A (happy path)', () => {
     const reqSnap = (req1.payload as { snapshot: { players: Array<{ bag: string[] }> } }).snapshot;
     expect(reqSnap.players[0]?.bag).toEqual(['ashen-lens', 'witness-prism']);
 
+    standAll(code, 'QUARTERMASTER');
     p2.send('REQUISITION', { itemIds: ['chirurgeons-glass', 'augurs-bead'] });       // STRESS_MARK + OMEN
     await host.next(); await p2.next(); // LOBBY_UPDATED broadcast
 
     // 5. Leader deploys.
+    standAll(code, 'DEPLOY_GATE');
     host.send('DEPLOY');
     const fs1 = await host.next(); // per-player FIELD_STARTED
     const fs2 = await p2.next();
@@ -264,6 +278,7 @@ describe('T38: field-phase integration — Scenario B (guard failures)', () => {
     await host.next(); await p2.next();
     p2.send('TOGGLE_READY');
     await host.next(); await p2.next();
+    standAll(code, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     await host.next(); await p2.next();
 
@@ -280,8 +295,10 @@ describe('T38: field-phase integration — Scenario B (guard failures)', () => {
   it('DEPLOY in WAITING phase emits LOBBY_ERROR WRONG_PHASE', async () => {
     const host = await connect(port);
     host.send('CREATE_ROOM', { displayName: 'Host' });
-    await host.next();
+    const created = await host.next();
+    const code = (created.payload as { snapshot: { roomCode: string } }).snapshot.roomCode;
 
+    standAll(code, 'DEPLOY_GATE');
     host.send('DEPLOY');
     const err = await host.next();
     expect(err.type).toBe('LOBBY_ERROR');
@@ -293,12 +310,12 @@ describe('T38: field-phase integration — Scenario B (guard failures)', () => {
   it('EXTRACT in DEPLOYING phase emits LOBBY_ERROR WRONG_PHASE', async () => {
     const host = await connect(port);
     host.send('CREATE_ROOM', { displayName: 'Host' });
-    await host.next();
-    const room = mgr.getRoomBySocketId([...wss.clients][0] ? 'hack' : 'hack');
-    // Simpler: just accept contract to enter DEPLOYING.
-    // We need to get to DEPLOYING — toggle ready then accept.
+    const created = await host.next();
+    const code = (created.payload as { snapshot: { roomCode: string } }).snapshot.roomCode;
+    // Get to DEPLOYING — toggle ready then accept at the Contract Board.
     host.send('TOGGLE_READY');
     await host.next();
+    standAll(code, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     await host.next(); // ROOM_DEPLOYING
 
@@ -333,12 +350,15 @@ describe('T38: field-phase integration — Scenario C (reconnect during FIELD)',
     await host.next(); await p2.next();
     p2.send('TOGGLE_READY');
     await host.next(); await p2.next();
+    standAll(code, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     await host.next(); await p2.next(); // ROOM_DEPLOYING
 
+    standAll(code, 'QUARTERMASTER');
     host.send('REQUISITION', { itemIds: ['ashen-lens', 'augurs-bead'] });   // RESIDUE + OMEN
     await host.next(); await p2.next(); // LOBBY_UPDATED
 
+    standAll(code, 'DEPLOY_GATE');
     host.send('DEPLOY');
     const hostFieldStarted = await host.next(); // FIELD_STARTED (per-player)
     await p2.next(); // FIELD_STARTED for p2
@@ -408,6 +428,7 @@ describe('T61: probe integration — miss, match, reconnect, extraction', () => 
     await host.next(); await p2.next();
     p2.send('TOGGLE_READY');
     await host.next(); await p2.next();
+    standAll(code, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     await host.next(); await p2.next(); // ROOM_DEPLOYING
 
@@ -421,11 +442,14 @@ describe('T61: probe integration — miss, match, reconnect, extraction', () => 
 
     // Requisition the kits each prober will use (T74, R67): host probes COLD,
     // p2 probes FLAME.
+    standAll(code, 'QUARTERMASTER');
     host.send('REQUISITION', { itemIds: ['phial-of-hoarfrost', 'ashen-lens'] });
     await host.next(); await p2.next(); // LOBBY_UPDATED
+    standAll(code, 'QUARTERMASTER');
     p2.send('REQUISITION', { itemIds: ['censer-of-embers', 'witness-prism'] });
     await host.next(); await p2.next(); // LOBBY_UPDATED
 
+    standAll(code, 'DEPLOY_GATE');
     host.send('DEPLOY');
     const hostFieldStarted = await host.next();
     await p2.next();
@@ -517,8 +541,10 @@ describe('T61: probe integration — miss, match, reconnect, extraction', () => 
 
     host.send('TOGGLE_READY');
     await host.next();
+    standAll(code, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     await host.next();
+    standAll(code, 'DEPLOY_GATE');
     host.send('DEPLOY');
     await host.next(); // FIELD_STARTED
 
@@ -540,9 +566,11 @@ describe('T61: probe integration — miss, match, reconnect, extraction', () => 
 
     host.send('TOGGLE_READY');
     await host.next();
+    standAll(code, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     await host.next();
     // No requisition: the bag is empty.
+    standAll(code, 'DEPLOY_GATE');
     host.send('DEPLOY');
     await host.next(); // FIELD_STARTED
 
@@ -581,8 +609,10 @@ describe('T38: field-phase integration — Scenario D (post-extraction invariant
     // Solo player: toggle ready, accept, deploy, extract.
     host.send('TOGGLE_READY');
     await host.next();
+    standAll(code, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     await host.next();
+    standAll(code, 'DEPLOY_GATE');
     host.send('DEPLOY');
     await host.next(); // FIELD_STARTED
     standAtExtraction(code);
@@ -611,8 +641,10 @@ describe('T38: field-phase integration — Scenario D (post-extraction invariant
 
     host.send('TOGGLE_READY');
     await host.next();
+    standAll(code, 'CONTRACT_BOARD');
     host.send('ACCEPT_CONTRACT');
     await host.next();
+    standAll(code, 'DEPLOY_GATE');
     host.send('DEPLOY');
     await host.next(); // FIELD_STARTED
     standAtExtraction(code);

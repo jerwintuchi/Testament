@@ -7,6 +7,7 @@ import type { Channel } from '@testament/shared';
 import { CHANNELS } from '@testament/shared';
 import { generateSite } from '../site/generateSite.js';
 import { createRng, hashSeed } from '../rng/seeded.js';
+import { COLLEGIUM } from '../collegium/collegium.js';
 
 const STUB_CONTRACT_RECORD: ContractRecord = {
   contractId:     'c-001',
@@ -25,7 +26,7 @@ function makePlayer(id: string, socketId: string, channels: Channel[] = [...CHAN
 function makeRoom(phase: RoomRecord['phase'] = 'WAITING'): RoomRecord {
   return {
     code: 'ABC123', phase, players: [makePlayer('p1', 's1')],
-    contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, fieldTick: null,
+    contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, moveTick: null,
   };
 }
 
@@ -40,7 +41,7 @@ function makeFieldRoom(): RoomRecord {
     exposure: 0,
     revealedSigns: [],
     site: generateSite(createRng(hashSeed('snapshot-site'))),
-    fieldTick: null,
+    moveTick: null,
   };
 }
 
@@ -55,7 +56,7 @@ describe('toSnapshot', () => {
       contract: null,
       fieldData: null,
       exposure: 0,
-      revealedSigns: [], site: null, fieldTick: null,
+      revealedSigns: [], site: null, moveTick: null,
     };
     const snap = toSnapshot(room);
     expect(snap.roomCode).toBe('ABC123');
@@ -68,7 +69,7 @@ describe('toSnapshot', () => {
     const room: RoomRecord = {
       code: 'ABC123', phase: 'WAITING',
       players: [makePlayer('p1', 's1')], contract: null, fieldData: null,
-      exposure: 0, revealedSigns: [], site: null, fieldTick: null,
+      exposure: 0, revealedSigns: [], site: null, moveTick: null,
     };
     const snap = toSnapshot(room);
     expect('socketId' in (snap.players[0] ?? {})).toBe(false);
@@ -78,7 +79,7 @@ describe('toSnapshot', () => {
     const room: RoomRecord = {
       code: 'ABC123', phase: 'WAITING',
       players: [makePlayer('p1', 's1')], contract: null, fieldData: null,
-      exposure: 0, revealedSigns: [], site: null, fieldTick: null,
+      exposure: 0, revealedSigns: [], site: null, moveTick: null,
     };
     const snap = toSnapshot(room);
     expect('disconnectedAt' in (snap.players[0] ?? {})).toBe(false);
@@ -88,10 +89,31 @@ describe('toSnapshot', () => {
     const room: RoomRecord = {
       code: 'ABC123', phase: 'WAITING',
       players: [makePlayer('p1', 's1'), makePlayer('p2', 's2'), makePlayer('p3', 's3')],
-      contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, fieldTick: null,
+      contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, moveTick: null,
     };
     const snap = toSnapshot(room);
     expect(snap.players.map(p => p.playerId)).toEqual(['p1', 'p2', 'p3']);
+  });
+
+  // T111 [R98]: the lobby snapshot carries the Collegium map + present positions.
+  it('carries the Collegium layout and every present player\'s position', () => {
+    const p1 = makePlayer('p1', 's1'); p1.pos = { x: 200, y: 136 };
+    const p2 = makePlayer('p2', 's2');  // pos stays null → omitted
+    const room: RoomRecord = {
+      code: 'ABC123', phase: 'WAITING', players: [p1, p2],
+      contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, moveTick: null,
+    };
+    const snap = toSnapshot(room);
+    expect(snap.collegium).toBe(COLLEGIUM);
+    expect(snap.positions).toEqual({ p1: { x: 200, y: 136 } });
+  });
+
+  // T111 [P47]: even carrying a contract, the lobby snapshot leaks no trait axis.
+  it('stringified lobby snapshot carries no trait-axis literal', () => {
+    const json = JSON.stringify(toSnapshot(makeFieldRoom()));
+    for (const lit of ['EMBER', 'FLAME', 'LUNGE', 'FROST', 'COLD', 'STALKER']) {
+      expect(json).not.toContain(`"${lit}"`);
+    }
   });
 });
 

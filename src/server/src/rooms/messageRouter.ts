@@ -44,7 +44,7 @@ export function routeMessage(
 
   switch (type) {
     case CLIENT_MESSAGES.CREATE_ROOM:
-      handleCreateRoom(socketId, payload, roomManager, tokenStore, emit);
+      handleCreateRoom(socketId, payload, roomManager, tokenStore, emit, broadcast);
       break;
     case CLIENT_MESSAGES.JOIN_ROOM:
       handleJoinRoom(socketId, payload, roomManager, tokenStore, emit, broadcast);

@@ -24,7 +24,7 @@ function setup() {
   let token = '';
   handleCreateRoom('host', { displayName: 'Host' }, mgr, store, (t, p) => {
     if (t === 'ROOM_CREATED') token = (p as { reconnectToken: string }).reconnectToken;
-  });
+  }, () => {});
   return { mgr, store, archive, token };
 }
 
@@ -60,6 +60,11 @@ describe('handleReconnect', () => {
     handleReconnect('host-new', { token }, mgr, store, archive, emit, () => {});
     const resync = calls.find(([t]) => t === 'STATE_RESYNC');
     expect((resync?.[1] as { fieldSnapshot: unknown }).fieldSnapshot).toBeNull();
+    // T111 [R98]: the WAITING-phase resync still carries the Collegium + positions
+    // (via the lobby snapshot), so the reconnecting client re-renders the hall.
+    const snapshot = (resync?.[1] as { snapshot: { collegium: unknown; positions: Record<string, unknown> } }).snapshot;
+    expect(snapshot.collegium).toBeDefined();
+    expect(snapshot.positions).toBeDefined();
   });
 
   // T66: perception survives reconnection (R63, P29)

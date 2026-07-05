@@ -17,7 +17,7 @@ function makeBroadcast(): { fn: BroadcastFn; calls: Array<[string, string, unkno
 function setup() {
   const mgr = new RoomManager();
   const store = new ReconnectTokenStore();
-  handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {});
+  handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
   const room = mgr.getRoomBySocketId('host')!;
   return { mgr, room };
 }

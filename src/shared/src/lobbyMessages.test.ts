@@ -13,35 +13,40 @@ import type { FieldSnapshot } from './fieldPhase.js';
 // T2: wire-protocol message payload types
 
 describe('LobbyErrorCode', () => {
-  it('contains exactly the fourteen expected error codes', () => {
-    // Exhaustive switch — TypeScript compiler enforces this at compile time.
+  it('contains exactly the eighteen expected error codes', () => {
+    // Exhaustive switch — TypeScript compiler enforces this at compile time. A
+    // missing case makes `code` non-never on the final assignment below.
     const check = (code: LobbyErrorCode): number => {
       switch (code) {
-        case 'ROOM_NOT_FOUND':    return 1;
-        case 'ROOM_FULL':         return 2;
-        case 'ALREADY_DEPLOYING': return 3;
-        case 'NOT_LEADER':        return 4;
-        case 'PARTY_NOT_READY':   return 5;
-        case 'INVALID_PAYLOAD':   return 6;
-        case 'NOT_IN_ROOM':       return 7;
-        case 'TOKEN_EXPIRED':     return 8;
-        case 'TOKEN_NOT_FOUND':   return 9;
-        case 'WRONG_PHASE':       return 10;
-        case 'UNKNOWN_ITEM':      return 11;
-        case 'BAG_OVERFLOW':      return 12;
-        case 'MISSING_GEAR':      return 13;
-        case 'CANNOT_KICK':       return 14;
+        case 'ROOM_NOT_FOUND':         return 1;
+        case 'ROOM_FULL':              return 2;
+        case 'ALREADY_DEPLOYING':      return 3;
+        case 'NOT_LEADER':             return 4;
+        case 'PARTY_NOT_READY':        return 5;
+        case 'INVALID_PAYLOAD':        return 6;
+        case 'NOT_IN_ROOM':            return 7;
+        case 'TOKEN_EXPIRED':          return 8;
+        case 'TOKEN_NOT_FOUND':        return 9;
+        case 'WRONG_PHASE':            return 10;
+        case 'UNKNOWN_ITEM':           return 11;
+        case 'BAG_OVERFLOW':           return 12;
+        case 'MISSING_GEAR':           return 13;
+        case 'CANNOT_KICK':            return 14;
+        case 'NOT_AT_EXTRACTION':      return 15;
+        case 'NOT_AT_CONTRACT_BOARD':  return 16;
+        case 'NOT_AT_QUARTERMASTER':   return 17;
+        case 'NOT_AT_DEPLOY_GATE':     return 18;
       }
     };
-    // Verify all fourteen codes resolve to distinct values.
     const codes: LobbyErrorCode[] = [
       'ROOM_NOT_FOUND', 'ROOM_FULL', 'ALREADY_DEPLOYING', 'NOT_LEADER',
       'PARTY_NOT_READY', 'INVALID_PAYLOAD', 'NOT_IN_ROOM', 'TOKEN_EXPIRED',
       'TOKEN_NOT_FOUND', 'WRONG_PHASE', 'UNKNOWN_ITEM', 'BAG_OVERFLOW',
-      'MISSING_GEAR', 'CANNOT_KICK',
+      'MISSING_GEAR', 'CANNOT_KICK', 'NOT_AT_EXTRACTION', 'NOT_AT_CONTRACT_BOARD',
+      'NOT_AT_QUARTERMASTER', 'NOT_AT_DEPLOY_GATE',
     ];
     const values = codes.map(check);
-    expect(new Set(values).size).toBe(14);
+    expect(new Set(values).size).toBe(18);
   });
 });
 
@@ -73,6 +78,8 @@ describe('RoomCreatedPayload shape', () => {
         phase: 'WAITING',
         players: [{ playerId: 'p1', displayName: 'Aldric', isLeader: true, readyState: false, connected: true, bag: [] }],
         contract: null,
+        collegium: { grid: { width: 1, height: 1, rows: ['.'] }, stations: [], spawn: { x: 0, y: 0 } },
+        positions: {},
       },
       reconnectToken: 'some-uuid',
     };
@@ -100,6 +107,8 @@ describe('StateResyncPayload shape', () => {
         phase: 'WAITING',
         players: [],
         contract: null,
+        collegium: { grid: { width: 1, height: 1, rows: ['.'] }, stations: [], spawn: { x: 0, y: 0 } },
+        positions: {},
       },
       fieldSnapshot: null,
       reconnectToken: 'tok',
@@ -123,6 +132,8 @@ describe('StateResyncPayload shape', () => {
         phase: 'FIELD',
         players: [],
         contract: null,
+        collegium: { grid: { width: 1, height: 1, rows: ['.'] }, stations: [], spawn: { x: 0, y: 0 } },
+        positions: {},
       },
       fieldSnapshot: fs,
       reconnectToken: 'tok',

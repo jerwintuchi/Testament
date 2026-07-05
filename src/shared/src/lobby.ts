@@ -2,6 +2,8 @@
 import type { PlayerId } from './ids.js';
 import type { ContractIntel } from './contract.js';
 import type { ItemId } from './gear.js';
+import type { CollegiumLayout } from './collegium.js';
+import type { PlayerPositions } from './fieldMessages.js';
 
 export const MAX_PLAYERS = 4;
 // Solo play is supported: a lone host can start a run. Set DEV_MIN_PLAYERS higher
@@ -39,6 +41,11 @@ export type LobbySnapshot = {
   phase: RoomPhase;
   players: LobbyPlayer[];
   contract: ContractIntel | null;
+  // The Collegium staging map and every present player's feet px, so a client
+  // renders the hall and places the party (R98). The layout is static; live
+  // movement rides the POSITIONS delta stream, this is the occasional full-sync.
+  collegium: CollegiumLayout;
+  positions: PlayerPositions;
 };
 
 export type RoomSummary = {

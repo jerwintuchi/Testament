@@ -17,7 +17,7 @@ function setup() {
   let code = '';
   handleCreateRoom('host', { displayName: 'Host' }, mgr, store, (t, p) => {
     if (t === 'ROOM_CREATED') code = (p as { snapshot: { roomCode: string } }).snapshot.roomCode;
-  });
+  }, () => {});
   return { mgr, store, code };
 }
 

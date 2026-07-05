@@ -791,3 +791,47 @@ position-gated (`NOT_AT_EXTRACTION`). Trait containment holds — none of the ne
 payloads carry axis values. The next playtest is blocked on the follow-up Godot
 client spec (render the site, send `MOVE`), since extraction now requires
 standing on the Extraction node.
+
+## TD-036 — Field Space v1 shipped; active spec is Collegium (Staging Site) v1 (2026-07-05)
+
+**Decision.** Field Space v1 is complete (T95–T103, committed): seeded tile
+site, authoritative 20Hz movement with feet-AABB collision, position-gated
+extraction. The active spec switches from `specs/field-space/` to
+`specs/collegium/` (R92–R101, T104–T114): the party's **preparation map** — a
+fixed, walkable Collegium the party occupies during the lobby phases
+(WAITING + DEPLOYING), with prep actions gated to **spatial stations** (accept
+at the Contract Board, requisition at the Quartermaster, deploy at the Deploy
+Gate), mirroring field extraction's `NOT_AT_EXTRACTION` gate.
+
+**Context.** The user asked to make the Collegium a walkable staging site rather
+than a UI-only lobby: "join a room in the Collegium → walk to the board → accept
+→ walk to the gate → deploy." Chosen scope is **spatial stations** (gate the
+existing, working prep handlers behind station radii) — the walkable-space
+substrate plus spatial *access*. **Full spatial prep** (new interaction verbs,
+per-station UIs, the Archive as a physical room) is explicitly deferred to a
+later spec; it needs each station to earn its spine cost (Observe / Hypothesize
+/ Test / Record), which is design work not to be rushed. The Collegium is
+**fixed/authored, not seeded** — a home base should be stable and recognizable,
+unlike the per-expedition site.
+
+**Consequences.** New shared module `src/shared/src/collegium.ts` (station
+vocabulary + `CollegiumLayout`, reusing the field-space `SiteGrid` and
+`SEEKER_*` constants); `LobbySnapshot` gains `collegium` + `positions`;
+`LOBBY_ERROR_CODES` gains the three station codes (codegen refreshed). No new
+message *names* — stations reuse `ACCEPT_CONTRACT`/`REQUISITION`/`DEPLOY`,
+movement reuses `MOVE`/`POSITIONS`. New server content
+`src/server/src/collegium/collegium.ts` (the one authored `COLLEGIUM` layout).
+
+This **evolves the field-space tick (R87/R91)**: `fieldTick.ts` becomes
+`rooms/movementTick.ts`, one integrator per room that runs across
+WAITING/DEPLOYING/FIELD and collides against `activeGrid(room)` (the Collegium
+grid in the lobby, `room.site.grid` in the field). It now **starts at room
+creation** (not on DEPLOY) and stops on `destroyRoom`; the WAITING→FIELD
+boundary swaps the grid under a running timer rather than restarting it.
+`room.fieldTick` → `room.moveTick`; `MOVE` becomes legal in any walkable phase
+(COMPLETE still `WRONG_PHASE`). Field-space's `spawnPoints` is generalized to a
+shared `spawnFanOut(grid, anchor, count)` reused by Collegium and field spawns;
+`handleExtract`'s radius check is extracted to a `withinRadius` util reused by
+the station gates. Trait containment holds — the lobby snapshot carries no
+axis literals. The next playtest remains blocked on the follow-up Godot client
+spec (now: render the Collegium + the field, send `MOVE`, walk to stations).

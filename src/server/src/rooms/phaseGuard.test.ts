@@ -12,7 +12,7 @@ function makeRoom(phase: RoomRecord['phase'] = 'DEPLOYING'): RoomRecord {
     playerId: 'p1', displayName: 'A', socketId: 's1',
     isLeader: true, readyState: false, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
   };
-  return { code: 'ABC123', phase, players: [p], contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, fieldTick: null };
+  return { code: 'ABC123', phase, players: [p], contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, moveTick: null };
 }
 
 // T32: assertPhase phase guard

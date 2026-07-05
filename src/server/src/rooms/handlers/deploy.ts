@@ -6,38 +6,11 @@ import { assertPhase } from '../phaseGuard.js';
 import { deriveAmbientSigns } from '../../incarnate/deriveSigns.js';
 import { perceivedChannelsFor, filterSigns } from '../perception.js';
 import { generateSite } from '../../site/generateSite.js';
-import { startFieldTick } from '../fieldTick.js';
+import { spawnFanOut } from '../../site/spawn.js';
+import { atStation } from '../stations.js';
 import { createRng, hashSeed } from '../../rng/seeded.js';
-import { SERVER_MESSAGES, TILE_SIZE } from '@testament/shared';
-import type { SiteLayout, PlayerPositions } from '@testament/shared';
-
-// Distinct feet spawn points (px, tile centers) drawn from floor tiles nearest
-// the APPROACH node by 4-neighbor BFS — so the whole party lands inside the
-// Approach room. Deterministic (fixed neighbor order): same site → same spawns.
-function spawnPoints(site: SiteLayout, count: number): Array<{ x: number; y: number }> {
-  const approach = site.nodes.find(n => n.kind === 'APPROACH')!;
-  const { width, height, rows } = site.grid;
-  const seen = new Set<string>([`${approach.x},${approach.y}`]);
-  const order: Array<{ x: number; y: number }> = [{ x: approach.x, y: approach.y }];
-  const queue: Array<{ x: number; y: number }> = [{ x: approach.x, y: approach.y }];
-  while (queue.length > 0 && order.length < count) {
-    const { x, y } = queue.shift()!;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-      const nx = x + dx;
-      const ny = y + dy;
-      const key = `${nx},${ny}`;
-      if (nx < 0 || ny < 0 || nx >= width || ny >= height || seen.has(key)) continue;
-      if (rows[ny]![nx] !== '.') continue;
-      seen.add(key);
-      order.push({ x: nx, y: ny });
-      queue.push({ x: nx, y: ny });
-    }
-  }
-  return order.slice(0, count).map(t => ({
-    x: t.x * TILE_SIZE + TILE_SIZE / 2,
-    y: t.y * TILE_SIZE + TILE_SIZE / 2,
-  }));
-}
+import { SERVER_MESSAGES } from '@testament/shared';
+import type { PlayerPositions } from '@testament/shared';
 
 export function handleDeploy(
   socketId: string,
@@ -55,6 +28,12 @@ export function handleDeploy(
     emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_LEADER', message: 'Only the leader can initiate deployment.' });
     return;
   }
+  // Deploy is an action at the Deploy Gate (R101), the mirror of field
+  // Extraction: the leader must stand on the gate to send the party out.
+  if (!atStation(sender.pos, 'DEPLOY_GATE')) {
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_AT_DEPLOY_GATE', message: 'Stand at the Deploy Gate to deploy.' });
+    return;
+  }
 
   // room.contract is guaranteed non-null when phase is DEPLOYING (set by acceptContract).
   const contract  = room.contract!;
@@ -65,7 +44,8 @@ export function handleDeploy(
   // Field-space (R85): generate the site on its own seed stream so contract and
   // trait-roll streams are untouched, then spawn the party in the Approach room.
   const site  = generateSite(createRng(hashSeed(contract.expeditionSeed + ':site')));
-  const spawns = spawnPoints(site, room.players.length);
+  const approach = site.nodes.find(n => n.kind === 'APPROACH')!;
+  const spawns = spawnFanOut(site.grid, approach, room.players.length);
   const positions: PlayerPositions = {};
   room.players.forEach((player, i) => {
     player.pos = spawns[i]!;
@@ -97,6 +77,7 @@ export function handleDeploy(
     });
   }
 
-  // Start the authoritative movement tick now that positions exist (R87).
-  startFieldTick(room, broadcast);
+  // No tick start here: the movement tick has run since room creation (Collegium
+  // R96); entering FIELD just sets room.site, so activeGrid() swaps the party
+  // from the Collegium grid to the site grid under the already-running tick.
 }

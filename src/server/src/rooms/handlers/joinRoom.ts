@@ -5,6 +5,8 @@ import type { ReconnectTokenStore } from '../ReconnectTokenStore.js';
 import type { EmitFn, BroadcastFn, ServerPlayerEntry } from '../types.js';
 import { sanitizeDisplayName } from '../sanitize.js';
 import { toSnapshot } from '../snapshot.js';
+import { spawnInCollegium } from '../collegiumSpawn.js';
+import { startMovementTick } from '../movementTick.js';
 import { SERVER_MESSAGES } from '@testament/shared';
 
 export function handleJoinRoom(
@@ -53,6 +55,10 @@ export function handleJoinRoom(
     pos: null, moveIntent: { dx: 0, dy: 0 },
   };
   room.players.push(player);
+  // Spawn the joiner into the Collegium; ensure the movement tick is running
+  // (idempotent — it started at room creation) so the party sees them (R95/R96).
+  spawnInCollegium(room, player);
+  startMovementTick(room, broadcast);
 
   const token = tokenStore.issue(player.playerId, room.code);
   const snap = toSnapshot(room);

@@ -6,6 +6,7 @@ export * from './validation.js';
 export * from './fieldPhase.js';
 export * from './fieldMessages.js';
 export * from './site.js';
+export * from './collegium.js';
 export * from './signs.js';
 export * from './contract.js';
 export * from './gear.js';

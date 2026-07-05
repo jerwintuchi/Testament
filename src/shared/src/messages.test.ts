@@ -58,9 +58,9 @@ describe('CLIENT_MESSAGES / SERVER_MESSAGES registry', () => {
 });
 
 describe('codegen-able enums and scalars', () => {
-  it('LOBBY_ERROR_CODES holds exactly the fourteen codes', () => {
-    expect(LOBBY_ERROR_CODES).toHaveLength(14);
-    expect(new Set(LOBBY_ERROR_CODES).size).toBe(14);
+  it('LOBBY_ERROR_CODES holds exactly the eighteen codes with no duplicates', () => {
+    expect(LOBBY_ERROR_CODES).toHaveLength(18);
+    expect(new Set(LOBBY_ERROR_CODES).size).toBe(18);
   });
 
   it('ROOM_PHASES holds exactly the four phases in lifecycle order', () => {

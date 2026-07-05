@@ -32,7 +32,9 @@ export type RoomRecord = {
   exposure: number;                 // field pressure accrued by party behavior; reset on DEPLOY (R57)
   revealedSigns: Sign[];            // reaction signs revealed by probes, deduped by token (R58)
   site: SiteLayout | null;          // field-space geometry; null until DEPLOY generates it (R85)
-  fieldTick: NodeJS.Timeout | null; // 20Hz movement integrator; null unless in FIELD (R87/R91)
+  moveTick: NodeJS.Timeout | null;  // 20Hz movement integrator; one per room's walkable life
+                                    // (WAITING/DEPLOYING/FIELD), started on create, stopped on
+                                    // destroy — collides against activeGrid(room) (R96/P49)
 };
 
 export type ReconnectToken = string;

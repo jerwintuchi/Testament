@@ -5,14 +5,23 @@ import { toPublicPlayer } from './types.js';
 import { toContractIntel } from '../incarnate/generateContract.js';
 import { deriveAmbientSigns } from '../incarnate/deriveSigns.js';
 import { filterSigns } from './perception.js';
+import { COLLEGIUM } from '../collegium/collegium.js';
 
 // Pure function. Strips server-only fields before sending to any client (I5, P2).
+// Carries the Collegium map + every present player's feet position so a client
+// (including a reconnecting one) renders the hall and the party (R98).
 export function toSnapshot(room: RoomRecord): LobbySnapshot {
+  const positions: PlayerPositions = {};
+  for (const p of room.players) {
+    if (p.pos !== null) positions[p.playerId] = p.pos;
+  }
   return {
     roomCode: room.code,
     phase: room.phase,
     players: room.players.map(toPublicPlayer),
     contract: room.contract ? toContractIntel(room.contract) : null,
+    collegium: COLLEGIUM,
+    positions,
   };
 }
 

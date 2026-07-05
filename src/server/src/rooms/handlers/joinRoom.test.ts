@@ -3,6 +3,7 @@ import { handleCreateRoom } from './createRoom.js';
 import { handleJoinRoom } from './joinRoom.js';
 import { RoomManager } from '../RoomManager.js';
 import { ReconnectTokenStore } from '../ReconnectTokenStore.js';
+import { COLLEGIUM } from '../../collegium/collegium.js';
 import type { EmitFn, BroadcastFn } from '../types.js';
 
 function makeEmit() {
@@ -22,7 +23,7 @@ function createRoomAndGetCode(mgr: RoomManager, store: ReconnectTokenStore): str
     if (type === 'ROOM_CREATED') {
       code = (payload as { snapshot: { roomCode: string } }).snapshot.roomCode;
     }
-  });
+  }, () => {});
   return code;
 }
 
@@ -49,6 +50,26 @@ describe('handleJoinRoom', () => {
     expect(typeof tokenPayload.reconnectToken).toBe('string');
     const joined = mgr.getRoom(code)!.players.find(p => p.socketId === 'joiner-sock')!;
     expect(tokenPayload.playerId).toBe(joined.playerId);
+  });
+
+  // T109 [R95]: joiners spawn on distinct Collegium floor tiles in a stable order.
+  it('spawns each joiner on a distinct Collegium floor tile', () => {
+    const mgr = new RoomManager();
+    const store = new ReconnectTokenStore();
+    const code = createRoomAndGetCode(mgr, store);
+    handleJoinRoom('j1', { code, displayName: 'J1' }, mgr, store, () => {}, () => {});
+    handleJoinRoom('j2', { code, displayName: 'J2' }, mgr, store, () => {}, () => {});
+
+    const room = mgr.getRoom(code)!;
+    expect(room.players.every(p => p.pos !== null)).toBe(true);
+    const keys = new Set(room.players.map(p => `${p.pos!.x},${p.pos!.y}`));
+    expect(keys.size).toBe(room.players.length);  // all distinct
+    for (const p of room.players) {
+      const tx = Math.floor(p.pos!.x / 16);
+      const ty = Math.floor(p.pos!.y / 16);
+      expect(COLLEGIUM.grid.rows[ty]![tx]).toBe('.');
+    }
+    mgr.destroyRoom(code);
   });
 
   it('emits LOBBY_ERROR ROOM_NOT_FOUND for an unknown code', () => {
