@@ -13,12 +13,14 @@ import type { StubTestament, StubArchiveEntry } from './fieldPhase.js';
 // T25: field-phase wire-payload types
 
 describe('FieldStartedPayload', () => {
-  it('has fieldData, reconnectToken, signs, and perceivedChannels (R49/R52/R59)', () => {
+  it('has fieldData, reconnectToken, signs, perceivedChannels, site, positions (R49/R52/R59/R85)', () => {
     const payload: FieldStartedPayload = {
       fieldData:         { fieldId: 'FIELD-001', siteName: 'Site', incarnateName: 'Target' },
       reconnectToken:    'some-uuid',
       signs:             [{ channel: 'RESIDUE', token: 'scorched-wax' }],
       perceivedChannels: ['RESIDUE', 'OMEN'],
+      site:              { grid: { width: 3, height: 2, rows: ['###', '#.#'] }, nodes: [{ kind: 'APPROACH', x: 1, y: 1 }] },
+      positions:         { 'player-1': { x: 24, y: 24 } },
     };
     expect(typeof payload.reconnectToken).toBe('string');
     expect(payload.fieldData.fieldId).toBe('FIELD-001');
@@ -27,6 +29,8 @@ describe('FieldStartedPayload', () => {
     // signs elements must not carry trait data
     expect(Object.keys(payload.signs[0]!).sort()).toEqual(['channel', 'token']);
     expect(payload.perceivedChannels).toContain('RESIDUE');
+    expect(payload.site.nodes[0]?.kind).toBe('APPROACH');
+    expect(payload.positions['player-1']).toEqual({ x: 24, y: 24 });
   });
 });
 

@@ -2,6 +2,8 @@
 // NOTE: No traitRoll, no hiddenTraits, no Aspect, no Frailty, no Ward anywhere in this file.
 // Those live server-side only (I5, CLAUDE.md invariant 3).
 import type { Channel, Sign } from './signs.js';
+import type { SiteLayout } from './site.js';
+import type { PlayerPositions } from './fieldMessages.js';
 
 export type StubFieldData = {
   fieldId: string;        // placeholder: "FIELD-001"
@@ -29,4 +31,6 @@ export type FieldSnapshot = {
   archiveEntries:    StubArchiveEntry[];
   signs:             Sign[];     // ambient + revealed reactions, filtered to this player's channels
   perceivedChannels: Channel[];  // this player's own perception set
+  site:              SiteLayout;      // the live field-space, so a reconnecting client re-renders it (R89)
+  positions:         PlayerPositions; // every player's current feet position, px
 };

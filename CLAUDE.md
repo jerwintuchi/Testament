@@ -31,13 +31,23 @@ TypeScript server and the GDScript client both honor the same message shapes.
 
 ## Active Work
 
-Phase: **Phase 4 — Core systems v1, closing**. All five deliverables exist
-server-side (TD-027), the Godot client speaks the full Testament protocol over
-the production-wired bootstrap (TD-028), the protocol-codegen contract is
-reconciled and load-bearing on both sides (TD-031), and the disconnect
-playtest's lobby gaps are fixed (TD-032). Next: **Phase 5 — combat & Incarnate
-v1** (start from `docs/systems/encounter-flow.md` on the D: clone; prune
-spike-era shared types as housekeeping).
+Phase: **Phase 5 — Combat & Incarnate v1, opening** (TD-035). Phase 4 is closed:
+all five core deliverables exist server-side (TD-027), the Godot client speaks
+the full Testament protocol over the production-wired bootstrap (TD-028), the
+protocol-codegen contract is reconciled and load-bearing on both sides (TD-031),
+and the disconnect playtest's lobby gaps are fixed (TD-032). Phase 5 lead-in is
+done: the encounter cadence doc is in-repo (`docs/systems/encounter-flow.md`)
+and the spike-era dungeon/movement chain is pruned (TD-034).
+
+Active spec: **`specs/field-space/`** (T95–T103) — the spatial substrate combat
+needs, rebuilt on the canonical 16×16 grid: seeded tile-based site generation
+with the TD-018 node vocabulary, authoritative 20Hz movement with feet-AABB
+collision, and position-gated extraction. Combat/melee/Omen/verb systems follow
+once positions and collision exist.
+
+@specs/field-space/requirements.md
+@specs/field-space/design.md
+@specs/field-space/tasks.md
 
 Completed Phase 4 specs:
 - `specs/raw-ws-transport/`: raw WebSocket transport (wsHub, protocol envelope) + Godot client spike
@@ -72,6 +82,30 @@ directly instead of asking the user to press Play and paste errors:
 
 If the `mcp__godot__*` tools are absent, fall back to asking the user to run the
 client manually.
+
+## Art Direction & Sanctioned Toolchain — CLOSED LIST
+
+> Decision log: **2026-07-05 — 2D top-down pixel reaffirmed; Blender 3D and
+> MediBang directions deprecated and purged.** (DECISION_LOG TD-033)
+
+Testament is **2D top-down pixel art**, full commitment. Canonical conventions:
+16x16 tiles; 480x270 internal resolution, integer-scaled; Nearest filtering;
+Seeker 16x24 logical / 48x48 canvas / feet anchor (24,44); part-lag animation
+rig; per-frame weapon sockets; grayscale ADD-blend VFX; palette-locked Aseprite
+sources. No 3D scenes, no 3D-to-sprite rendering, no `.blend`/`.fbx`/`.gltf`/
+`.obj` assets, no Node3D-derived scenes, no painterly/HD raster sources, no
+`.mdp` files.
+
+| Tool | Role |
+|---|---|
+| Godot 4.7 | Engine: scenes, TileMap autotiles, Light2D stack, particles, **UI** |
+| Aseprite | All hand-authored sprite sources (`art/src/*.aseprite`) |
+| Python/PIL generators | Programmatic sheets + JSON metadata (`gen_*.py`) |
+
+- UI is built **in Godot** (Control nodes, theme resources); UI sprites/icons are
+  16x16-class pixel assets from Aseprite. No external UI tools.
+- Adding ANY tool beyond this list requires explicit user approval first.
+  Propose with justification; never install, import, or integrate unprompted.
 
 ## Immutable Design Pillars (never violate)
 

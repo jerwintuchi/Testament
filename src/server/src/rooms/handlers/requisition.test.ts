@@ -134,7 +134,7 @@ describe('handleRequisition — success path (R65)', () => {
     room.players.push({
       playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
       isLeader: false, readyState: true, disconnectedAt: null,
-      perceivedChannels: [], bag: [],
+      perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     });
 
     handleRequisition('p2-sock', { itemIds: ['augurs-bead'] }, mgr, () => {}, () => {});

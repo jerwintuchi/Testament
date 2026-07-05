@@ -5,6 +5,8 @@ import { RoomManager } from '../RoomManager.js';
 import { ReconnectTokenStore } from '../ReconnectTokenStore.js';
 import { SessionArchive } from '../SessionArchive.js';
 import type { EmitFn, BroadcastFn } from '../types.js';
+import { generateSite } from '../../site/generateSite.js';
+import { createRng, hashSeed } from '../../rng/seeded.js';
 
 function makeEmit(): { fn: EmitFn; calls: Array<[string, unknown]> } {
   const calls: Array<[string, unknown]> = [];
@@ -73,6 +75,8 @@ describe('handleReconnect', () => {
       traitRoll: { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE', ward: 'COLD', disposition: 'STALKER' },
     };
     room.fieldData = { fieldId: 'FIELD-001', siteName: 'S', incarnateName: 'T' };
+    room.site = generateSite(createRng(hashSeed('reconnect-site')));
+    room.players[0]!.pos = { x: 100, y: 100 };
     room.players[0]!.perceivedChannels = ['RESIDUE', 'REACTION'];
     room.revealedSigns = [{ channel: 'REACTION', token: 'drinks-cold' }];
     room.players[0]!.socketId = '';

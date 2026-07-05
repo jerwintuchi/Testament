@@ -5,6 +5,8 @@ import type { ContractRecord } from '../incarnate/contractRecord.js';
 import { SessionArchive } from './SessionArchive.js';
 import type { Channel } from '@testament/shared';
 import { CHANNELS } from '@testament/shared';
+import { generateSite } from '../site/generateSite.js';
+import { createRng, hashSeed } from '../rng/seeded.js';
 
 const STUB_CONTRACT_RECORD: ContractRecord = {
   contractId:     'c-001',
@@ -17,24 +19,28 @@ const STUB_CONTRACT_RECORD: ContractRecord = {
 };
 
 function makePlayer(id: string, socketId: string, channels: Channel[] = [...CHANNELS]): ServerPlayerEntry {
-  return { playerId: id, displayName: id, socketId, isLeader: id === 'p1', readyState: false, disconnectedAt: 123, perceivedChannels: channels, bag: [] };
+  return { playerId: id, displayName: id, socketId, isLeader: id === 'p1', readyState: false, disconnectedAt: 123, perceivedChannels: channels, bag: [], pos: null, moveIntent: { dx: 0, dy: 0 } };
 }
 
 function makeRoom(phase: RoomRecord['phase'] = 'WAITING'): RoomRecord {
   return {
     code: 'ABC123', phase, players: [makePlayer('p1', 's1')],
-    contract: null, fieldData: null, exposure: 0, revealedSigns: [],
+    contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, fieldTick: null,
   };
 }
 
 function makeFieldRoom(): RoomRecord {
+  const p1 = makePlayer('p1', 's1');
+  p1.pos = { x: 120, y: 88 };
   return {
     code: 'ABC123', phase: 'FIELD',
-    players: [makePlayer('p1', 's1')],
+    players: [p1],
     contract: STUB_CONTRACT_RECORD,
     fieldData: { fieldId: 'FIELD-001', siteName: 'The Collapsed Chancel', incarnateName: 'The Ashen Warden' },
     exposure: 0,
     revealedSigns: [],
+    site: generateSite(createRng(hashSeed('snapshot-site'))),
+    fieldTick: null,
   };
 }
 
@@ -49,7 +55,7 @@ describe('toSnapshot', () => {
       contract: null,
       fieldData: null,
       exposure: 0,
-      revealedSigns: [],
+      revealedSigns: [], site: null, fieldTick: null,
     };
     const snap = toSnapshot(room);
     expect(snap.roomCode).toBe('ABC123');
@@ -62,7 +68,7 @@ describe('toSnapshot', () => {
     const room: RoomRecord = {
       code: 'ABC123', phase: 'WAITING',
       players: [makePlayer('p1', 's1')], contract: null, fieldData: null,
-      exposure: 0, revealedSigns: [],
+      exposure: 0, revealedSigns: [], site: null, fieldTick: null,
     };
     const snap = toSnapshot(room);
     expect('socketId' in (snap.players[0] ?? {})).toBe(false);
@@ -72,7 +78,7 @@ describe('toSnapshot', () => {
     const room: RoomRecord = {
       code: 'ABC123', phase: 'WAITING',
       players: [makePlayer('p1', 's1')], contract: null, fieldData: null,
-      exposure: 0, revealedSigns: [],
+      exposure: 0, revealedSigns: [], site: null, fieldTick: null,
     };
     const snap = toSnapshot(room);
     expect('disconnectedAt' in (snap.players[0] ?? {})).toBe(false);
@@ -82,7 +88,7 @@ describe('toSnapshot', () => {
     const room: RoomRecord = {
       code: 'ABC123', phase: 'WAITING',
       players: [makePlayer('p1', 's1'), makePlayer('p2', 's2'), makePlayer('p3', 's3')],
-      contract: null, fieldData: null, exposure: 0, revealedSigns: [],
+      contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, fieldTick: null,
     };
     const snap = toSnapshot(room);
     expect(snap.players.map(p => p.playerId)).toEqual(['p1', 'p2', 'p3']);
@@ -199,5 +205,34 @@ describe('buildFieldSnapshot', () => {
   it('returns null for a playerId not in the room', () => {
     const archive = new SessionArchive();
     expect(buildFieldSnapshot(makeFieldRoom(), archive, 'ghost')).toBeNull();
+  });
+
+  // T102 [R89 / P47]: reconnect snapshot carries the live site + current positions.
+
+  it('carries the live site and every player\'s current position (R89)', () => {
+    const archive = new SessionArchive();
+    const room = makeFieldRoom();
+    room.players.push(makePlayer('p2', 's2'));
+    room.players[1]!.pos = { x: 200, y: 150 };
+    const snap = buildFieldSnapshot(room, archive, 'p1');
+    expect(snap?.site).toEqual(room.site);
+    expect(snap?.positions).toEqual({ p1: { x: 120, y: 88 }, p2: { x: 200, y: 150 } });
+  });
+
+  it('omits players with no position from the positions map', () => {
+    const archive = new SessionArchive();
+    const room = makeFieldRoom();
+    room.players.push(makePlayer('p2', 's2'));  // pos stays null
+    const snap = buildFieldSnapshot(room, archive, 'p1');
+    expect(Object.keys(snap!.positions)).toEqual(['p1']);
+  });
+
+  it('stringified snapshot carries no trait-axis literal (P47)', () => {
+    const archive = new SessionArchive();
+    const snap = buildFieldSnapshot(makeFieldRoom(), archive, 'p1');
+    const json = JSON.stringify(snap);
+    for (const lit of ['EMBER', 'FLAME', 'LUNGE', 'FROST', 'COLD', 'STALKER', 'ROT', 'SALT']) {
+      expect(json).not.toContain(`"${lit}"`);
+    }
   });
 });

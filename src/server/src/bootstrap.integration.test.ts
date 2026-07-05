@@ -50,13 +50,23 @@ function connect(port: number): Promise<TestClient> {
 describe('T76: production bootstrap — full protocol walk over real WebSockets (R69)', () => {
   let wss: WebSocketServer;
   let port: number;
+  let testament: TestamentServer;
 
   beforeEach(async () => {
     wss = new WebSocketServer({ port: 0 });
-    attachTestamentServer(wss);
+    testament = attachTestamentServer(wss);
     await new Promise<void>((resolve) => wss.on('listening', () => resolve()));
     port = (wss.address() as AddressInfo).port;
   });
+
+  // Extraction is position-gated (R90); stand the player on the Extraction tile
+  // so EXTRACT is legal in this end-to-end walk.
+  function standAtExtraction(code: string): void {
+    const room = testament.roomManager.getRoom(code)!;
+    const node = room.site!.nodes.find(n => n.kind === 'EXTRACTION')!;
+    const center = { x: node.x * 16 + 8, y: node.y * 16 + 8 };
+    for (const p of room.players) p.pos = { ...center };
+  }
 
   afterEach(() => {
     wss.clients.forEach(c => c.terminate());
@@ -152,6 +162,7 @@ describe('T76: production bootstrap — full protocol walk over real WebSockets 
     expect(hr.exposure).toBeGreaterThan(0);
 
     // ── Extract ──
+    standAtExtraction(roomCode);
     host.send('EXTRACT');
     const testament = await host.next();
     expect(testament.type).toBe('FIELD_TESTAMENT');

@@ -60,6 +60,8 @@ describe('FieldSnapshot shape', () => {
       archiveEntries:    [],
       signs:             [{ channel: 'OMEN', token: 'full-body-tremor' }],
       perceivedChannels: ['OMEN', 'RESIDUE'],
+      site:              { grid: { width: 1, height: 1, rows: ['.'] }, nodes: [] },
+      positions:         {},
     };
     expect(snap.fieldData.fieldId).toBe('FIELD-001');
     expect(snap.archiveEntries).toHaveLength(0);

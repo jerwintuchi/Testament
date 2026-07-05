@@ -34,8 +34,10 @@ import type {
   DeployPayload,
   ExtractPayload,
   ProbePayload,
+  MovePayload,
   FieldStartedPayload,
   ProbeResultPayload,
+  PositionsPayload,
   FieldTestamentPayload,
   ArchiveUpdatedPayload,
 } from './fieldMessages.js';
@@ -53,6 +55,7 @@ export const CLIENT_MESSAGES = {
   KICK_PLAYER: 'KICK_PLAYER',
   DEPLOY: 'DEPLOY',
   PROBE: 'PROBE',
+  MOVE: 'MOVE',
   EXTRACT: 'EXTRACT',
 } as const;
 export type ClientMessageType = (typeof CLIENT_MESSAGES)[keyof typeof CLIENT_MESSAGES];
@@ -65,6 +68,7 @@ export const SERVER_MESSAGES = {
   ROOM_DEPLOYING: 'ROOM_DEPLOYING',
   FIELD_STARTED: 'FIELD_STARTED',
   PROBE_RESULT: 'PROBE_RESULT',
+  POSITIONS: 'POSITIONS',
   FIELD_TESTAMENT: 'FIELD_TESTAMENT',
   ARCHIVE_UPDATED: 'ARCHIVE_UPDATED',
   STATE_RESYNC: 'STATE_RESYNC',
@@ -85,6 +89,7 @@ export type ClientMessagePayloads = {
   KICK_PLAYER: KickPlayerPayload;
   DEPLOY: DeployPayload;
   PROBE: ProbePayload;
+  MOVE: MovePayload;
   EXTRACT: ExtractPayload;
 };
 export type ServerMessagePayloads = {
@@ -94,6 +99,7 @@ export type ServerMessagePayloads = {
   ROOM_DEPLOYING: RoomDeployingPayload;
   FIELD_STARTED: FieldStartedPayload;
   PROBE_RESULT: ProbeResultPayload;
+  POSITIONS: PositionsPayload;
   FIELD_TESTAMENT: FieldTestamentPayload;
   ARCHIVE_UPDATED: ArchiveUpdatedPayload;
   STATE_RESYNC: StateResyncPayload;

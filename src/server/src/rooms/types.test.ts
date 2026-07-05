@@ -13,7 +13,7 @@ describe('ServerPlayerEntry', () => {
       socketId: 'sock-1',
       isLeader: true,
       readyState: false,
-      disconnectedAt: null, perceivedChannels: [], bag: [],
+      disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     expect(entry.socketId).toBe('sock-1');
     expect(entry.disconnectedAt).toBeNull();
@@ -28,7 +28,7 @@ describe('toPublicPlayer', () => {
       socketId: 'sock-1',
       isLeader: true,
       readyState: false,
-      disconnectedAt: 1234567890, perceivedChannels: [], bag: [],
+      disconnectedAt: 1234567890, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     const pub: LobbyPlayer = toPublicPlayer(entry);
     expect(pub.playerId).toBe('p1');
@@ -40,7 +40,7 @@ describe('toPublicPlayer', () => {
   it('derives connected=false from a set disconnectedAt', () => {
     const entry: ServerPlayerEntry = {
       playerId: 'p1', displayName: 'Aldric', socketId: '', isLeader: false,
-      readyState: true, disconnectedAt: 1234567890, perceivedChannels: [], bag: [],
+      readyState: true, disconnectedAt: 1234567890, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     expect(toPublicPlayer(entry).connected).toBe(false);
   });
@@ -48,7 +48,7 @@ describe('toPublicPlayer', () => {
   it('derives connected=true from a null disconnectedAt', () => {
     const entry: ServerPlayerEntry = {
       playerId: 'p1', displayName: 'Aldric', socketId: 'sock-1', isLeader: false,
-      readyState: false, disconnectedAt: null, perceivedChannels: [], bag: [],
+      readyState: false, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     expect(toPublicPlayer(entry).connected).toBe(true);
   });
@@ -64,6 +64,8 @@ describe('RoomRecord shape', () => {
       fieldData: null,
       exposure: 0,
       revealedSigns: [],
+      site: null,
+      fieldTick: null,
     };
     expect(room.phase).toBe('WAITING');
     expect(room.contract).toBeNull();
@@ -75,7 +77,7 @@ describe('RoomRecord shape', () => {
   it('fieldData is absent from LobbyPlayer (server-only field)', () => {
     const entry: ServerPlayerEntry = {
       playerId: 'p1', displayName: 'Aldric', socketId: 's1',
-      isLeader: true, readyState: false, disconnectedAt: null, perceivedChannels: [], bag: [],
+      isLeader: true, readyState: false, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     const pub = toPublicPlayer(entry);
     expect('fieldData' in pub).toBe(false);
@@ -88,6 +90,7 @@ describe('RoomRecord shape', () => {
       playerId: 'p1', displayName: 'Aldric', socketId: 's1',
       isLeader: true, readyState: false, disconnectedAt: null,
       perceivedChannels: [], bag: ['ashen-lens', 'censer-of-embers'],
+      pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     const pub = toPublicPlayer(entry);
     expect(pub.bag).toEqual(['ashen-lens', 'censer-of-embers']);

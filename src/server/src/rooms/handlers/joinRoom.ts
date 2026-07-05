@@ -50,6 +50,7 @@ export function handleJoinRoom(
     readyState: false,
     disconnectedAt: null,
     perceivedChannels: [], bag: [],
+    pos: null, moveIntent: { dx: 0, dy: 0 },
   };
   room.players.push(player);
 

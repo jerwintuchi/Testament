@@ -703,3 +703,91 @@ auto-removal timeouts (adds server timers for a problem the kick already
 solves) and kicking connected players (a social feature with griefing
 implications, not a resilience fix). All 386 tests green (60 shared + 7 tools
 + 319 server); typecheck clean; headless Godot 4.7 check + run clean.
+
+## TD-033 — 2D top-down pixel art reaffirmed; Blender 3D and MediBang directions deprecated (2026-07-05)
+
+**Decision.** Testament's client art is 2D top-down pixel art, full commitment:
+16x16 tiles, 480x270 internal resolution integer-scaled, Nearest filtering,
+Seeker 16x24 logical / 48x48 canvas / feet anchor (24,44), part-lag animation
+rig, per-frame weapon sockets, grayscale ADD-blend VFX, palette-locked Aseprite
+sources. The sanctioned toolchain is a closed list — Godot 4.7 (engine + UI),
+Aseprite (hand-authored sources), Python/PIL generators (programmatic sheets) —
+now recorded in CLAUDE.md; adding any tool beyond it requires explicit user
+approval. The Blender 3D-to-sprite direction and the MediBang HD-raster
+direction are dead.
+
+**Context.** A Blender render-to-sprite pipeline was spiked in June 2026
+(headless Blender 5.1.2 via blender-mcp, a 4-direction 48px Seeker prototype).
+The spike's outputs lived in Windows temp and the MCP environment only —
+audited 2026-07-05, this repo contains zero 3D assets (`.blend`/`.fbx`/
+`.gltf`/`.obj`), zero MediBang/HD raster sources (`.mdp`/`.psd`), no addons,
+and its single scene (`client/main.tscn`) is a bare Node2D — so the purge is a
+ruling, not a deletion. `docs/technical.md` already stated "top-down 2D pixel
+art"; this entry makes the toolchain boundary explicit.
+
+**Consequences.** No 3D or painterly asset may enter the repo; sprite sources
+are Aseprite files under `art/src/` or `gen_*.py` generator output. The
+blender-mcp tooling is no longer part of Testament's pipeline. Project
+settings work (480x270 integer scaling, Nearest default filtering) lands with
+the first sprite assets — the current `project.godot` (960x540, code-built UI,
+no textures yet) predates the art phase and has nothing to misfilter.
+
+## TD-034 — Spike-era dungeon/movement chain pruned from shared and server (2026-07-05)
+
+**Decision.** The transport-spike's world-geometry code is deleted:
+`src/shared/src/{dungeon,player,events}.ts` (plus `dungeon.test.ts`),
+`src/server/src/dungeon/` (BSP generation, collision, A* pathfinding, 3 test
+files), and `src/server/src/combat/movement.ts` (plus test). The corresponding
+`export *` lines are removed from the shared index. This is the "prune
+spike-era shared types" housekeeping named as Phase 5's lead-in.
+
+**Context.** The chain dated to the raw-WS transport spike ("connect, render
+dungeon, move a Seeker") and survived the Godot client catch-up (TD-028) as
+dead code: nothing outside the chain imported it — no live server handler, no
+protocol registry name, no GDScript client reference. Its spike wire types
+(`RunStartedEvent`, `MovePlayerRequest`, `PlayerMovedEvent`,
+`StateResyncEvent`) were superseded by the Testament protocol's
+`lobbyMessages`/`fieldMessages`; the live `STATE_RESYNC` payload comes from
+`lobbyMessages` and is unaffected. Its geometry model (free world-unit rects,
+40-unit corridors, `PLAYER_RADIUS` circles) also contradicts the canonical
+2D grid (TD-033: 16x16 tiles, 480x270, TileMap autotiles), so Phase 5's field
+space is a fresh design, not a revival — git history keeps the spike code if
+reference is ever wanted.
+
+**Consequences.** The repo now has no movement, position, or site-geometry
+code at all: the field phase is the abstract probe/sign loop. Phase 5 must
+build field space v1 (seeded tile-based site generation, positions, movement
+intents, collision) on the tile grid before combat can exist. Test counts
+drop from 386 to 337 (56 shared + 7 tools + 274 server), all green; tsc
+build clean.
+
+## TD-035 — Phase 5 opens; active spec is Field Space v1 (2026-07-05)
+
+**Decision.** Phase 4 is closed and Phase 5 (Combat & Incarnate v1) begins. The
+active spec switches from `specs/lobby-resilience/` to `specs/field-space/`
+(R81–R91, T95–T103): the spatial substrate combat needs — a seeded tile-based
+site on the canonical 16×16 grid (TD-033), player positions, an authoritative
+20Hz movement tick with feet-AABB collision, the TD-018 node vocabulary
+(Approach / Sign-source / Lair / Extraction), and position-gated extraction.
+
+**Context.** Combat (`docs/systems/combat.md`) is "downstream of the read" and
+needs a space to happen in, but after the TD-034 prune the repo has no
+movement, position, or geometry code at all — the field phase is currently the
+abstract probe/sign loop. Rather than revive the spike's free-world-unit model
+(deleted, and contradicting the canonical grid), Phase 5 rebuilds field space
+fresh on tiles. Field Space is specced before the melee/Omen/verb systems
+because every one of them presupposes positions and collision. The encounter
+cadence that combat must serve is fixed in `docs/systems/encounter-flow.md`
+(now in-repo): investigation never stops, combat is the highest-risk probe.
+
+**Consequences.** New shared module `src/shared/src/site.ts` (grid/node types +
+tile/speed/tick constants); `MovePayload`/`PositionsPayload` join
+`fieldMessages.ts`; `MOVE`/`POSITIONS` join the protocol registry and codegen.
+New server modules `src/server/src/site/` (pure `generateSite`, `stepPlayer`)
+and `src/server/src/rooms/fieldTick.ts`. `RoomRecord` gains `site`/`fieldTick`;
+`ServerPlayerEntry` gains `pos`/`moveIntent`. `FIELD_STARTED`, `FieldSnapshot`,
+and the reconnect path carry `site` + `positions`; `EXTRACT` becomes
+position-gated (`NOT_AT_EXTRACTION`). Trait containment holds — none of the new
+payloads carry axis values. The next playtest is blocked on the follow-up Godot
+client spec (render the site, send `MOVE`), since extraction now requires
+standing on the Extraction node.

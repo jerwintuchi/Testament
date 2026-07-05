@@ -16,9 +16,9 @@ const CONTRACT: ContractRecord = {
 function makeRoom(contract: ContractRecord | null = CONTRACT): RoomRecord {
   const player: ServerPlayerEntry = {
     playerId: 'p1', displayName: 'Aldric', socketId: 's1',
-    isLeader: true, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [],
+    isLeader: true, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
   };
-  return { code: 'ABC123', phase: 'FIELD', players: [player], contract, fieldData: null, exposure: 0, revealedSigns: [] };
+  return { code: 'ABC123', phase: 'FIELD', players: [player], contract, fieldData: null, exposure: 0, revealedSigns: [], site: null, fieldTick: null };
 }
 
 // T30: buildStubTestament

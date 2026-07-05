@@ -18,6 +18,8 @@ export function handleSocketDisconnect(
   const wasLeader = player.isLeader;
   player.disconnectedAt = Date.now();
   player.socketId = '';
+  // Clear the ghost's movement intent so it doesn't keep drifting on the tick (R87).
+  player.moveIntent = { dx: 0, dy: 0 };
 
   // If all players are disconnected, destroy the room.
   if (room.players.every(p => p.disconnectedAt !== null)) {

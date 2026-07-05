@@ -23,6 +23,7 @@ export class RoomManager {
       readyState: false,
       disconnectedAt: null,
       perceivedChannels: [], bag: [],
+      pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     const room: RoomRecord = {
       code,
@@ -32,6 +33,8 @@ export class RoomManager {
       fieldData: null,
       exposure: 0,
       revealedSigns: [],
+      site: null,
+      fieldTick: null,
     };
     this.rooms.set(code, room);
     return room;
@@ -49,6 +52,13 @@ export class RoomManager {
   }
 
   destroyRoom(code: RoomCode): void {
+    // Stop the field tick so no timer outlives its room (R91/P46). Covers both
+    // room destruction and last-player removal, which both route through here.
+    const room = this.rooms.get(code);
+    if (room?.fieldTick) {
+      clearInterval(room.fieldTick);
+      room.fieldTick = null;
+    }
     this.rooms.delete(code);
   }
 }

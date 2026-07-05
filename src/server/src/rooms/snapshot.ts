@@ -1,4 +1,4 @@
-import type { LobbySnapshot, FieldSnapshot } from '@testament/shared';
+import type { LobbySnapshot, FieldSnapshot, PlayerPositions } from '@testament/shared';
 import type { RoomRecord } from './types.js';
 import type { SessionArchive } from './SessionArchive.js';
 import { toPublicPlayer } from './types.js';
@@ -22,9 +22,16 @@ export function buildFieldSnapshot(
   archive: SessionArchive,
   playerId: string,
 ): FieldSnapshot | null {
-  if (room.phase !== 'FIELD' || !room.fieldData || !room.contract) return null;
+  if (room.phase !== 'FIELD' || !room.fieldData || !room.contract || !room.site) return null;
   const player = room.players.find(p => p.playerId === playerId);
   if (!player) return null;
+
+  // Every player's current feet position, so the reconnecting client renders the
+  // party where they actually are, not at spawn (R89).
+  const positions: PlayerPositions = {};
+  for (const p of room.players) {
+    if (p.pos !== null) positions[p.playerId] = p.pos;
+  }
   // Ambient signs plus every reaction sign the party has revealed by probing,
   // filtered to what this player perceives (P24, P28): the reconnecting player
   // recovers exactly what they are entitled to read, nothing more.
@@ -39,5 +46,7 @@ export function buildFieldSnapshot(
       player.perceivedChannels,
     ),
     perceivedChannels: player.perceivedChannels,
+    site:              room.site,
+    positions,
   };
 }

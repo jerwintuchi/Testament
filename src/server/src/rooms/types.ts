@@ -1,5 +1,5 @@
 // Server-only room types. Never exported from @testament/shared (I4).
-import type { RoomCode, RoomPhase, LobbyPlayer, StubFieldData, Sign, Channel, ItemId } from '@testament/shared';
+import type { RoomCode, RoomPhase, LobbyPlayer, StubFieldData, Sign, Channel, ItemId, SiteLayout } from '@testament/shared';
 import type { ContractRecord } from '../incarnate/contractRecord.js';
 
 export type { RoomCode };
@@ -16,6 +16,11 @@ export type ServerPlayerEntry = {
   perceivedChannels: Channel[];
   // Loadout (R68): empty until REQUISITION during DEPLOYING; survives reconnection.
   bag: ItemId[];
+  // Field-space (R85): feet position in px, null outside FIELD. Set on DEPLOY.
+  pos: { x: number; y: number } | null;
+  // Last validated MOVE direction (R86); {0,0} = standing. Applied on the tick,
+  // never immediately. Cleared to {0,0} on disconnect so ghosts don't drift (R87).
+  moveIntent: { dx: number; dy: number };
 };
 
 export type RoomRecord = {
@@ -26,6 +31,8 @@ export type RoomRecord = {
   fieldData: StubFieldData | null;  // null until DEPLOY succeeds; never client-supplied
   exposure: number;                 // field pressure accrued by party behavior; reset on DEPLOY (R57)
   revealedSigns: Sign[];            // reaction signs revealed by probes, deduped by token (R58)
+  site: SiteLayout | null;          // field-space geometry; null until DEPLOY generates it (R85)
+  fieldTick: NodeJS.Timeout | null; // 20Hz movement integrator; null unless in FIELD (R87/R91)
 };
 
 export type ReconnectToken = string;

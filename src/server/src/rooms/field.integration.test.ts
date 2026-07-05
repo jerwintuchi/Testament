@@ -105,6 +105,16 @@ function connect(port: number): Promise<TestClient> {
   });
 }
 
+// Extraction is now position-gated (R90). These end-to-end tests deploy in the
+// Approach room, far from Extraction; stand every player on the Extraction tile
+// center so EXTRACT is legal (no MOVE is sent, so the field tick stays silent).
+function standAtExtraction(code: string): void {
+  const room = mgr.getRoom(code)!;
+  const node = room.site!.nodes.find(n => n.kind === 'EXTRACTION')!;
+  const center = { x: node.x * 16 + 8, y: node.y * 16 + 8 };
+  for (const p of room.players) p.pos = { ...center };
+}
+
 // ── Test state ────────────────────────────────────────────────────────────────
 
 let wss: WebSocketServer;
@@ -202,7 +212,8 @@ describe('T38: field-phase integration — Scenario A (happy path)', () => {
     expect(Object.keys(fsPayload)).not.toContain('traitRoll');
     expect(Object.keys(fsPayload)).not.toContain('expeditionSeed');
 
-    // 6. Any player extracts.
+    // 6. Any player extracts (standing at the Extraction, per R90).
+    standAtExtraction(code);
     host.send('EXTRACT');
     const ft1 = await host.next();
     const ft2 = await p2.next();
@@ -488,6 +499,7 @@ describe('T61: probe integration — miss, match, reconnect, extraction', () => 
     await hostNew.next(); // LOBBY_UPDATED (reconnect broadcast also reaches the reconnecting socket)
 
     // 4. Extraction still works after probing.
+    standAtExtraction(code);
     hostNew.send('EXTRACT');
     const ft = await hostNew.next();
     expect(ft.type).toBe('FIELD_TESTAMENT');
@@ -573,6 +585,7 @@ describe('T38: field-phase integration — Scenario D (post-extraction invariant
     await host.next();
     host.send('DEPLOY');
     await host.next(); // FIELD_STARTED
+    standAtExtraction(code);
     host.send('EXTRACT');
     await host.next(); // FIELD_TESTAMENT
     await host.next(); // ARCHIVE_UPDATED
@@ -602,6 +615,7 @@ describe('T38: field-phase integration — Scenario D (post-extraction invariant
     await host.next();
     host.send('DEPLOY');
     await host.next(); // FIELD_STARTED
+    standAtExtraction(code);
     host.send('EXTRACT');
     await host.next(); // FIELD_TESTAMENT
     const au = await host.next(); // ARCHIVE_UPDATED

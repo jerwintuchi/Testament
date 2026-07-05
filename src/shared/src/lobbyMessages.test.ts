@@ -114,6 +114,8 @@ describe('StateResyncPayload shape', () => {
       archiveEntries: [],
       signs: [],
       perceivedChannels: [],
+      site: { grid: { width: 1, height: 1, rows: ['.'] }, nodes: [] },
+      positions: {},
     };
     const payload: StateResyncPayload = {
       snapshot: {

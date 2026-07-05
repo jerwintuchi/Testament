@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { handleDeploy } from './deploy.js';
 import { handleCreateRoom } from './createRoom.js';
 import { handleAcceptContract } from './acceptContract.js';
@@ -16,6 +16,11 @@ function makeEmitTo(): { fn: EmitToFn; calls: Array<[string, string, unknown]> }
   return { fn: (sid, t, p) => calls.push([sid, t, p]), calls };
 }
 const noBroadcast: BroadcastFn = () => {};
+
+// handleDeploy starts the 20Hz field tick (a setInterval); fake timers keep it
+// from actually firing or leaking a handle across tests.
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => vi.useRealTimers());
 
 function setupDeployingRoom() {
   const mgr = new RoomManager();
@@ -130,6 +135,7 @@ describe('handleDeploy', () => {
       playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
       isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [],
       bag: ['augurs-bead', 'chirurgeons-glass'],                // OMEN + STRESS_MARK
+      pos: null, moveIntent: { dx: 0, dy: 0 },
     });
     const { fn: emitTo, calls: emitToCalls } = makeEmitTo();
 
@@ -151,7 +157,7 @@ describe('handleDeploy', () => {
     const room = mgr.getRoomBySocketId('host')!;
     room.players.push({
       playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
-      isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [],
+      isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     });
     const { fn: emitTo, calls: emitToCalls } = makeEmitTo();
 
@@ -169,7 +175,7 @@ describe('handleDeploy', () => {
     const room = mgr.getRoomBySocketId('host')!;
     room.players.push({
       playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
-      isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [],
+      isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     });
 
     const { fn: emit, calls } = makeEmit();
@@ -194,5 +200,89 @@ describe('handleDeploy', () => {
     const { fn: emit, calls } = makeEmit();
     handleDeploy('unknown-sock', new RoomManager(), new ReconnectTokenStore(), emit, () => {}, noBroadcast);
     expect((calls[0]?.[1] as { code: string }).code).toBe('NOT_IN_ROOM');
+  });
+});
+
+// T101 [R85 / P41, P47]: DEPLOY places the party in a generated site.
+
+type StartedPayload = {
+  site: { grid: { width: number; height: number; rows: string[] }; nodes: Array<{ kind: string; x: number; y: number }> };
+  positions: Record<string, { x: number; y: number }>;
+};
+
+// Adds a second player and pins the expedition seed so spawns are reproducible.
+function twoPlayerDeploying(seed: string) {
+  const { mgr, store } = setupDeployingRoom();
+  const room = mgr.getRoomBySocketId('host')!;
+  room.players.push({
+    playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
+    isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [],
+    pos: null, moveIntent: { dx: 0, dy: 0 },
+  });
+  room.contract = { ...room.contract!, expeditionSeed: seed };
+  return { mgr, store, room };
+}
+
+describe('handleDeploy — field space (R85)', () => {
+  it('FIELD_STARTED carries a site and a spawn position per player', () => {
+    const { mgr, store, room } = twoPlayerDeploying('seed-alpha');
+    const { fn: emitTo, calls } = makeEmitTo();
+    handleDeploy('host', mgr, store, () => {}, emitTo, noBroadcast);
+
+    const started = calls.filter(([, t]) => t === 'FIELD_STARTED').map(([sid, , p]) => [sid, p as StartedPayload] as const);
+    expect(started).toHaveLength(2);
+    for (const [, payload] of started) {
+      expect(payload.site.grid.rows).toHaveLength(payload.site.grid.height);
+      // Every player's spawn appears in the shared positions map.
+      expect(Object.keys(payload.positions).sort()).toEqual([...room.players.map(p => p.playerId)].sort());
+    }
+    // Server stored a position per player.
+    expect(room.players.every(p => p.pos !== null)).toBe(true);
+  });
+
+  it('spawns are distinct, on floor tiles', () => {
+    const { mgr, store, room } = twoPlayerDeploying('seed-beta');
+    const { fn: emitTo, calls } = makeEmitTo();
+    handleDeploy('host', mgr, store, () => {}, emitTo, noBroadcast);
+
+    const payload = calls.find(([, t]) => t === 'FIELD_STARTED')![2] as StartedPayload;
+    const pts = Object.values(payload.positions);
+    const keys = new Set(pts.map(p => `${p.x},${p.y}`));
+    expect(keys.size).toBe(pts.length);  // distinct
+    for (const p of pts) {
+      const tx = Math.floor(p.x / 16);
+      const ty = Math.floor(p.y / 16);
+      expect(payload.site.grid.rows[ty]![tx]).toBe('.');
+    }
+    // room.site is set and matches the delivered site.
+    expect(room.site).not.toBeNull();
+  });
+
+  it('same expedition seed → identical site and spawns (P41)', () => {
+    const a = twoPlayerDeploying('same-seed');
+    const b = twoPlayerDeploying('same-seed');
+    const ea = makeEmitTo();
+    const eb = makeEmitTo();
+    handleDeploy('host', a.mgr, a.store, () => {}, ea.fn, noBroadcast);
+    handleDeploy('host', b.mgr, b.store, () => {}, eb.fn, noBroadcast);
+
+    const pa = ea.calls.find(([, t]) => t === 'FIELD_STARTED')![2] as StartedPayload;
+    const pb = eb.calls.find(([, t]) => t === 'FIELD_STARTED')![2] as StartedPayload;
+    expect(pa.site).toEqual(pb.site);
+    // playerIds are random per room, so compare the spawn *values* (assigned in
+    // player order, which is deterministic) rather than the keyed maps.
+    const sortPts = (m: Record<string, { x: number; y: number }>) =>
+      Object.values(m).sort((u, v) => u.x - v.x || u.y - v.y);
+    expect(sortPts(pa.positions)).toEqual(sortPts(pb.positions));
+  });
+
+  it('stringified FIELD_STARTED carries no trait-axis literal (P47)', () => {
+    const { mgr, store } = twoPlayerDeploying('seed-contain');
+    const { fn: emitTo, calls } = makeEmitTo();
+    handleDeploy('host', mgr, store, () => {}, emitTo, noBroadcast);
+    const json = JSON.stringify(calls.find(([, t]) => t === 'FIELD_STARTED')![2]);
+    for (const lit of ['EMBER', 'FROST', 'ROT', 'MIRE', 'FLAME', 'COLD', 'SALT', 'LIGHT', 'LUNGE', 'SWEEP', 'RECOIL', 'SHUDDER', 'STALKER']) {
+      expect(json).not.toContain(`"${lit}"`);
+    }
   });
 });

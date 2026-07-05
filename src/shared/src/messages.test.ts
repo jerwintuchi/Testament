@@ -15,12 +15,12 @@ describe('CLIENT_MESSAGES / SERVER_MESSAGES registry', () => {
   it('contains exactly the Testament protocol names, nothing else', () => {
     expect(Object.values(CLIENT_MESSAGES).sort()).toEqual([
       'ACCEPT_CONTRACT', 'CREATE_ROOM', 'DEPLOY', 'EXTRACT', 'JOIN_ROOM',
-      'KICK_PLAYER', 'LEAVE_ROOM', 'PROBE', 'RECONNECT', 'REQUISITION',
+      'KICK_PLAYER', 'LEAVE_ROOM', 'MOVE', 'PROBE', 'RECONNECT', 'REQUISITION',
       'TOGGLE_READY',
     ]);
     expect(Object.values(SERVER_MESSAGES).sort()).toEqual([
       'ARCHIVE_UPDATED', 'FIELD_STARTED', 'FIELD_TESTAMENT', 'LOBBY_ERROR',
-      'LOBBY_UPDATED', 'PROBE_RESULT', 'RECONNECT_TOKEN', 'ROOM_CREATED',
+      'LOBBY_UPDATED', 'POSITIONS', 'PROBE_RESULT', 'RECONNECT_TOKEN', 'ROOM_CREATED',
       'ROOM_DEPLOYING', 'STATE_RESYNC',
     ]);
   });

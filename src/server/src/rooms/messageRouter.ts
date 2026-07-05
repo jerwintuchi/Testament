@@ -11,6 +11,7 @@ import { handleReconnect } from './handlers/reconnect.js';
 import { handleDeploy } from './handlers/deploy.js';
 import { handleExtract } from './handlers/extract.js';
 import { handleProbe } from './handlers/probe.js';
+import { handleMove } from './handlers/move.js';
 import { handleRequisition } from './handlers/requisition.js';
 import { handleKickPlayer } from './handlers/kickPlayer.js';
 import { handleUnknownMessage } from './handlers/unknown.js';
@@ -68,6 +69,9 @@ export function routeMessage(
       break;
     case CLIENT_MESSAGES.PROBE:
       handleProbe(socketId, payload, roomManager, emit, emitTo);
+      break;
+    case CLIENT_MESSAGES.MOVE:
+      handleMove(socketId, payload, roomManager, emit);
       break;
     case CLIENT_MESSAGES.REQUISITION:
       handleRequisition(socketId, payload, roomManager, emit, broadcast);

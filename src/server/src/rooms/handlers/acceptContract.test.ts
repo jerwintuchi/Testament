@@ -53,7 +53,7 @@ describe('handleAcceptContract', () => {
     const { mgr, store } = setup();
     // Manually add a second player
     const room = mgr.getRoomBySocketId('host')!;
-    room.players.push({ playerId: 'p2', displayName: 'P2', socketId: 'p2-sock', isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [] });
+    room.players.push({ playerId: 'p2', displayName: 'P2', socketId: 'p2-sock', isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 } });
     const { fn: emit, calls } = makeEmit();
     handleAcceptContract('p2-sock', mgr, emit, () => {});
     expect((calls[0]?.[1] as { code: string }).code).toBe('NOT_LEADER');
@@ -76,7 +76,7 @@ describe('handleAcceptContract', () => {
     const room = mgr.getRoomBySocketId('host')!;
     room.players.push({
       playerId: 'ghost', displayName: 'Ghost', socketId: '', isLeader: false,
-      readyState: false, disconnectedAt: Date.now(), perceivedChannels: [], bag: [],
+      readyState: false, disconnectedAt: Date.now(), perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     });
     const { fn: broadcast, calls } = makeBroadcast();
     handleAcceptContract('host', mgr, () => {}, broadcast);
