@@ -835,3 +835,94 @@ shared `spawnFanOut(grid, anchor, count)` reused by Collegium and field spawns;
 the station gates. Trait containment holds — the lobby snapshot carries no
 axis literals. The next playtest remains blocked on the follow-up Godot client
 spec (now: render the Collegium + the field, send `MOVE`, walk to stations).
+
+## TD-037 — Collegium (Staging Site) v1 shipped; active spec is Collegium Client (Walkable Spaces) v1 (2026-07-05)
+
+**Decision.** The Collegium server+shared spec is complete (T104–T114, committed,
+full suite green): the fixed walkable `COLLEGIUM`, one `moveTick` spanning
+WAITING/DEPLOYING/FIELD, spatial prep stations (`NOT_AT_CONTRACT_BOARD` /
+`NOT_AT_QUARTERMASTER` / `NOT_AT_DEPLOY_GATE`), and `LobbySnapshot.collegium` +
+`.positions`. The active spec switches from `specs/collegium/` to
+`specs/collegium-client/` (R102–R108, T115–T121): the follow-up Godot client that
+renders the walkable spaces and sends `MOVE`.
+
+**Context.** A manual playtest confirmed the gap TD-036 predicted: the Phase 4
+text/UI client has no way to send `MOVE`, so the leader spawns in the atrium 96 px
+from the Contract Board and `ACCEPT_CONTRACT` returns `NOT_AT_CONTRACT_BOARD` —
+the lobby is un-progressable. Tracing further, the **field is broken the same
+way**: field-space (TD-035/036) made `EXTRACT` position-gated
+(`NOT_AT_EXTRACTION`) and the text field screen can't walk to the Extraction node
+either, so field-space's own playtest was already blocked on this same client
+work. The user chose the **full-loop scope**: one reusable renderer covering both
+spaces, not the Collegium alone.
+
+**Consequences.** Client-only spec (render + input; no server/shared change — the
+wire is already complete: `MOVE`, `POSITIONS`, snapshot `collegium`/`positions`,
+`FIELD_STARTED.site`/`positions`, `STATE_RESYNC.fieldSnapshot`, `NOT_AT_*`, all
+codegen'd into `protocol.gd`). One `SpaceView` (`class_name`, render-only) draws
+any `SiteGrid` + tile-coord markers — it serves both `CollegiumLayout.stations`
+and `SiteLayout.nodes` because they share the shape `{ grid, <markers> }`. `main.gd`
+gains a world layer beneath its UI, a phase router feeding `SpaceView` the right
+layout, an input loop emitting `MOVE { dx, dy }` on intent *edges* only (raw
+{-1,0,1}; the server normalizes the diagonal), and proximity affordances that
+mirror the server gates (Accept/Requisition/Deploy at the stations, Extract at the
+Extraction node). Trust boundary held on the client side: a body's position is
+only ever set from a server message (`_apply_positions`), never from input —
+proximity is a display affordance, never an authorization (P54/P56). No GDScript
+unit harness exists, so verification is the MCP-driven `specs/collegium-client/
+playtest.md` (10 numbered items; the client logs load-bearing events for
+`get_debug_output`). v1 art is a deliberate functional greybox (Godot-drawn
+tiles/glyphs/bodies) — no new tool or asset, closed-list-safe; authored pixel
+tilesets and the strict 480×270 SubViewport pipeline are a later art task.
+
+**Tooling note.** The Godot MCP is now registered (local scope) so this client
+work can be driven and observed directly: Windows node + Windows paths, with
+`WSLENV=GODOT_PATH` whitelisting the exe path across the WSL→Win32 boundary
+(verified: `get_godot_version` → 4.7.stable). Runs the Windows clone
+`D:\Projects\Testament\client`, which must be reconciled with the WSL repo before
+client edits land.
+
+## TD-038 — Collegium Client walkable + themed popups landed; active spec is Station UI v2 (2026-07-06)
+
+**Decision.** The Collegium Client (Walkable Spaces) work is functionally in place
+and the active spec switches from `specs/collegium-client/` to `specs/station-ui/`
+(R109–R117, T122–T130): the three station popups (Contract Board, Quartermaster,
+Deploy Gate) grow into the full **preparation loop** the user mocked up, in the
+gothic parchment-and-gold aesthetic. User chose the "write a full spec first" path
+over an ad-hoc client-only visual pass.
+
+**Context.** `specs/collegium-client/` T115–T120 are implemented (SpaceView,
+Player puppet, input→MOVE, phase router, proximity affordances) and were driven
+live via the Godot MCP against `pnpm dev:server`. A playtest surfaced three
+follow-ups, all fixed client-side within the trust boundary: (a) bodies were only
+spawned from the `POSITIONS` delta, so the local Seeker was invisible until first
+movement — added the missing initial body-sync from the lobby snapshot in
+`_show_lobby`/`_show_deploying`; (b) a Shift-to-walk register — since speed is
+server-authoritative (I1), `walk` became an optional `MovePayload` field the
+server validates and applies (`SEEKER_SPEED` run / new `WALK_SPEED` walk in
+`stepPlayer`), the client sends it on intent edges, and the animation picks
+walk/run/idle from server-derived motion speed (not local input, so teammates
+animate correctly); (c) label blur → crispness via `default_font_antialiasing=0`,
+then a readability regression (hinting off dropped thin strokes) fixed with
+`default_font_hinting=2`. A themed **9-slice popup** was added: a procedural
+gothic panel (`client/assets/ui/gen_panel.py` → `panel.png`, pure-stdlib PNG since
+PIL is absent) wired through a `Theme` on the popup `PanelContainer`
+(`_build_popup_theme`), with a `StyleBoxFlat` fallback. Server suite stayed green
+(343 tests, incl. new walk-speed and walk-intent cases). **T121 (the full
+collegium-client MCP playtest) is not yet run — that spec is left code-complete
+but not marked done; its flows will be re-exercised by the Station UI playtest.**
+
+**Consequences.** Station UI v2 is a genuine cross-layer feature, grounded in
+existing canon so it invents no mechanics: the browsable multi-contract **board**
+is `docs/systems/contracts.md` ("the board is free, the rank is the gate", TD-012);
+the **Stipend**-priced Quartermaster is `docs/systems/loadout-economy.md` (priced
+by utility, not power, TD-017); the Deploy Gate shows each Seeker's **bag**, not a
+class/role, per the Hunter-Scholar rule (roles emerge from the loadout). Trait
+containment holds throughout — the board ships `ContractIntel[]` via the existing
+`toContractIntel`, never the hidden roll (I3/I5), and **no Incarnate art appears on
+the board** (mystery is the mechanic, vision.md pillar 3). Server/shared grow a
+`board`, a `stipend`, a `SELECT_CONTRACT` message, and priced/descriptive gear;
+the client rebuilds the popups as render-only themed scenes emitting the existing
+intents. v1 gear icons stay greybox glyphs (authored Aseprite icons + the Stipend
+reward-scaling and rank-gated tiers are later tasks). Verified by colocated Vitest
+(server/shared) plus the MCP-driven `specs/station-ui/playtest.md` (client).

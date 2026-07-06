@@ -43,16 +43,32 @@ Field Space v1 is shipped (TD-036): `specs/field-space/` (T95–T103) — seeded
 tile site, authoritative 20Hz movement with feet-AABB collision, position-gated
 extraction, on the canonical 16×16 grid.
 
-Active spec: **`specs/collegium/`** (T104–T114) — the party's preparation map: a
-fixed, walkable Collegium occupied during the lobby phases (WAITING + DEPLOYING),
-built on the field-space movement stack. Prep actions are gated to spatial
-stations (accept at the Contract Board, requisition at the Quartermaster, deploy
-at the Deploy Gate), mirroring field extraction. Full spatial prep (new verbs,
-per-station UIs, the Archive as a room) is deferred to a later spec.
+Collegium (Staging Site) v1 is shipped (TD-036): `specs/collegium/` (T104–T114)
+— the fixed, walkable Collegium occupied during the lobby phases, one generalized
+movement tick across WAITING/DEPLOYING/FIELD, and prep actions gated to spatial
+stations (Contract Board, Quartermaster, Deploy Gate). Server + shared only.
 
-@specs/collegium/requirements.md
-@specs/collegium/design.md
-@specs/collegium/tasks.md
+Collegium Client (Walkable Spaces) is code-complete (TD-038): `specs/collegium-
+client/` (T115–T120) — one reusable `SpaceView` draws both the Collegium and the
+field from server data; input emits `MOVE` on edges; proximity affordances mirror
+the `NOT_AT_*` gates. Plus MCP-driven follow-ups: initial body-sync (Seeker no
+longer invisible until first move), a server-authoritative Shift-to-walk register
+(`WALK_SPEED`; `MovePayload.walk`), crisp+legible font settings, and a themed
+9-slice popup (`assets/ui/panel.png`, `_build_popup_theme`). **T121 (full MCP
+playtest) is still unrun — the spec is left open, re-exercised by Station UI.**
+
+Active spec: **`specs/station-ui/`** (T122–T130) — the three station popups grow
+into the full **preparation loop** (mockup-driven), in the gothic parchment/gold
+theme. Phase A: a browsable multi-contract **board** (`ContractIntel[]`, no
+Incarnate art — mystery is the mechanic) with leader `SELECT_CONTRACT`. Phase B:
+a **Stipend**-priced Quartermaster with item detail. Phase C: a Deploy Gate
+summary showing each Seeker's **bag** (roles emerge from loadout, never a class).
+Grounded in `docs/systems/contracts.md` + `loadout-economy.md`; trait containment
+via `toContractIntel` (I3/I5). Server+shared+client. v1 gear icons stay greybox.
+
+@specs/station-ui/requirements.md
+@specs/station-ui/design.md
+@specs/station-ui/tasks.md
 
 Completed Phase 4 specs:
 - `specs/raw-ws-transport/`: raw WebSocket transport (wsHub, protocol envelope) + Godot client spike
@@ -66,6 +82,7 @@ Completed Phase 4 specs:
 - `specs/protocol-contract/`: shared message-name registry + `tools/` GDScript codegen (authored against the spike protocol on `feat/protocol-contract`, reconciled to the Testament protocol in TD-031)
 - `specs/lobby-resilience/` (T88–T94): `LobbyPlayer.connected`, ghost-proof `allReady`, leader `KICK_PLAYER`, client ghost UI + scroll layout (TD-032)
 - `specs/field-space/` (T95–T103): seeded tile site (`generateSite`), authoritative 20Hz movement (`stepPlayer`, movement tick), position-gated extraction (TD-035/036)
+- `specs/collegium/` (T104–T114): fixed walkable Collegium, one `moveTick` across WAITING/DEPLOYING/FIELD, spatial prep stations (`NOT_AT_*` gates), snapshot `collegium` + `positions` (TD-036)
 
 @.claude/rules/spec-workflow.md
 @.claude/rules/netcode-invariants.md
