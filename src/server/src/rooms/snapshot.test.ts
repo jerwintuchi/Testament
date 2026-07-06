@@ -26,6 +26,7 @@ function makePlayer(id: string, socketId: string, channels: Channel[] = [...CHAN
 function makeRoom(phase: RoomRecord['phase'] = 'WAITING'): RoomRecord {
   return {
     code: 'ABC123', phase, players: [makePlayer('p1', 's1')],
+    board: [],
     contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, moveTick: null,
   };
 }
@@ -36,6 +37,7 @@ function makeFieldRoom(): RoomRecord {
   return {
     code: 'ABC123', phase: 'FIELD',
     players: [p1],
+    board: [],
     contract: STUB_CONTRACT_RECORD,
     fieldData: { fieldId: 'FIELD-001', siteName: 'The Collapsed Chancel', incarnateName: 'The Ashen Warden' },
     exposure: 0,
@@ -53,6 +55,7 @@ describe('toSnapshot', () => {
       code: 'ABC123',
       phase: 'WAITING',
       players: [makePlayer('p1', 's1'), makePlayer('p2', 's2')],
+      board: [],
       contract: null,
       fieldData: null,
       exposure: 0,
@@ -65,10 +68,27 @@ describe('toSnapshot', () => {
     expect(snap.players).toHaveLength(2);
   });
 
+  it('carries the board as intel only — no trait roll or seed on the wire (P58)', () => {
+    const room = makeRoom();
+    room.board = [STUB_CONTRACT_RECORD];   // a full record: has expeditionSeed + traitRoll
+    const snap = toSnapshot(room);
+    expect(snap.board).toHaveLength(1);
+    // Exactly the ContractIntel keys — nothing more crosses the wire (I3/I5).
+    expect(snap.board[0]).toEqual({
+      contractId:  'c-001',
+      tier:        'APPRENTICE',
+      targetName:  'The Ashen Warden',
+      siteName:    'The Collapsed Chancel',
+      primaryVerb: 'INVESTIGATE',
+    });
+    expect('traitRoll' in (snap.board[0] ?? {})).toBe(false);
+    expect('expeditionSeed' in (snap.board[0] ?? {})).toBe(false);
+  });
+
   it('strips socketId from every player entry', () => {
     const room: RoomRecord = {
       code: 'ABC123', phase: 'WAITING',
-      players: [makePlayer('p1', 's1')], contract: null, fieldData: null,
+      players: [makePlayer('p1', 's1')], board: [], contract: null, fieldData: null,
       exposure: 0, revealedSigns: [], site: null, moveTick: null,
     };
     const snap = toSnapshot(room);
@@ -78,7 +98,7 @@ describe('toSnapshot', () => {
   it('strips disconnectedAt from every player entry', () => {
     const room: RoomRecord = {
       code: 'ABC123', phase: 'WAITING',
-      players: [makePlayer('p1', 's1')], contract: null, fieldData: null,
+      players: [makePlayer('p1', 's1')], board: [], contract: null, fieldData: null,
       exposure: 0, revealedSigns: [], site: null, moveTick: null,
     };
     const snap = toSnapshot(room);
@@ -89,6 +109,7 @@ describe('toSnapshot', () => {
     const room: RoomRecord = {
       code: 'ABC123', phase: 'WAITING',
       players: [makePlayer('p1', 's1'), makePlayer('p2', 's2'), makePlayer('p3', 's3')],
+      board: [],
       contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, moveTick: null,
     };
     const snap = toSnapshot(room);
@@ -101,6 +122,7 @@ describe('toSnapshot', () => {
     const p2 = makePlayer('p2', 's2');  // pos stays null → omitted
     const room: RoomRecord = {
       code: 'ABC123', phase: 'WAITING', players: [p1, p2],
+      board: [],
       contract: null, fieldData: null, exposure: 0, revealedSigns: [], site: null, moveTick: null,
     };
     const snap = toSnapshot(room);

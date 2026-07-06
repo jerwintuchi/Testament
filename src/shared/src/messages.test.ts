@@ -16,7 +16,7 @@ describe('CLIENT_MESSAGES / SERVER_MESSAGES registry', () => {
     expect(Object.values(CLIENT_MESSAGES).sort()).toEqual([
       'ACCEPT_CONTRACT', 'CREATE_ROOM', 'DEPLOY', 'EXTRACT', 'JOIN_ROOM',
       'KICK_PLAYER', 'LEAVE_ROOM', 'MOVE', 'PROBE', 'RECONNECT', 'REQUISITION',
-      'TOGGLE_READY',
+      'SELECT_CONTRACT', 'TOGGLE_READY',
     ]);
     expect(Object.values(SERVER_MESSAGES).sort()).toEqual([
       'ARCHIVE_UPDATED', 'FIELD_STARTED', 'FIELD_TESTAMENT', 'LOBBY_ERROR',
@@ -58,9 +58,9 @@ describe('CLIENT_MESSAGES / SERVER_MESSAGES registry', () => {
 });
 
 describe('codegen-able enums and scalars', () => {
-  it('LOBBY_ERROR_CODES holds exactly the eighteen codes with no duplicates', () => {
-    expect(LOBBY_ERROR_CODES).toHaveLength(18);
-    expect(new Set(LOBBY_ERROR_CODES).size).toBe(18);
+  it('LOBBY_ERROR_CODES holds exactly the nineteen codes with no duplicates', () => {
+    expect(LOBBY_ERROR_CODES).toHaveLength(19);
+    expect(new Set(LOBBY_ERROR_CODES).size).toBe(19);
   });
 
   it('ROOM_PHASES holds exactly the four phases in lifecycle order', () => {

@@ -60,6 +60,7 @@ describe('RoomRecord shape', () => {
       code: 'ABC123',
       phase: 'WAITING',
       players: [],
+      board: [],
       contract: null,
       fieldData: null,
       exposure: 0,

@@ -19,6 +19,10 @@ export function toSnapshot(room: RoomRecord): LobbySnapshot {
     roomCode: room.code,
     phase: room.phase,
     players: room.players.map(toPublicPlayer),
+    // The board as intel only — toContractIntel strips expeditionSeed + traitRoll,
+    // so no hidden roll ever reaches a client (I3/I5/P58). No Incarnate art field
+    // exists on the wire: mystery is the mechanic (vision.md pillar 3).
+    board: room.board.map(toContractIntel),
     contract: room.contract ? toContractIntel(room.contract) : null,
     collegium: COLLEGIUM,
     positions,

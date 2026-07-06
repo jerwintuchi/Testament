@@ -40,7 +40,11 @@ export type LobbySnapshot = {
   roomCode: RoomCode;
   phase: RoomPhase;
   players: LobbyPlayer[];
-  contract: ContractIntel | null;
+  // The Contract Board: the pool the party browses in WAITING, intel only (never
+  // the hidden trait roll — I3/I5). No Incarnate image is carried; the card shows
+  // name/site/tier/verb and nothing that would let a wiki pre-solve it (pillar 3).
+  board: ContractIntel[];
+  contract: ContractIntel | null;  // the selected contract (null until the leader picks)
   // The Collegium staging map and every present player's feet px, so a client
   // renders the hall and places the party (R98). The layout is static; live
   // movement rides the POSITIONS delta stream, this is the occasional full-sync.

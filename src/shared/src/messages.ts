@@ -19,6 +19,7 @@ import type {
   JoinRoomPayload,
   ToggleReadyPayload,
   AcceptContractPayload,
+  SelectContractPayload,
   LeaveRoomPayload,
   ReconnectPayload,
   RequisitionPayload,
@@ -49,6 +50,7 @@ export const CLIENT_MESSAGES = {
   JOIN_ROOM: 'JOIN_ROOM',
   TOGGLE_READY: 'TOGGLE_READY',
   ACCEPT_CONTRACT: 'ACCEPT_CONTRACT',
+  SELECT_CONTRACT: 'SELECT_CONTRACT',
   LEAVE_ROOM: 'LEAVE_ROOM',
   RECONNECT: 'RECONNECT',
   REQUISITION: 'REQUISITION',
@@ -83,6 +85,7 @@ export type ClientMessagePayloads = {
   JOIN_ROOM: JoinRoomPayload;
   TOGGLE_READY: ToggleReadyPayload;
   ACCEPT_CONTRACT: AcceptContractPayload;
+  SELECT_CONTRACT: SelectContractPayload;
   LEAVE_ROOM: LeaveRoomPayload;
   RECONNECT: ReconnectPayload;
   REQUISITION: RequisitionPayload;

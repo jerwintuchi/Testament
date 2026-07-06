@@ -3,6 +3,7 @@ import type { RoomCode } from '@testament/shared';
 import type { RoomRecord, ServerPlayerEntry } from './types.js';
 import { generateRoomCode } from './roomCode.js';
 import { stopMovementTick } from './movementTick.js';
+import { generateBoard } from '../incarnate/generateBoard.js';
 import { randomUUID } from 'node:crypto';
 
 export class RoomManager {
@@ -30,6 +31,9 @@ export class RoomManager {
       code,
       phase: 'WAITING',
       players: [player],
+      // The board is minted once, at room creation, so the party can browse it in
+      // WAITING. Seeded from a fresh per-room seed; the board is ephemeral (I7).
+      board: generateBoard(randomUUID()),
       contract: null,
       fieldData: null,
       exposure: 0,

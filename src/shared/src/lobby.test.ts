@@ -88,6 +88,7 @@ describe('LobbySnapshot shape', () => {
       phase: 'WAITING',
       players: [player],
       contract: null,
+      board: [],
       collegium: { grid: { width: 1, height: 1, rows: ['.'] }, stations: [], spawn: { x: 0, y: 0 } },
       positions: {},
     };

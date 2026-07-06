@@ -29,7 +29,8 @@ export type RoomRecord = {
   code: RoomCode;
   phase: RoomPhase;
   players: ServerPlayerEntry[];
-  contract: ContractRecord | null;
+  board: ContractRecord[];          // the seeded Contract Board pool (browsed in WAITING, R109)
+  contract: ContractRecord | null;  // the entry the leader selected off the board (null until then)
   fieldData: StubFieldData | null;  // null until DEPLOY succeeds; never client-supplied
   exposure: number;                 // field pressure accrued by party behavior; reset on DEPLOY (R57)
   revealedSigns: Sign[];            // reaction signs revealed by probes, deduped by token (R58)

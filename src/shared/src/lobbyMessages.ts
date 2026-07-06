@@ -22,6 +22,12 @@ export type ToggleReadyPayload = Record<string, never>;
 
 export type AcceptContractPayload = Record<string, never>;
 
+// SELECT_CONTRACT (R110): the leader picks a specific contract off the board by
+// its id. This is the acceptance that stakes the Surety and moves to DEPLOYING.
+export type SelectContractPayload = {
+  contractId: string;
+};
+
 export type LeaveRoomPayload = Record<string, never>;
 
 export type ReconnectPayload = {
@@ -87,6 +93,7 @@ export const LOBBY_ERROR_CODES = [
   'TOKEN_NOT_FOUND',
   'WRONG_PHASE',
   'UNKNOWN_ITEM',    // REQUISITION: an itemId not in GEAR_CATALOG
+  'UNKNOWN_CONTRACT', // SELECT_CONTRACT: a contractId not on the board (R110)
   'BAG_OVERFLOW',    // REQUISITION: more items than BAG_SLOTS
   'MISSING_GEAR',    // PROBE: sender does not carry the matching probe kit
   'CANNOT_KICK',     // KICK_PLAYER: target unknown or still connected (deliberately one code for both)

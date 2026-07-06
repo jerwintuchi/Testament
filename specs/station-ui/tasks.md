@@ -7,7 +7,7 @@
 
 ## Phase A — Contract Board
 
-- [ ] T122 [R109 / P58] — `generateBoard(rng, seed, size)` in
+- [x] T122 [R109 / P58] — `generateBoard(rng, seed, size)` in
       `src/server/src/incarnate/generateBoard.ts`: `BOARD_SIZE` distinct contracts
       via `generateContract`. Add `board: ContractRecord[]` to `RoomRecord`; build
       it in `createRoom`. Add `board: ContractIntel[]` to `LobbySnapshot` +
@@ -16,7 +16,7 @@
       board size; ids distinct. `snapshot.test.ts` — board present and every entry
       has **only** `ContractIntel` keys (no trait axis; P58).
 
-- [ ] T123 [R110 / P59] — `SELECT_CONTRACT` in the message registry
+- [x] T123 [R110 / P59] — `SELECT_CONTRACT` in the message registry
       (`messages.ts`, regen `protocol.gd` via `pnpm gen:protocol`); add
       `UNKNOWN_CONTRACT`. `handleSelectContract` (guards: in-room, leader,
       at CONTRACT_BOARD, WAITING, ready, id on board) → promote board entry to
