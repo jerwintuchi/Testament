@@ -32,6 +32,7 @@ const BAD_PAYLOADS: Array<[string, unknown]> = [
   ['dx string', { dx: '1', dy: 0 }],
   ['dx > 1', { dx: 1.5, dy: 0 }],
   ['dy < -1', { dx: 0, dy: -2 }],
+  ['walk non-boolean', { dx: 0, dy: 0, walk: 'yes' }],
 ];
 
 describe('handleMove — validation (R86)', () => {
@@ -61,7 +62,7 @@ describe('handleMove — validation (R86)', () => {
       const { fn: emit, calls } = makeEmit();
       handleMove('host', { dx: 1, dy: 0 }, mgr, emit);
       expect(calls).toHaveLength(0);
-      expect(room.players[0]!.moveIntent).toEqual({ dx: 1, dy: 0 });
+      expect(room.players[0]!.moveIntent).toEqual({ dx: 1, dy: 0, walk: false });
     });
   }
 
@@ -82,7 +83,7 @@ describe('handleMove — success (P44)', () => {
     const { fn: emit, calls } = makeEmit();
     handleMove('host', { dx: 1, dy: -1 }, mgr, emit);
     expect(calls).toHaveLength(0);
-    expect(room.players[0]!.moveIntent).toEqual({ dx: 1, dy: -1 });
+    expect(room.players[0]!.moveIntent).toEqual({ dx: 1, dy: -1, walk: false });
     // Position is untouched — only the tick integrates.
     expect(room.players[0]!.pos).toEqual(before);
   });
@@ -92,6 +93,20 @@ describe('handleMove — success (P44)', () => {
     const { fn: emit, calls } = makeEmit();
     handleMove('host', { dx: -1, dy: 1 }, mgr, emit);
     expect(calls).toHaveLength(0);
-    expect(room.players[0]!.moveIntent).toEqual({ dx: -1, dy: 1 });
+    expect(room.players[0]!.moveIntent).toEqual({ dx: -1, dy: 1, walk: false });
+  });
+
+  it('walk modifier is stored (holding the walk key → walk register)', () => {
+    const { mgr, room } = fieldRoom();
+    const { fn: emit, calls } = makeEmit();
+    handleMove('host', { dx: 1, dy: 0, walk: true }, mgr, emit);
+    expect(calls).toHaveLength(0);
+    expect(room.players[0]!.moveIntent).toEqual({ dx: 1, dy: 0, walk: true });
+  });
+
+  it('omitted walk defaults to run (walk: false)', () => {
+    const { mgr, room } = fieldRoom();
+    handleMove('host', { dx: 1, dy: 0 }, mgr, makeEmit().fn);
+    expect(room.players[0]!.moveIntent.walk).toBe(false);
   });
 });

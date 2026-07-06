@@ -37,8 +37,8 @@ function runTick(room: RoomRecord, broadcast: BroadcastFn): void {
     // Only connected players with a spawned position integrate; a disconnected
     // ghost has zeroed intent (disconnect handler) and is skipped regardless.
     if (player.disconnectedAt !== null || player.pos === null) continue;
-    const { dx, dy } = player.moveIntent;
-    const next = stepPlayer(player.pos, dx, dy, TICK_MS, grid);
+    const { dx, dy, walk } = player.moveIntent;
+    const next = stepPlayer(player.pos, dx, dy, TICK_MS, grid, walk === true);
     if (next.x !== player.pos.x || next.y !== player.pos.y) {
       player.pos = next;
       moved[player.playerId] = next;

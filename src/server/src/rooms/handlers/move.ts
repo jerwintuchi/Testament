@@ -22,6 +22,7 @@ export function handleMove(
   const p = payload as Record<string, unknown> | null;
   const dx = p !== null && typeof p === 'object' ? p['dx'] : undefined;
   const dy = p !== null && typeof p === 'object' ? p['dy'] : undefined;
+  const walkRaw = p !== null && typeof p === 'object' ? p['walk'] : undefined;
   if (!isDirComponent(dx) || !isDirComponent(dy)) {
     emit(SERVER_MESSAGES.LOBBY_ERROR, {
       code: 'INVALID_PAYLOAD',
@@ -29,6 +30,15 @@ export function handleMove(
     });
     return;
   }
+  // `walk` is optional; anything but an explicit true means run (the default).
+  if (walkRaw !== undefined && typeof walkRaw !== 'boolean') {
+    emit(SERVER_MESSAGES.LOBBY_ERROR, {
+      code: 'INVALID_PAYLOAD',
+      message: 'MOVE `walk` must be a boolean when present.',
+    });
+    return;
+  }
+  const walk = walkRaw === true;
 
   const room = roomManager.getRoomBySocketId(socketId);
   if (room === undefined) {
@@ -45,5 +55,5 @@ export function handleMove(
   }
 
   const sender = room.players.find(pl => pl.socketId === socketId)!;
-  sender.moveIntent = { dx, dy };
+  sender.moveIntent = { dx, dy, walk };
 }

@@ -18,9 +18,12 @@ export type ExtractPayload = Record<string, never>;
 
 export type ProbePayload = { stimulus: Stimulus };
 
-// Movement intent — a direction, each component in [-1, 1]. The server samples
-// it once per field tick; message rate cannot outrun SEEKER_SPEED (I1).
-export type MovePayload = { dx: number; dy: number };
+// Movement intent — a direction, each component in [-1, 1], plus an optional
+// `walk` modifier (default false = run). The server samples it once per field
+// tick and applies the authoritative speed (run vs walk); message rate cannot
+// outrun the speed the server chooses (I1). `walk` is optional so an older
+// client that omits it simply runs.
+export type MovePayload = { dx: number; dy: number; walk?: boolean };
 
 // ── Server → Client ───────────────────────────────────────────────────────────
 

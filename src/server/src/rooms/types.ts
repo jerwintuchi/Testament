@@ -20,7 +20,9 @@ export type ServerPlayerEntry = {
   pos: { x: number; y: number } | null;
   // Last validated MOVE direction (R86); {0,0} = standing. Applied on the tick,
   // never immediately. Cleared to {0,0} on disconnect so ghosts don't drift (R87).
-  moveIntent: { dx: number; dy: number };
+  // `walk` (optional, default false) selects the walk register over the default
+  // run — the speed itself is applied server-side on the tick.
+  moveIntent: { dx: number; dy: number; walk?: boolean };
 };
 
 export type RoomRecord = {

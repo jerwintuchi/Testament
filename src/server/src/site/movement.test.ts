@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   TILE_SIZE,
   SEEKER_SPEED,
+  WALK_SPEED,
   SEEKER_FEET_HALF_WIDTH,
   SEEKER_FEET_HEIGHT,
 } from '@testament/shared';
@@ -92,6 +93,18 @@ describe('stepPlayer', () => {
     expect(dist).toBeLessThanOrEqual(cap + 1e-9);
     // A naive un-normalized diagonal would travel cap·√2; assert we are near cap.
     expect(dist).toBeCloseTo(cap, 5);
+  });
+
+  it('walk register moves at WALK_SPEED; run (default) at SEEKER_SPEED', () => {
+    // Open interior of WALL_GRID left chamber, moving right along a free axis.
+    const start = { x: 24, y: 40 };
+    const dt = 50;
+    const runStep = stepPlayer(start, 1, 0, dt, WALL_GRID);
+    const walkStep = stepPlayer(start, 1, 0, dt, WALL_GRID, true);
+    expect(runStep.x - start.x).toBeCloseTo(SEEKER_SPEED * (dt / 1000), 6);
+    expect(walkStep.x - start.x).toBeCloseTo(WALK_SPEED * (dt / 1000), 6);
+    // Walk is strictly slower than run for the same intent.
+    expect(walkStep.x - start.x).toBeLessThan(runStep.x - start.x);
   });
 
   it('P43 containment: post-step feet AABB never overlaps a solid tile', () => {

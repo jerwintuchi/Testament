@@ -1,6 +1,7 @@
 import {
   TILE_SIZE,
   SEEKER_SPEED,
+  WALK_SPEED,
   SEEKER_FEET_HALF_WIDTH,
   SEEKER_FEET_HEIGHT,
   TILE_SOLID,
@@ -53,8 +54,17 @@ function feetOverlapsSolid(x: number, y: number, grid: SiteGrid): boolean {
 
 // Integrate one player's movement intent for `dtMs` against the grid. `dx`/`dy`
 // are a direction (each in [-1, 1]); magnitudes above 1 are normalized so a
-// diagonal gains no √2 speed bonus.
-export function stepPlayer(pos: Pos, dx: number, dy: number, dtMs: number, grid: SiteGrid): Pos {
+// diagonal gains no √2 speed bonus. `walk` selects the slower walk register
+// (default false = run); the speed is chosen here, server-side, never by the
+// client — the client only asks (I1).
+export function stepPlayer(
+  pos: Pos,
+  dx: number,
+  dy: number,
+  dtMs: number,
+  grid: SiteGrid,
+  walk = false,
+): Pos {
   let ndx = dx;
   let ndy = dy;
   const mag = Math.hypot(dx, dy);
@@ -63,7 +73,8 @@ export function stepPlayer(pos: Pos, dx: number, dy: number, dtMs: number, grid:
     ndy = dy / mag;
   }
 
-  const dist = SEEKER_SPEED * (dtMs / 1000);
+  const speed = walk ? WALK_SPEED : SEEKER_SPEED;
+  const dist = speed * (dtMs / 1000);
   let { x, y } = pos;
 
   const tryX = x + ndx * dist;

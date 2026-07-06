@@ -12,9 +12,15 @@ export const TILE_SIZE = 16;
 // tick, never directly from client input (I1).
 export const FIELD_TICK_HZ = 20;
 
-// Seeker movement speed in px/s. ~5 tiles/s: deliberate, readable, not twitchy —
-// the register combat is designed for (docs/systems/combat.md).
+// Seeker movement speed in px/s. Two registers: the default is a run at
+// SEEKER_SPEED (~5 tiles/s: deliberate, readable, not twitchy — the register
+// combat is designed for, docs/systems/combat.md); holding the walk modifier
+// halves it to WALK_SPEED, a precision pace for lining up on stations, edges,
+// and extraction. Which register a Seeker is in is a client *intent* (MOVE's
+// `walk` flag); the speed itself is applied server-side (I1) — the client never
+// decides how fast it moves, only whether it is asking to walk.
 export const SEEKER_SPEED = 80;
+export const WALK_SPEED = 40;
 
 // The Seeker's collider is a small AABB at the feet (not the whole sprite), so a
 // Seeker's head can overlap a wall tile visually while the body stays out. Half
