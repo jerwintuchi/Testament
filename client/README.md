@@ -73,14 +73,14 @@ Two instances (A = host, B = joiner) unless noted.
    status line; B stays in the field (R76).
 10. **Extract.** A extracts; both see the Field Testament and the Archive entry.
 11. **Return.** "Return to the Collegium" lands on the menu; a new room can be
-    created (the old room is gone server-side).
+	created (the old room is gone server-side).
 12. **Reconnect (field).** Close B mid-field and relaunch — press Reconnect on
-    the connection-lost screen; B is restored to the field with its signs and
-    perceived channels intact (`STATE_RESYNC`).
+	the connection-lost screen; B is restored to the field with its signs and
+	perceived channels intact (`STATE_RESYNC`).
 13. **Server down.** Stop the server: both instances show the connection-lost
-    screen; Abandon returns to the menu once the server is back.
+	screen; Abandon returns to the menu once the server is back.
 14. **Ghost marker.** Close B while in the lobby: A's list marks B
-    "(disconnected)" within a moment; B's ready state is preserved for resume.
+	"(disconnected)" within a moment; B's ready state is preserved for resume.
 15. **Kick.** As leader, A sees a Kick button on B's disconnected row; kicking
-    removes the seat, a new player can join it, and B's later Resume fails
-    (its client forgets the dead token instead of retrying).
+	removes the seat, a new player can join it, and B's later Resume fails
+	(its client forgets the dead token instead of retrying).

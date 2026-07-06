@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://crm2u5io7vy4t"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/space_view.tscn" id="2_space"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="World" type="Node2D" parent="."]
+visible = false
+
+[node name="SpaceView" parent="World" instance=ExtResource("2_space")]
+
+[node name="Bodies" type="Node2D" parent="World"]
+
+[node name="Camera2D" type="Camera2D" parent="World"]
+zoom = Vector2(2, 2)
