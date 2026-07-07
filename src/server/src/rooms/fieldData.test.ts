@@ -4,6 +4,7 @@ import type { ContractIntel } from '@testament/shared';
 
 const CONTRACT: ContractIntel = {
   contractId:  'c-001',
+  origin:      'SIN',
   targetName:  'The Ashen Warden',
   siteName:    'The Collapsed Chancel',
   primaryVerb: 'INVESTIGATE',

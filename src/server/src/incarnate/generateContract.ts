@@ -1,4 +1,4 @@
-import type { ContractIntel, PrimaryVerb, Tier } from '@testament/shared';
+import type { ContractIntel, Origin, PrimaryVerb, Tier } from '@testament/shared';
 import type { Rng } from '../rng/seeded.js';
 import type { ContractRecord } from './contractRecord.js';
 import { generateTraitRoll } from './generateTraitRoll.js';
@@ -19,6 +19,10 @@ const SITE_NAMES: readonly string[] = [
 
 const PRIMARY_VERBS: readonly PrimaryVerb[] = ['INVESTIGATE', 'ELIMINATE', 'CAPTURE', 'BANISH'];
 
+// The genus the contract asserts. A seeded pick, independent of the trait roll —
+// the assertion may be wrong (falsifiable), which is the point (GLOSSARY: Origin).
+const ORIGINS: readonly Origin[] = ['BELIEF', 'SIN', 'RELIC'];
+
 export function generateContract(
   rng: Rng,
   tier: Tier,
@@ -29,6 +33,7 @@ export function generateContract(
     contractId,
     tier,
     expeditionSeed,
+    origin:      rng.pick(ORIGINS),
     targetName:  rng.pick(TARGET_NAMES),
     siteName:    rng.pick(SITE_NAMES),
     primaryVerb: rng.pick(PRIMARY_VERBS),

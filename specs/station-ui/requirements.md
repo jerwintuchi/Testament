@@ -56,6 +56,14 @@ no Incarnate art, and drives selection.
   action (leader only) that sends `SELECT_CONTRACT`; a raced `NOT_*`/`PARTY_NOT_READY`
   still surfaces in the status line (affordance ≠ authority, P56 heritage).
 - AC: threat pips are a pure function of `tier` and never display a numeric trait.
+- AC (TD-039, commission-wall reframe): each card carries an **Origin-keyed wax
+  seal** whose colour + sigil encode the contract's *asserted* `origin`
+  (`BELIEF`/`SIN`/`RELIC`) — readable board vocabulary, a claim not the hidden roll
+  (I3/I5); `origin` is intel on `ContractIntel`, stripped-safe via `toContractIntel`.
+- AC (TD-039): the card/detail **charge prose** is procedural — a verb synonym +
+  locale + qualifier assembled deterministically from `contractId` — and every
+  synonym preserves the server's `primaryVerb` meaning (the hint survives). Client
+  presentation only; the server's verb is authoritative (I1).
 
 ## Phase B — Quartermaster (Stipend economy + item detail)
 

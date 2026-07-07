@@ -926,3 +926,46 @@ the client rebuilds the popups as render-only themed scenes emitting the existin
 intents. v1 gear icons stay greybox glyphs (authored Aseprite icons + the Stipend
 reward-scaling and rank-gated tiers are later tasks). Verified by colocated Vitest
 (server/shared) plus the MCP-driven `specs/station-ui/playtest.md` (client).
+
+## TD-039 — Contract Board reframed as a commission wall: asserted Origin on the wire + procedural charge prose (2026-07-07)
+
+**Context.** While polishing the T124 Contract Board, the board read as a generic
+bounty list. Two changes make it read as the Collegium's commission wall without
+touching a mechanic. Both are additive to the Station UI v2 spec (Phase A), not a
+new direction.
+
+**Decision 1 — asserted `Origin` becomes wire intel.** `ContractIntel` gains
+`origin: Origin` (`'BELIEF' | 'SIN' | 'RELIC'`) in `src/shared/src/contract.ts`;
+`generateContract` picks it from the seeded RNG (a `rng.pick`, independent of the
+trait roll). This is the genus the contract **asserts** — a claim the GLOSSARY
+already defines as *"falsifiable, possibly hybrid,"* not the hidden roll — so it is
+trait-safe by construction (I3/I5): it is not a trait-roll axis (Aspect/Frailty/
+Ward/Disposition/Rite-key/Tell), and `toContractIntel` still strips only seed+roll.
+The client renders it as an **Origin-keyed wax seal** (colour + pressed sigil per
+genus: Belief indigo/eye, Sin crimson/cross, Relic gold/diamond), reusable via
+`client/scripts/ui/wax_seal.gd` (preloaded, not a global `class_name`, per TD-029/
+30). The seal turns "read the board at a glance" into real, teachable vocabulary
+that never spoils the roll (vision.md pillar 3). Trait-containment tests updated:
+`toContractIntel` now returns 6 keys incl. `origin`; a new membership test asserts
+origin ∈ the 3 literals.
+
+**Decision 2 — procedural charge prose.** The fixed per-verb flavor sentences
+(`VERB_FLAVOR`) are replaced by a client-side grammar: a verb **synonym** + a
+**locale** frame + a reinforcing **qualifier**, assembled deterministically from
+the `contractId` (salted hashes, so slots vary independently but a contract always
+reads the same). Every synonym of a verb still carries that verb's meaning and the
+qualifier restates it, so the server's `primaryVerb` hint survives the rephrase.
+This is presentation only — the server's verb is the authority; the client invents
+no game state (I1). Card text was also centred and pulled inside the parchment's
+torn edges so no glyph rides the tear.
+
+**Incidental fix.** `UNKNOWN_CONTRACT` (added to `LOBBY_ERROR_CODES` in T123) was
+missing from the exhaustive-switch test in `lobbyMessages.test.ts`, so `tsc`
+(the build) failed while vitest/tsx stayed green — a latent break. Added the case
+and bumped the count to nineteen; `pnpm build` is green again.
+
+**Consequences.** Server + shared + client all touched; full suite green (server
+356, shared 65) and `pnpm build` clean. The board now teaches Origin vocabulary
+via the seal and reads as scribed intent via the procedural brief, both trait-free.
+Authored per-Origin intel prose and Aseprite seal art remain later enhancements;
+the `origin` field is now available to the Deploy Gate summary (Phase C) for free.

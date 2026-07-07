@@ -6,6 +6,7 @@ import { generateContract, toContractIntel } from './generateContract.js';
 import { createRng, hashSeed } from '../rng/seeded.js';
 
 const PRIMARY_VERBS = ['INVESTIGATE', 'ELIMINATE', 'CAPTURE', 'BANISH'] as const;
+const ORIGINS       = ['BELIEF', 'SIN', 'RELIC'] as const;
 const TARGET_NAMES  = ['The Ashen Warden', 'The Weeping Mire', 'The Frost Penitent', 'The Rot-Bloom'];
 const SITE_NAMES    = ['The Collapsed Chancel', 'The Salt Marsh', 'The Ember Reach', 'The Sunken Nave'];
 
@@ -38,6 +39,13 @@ describe('generateContract', () => {
     }
   });
 
+  it('asserts an origin within the 3 Origin literals (a claim, not the roll)', () => {
+    for (let i = 0; i < 20; i++) {
+      const { origin } = generateContract(createRng(hashSeed(`o-${i}`)), 'APPRENTICE', `c-${i}`, `s-${i}`);
+      expect(ORIGINS).toContain(origin);
+    }
+  });
+
   it('embedded traitRoll is tier-correct (Apprentice has no ward/disposition/riteKey)', () => {
     const contract = generateContract(createRng(hashSeed('tier-check')), 'APPRENTICE', 'c', 's');
     const keys = Object.keys(contract.traitRoll);
@@ -67,20 +75,21 @@ describe('generateContract', () => {
 });
 
 describe('toContractIntel', () => {
-  it('returns exactly 5 keys — no expeditionSeed or traitRoll (P17/R48)', () => {
+  it('returns exactly 6 keys — no expeditionSeed or traitRoll (P17/R48)', () => {
     const contract = generateContract(createRng(hashSeed('strip-test')), 'APPRENTICE', 'c-001', 'seed-xyz');
     const intel = toContractIntel(contract);
     const keys = Object.keys(intel).sort();
-    expect(keys).toEqual(['contractId', 'primaryVerb', 'siteName', 'targetName', 'tier']);
+    expect(keys).toEqual(['contractId', 'origin', 'primaryVerb', 'siteName', 'targetName', 'tier']);
     expect(keys).not.toContain('expeditionSeed');
     expect(keys).not.toContain('traitRoll');
   });
 
-  it('preserves contractId, tier, targetName, siteName, primaryVerb', () => {
+  it('preserves contractId, tier, origin, targetName, siteName, primaryVerb', () => {
     const contract = generateContract(createRng(hashSeed('preserve-test')), 'JOURNEYMAN', 'my-id', 'my-seed');
     const intel = toContractIntel(contract);
     expect(intel.contractId).toBe('my-id');
     expect(intel.tier).toBe('JOURNEYMAN');
+    expect(['BELIEF', 'SIN', 'RELIC']).toContain(intel.origin);
     expect(typeof intel.targetName).toBe('string');
     expect(typeof intel.siteName).toBe('string');
     expect(typeof intel.primaryVerb).toBe('string');

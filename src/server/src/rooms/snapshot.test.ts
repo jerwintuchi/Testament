@@ -12,6 +12,7 @@ import { COLLEGIUM } from '../collegium/collegium.js';
 const STUB_CONTRACT_RECORD: ContractRecord = {
   contractId:     'c-001',
   tier:           'APPRENTICE',
+  origin:         'SIN',
   targetName:     'The Ashen Warden',
   siteName:       'The Collapsed Chancel',
   primaryVerb:    'INVESTIGATE',
@@ -77,6 +78,7 @@ describe('toSnapshot', () => {
     expect(snap.board[0]).toEqual({
       contractId:  'c-001',
       tier:        'APPRENTICE',
+      origin:      'SIN',
       targetName:  'The Ashen Warden',
       siteName:    'The Collapsed Chancel',
       primaryVerb: 'INVESTIGATE',

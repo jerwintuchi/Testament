@@ -12,6 +12,7 @@ enum Screen { MENU, LOBBY, DEPLOYING, FIELD, TESTAMENT, RECONNECTING }
 # gear catalog never drift (TD-029/TD-030: preload, not a global class_name).
 const Protocol = preload("res://protocol/protocol.gd")
 const ThreatPips = preload("res://scripts/ui/threat_pips.gd")
+const WaxSeal = preload("res://scripts/ui/wax_seal.gd")
 
 const SERVER_URL := "ws://localhost:3001"
 # The reconnect token survives a client relaunch (R75). It is an opaque server
@@ -555,29 +556,34 @@ const _STATION_LABEL := {
 	"DEPLOY_GATE": "Deploy Gate", "EXTRACTION": "Extraction",
 }
 
-# Flavored charges per primary verb — a client-side rephrase of the server's verb
-# so a card reads like scribed intent, not "VERB: BANISH". Seeded by contractId.
-const VERB_FLAVOR := {
-	"INVESTIGATE": [
-		"Study it, and return with what you learn — not its head.",
-		"Observe and survive; we want understanding, not a corpse.",
-		"Read the thing well. Do not engage beyond need.",
-	],
-	"ELIMINATE": [
-		"Put it down, and see that it stays down.",
-		"End the thing. Leave nothing behind to rise.",
-		"Silence it, by whatever holy means remain.",
-	],
-	"CAPTURE": [
-		"Take it alive, and take it whole.",
-		"Bind it, and deliver it breathing.",
-		"Subdue the thing; do not slay it.",
-	],
-	"BANISH": [
-		"Send it back by the proper rite.",
-		"Unmake it with liturgy, not steel alone.",
-		"Return it to whatever dark it crawled from.",
-	],
+# Procedural charge prose — a client-side rephrase of the server's verb so a card
+# reads like scribed intent, not "VERB: BANISH". The description is assembled from
+# a grammar: a verb SYNONYM (the imperative), a LOCALE frame (where), and a
+# QUALIFIER clause (the intent, reinforced). Every synonym of a verb still carries
+# that verb's meaning and the qualifier restates it, so the VERB hint survives the
+# rephrase. Assembled deterministically from the contractId, so a given contract
+# always reads the same. This is presentation only — the server's primaryVerb is
+# the authority; this never invents game state.
+const VERB_SYNONYM := {
+	"INVESTIGATE": ["Study", "Observe", "Read", "Chronicle"],
+	"ELIMINATE":   ["Put down", "End", "Destroy", "Still"],
+	"CAPTURE":     ["Take", "Bind", "Subdue", "Restrain"],
+	"BANISH":      ["Banish", "Cast out", "Dispel", "Send back"],
+}
+const VERB_QUALIFIER := {
+	"INVESTIGATE": ["Return with understanding, not a corpse.", "We want it read, not slain.", "Learn its nature, and record it faithfully."],
+	"ELIMINATE":   ["See that it stays down.", "Leave nothing behind to rise.", "Silence it, by whatever holy means remain."],
+	"CAPTURE":     ["It must arrive alive and whole.", "Deliver it breathing.", "Do not slay what we mean to keep."],
+	"BANISH":      ["Steel alone will not do — bring the rite.", "Unmake it by liturgy, not the blade.", "Return it to the dark that bore it."],
+}
+const CHARGE_LOCALE := ["where it haunts %s", "loosed upon %s", "that troubles %s", "abroad in %s"]
+
+# The asserted-Origin gloss shown beside the wax seal in a charge's detail. A
+# claim the contract makes (falsifiable), never the hidden roll (GLOSSARY: Origin).
+const ORIGIN_GLOSS := {
+	"BELIEF": "a corrupted thought",
+	"SIN":    "a corrupted deed",
+	"RELIC":  "corrupted matter",
 }
 
 func _update_stations() -> void:
@@ -756,7 +762,10 @@ func _build_contract_board() -> void:
 	if _board_selection.is_empty():
 		var board: Array = _snapshot.get("board", [])
 		_log("board cards=%d" % board.size())
-		_popup_label("The needs of the world, written in blood and ink. Choose a contract.")
+		# A commission wall, not a bounty board: these are charges the Collegium
+		# issues, sealed in wax by the genus each is asserted to be.
+		_popup_title.text = "Charges Outstanding"
+		_popup_label("Petitions before the Collegium, sealed by their asserted genus. Take up a charge.")
 		var grid := GridContainer.new()
 		grid.columns = 2
 		grid.add_theme_constant_override("h_separation", 10)
@@ -792,34 +801,39 @@ func _make_contract_card(c: Dictionary, idx: int) -> Control:
 	card.add_child(bg)
 	card.mouse_entered.connect(func(): _hover_card(card, 1.045); bg.modulate = Color(1.10, 1.07, 1.0))
 	card.mouse_exited.connect(func(): _hover_card(card, 1.0); bg.modulate = Color.WHITE)
+	# Pull the text well inside the torn/weathered edges so no glyph rides the tear.
 	var pad := MarginContainer.new()
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pad.set_anchors_preset(Control.PRESET_FULL_RECT)
-	pad.add_theme_constant_override("margin_left", 9)
-	pad.add_theme_constant_override("margin_right", 9)
-	pad.add_theme_constant_override("margin_top", 11)   # clear the pin at the top
-	pad.add_theme_constant_override("margin_bottom", 8)
+	pad.add_theme_constant_override("margin_left", 18)
+	pad.add_theme_constant_override("margin_right", 18)
+	pad.add_theme_constant_override("margin_top", 16)   # clear the pin/wax at the top
+	pad.add_theme_constant_override("margin_bottom", 14)
 	card.add_child(pad)
 	var v := VBoxContainer.new()
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_theme_constant_override("separation", 3)
 	pad.add_child(v)
-	v.add_child(_card_label(str(c.get("targetName", "?")), 15, Color(0.24, 0.15, 0.06), true))
-	v.add_child(_card_label(str(c.get("siteName", "?")), 10, Color(0.42, 0.33, 0.20), false))
+	v.add_child(_card_label(str(c.get("targetName", "?")), 15, Color(0.24, 0.15, 0.06), true, true))
+	v.add_child(_card_label(str(c.get("siteName", "?")), 10, Color(0.42, 0.33, 0.20), false, true))
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(spacer)
+	# Threat row centred as a block: an HBox that shrinks to its content, itself
+	# centred in the card width so label+pips sit together over the page's middle.
 	var threat := HBoxContainer.new()
 	threat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	threat.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	threat.add_child(_card_label("Threat ", 10, Color(0.55, 0.16, 0.14), false))
 	var pips := ThreatPips.new()
 	pips.set_tier(str(c.get("tier", "APPRENTICE")))
 	threat.add_child(pips)
 	v.add_child(threat)
-	v.add_child(_card_label(_verb_word(str(c.get("primaryVerb", "?"))), 11, Color(0.44, 0.26, 0.12), false))
-	# A red wax seal pinning the paper to the board (top-centre, over the edge).
-	card.add_child(_wax_seal())
+	v.add_child(_card_label(_verb_word(str(c.get("primaryVerb", "?"))), 11, Color(0.44, 0.26, 0.12), false, true))
+	# The wax seal pins the paper to the board (top-centre, over the edge). Its
+	# colour + sigil encode the ASSERTED Origin — readable board vocabulary (I3).
+	card.add_child(_wax_seal(str(c.get("origin", "SIN"))))
 	return card
 
 # Lift a card toward the viewer on hover (scale from its centre pivot).
@@ -829,27 +843,23 @@ func _hover_card(card: Control, s: float) -> void:
 	var t := card.create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	t.tween_property(card, "scale", Vector2(s, s), 0.09)
 
-# A small round wax seal, positioned straddling the top edge of a card.
-func _wax_seal() -> Panel:
-	var seal := Panel.new()
+# An origin-keyed wax seal, positioned straddling the top edge of a card. The
+# WaxSeal control draws the wax + a per-Origin sigil (Belief/Sin/Relic).
+func _wax_seal(origin: String) -> Control:
+	var seal := WaxSeal.new()
+	seal.set_origin(origin)
 	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.62, 0.13, 0.13)
-	sb.set_corner_radius_all(7)
-	sb.set_border_width_all(1)
-	sb.border_color = Color(0.32, 0.05, 0.05)
-	seal.add_theme_stylebox_override("panel", sb)
 	seal.anchor_left = 0.5
 	seal.anchor_right = 0.5
 	seal.anchor_top = 0.0
 	seal.anchor_bottom = 0.0
-	seal.offset_left = -7.0
-	seal.offset_right = 7.0
-	seal.offset_top = -5.0
-	seal.offset_bottom = 9.0
+	seal.offset_left = -9.0
+	seal.offset_right = 9.0
+	seal.offset_top = -7.0
+	seal.offset_bottom = 11.0
 	return seal
 
-func _card_label(text: String, size: int, color: Color, do_wrap: bool) -> Label:
+func _card_label(text: String, size: int, color: Color, do_wrap: bool, center: bool = false) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -857,15 +867,29 @@ func _card_label(text: String, size: int, color: Color, do_wrap: bool) -> Label:
 	l.add_theme_color_override("font_color", color)
 	if do_wrap:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if center:
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return l
 
 func _build_contract_detail(c: Dictionary) -> void:
+	_popup_title.text = "The Charge"
 	var title := Label.new()
 	title.text = str(c.get("targetName", "?"))
 	title.add_theme_font_size_override("font_size", 20)
 	title.add_theme_color_override("font_color", Color(0.90, 0.78, 0.45))
 	_popup_body.add_child(title)
 	_popup_label("Site: %s" % c.get("siteName", "?"))
+	# The asserted genus, shown with its own wax seal so the board's vocabulary and
+	# the detail agree. Labelled "asserted" because it is a claim, not the truth.
+	var origin := str(c.get("origin", "SIN"))
+	var org_row := HBoxContainer.new()
+	org_row.add_theme_constant_override("separation", 6)
+	var seal := WaxSeal.new()
+	seal.set_origin(origin)
+	seal.custom_minimum_size = Vector2(18, 18)
+	org_row.add_child(seal)
+	org_row.add_child(_card_label("Asserted: %s — %s" % [_origin_word(origin), ORIGIN_GLOSS.get(origin, "")], 12, Color(0.78, 0.66, 0.42), false))
+	_popup_body.add_child(org_row)
 	var threat := HBoxContainer.new()
 	threat.add_child(_card_label("Threat  ", 12, Color(0.82, 0.55, 0.55), false))
 	var pips := ThreatPips.new()
@@ -969,12 +993,29 @@ func _texture_sb(path: String, margin: float, content: float, bg: Color, border:
 	flat.set_content_margin_all(content)
 	return flat
 
-# The flavored charge for a contract, chosen stably from its id.
+# The procedural charge for a contract, assembled stably from its id: a verb
+# synonym + a locale frame + a qualifier. The three slots draw from independent
+# offsets of the id hash so they vary without moving in lockstep, but the same
+# contract always yields the same charge.
 func _contract_brief(c: Dictionary) -> String:
 	var verb := str(c.get("primaryVerb", ""))
-	var options: Array = VERB_FLAVOR.get(verb, ["The charge is unclear; read the signs and decide."])
-	var idx: int = absi(str(c.get("contractId", "")).hash()) % options.size()
-	return str(options[idx])
+	var target := str(c.get("targetName", "the thing"))
+	var site := str(c.get("siteName", "the site"))
+	var syns: Array = VERB_SYNONYM.get(verb, ["Attend"])
+	var quals: Array = VERB_QUALIFIER.get(verb, ["Read the signs, and decide."])
+	# Three independent, stable indices from salted hashes of the id — no division,
+	# so the slots vary without moving in lockstep and always read the same.
+	var id := str(c.get("contractId", ""))
+	var word: String = str(syns[absi(id.hash()) % syns.size()])
+	var locale: String = str(CHARGE_LOCALE[absi((id + "|loc").hash()) % CHARGE_LOCALE.size()]) % site
+	var qual: String = str(quals[absi((id + "|qual").hash()) % quals.size()])
+	return "%s %s, %s. %s" % [word, target, locale, qual]
+
+# "SIN" -> "Sin". The asserted origin, sentence-cased for display.
+func _origin_word(origin: String) -> String:
+	if origin.is_empty():
+		return "?"
+	return origin.substr(0, 1) + origin.substr(1).to_lower()
 
 # "INVESTIGATE" -> "Investigate" (String.capitalize() would split all-caps letters).
 func _verb_word(verb: String) -> String:

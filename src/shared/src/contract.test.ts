@@ -1,6 +1,6 @@
 // T45: ContractIntel and PrimaryVerb shared types
 import { describe, it, expect } from 'vitest';
-import type { ContractIntel, PrimaryVerb } from './contract.js';
+import type { ContractIntel, Origin, PrimaryVerb } from './contract.js';
 import type { Tier } from './signs.js';
 
 // T45(a): PrimaryVerb is a union of exactly 4 literals.
@@ -20,6 +20,7 @@ const _badVerb: PrimaryVerb = 'OBSERVE';
 const _intel = {
   contractId:  'abc-123',
   tier:        'APPRENTICE' as Tier,
+  origin:      'SIN' as Origin,
   targetName:  'The Ashen Warden',
   siteName:    'The Collapsed Chancel',
   primaryVerb: 'INVESTIGATE' as PrimaryVerb,
@@ -38,23 +39,24 @@ describe('PrimaryVerb', () => {
 });
 
 describe('ContractIntel', () => {
-  it('has exactly 5 fields', () => {
+  it('has exactly 6 fields', () => {
     const intel: ContractIntel = {
       contractId:  'test-id',
       tier:        'JOURNEYMAN',
+      origin:      'BELIEF',
       targetName:  'The Weeping Mire',
       siteName:    'The Salt Marsh',
       primaryVerb: 'BANISH',
     };
     expect(Object.keys(intel).sort()).toEqual(
-      ['contractId', 'primaryVerb', 'siteName', 'targetName', 'tier']
+      ['contractId', 'origin', 'primaryVerb', 'siteName', 'targetName', 'tier']
     );
   });
 
   it('does not allow expeditionSeed (structural type check — see compile-time assertion above)', () => {
     // Runtime enforcement: no seed field on a plain ContractIntel object.
     const intel: ContractIntel = {
-      contractId: 'x', tier: 'MASTER', targetName: 'Y', siteName: 'Z', primaryVerb: 'CAPTURE',
+      contractId: 'x', tier: 'MASTER', origin: 'RELIC', targetName: 'Y', siteName: 'Z', primaryVerb: 'CAPTURE',
     };
     expect(Object.keys(intel)).not.toContain('expeditionSeed');
     expect(Object.keys(intel)).not.toContain('traitRoll');

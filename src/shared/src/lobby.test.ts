@@ -69,6 +69,7 @@ describe('ContractIntel has no traitRoll or expeditionSeed field', () => {
   it('structurally lacks server-only fields', () => {
     const contract: ContractIntel = {
       contractId: 'c-001',
+      origin: 'SIN',
       targetName: 'The Ashen Warden',
       siteName: 'The Collapsed Chancel',
       primaryVerb: 'INVESTIGATE',

@@ -13,7 +13,7 @@ import type { FieldSnapshot } from './fieldPhase.js';
 // T2: wire-protocol message payload types
 
 describe('LobbyErrorCode', () => {
-  it('contains exactly the eighteen expected error codes', () => {
+  it('contains exactly the nineteen expected error codes', () => {
     // Exhaustive switch — TypeScript compiler enforces this at compile time. A
     // missing case makes `code` non-never on the final assignment below.
     const check = (code: LobbyErrorCode): number => {
@@ -36,6 +36,7 @@ describe('LobbyErrorCode', () => {
         case 'NOT_AT_CONTRACT_BOARD':  return 16;
         case 'NOT_AT_QUARTERMASTER':   return 17;
         case 'NOT_AT_DEPLOY_GATE':     return 18;
+        case 'UNKNOWN_CONTRACT':       return 19;
       }
     };
     const codes: LobbyErrorCode[] = [
@@ -43,10 +44,10 @@ describe('LobbyErrorCode', () => {
       'PARTY_NOT_READY', 'INVALID_PAYLOAD', 'NOT_IN_ROOM', 'TOKEN_EXPIRED',
       'TOKEN_NOT_FOUND', 'WRONG_PHASE', 'UNKNOWN_ITEM', 'BAG_OVERFLOW',
       'MISSING_GEAR', 'CANNOT_KICK', 'NOT_AT_EXTRACTION', 'NOT_AT_CONTRACT_BOARD',
-      'NOT_AT_QUARTERMASTER', 'NOT_AT_DEPLOY_GATE',
+      'NOT_AT_QUARTERMASTER', 'NOT_AT_DEPLOY_GATE', 'UNKNOWN_CONTRACT',
     ];
     const values = codes.map(check);
-    expect(new Set(values).size).toBe(18);
+    expect(new Set(values).size).toBe(19);
   });
 });
 
@@ -54,6 +55,7 @@ describe('RoomDeployingPayload', () => {
   it('has a contract field typed as ContractIntel with no server-only keys (R48)', () => {
     const contract: ContractIntel = {
       contractId: 'c-001',
+      origin: 'SIN',
       targetName: 'The Ashen Warden',
       siteName: 'The Collapsed Chancel',
       primaryVerb: 'INVESTIGATE',
@@ -65,7 +67,7 @@ describe('RoomDeployingPayload', () => {
     expect(Object.keys(payload.contract)).not.toContain('traitRoll');
     expect(Object.keys(payload.contract)).not.toContain('expeditionSeed');
     expect(Object.keys(payload.contract).sort()).toEqual(
-      ['contractId', 'primaryVerb', 'siteName', 'targetName', 'tier'].sort()
+      ['contractId', 'origin', 'primaryVerb', 'siteName', 'targetName', 'tier'].sort()
     );
   });
 });
