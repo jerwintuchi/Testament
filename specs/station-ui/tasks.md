@@ -26,7 +26,7 @@
       mutation; unknown id → `UNKNOWN_CONTRACT`; success promotes the *chosen*
       board entry and stakes DEPLOYING (P59).
 
-- [ ] T124 [R111 / P62] — Client Contract Board: `scenes/ui/contract_card.tscn`,
+- [x] T124 [R111 / P62] — Client Contract Board: `scenes/ui/contract_card.tscn`,
       `threat_pips.tscn`, `contract_detail.tscn`; `_build_contract_board()` renders
       `snapshot.board` as cards (name/site/pips/verb, **no art**), selection →
       detail → Accept (leader) → `SELECT_CONTRACT`. Log `board cards=N` / `select <id>`.

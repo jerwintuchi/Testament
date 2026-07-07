@@ -11,6 +11,7 @@ enum Screen { MENU, LOBBY, DEPLOYING, FIELD, TESTAMENT, RECONNECTING }
 # server references the same names, so message types, error codes, phases, and the
 # gear catalog never drift (TD-029/TD-030: preload, not a global class_name).
 const Protocol = preload("res://protocol/protocol.gd")
+const ThreatPips = preload("res://scripts/ui/threat_pips.gd")
 
 const SERVER_URL := "ws://localhost:3001"
 # The reconnect token survives a client relaunch (R75). It is an opaque server
@@ -66,6 +67,11 @@ const STATION_RADIUS := 24.0
 const EXTRACTION_RADIUS := 32.0
 var _active_station := ""         # kind of the station in range, or "" — a render hint
 var _menu_open := false           # a station popup is up: movement is locked
+var _popup_kind := ""             # the station kind the open popup was built for (for rebuilds)
+var _board_selection: Dictionary = {}  # the contract card being previewed, or {} = the grid view
+var _wood_sb: StyleBox            # Contract Board panel skin — a wooden board
+var _parch_tex: Array = []        # 4 torn parchment card textures (unique tear patterns)
+var _popup_tween: Tween           # the open/close animation, tracked so it can be killed on re-entry
 var _prompt: Label                # bottom-center "Press E — <Station>"
 var _popup_dim: ColorRect         # full-rect input blocker + dimmer behind the popup
 var _popup: PanelContainer        # the reusable station menu shell
@@ -130,12 +136,21 @@ func _ready() -> void:
 	_popup_dim.visible = false
 	layer.add_child(_popup_dim)
 	# CenterContainer robustly centres the panel regardless of its size.
-	var pcenter := CenterContainer.new()
+	# A plain full-rect Control (not a CenterContainer) so the popup's position is
+	# ours to animate — we centre it manually and slide it up from the bottom.
+	var pcenter := Control.new()
 	pcenter.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pcenter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_popup_dim.add_child(pcenter)
 	_popup = PanelContainer.new()
 	_popup.theme = _build_popup_theme()  # 9-slice gothic panel + gold-on-charcoal controls
+	# Skins swapped in per station: the Contract Board is a wooden board, its cards
+	# pinned parchment. Built once; a missing texture falls back to a flat box.
+	_wood_sb = _texture_sb("res://assets/ui/board_wood.png", 16.0, 16.0, Color(0.29, 0.19, 0.10), Color(0.45, 0.30, 0.15))
+	for i in 4:
+		var t := load("res://assets/ui/parch_card_%d.png" % i) as Texture2D
+		if t != null:
+			_parch_tex.append(t)
 	pcenter.add_child(_popup)
 	var ppad := MarginContainer.new()
 	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
@@ -540,6 +555,31 @@ const _STATION_LABEL := {
 	"DEPLOY_GATE": "Deploy Gate", "EXTRACTION": "Extraction",
 }
 
+# Flavored charges per primary verb — a client-side rephrase of the server's verb
+# so a card reads like scribed intent, not "VERB: BANISH". Seeded by contractId.
+const VERB_FLAVOR := {
+	"INVESTIGATE": [
+		"Study it, and return with what you learn — not its head.",
+		"Observe and survive; we want understanding, not a corpse.",
+		"Read the thing well. Do not engage beyond need.",
+	],
+	"ELIMINATE": [
+		"Put it down, and see that it stays down.",
+		"End the thing. Leave nothing behind to rise.",
+		"Silence it, by whatever holy means remain.",
+	],
+	"CAPTURE": [
+		"Take it alive, and take it whole.",
+		"Bind it, and deliver it breathing.",
+		"Subdue the thing; do not slay it.",
+	],
+	"BANISH": [
+		"Send it back by the proper rite.",
+		"Unmake it with liturgy, not steel alone.",
+		"Return it to whatever dark it crawled from.",
+	],
+}
+
 func _update_stations() -> void:
 	if _menu_open:
 		_prompt.visible = false
@@ -582,29 +622,82 @@ func _center_px(tx: int, ty: int) -> Vector2:
 
 func _open_station(kind: String) -> void:
 	_menu_open = true
+	_popup_kind = kind
+	_board_selection = {}          # a fresh open starts on the board grid, not a detail
 	_prompt.visible = false
 	_popup_title.text = _STATION_LABEL.get(kind, kind)
-	for c in _popup_body.get_children():
-		c.queue_free()
+	# The Contract Board wears a wooden-board skin; every other station keeps the
+	# default gothic-stone panel from the theme.
+	if kind == "CONTRACT_BOARD" and _wood_sb != null:
+		_popup.add_theme_stylebox_override("panel", _wood_sb)
+	else:
+		_popup.remove_theme_stylebox_override("panel")
+	_clear_popup_body()
 	_build_station_content(kind)
+	_animate_body_in()
+	_slide_popup_in()
+
+# Slide the popup up from just below the screen to centre, backdrop fading in with
+# it. Relatively quick (~0.3s, cubic ease-out). The await lets the PanelContainer
+# compute its size so we can centre it; killing any in-flight tween keeps it
+# re-entrant against a fast close→open.
+func _slide_popup_in() -> void:
+	if _popup_tween != null:
+		_popup_tween.kill()
+	_popup_dim.modulate.a = 0.0
 	_popup_dim.visible = true
+	await get_tree().process_frame
+	if not _popup_dim.visible:            # closed during the wait
+		return
+	var vp := get_viewport_rect().size
+	var target := ((vp - _popup.size) * 0.5).floor()
+	_popup.position = Vector2(target.x, vp.y + 16.0)   # start off the bottom edge
+	_popup_tween = create_tween().set_parallel(true)
+	_popup_tween.tween_property(_popup_dim, "modulate:a", 1.0, 0.22).set_ease(Tween.EASE_OUT)
+	_popup_tween.tween_property(_popup, "position", target, 0.30).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func _close_station() -> void:
 	_menu_open = false
-	_popup_dim.visible = false
+	_popup_kind = ""
+	_board_selection = {}
+	if not _popup_dim.visible:
+		return
+	if _popup_tween != null:
+		_popup_tween.kill()
+	# Drop back down a little and fade out, then hide + clear.
+	_popup_tween = create_tween().set_parallel(true)
+	_popup_tween.tween_property(_popup_dim, "modulate:a", 0.0, 0.16).set_ease(Tween.EASE_IN)
+	_popup_tween.tween_property(_popup, "position:y", _popup.position.y + 40.0, 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_popup_tween.chain().tween_callback(func():
+		_popup_dim.visible = false
+		_clear_popup_body())
+
+# A quick fade-in of the popup body — used on open and on each grid⇄detail swap.
+func _animate_body_in() -> void:
+	_popup_body.modulate.a = 0.0
+	var t := _popup_body.create_tween().set_ease(Tween.EASE_OUT)
+	t.tween_property(_popup_body, "modulate:a", 1.0, 0.12)
+
+# Detach immediately (not just queue_free) so a rebuild never shows the old and new
+# content in the same frame.
+func _clear_popup_body() -> void:
 	for c in _popup_body.get_children():
+		_popup_body.remove_child(c)
 		c.queue_free()
+
+# Rebuild the current station's body in place — used when a station view has inner
+# navigation (the Contract Board grid ⇄ a card's detail). Fades the new content in.
+func _rebuild_popup_body() -> void:
+	_clear_popup_body()
+	_build_station_content(_popup_kind)
+	_animate_body_in()
 
 # Per-station content. v1 reuses the existing verbs; the richer per-station UIs
 # (contract list, arsenal) are a later spec.
 func _build_station_content(kind: String) -> void:
 	match kind:
 		"CONTRACT_BOARD":
-			if _is_leader():
-				_popup_label("The party must all be ready to accept.")
-				_popup_button("Accept Contract", func(): _net.send_message(Protocol.ACCEPT_CONTRACT))
-			else:
-				_popup_label("Only the party leader can accept the contract.")
+			_build_contract_board()
 		"QUARTERMASTER":
 			var slots := Label.new()
 			slots.text = _slots_text()
@@ -652,6 +745,168 @@ func _popup_button(text: String, on_pressed: Callable) -> void:
 	b.pressed.connect(on_pressed)
 	_popup_body.add_child(b)
 
+# ── Contract Board (R111) ─────────────────────────────────────────────────────
+# Renders snapshot.board as parchment cards — name, site, threat pips (from tier),
+# verb, and deliberately NO Incarnate art (mystery is the mechanic). Selecting a
+# card previews it; Accept (leader) sends SELECT_CONTRACT. Proximity + leader are
+# display hints only; the server re-validates and a raced NOT_*/PARTY_NOT_READY
+# still surfaces in the status line (P62).
+
+func _build_contract_board() -> void:
+	if _board_selection.is_empty():
+		var board: Array = _snapshot.get("board", [])
+		_log("board cards=%d" % board.size())
+		_popup_label("The needs of the world, written in blood and ink. Choose a contract.")
+		var grid := GridContainer.new()
+		grid.columns = 2
+		grid.add_theme_constant_override("h_separation", 10)
+		grid.add_theme_constant_override("v_separation", 10)
+		_popup_body.add_child(grid)
+		var idx := 0
+		for c in board:
+			grid.add_child(_make_contract_card(c, idx))
+			idx += 1
+	else:
+		_build_contract_detail(_board_selection)
+
+func _make_contract_card(c: Dictionary, idx: int) -> Control:
+	# The card is a themed Button (dark stone + gold border, hover from the theme);
+	# its content sits on top with mouse filtering off so clicks reach the Button.
+	var card := Button.new()
+	card.custom_minimum_size = Vector2(182, 118)
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER   # stay 1:1 with the texture
+	card.pivot_offset = Vector2(91, 59)   # scale from the card's centre on hover
+	card.flat = true
+	var empty := StyleBoxEmpty.new()      # the card chrome IS the torn texture below
+	for st in ["normal", "hover", "pressed", "focus"]:
+		card.add_theme_stylebox_override(st, empty)
+	card.pressed.connect(func(): _select_board_card(c))
+	# Torn parchment background — a unique tear pattern per card, drawn full-size
+	# (not 9-slice) so the tear keeps its shape; the wood shows through the gaps.
+	var bg := TextureRect.new()
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	if not _parch_tex.is_empty():
+		bg.texture = _parch_tex[idx % _parch_tex.size()]
+	card.add_child(bg)
+	card.mouse_entered.connect(func(): _hover_card(card, 1.045); bg.modulate = Color(1.10, 1.07, 1.0))
+	card.mouse_exited.connect(func(): _hover_card(card, 1.0); bg.modulate = Color.WHITE)
+	var pad := MarginContainer.new()
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pad.add_theme_constant_override("margin_left", 9)
+	pad.add_theme_constant_override("margin_right", 9)
+	pad.add_theme_constant_override("margin_top", 11)   # clear the pin at the top
+	pad.add_theme_constant_override("margin_bottom", 8)
+	card.add_child(pad)
+	var v := VBoxContainer.new()
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_theme_constant_override("separation", 3)
+	pad.add_child(v)
+	v.add_child(_card_label(str(c.get("targetName", "?")), 15, Color(0.24, 0.15, 0.06), true))
+	v.add_child(_card_label(str(c.get("siteName", "?")), 10, Color(0.42, 0.33, 0.20), false))
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(spacer)
+	var threat := HBoxContainer.new()
+	threat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	threat.add_child(_card_label("Threat ", 10, Color(0.55, 0.16, 0.14), false))
+	var pips := ThreatPips.new()
+	pips.set_tier(str(c.get("tier", "APPRENTICE")))
+	threat.add_child(pips)
+	v.add_child(threat)
+	v.add_child(_card_label(_verb_word(str(c.get("primaryVerb", "?"))), 11, Color(0.44, 0.26, 0.12), false))
+	# A red wax seal pinning the paper to the board (top-centre, over the edge).
+	card.add_child(_wax_seal())
+	return card
+
+# Lift a card toward the viewer on hover (scale from its centre pivot).
+func _hover_card(card: Control, s: float) -> void:
+	if not is_instance_valid(card):
+		return
+	var t := card.create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_property(card, "scale", Vector2(s, s), 0.09)
+
+# A small round wax seal, positioned straddling the top edge of a card.
+func _wax_seal() -> Panel:
+	var seal := Panel.new()
+	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.62, 0.13, 0.13)
+	sb.set_corner_radius_all(7)
+	sb.set_border_width_all(1)
+	sb.border_color = Color(0.32, 0.05, 0.05)
+	seal.add_theme_stylebox_override("panel", sb)
+	seal.anchor_left = 0.5
+	seal.anchor_right = 0.5
+	seal.anchor_top = 0.0
+	seal.anchor_bottom = 0.0
+	seal.offset_left = -7.0
+	seal.offset_right = 7.0
+	seal.offset_top = -5.0
+	seal.offset_bottom = 9.0
+	return seal
+
+func _card_label(text: String, size: int, color: Color, do_wrap: bool) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	if do_wrap:
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return l
+
+func _build_contract_detail(c: Dictionary) -> void:
+	var title := Label.new()
+	title.text = str(c.get("targetName", "?"))
+	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_color_override("font_color", Color(0.90, 0.78, 0.45))
+	_popup_body.add_child(title)
+	_popup_label("Site: %s" % c.get("siteName", "?"))
+	var threat := HBoxContainer.new()
+	threat.add_child(_card_label("Threat  ", 12, Color(0.82, 0.55, 0.55), false))
+	var pips := ThreatPips.new()
+	pips.set_tier(str(c.get("tier", "APPRENTICE")))
+	threat.add_child(pips)
+	_popup_body.add_child(threat)
+	# A flavored charge instead of a bare "verb: X" — seeded by the contractId, so
+	# each contract reads a little differently but stably (client-side prose over
+	# the server's verb; authored intel text is a later enhancement).
+	_popup_label(_contract_brief(c))
+	_popup_label("The Collegium does not hunt for glory, but for understanding.")
+	# Accept is a leader affordance; the server still gates leader/board/ready (P62).
+	if _is_leader():
+		if not _all_ready():
+			_popup_label("The whole party must be Ready before you can accept.")
+		_popup_button("Accept this contract", func():
+			_net.send_message(Protocol.SELECT_CONTRACT, {"contractId": c.get("contractId", "")}))
+	else:
+		_popup_label("Only the party leader can accept the contract.")
+	_popup_button("← Back to the board", func(): _select_board_card({}))
+
+func _select_board_card(c: Dictionary) -> void:
+	_board_selection = c
+	if not c.is_empty():
+		_log("select %s" % c.get("contractId", ""))
+	# Cross-fade: fade the current view out, then rebuild (which fades the new in).
+	var t := _popup_body.create_tween().set_ease(Tween.EASE_IN)
+	t.tween_property(_popup_body, "modulate:a", 0.0, 0.07)
+	t.tween_callback(_rebuild_popup_body)
+
+# Client-side mirror of the server's ghost-proof allReady (connected players only);
+# a display hint for the Accept affordance — the server remains the authority.
+func _all_ready() -> bool:
+	var players: Array = _snapshot.get("players", [])
+	if players.is_empty():
+		return false
+	for p in players:
+		if p.get("connected", true) and not p.get("readyState", false):
+			return false
+	return true
+
 # The station popup's look: a gothic Theme applied to `_popup` that cascades to
 # every child (buttons, labels, checkboxes). The panel itself is a 9-slice
 # StyleBoxTexture built from assets/ui/panel.png (dark stone + aged-gold frame),
@@ -695,6 +950,37 @@ func _btn_box(bg: Color, border: Color) -> StyleBoxFlat:
 	b.content_margin_top = 5.0
 	b.content_margin_bottom = 5.0
 	return b
+
+# A 9-slice StyleBox from a texture, with a flat fallback if the texture is missing
+# or not yet imported (so the popup never breaks on a cold asset).
+func _texture_sb(path: String, margin: float, content: float, bg: Color, border: Color, mod_color: Color = Color.WHITE) -> StyleBox:
+	var tex := load(path) as Texture2D
+	if tex != null:
+		var sb := StyleBoxTexture.new()
+		sb.texture = tex
+		sb.set_texture_margin_all(margin)
+		sb.set_content_margin_all(content)
+		sb.modulate_color = mod_color
+		return sb
+	var flat := StyleBoxFlat.new()
+	flat.bg_color = bg
+	flat.set_border_width_all(2)
+	flat.border_color = border
+	flat.set_content_margin_all(content)
+	return flat
+
+# The flavored charge for a contract, chosen stably from its id.
+func _contract_brief(c: Dictionary) -> String:
+	var verb := str(c.get("primaryVerb", ""))
+	var options: Array = VERB_FLAVOR.get(verb, ["The charge is unclear; read the signs and decide."])
+	var idx: int = absi(str(c.get("contractId", "")).hash()) % options.size()
+	return str(options[idx])
+
+# "INVESTIGATE" -> "Investigate" (String.capitalize() would split all-caps letters).
+func _verb_word(verb: String) -> String:
+	if verb.is_empty():
+		return "?"
+	return verb.substr(0, 1) + verb.substr(1).to_lower()
 
 # Follow the local body, clamped inside the map; center on axes smaller than the
 # view. Reads the body's server target, never an integrated guess.
