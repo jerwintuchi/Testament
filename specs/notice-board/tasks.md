@@ -112,12 +112,17 @@
 > Order = dependency order; batching is **structure (T141–T142) → detail (T143–T144)**
 > with the legibility/a11y **fix cluster (T145–T146)** landing alongside, then verify.
 
-- [ ] T140 [DESIGN § Colors, `pipeline`; P: palette-lock] — **Generator foundation.**
-      A stdlib PNG gen module carrying the locked **Ash & Ember** ramps, RGBA per-pixel
-      helpers, a **grayscale-additive VFX** source convention, and a **quantize-to-ramp**
-      export helper (no off-palette pixel). Extend/replace `client/assets/ui/gen_board.py`.
-      Test: generator runs headless and emits PNGs; a palette-membership check asserts
-      every non-transparent pixel ∈ the ramps (the quantize helper's own assertion).
+- [x] T140 [DESIGN § Colors, `pipeline`; P: palette-lock] — **Generator foundation.**
+      `client/assets/ui/ashember.py` — a stdlib PNG toolkit carrying the locked **Ash &
+      Ember** ramps (18 colours), RGBA per-pixel helpers (`noise`/`lerp_rgb`/`clamp`), the
+      **grayscale-additive VFX** convention (`additive()` = white+alpha, tinted at
+      runtime), a perceptually-weighted **`quantize()`** to nearest ramp, and
+      **`assert_on_palette()`** (opaque pixels ∈ ramps; transparent + white-VFX exempt).
+      Built as an imported foundation module (Batch generators `from ashember import …`)
+      rather than editing Pass-1 `gen_board.py`, which T141/T142 supersede.
+      Test: `python3 ashember.py` self-test — ramps distinct; `quantize` identity on locked
+      colours + snaps near-colours; a quantized gradient is 100% on-palette; VFX exemption
+      only under `allow_vfx`; PNG writer emits a valid signature. **Green.**
 
 - [ ] T141 [DESIGN § Components "Batch 1", Shapes, Layout] — **Structure assets.**
       Generate + Aseprite-finish: carved **frame** 9-slice (mitred corners + iron studs),
