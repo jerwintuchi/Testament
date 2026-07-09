@@ -13,6 +13,7 @@ enum Screen { MENU, LOBBY, DEPLOYING, FIELD, TESTAMENT, RECONNECTING }
 const Protocol = preload("res://protocol/protocol.gd")
 const ThreatPips = preload("res://scripts/ui/threat_pips.gd")
 const WaxSeal = preload("res://scripts/ui/wax_seal.gd")
+const Notice = preload("res://scripts/ui/notice.gd")
 
 const SERVER_URL := "ws://localhost:3001"
 # The reconnect token survives a client relaunch (R75). It is an opaque server
@@ -78,6 +79,9 @@ var _popup_dim: ColorRect         # full-rect input blocker + dimmer behind the 
 var _popup: PanelContainer        # the reusable station menu shell
 var _popup_title: Label           # station name (persistent, above the scroll)
 var _popup_body: VBoxContainer    # per-station content, rebuilt on open (scrolls)
+var _popup_scroll: ScrollContainer  # sizes the popup — widened to a full board for CONTRACT_BOARD
+var _toast: Label                 # transient top-center notice (e.g. a contract sealed/withdrawn)
+var _toast_tween: Tween
 
 func _ready() -> void:
 	_net = NetClient.new()
@@ -128,6 +132,24 @@ func _ready() -> void:
 	_prompt.visible = false
 	layer.add_child(_prompt)
 
+	# Top-center transient toast (contract sealed/withdrawn, and future room notices).
+	# Above the popup dimmer so it reads even over an open station.
+	_toast = Label.new()
+	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_toast.offset_left = -260
+	_toast.offset_right = 260
+	_toast.offset_top = 20
+	_toast.offset_bottom = 52
+	_toast.add_theme_font_size_override("font_size", 15)
+	_toast.add_theme_color_override("font_color", Color(0.97, 0.90, 0.66))
+	_toast.add_theme_color_override("font_shadow_color", Color(0.05, 0.03, 0.02, 0.95))
+	_toast.add_theme_constant_override("shadow_offset_x", 1)
+	_toast.add_theme_constant_override("shadow_offset_y", 2)
+	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toast.modulate.a = 0.0
+	layer.add_child(_toast)
+
 	# Reusable station popup: a full-rect dimmer that blocks the map/base UI, plus a
 	# centered panel whose body is rebuilt per station. Hidden until E.
 	_popup_dim = ColorRect.new()
@@ -170,6 +192,7 @@ func _ready() -> void:
 	pscroll.custom_minimum_size = Vector2(400, 340)
 	pscroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	pcol.add_child(pscroll)
+	_popup_scroll = pscroll
 	_popup_body = VBoxContainer.new()
 	_popup_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_popup_body.add_theme_constant_override("separation", 8)
@@ -179,9 +202,41 @@ func _ready() -> void:
 	pclose.pressed.connect(_close_station)
 	pcol.add_child(pclose)
 
+	# Reflow the open station popup when the window resizes (e.g. fullscreen toggle),
+	# so a board built for one resolution never lingers over-sized in another.
+	get_viewport().size_changed.connect(_on_viewport_resized)
+
 	_reconnect_token = _load_token()
 	_net.open(SERVER_URL)
 	_show_menu()
+
+# On a window/viewport resize, re-fit an open station: recompute the board's
+# scroll size and rebuild its body (the notice scatter is resolution-scaled), then
+# re-center the panel. Cheap and only runs while a popup is open.
+func _on_viewport_resized() -> void:
+	if not _menu_open:
+		return
+	var vp := get_viewport_rect().size
+	if _popup_kind == "CONTRACT_BOARD" and _wood_sb != null:
+		_popup_scroll.custom_minimum_size = Vector2(vp.x - 72.0, vp.y - 128.0)
+	_rebuild_popup_body()
+	await get_tree().process_frame
+	if _popup_dim.visible:
+		_popup.position = ((vp - _popup.size) * 0.5).floor()
+
+# Flash a transient top-center toast: fade in, hold, fade out. Re-entrant — a new
+# toast restarts the tween. Pure presentation (a server notice, not state).
+func _show_toast(text: String) -> void:
+	if _toast == null:
+		return
+	_toast.text = text
+	if _toast_tween != null:
+		_toast_tween.kill()
+	_toast.modulate.a = 0.0
+	_toast_tween = create_tween()
+	_toast_tween.tween_property(_toast, "modulate:a", 1.0, 0.18)
+	_toast_tween.tween_interval(2.4)
+	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.5)
 
 # ── Inbound messages (the only source of state) ──────────────────────────────
 
@@ -204,11 +259,25 @@ func _on_message(type: String, payload: Variant) -> void:
 				Protocol.PHASE_WAITING:
 					# A joiner's first LOBBY_UPDATED precedes its RECONNECT_TOKEN;
 					# without _self_id the lobby can't mark "you" yet, so wait.
-					if _screen == Screen.LOBBY or (_pending_join and _self_id != ""):
+					if _menu_open and _popup_kind == "CONTRACT_BOARD":
+						# A ready-toggle only changes the open notice's ledger. Refresh
+						# just the popup (fast) — not the whole lobby + space behind the
+						# dim, which is what made sealing lag and lifting look dead.
+						_rebuild_popup_body()
+					elif _screen == Screen.LOBBY or (_pending_join and _self_id != ""):
 						_show_lobby()
 				Protocol.PHASE_DEPLOYING:
 					if _screen == Screen.DEPLOYING:
 						_show_deploying()  # party bags updated
+		Protocol.CONTRACT_SELECTION:
+			# Transient notice for the whole room: the leader sealed/withdrew a charge.
+			# Authoritative selection arrives on the LOBBY_UPDATED snapshot (contract).
+			var who := str(payload.get("actorName", "The leader"))
+			var tgt := str(payload.get("targetName", "a contract"))
+			if payload.get("accepted", false):
+				_show_toast("%s sealed the charge: %s" % [who, tgt])
+			else:
+				_show_toast("%s lifted the seal on %s" % [who, tgt])
 		Protocol.ROOM_DEPLOYING:
 			_snapshot["phase"] = Protocol.PHASE_DEPLOYING
 			_snapshot["contract"] = payload["contract"]
@@ -267,7 +336,7 @@ func _on_message(type: String, payload: Variant) -> void:
 			if _awaiting_resume or payload["code"] in [Protocol.ERR_TOKEN_EXPIRED, Protocol.ERR_TOKEN_NOT_FOUND]:
 				_set_token("")
 			_awaiting_resume = false
-			_set_status("✝ %s — %s" % [payload["code"], payload["message"]])
+			_set_status("✝ %s: %s" % [payload["code"], payload["message"]])
 			_log("LOBBY_ERROR %s — %s" % [payload["code"], payload["message"]])
 
 func _ingest_probe_result(payload: Dictionary) -> void:
@@ -276,11 +345,11 @@ func _ingest_probe_result(payload: Dictionary) -> void:
 	var line: String
 	if payload["sign"] != null:
 		var sign_data: Dictionary = payload["sign"]
-		line = "%s presented %s — [%s] %s" % [who, payload["stimulus"], sign_data["channel"], sign_data["token"]]
+		line = "%s presented %s: [%s] %s" % [who, payload["stimulus"], sign_data["channel"], sign_data["token"]]
 		if not _signs.any(func(s): return s["channel"] == sign_data["channel"] and s["token"] == sign_data["token"]):
 			_signs.append(sign_data)
 	else:
-		line = "%s presented %s — you cannot read it" % [who, payload["stimulus"]]
+		line = "%s presented %s: you cannot read it" % [who, payload["stimulus"]]
 	_probe_log.append(line)
 	if _screen == Screen.FIELD:
 		_show_field()
@@ -298,7 +367,7 @@ func _on_socket_opened() -> void:
 
 func _on_socket_closed() -> void:
 	if _screen == Screen.MENU or _screen == Screen.TESTAMENT:
-		_set_status("server offline — start it with: pnpm dev:server")
+		_set_status("server offline. start it with: pnpm dev:server")
 	else:
 		_show_reconnecting()
 
@@ -326,12 +395,12 @@ func _show_menu() -> void:
 				_awaiting_resume = true
 				_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
 			else:
-				_set_status("still connecting — try again in a moment"))
+				_set_status("still connecting, try again in a moment"))
 
 func _show_lobby() -> void:
 	_screen = Screen.LOBBY
 	_clear()
-	_h1("Lobby — room %s" % _snapshot.get("roomCode", "?"))
+	_h1("Lobby: room %s" % _snapshot.get("roomCode", "?"))
 	_label("share the code aloud; the Collegium sends up to four")
 	for p in _snapshot.get("players", []):
 		_party_row(p)
@@ -353,7 +422,7 @@ func _show_deploying() -> void:
 	_screen = Screen.DEPLOYING
 	_clear()
 	var c: Dictionary = _snapshot.get("contract") if _snapshot.get("contract") != null else {}
-	_h1("Contract — %s" % c.get("targetName", "?"))
+	_h1("Contract: %s" % c.get("targetName", "?"))
 	_label("site: %s    tier: %s    verb: %s" % [c.get("siteName", "?"), c.get("tier", "?"), c.get("primaryVerb", "?")])
 	_label("")
 	_label("Walk to the Quartermaster (E) to requisition, the Deploy Gate (E) to deploy.")
@@ -369,14 +438,14 @@ func _show_deploying() -> void:
 func _show_field() -> void:
 	_screen = Screen.FIELD
 	_clear()
-	_h1("The Field — %s" % _field.get("siteName", "?"))
+	_h1("The Field: %s" % _field.get("siteName", "?"))
 	_label("target: %s" % _field.get("incarnateName", "?"))
-	_label("you perceive: %s" % (", ".join(_channels) if not _channels.is_empty() else "nothing — you packed no perception gear"))
+	_label("you perceive: %s" % (", ".join(_channels) if not _channels.is_empty() else "nothing (you packed no perception gear)"))
 	_label("party exposure: %d" % _exposure)
 	_label("")
 	_h2("Signs you can read")
 	if _signs.is_empty():
-		_label("(nothing yet — observe, then probe)")
+		_label("(nothing yet; observe, then probe)")
 	for s in _signs:
 		_label("[%s]  %s" % [s["channel"], s["token"]])
 	_label("")
@@ -405,7 +474,7 @@ func _show_testament() -> void:
 	_label("")
 	_h2("The Archive")
 	for e in _archive:
-		_label("%s at %s — %s: %s" % [e.get("targetName", "?"), e.get("siteName", "?"), e.get("outcome", "?"), e.get("notes", "")])
+		_label("%s at %s, %s: %s" % [e.get("targetName", "?"), e.get("siteName", "?"), e.get("outcome", "?"), e.get("notes", "")])
 	_label("")
 	_button("Return to the Collegium", func():
 		_reset_session()
@@ -556,27 +625,8 @@ const _STATION_LABEL := {
 	"DEPLOY_GATE": "Deploy Gate", "EXTRACTION": "Extraction",
 }
 
-# Procedural charge prose — a client-side rephrase of the server's verb so a card
-# reads like scribed intent, not "VERB: BANISH". The description is assembled from
-# a grammar: a verb SYNONYM (the imperative), a LOCALE frame (where), and a
-# QUALIFIER clause (the intent, reinforced). Every synonym of a verb still carries
-# that verb's meaning and the qualifier restates it, so the VERB hint survives the
-# rephrase. Assembled deterministically from the contractId, so a given contract
-# always reads the same. This is presentation only — the server's primaryVerb is
-# the authority; this never invents game state.
-const VERB_SYNONYM := {
-	"INVESTIGATE": ["Study", "Observe", "Read", "Chronicle"],
-	"ELIMINATE":   ["Put down", "End", "Destroy", "Still"],
-	"CAPTURE":     ["Take", "Bind", "Subdue", "Restrain"],
-	"BANISH":      ["Banish", "Cast out", "Dispel", "Send back"],
-}
-const VERB_QUALIFIER := {
-	"INVESTIGATE": ["Return with understanding, not a corpse.", "We want it read, not slain.", "Learn its nature, and record it faithfully."],
-	"ELIMINATE":   ["See that it stays down.", "Leave nothing behind to rise.", "Silence it, by whatever holy means remain."],
-	"CAPTURE":     ["It must arrive alive and whole.", "Deliver it breathing.", "Do not slay what we mean to keep."],
-	"BANISH":      ["Steel alone will not do — bring the rite.", "Unmake it by liturgy, not the blade.", "Return it to the dark that bore it."],
-}
-const CHARGE_LOCALE := ["where it haunts %s", "loosed upon %s", "that troubles %s", "abroad in %s"]
+# The procedural charge prose (headline / preamble / charge / signature) now lives
+# in `Notice` (scripts/ui/notice.gd), keyed off ContractIntel + contractId.
 
 # The asserted-Origin gloss shown beside the wax seal in a charge's detail. A
 # claim the contract makes (falsifiable), never the hidden roll (GLOSSARY: Origin).
@@ -593,7 +643,7 @@ func _update_stations() -> void:
 	_active_station = _nearest_station()
 	_prompt.visible = _active_station != ""
 	if _prompt.visible:
-		_prompt.text = "Press E — %s" % _STATION_LABEL.get(_active_station, _active_station)
+		_prompt.text = "Press E: %s" % _STATION_LABEL.get(_active_station, _active_station)
 
 # Kind of the station whose centre the local body stands within, else "". Reads
 # the local body's server target (feet px), never an integrated guess.
@@ -632,12 +682,17 @@ func _open_station(kind: String) -> void:
 	_board_selection = {}          # a fresh open starts on the board grid, not a detail
 	_prompt.visible = false
 	_popup_title.text = _STATION_LABEL.get(kind, kind)
-	# The Contract Board wears a wooden-board skin; every other station keeps the
-	# default gothic-stone panel from the theme.
+	_popup_title.visible = true                                    # board builder hides it (uses a placard)
+	_popup_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT  # board builder re-centres its own
+	# The Contract Board wears a wooden-board skin and fills the screen like a real
+	# commission wall; every other station keeps the compact gothic-stone panel.
 	if kind == "CONTRACT_BOARD" and _wood_sb != null:
 		_popup.add_theme_stylebox_override("panel", _wood_sb)
+		var vp := get_viewport_rect().size
+		_popup_scroll.custom_minimum_size = Vector2(vp.x - 72.0, vp.y - 128.0)
 	else:
 		_popup.remove_theme_stylebox_override("panel")
+		_popup_scroll.custom_minimum_size = Vector2(400, 340)
 	_clear_popup_body()
 	_build_station_content(kind)
 	_animate_body_in()
@@ -734,107 +789,484 @@ func _build_station_content(kind: String) -> void:
 			else:
 				_popup_label("Only the party leader can deploy.")
 		"EXTRACTION":
-			_popup_button("EXTRACT — leave with what you learned", func(): _net.send_message(Protocol.EXTRACT))
+			_popup_button("EXTRACT: leave with what you learned", func(): _net.send_message(Protocol.EXTRACT))
 
 func _slots_text() -> String:
-	return "Requisition — %d of %d slots" % [_selected_items.size(), Catalog.BAG_SLOTS]
+	return "Requisition: %d of %d slots" % [_selected_items.size(), Catalog.BAG_SLOTS]
 
-func _popup_label(text: String) -> void:
+func _popup_label(text: String, parent: Node = null) -> void:
 	var l := Label.new()
 	l.text = text
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_popup_body.add_child(l)
+	(parent if parent != null else _popup_body).add_child(l)
 
-func _popup_button(text: String, on_pressed: Callable) -> void:
+func _popup_button(text: String, on_pressed: Callable, parent: Node = null) -> void:
 	var b := Button.new()
 	b.text = text
 	b.pressed.connect(on_pressed)
-	_popup_body.add_child(b)
+	(parent if parent != null else _popup_body).add_child(b)
 
-# ── Contract Board (R111) ─────────────────────────────────────────────────────
-# Renders snapshot.board as parchment cards — name, site, threat pips (from tier),
-# verb, and deliberately NO Incarnate art (mystery is the mechanic). Selecting a
-# card previews it; Accept (leader) sends SELECT_CONTRACT. Proximity + leader are
-# display hints only; the server re-validates and a raced NOT_*/PARTY_NOT_READY
-# still surfaces in the status line (P62).
+# ── The Notice Board (specs/notice-board) ────────────────────────────────────
+# A wooden installation, not a menu: portrait parchment notices tacked at seeded
+# angles across the board (no scroll). The 4 live contracts are clickable; a few
+# decorative flavor notices are inert ambiance. Clicking a live notice "takes it
+# down" — it enlarges to centre over the dimmed board (a writ), where the party
+# signs the charge. Every notice string comes from ContractIntel + contractId via
+# `Notice`; nothing here is trait-derived or authoritative (I1/I3).
+
+# Inert ambient notices — pure flavor (P65). No contractId, never selectable.
+const FLAVOR_NOTICES := [
+	{ "head": "ATTENTION", "body": "All bearers of unsanctioned relics must present them at the Reliquary before the next bell." },
+	{ "head": "A PLEA", "body": "My brother went to the fens with the last party and has not returned. Leave any word with the Almoner." },
+	{ "head": "NOTICE OF DECAY", "body": "The east chancel is closed by order of the Wardens. The ground is no longer trustworthy." },
+	{ "head": "OBSERVANCE", "body": "Vespers are moved to the crypt until the upper nave is reconsecrated." },
+]
+# Live-contract anchor centres (fractions of the board's inner area). NOT a row —
+# a loose scatter across the whole board so the wall reads like a maintained
+# commission board (TD: dense organic scatter). Spread across quadrants so that,
+# even at the largest sizes, live notices overlap only at corners and never bury
+# another contract's headline/target; a seeded jitter loosens the grid further.
+const LIVE_SLOTS := [Vector2(0.17, 0.33), Vector2(0.47, 0.24), Vector2(0.31, 0.67), Vector2(0.71, 0.48)]
+# Flavor scraps fill the gaps and the edges. Drawn BEHIND the live notices, so they
+# may tuck under a contract (dense clutter) without ever stealing its click — they
+# are inert (MOUSE_FILTER_IGNORE), pure ambiance (P65).
+const FLAVOR_SLOTS := [Vector2(0.63, 0.16), Vector2(0.88, 0.30), Vector2(0.11, 0.58), Vector2(0.52, 0.87), Vector2(0.82, 0.83), Vector2(0.94, 0.56)]
+# Live-notice sizes span from small notes to big posters (dramatic variety). The
+# pick is seeded from contractId and is PURELY aesthetic — size never encodes
+# tier/importance (all contracts are equal-weight; the mystery is the mechanic).
+const LIVE_SIZES := [Vector2(198, 250), Vector2(150, 196), Vector2(208, 176), Vector2(128, 168), Vector2(172, 216), Vector2(122, 158)]
+const FLAVOR_SIZES := [Vector2(116, 146), Vector2(100, 132), Vector2(142, 112), Vector2(108, 150), Vector2(96, 120), Vector2(150, 124)]
+
+# Aged-parchment tints, seeded per notice — warm variety like a real board, without
+# encoding anything (the wax seal carries Origin; this is pure aesthetics).
+const PARCH_TINTS := [
+	Color(0.99, 0.92, 0.74), Color(0.97, 0.84, 0.58), Color(0.94, 0.76, 0.52),
+	Color(0.91, 0.82, 0.66), Color(0.89, 0.73, 0.60), Color(0.96, 0.88, 0.68),
+]
+# Headline ink by charge, so the sacred register also reads by colour at a glance.
+const HEADLINE_COLOR := {
+	"INVESTIGATE": Color(0.17, 0.21, 0.44),  # inquiry — ink blue
+	"ELIMINATE":   Color(0.55, 0.11, 0.09),  # sanction — blood red
+	"CAPTURE":     Color(0.14, 0.34, 0.22),  # containment — deep green
+	"BANISH":      Color(0.37, 0.16, 0.44),  # banishment — violet
+}
+
+func _headline_color(verb: String) -> Color:
+	return HEADLINE_COLOR.get(verb, Color(0.30, 0.12, 0.08))
+
+func _parch_tint(seed_str: String) -> Color:
+	return PARCH_TINTS[absi((seed_str + "|tint").hash()) % PARCH_TINTS.size()]
 
 func _build_contract_board() -> void:
-	if _board_selection.is_empty():
-		var board: Array = _snapshot.get("board", [])
-		_log("board cards=%d" % board.size())
-		# A commission wall, not a bounty board: these are charges the Collegium
-		# issues, sealed in wax by the genus each is asserted to be.
-		_popup_title.text = "Charges Outstanding"
-		_popup_label("Petitions before the Collegium, sealed by their asserted genus. Take up a charge.")
-		var grid := GridContainer.new()
-		grid.columns = 2
-		grid.add_theme_constant_override("h_separation", 10)
-		grid.add_theme_constant_override("v_separation", 10)
-		_popup_body.add_child(grid)
-		var idx := 0
-		for c in board:
-			grid.add_child(_make_contract_card(c, idx))
-			idx += 1
-	else:
-		_build_contract_detail(_board_selection)
+	var board: Array = _snapshot.get("board", [])
+	# The carved placard is the board's title now — hide the plain text header.
+	_popup_title.visible = false
+	# One canvas the wood frame wraps; notices are placed on it absolutely.
+	var inner := _board_inner_size()
+	var canvas := Control.new()
+	canvas.custom_minimum_size = inner
+	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_popup_body.add_child(canvas)
+	# The papers live in their own layer beneath the placard and the reader. A hovered
+	# notice raises to front WITHIN this layer only, so dense overlap never lets a
+	# paper float above the hanging sign (or over an open reading).
+	var notes := Control.new()
+	notes.set_anchors_preset(Control.PRESET_FULL_RECT)
+	notes.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(notes)
+	# Flavor scraps first (drawn behind), scattered to fill the whole board; then the
+	# live contracts on top, so a contract is never buried by ambiance.
+	for i in FLAVOR_NOTICES.size():
+		var fslot: Vector2 = FLAVOR_SLOTS[i % FLAVOR_SLOTS.size()] + _seed_jitter("flavor-%d" % i)
+		var fsz: Vector2 = FLAVOR_SIZES[i % FLAVOR_SIZES.size()]
+		_place(notes, _make_flavor_notice(FLAVOR_NOTICES[i], i), fslot, fsz, _seed_tilt("flavor-%d" % i))
+	var live := 0
+	for idx in board.size():
+		if idx >= LIVE_SLOTS.size():
+			break
+		var intel: Dictionary = board[idx]
+		var cid := str(intel.get("contractId", ""))
+		var sz: Vector2 = LIVE_SIZES[absi(cid.hash()) % LIVE_SIZES.size()]
+		var slot: Vector2 = LIVE_SLOTS[idx] + _seed_jitter(cid)
+		_place(notes, _make_live_notice(intel, idx), slot, sz, _seed_tilt(cid))
+		live += 1
+	# The carved sign hangs over the top of the board, above the papers (own layer).
+	_place_placard(canvas)
+	_log("board live=%d flavor=%d" % [live, FLAVOR_NOTICES.size()])
+	# If a notice has been taken down, lay it on the reader over the dimmed board.
+	if not _board_selection.is_empty():
+		_show_notice_reader(canvas, _board_selection)
 
-func _make_contract_card(c: Dictionary, idx: int) -> Control:
-	# The card is a themed Button (dark stone + gold border, hover from the theme);
-	# its content sits on top with mouse filtering off so clicks reach the Button.
+# The board's inner area (inside the wood frame): the popup scroll region, minus a
+# little breathing room. Absolute notice placement is normalised to this.
+func _board_inner_size() -> Vector2:
+	return (get_viewport_rect().size - Vector2(120, 176)).max(Vector2(640, 320))
+
+# Place a notice on the canvas: top-left from a normalised centre, rotated about
+# its own centre so it hangs at a human angle.
+func _place(canvas: Control, node: Control, center_norm: Vector2, size: Vector2, tilt: float) -> void:
+	node.custom_minimum_size = size
+	node.size = size
+	node.pivot_offset = size * 0.5
+	node.rotation_degrees = tilt
+	# Keep the paper (plus a little rotation slack) inside the wooden frame even when
+	# a big size lands under a jittered edge slot.
+	var inner := _board_inner_size()
+	# Reserve the top band for the hanging placard so papers sit below the sign
+	# (matching the reference) rather than jamming up behind it.
+	var top_reserve := 72.0
+	var pos := inner * center_norm - size * 0.5
+	pos.x = clampf(pos.x, 8.0, maxf(8.0, inner.x - size.x - 8.0))
+	pos.y = clampf(pos.y, top_reserve, maxf(top_reserve, inner.y - size.y - 8.0))
+	node.position = pos.floor()
+	canvas.add_child(node)
+
+# A live contract notice: a clickable portrait parchment — sacred headline, target,
+# site, threat pips, and an Origin wax seal as its tack. No prose here (glanceable);
+# the full writ is read only when taken down.
+func _make_live_notice(intel: Dictionary, idx: int) -> Control:
+	var sel := not _board_selection.is_empty() and str(_board_selection.get("contractId", "")) == str(intel.get("contractId", ""))
 	var card := Button.new()
-	card.custom_minimum_size = Vector2(182, 118)
-	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER   # stay 1:1 with the texture
-	card.pivot_offset = Vector2(91, 59)   # scale from the card's centre on hover
 	card.flat = true
-	var empty := StyleBoxEmpty.new()      # the card chrome IS the torn texture below
+	card.clip_contents = false
+	var empty := StyleBoxEmpty.new()
 	for st in ["normal", "hover", "pressed", "focus"]:
 		card.add_theme_stylebox_override(st, empty)
-	card.pressed.connect(func(): _select_board_card(c))
-	# Torn parchment background — a unique tear pattern per card, drawn full-size
-	# (not 9-slice) so the tear keeps its shape; the wood shows through the gaps.
+	if sel:
+		card.rotation_degrees = 0.0   # the one taken down hangs straight
+	card.pressed.connect(func(): _select_board_card(intel))
+	var tint := _parch_tint(str(intel.get("contractId", "")))
 	var bg := TextureRect.new()
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.stretch_mode = TextureRect.STRETCH_SCALE
 	if not _parch_tex.is_empty():
 		bg.texture = _parch_tex[idx % _parch_tex.size()]
+	bg.modulate = tint
 	card.add_child(bg)
-	card.mouse_entered.connect(func(): _hover_card(card, 1.045); bg.modulate = Color(1.10, 1.07, 1.0))
-	card.mouse_exited.connect(func(): _hover_card(card, 1.0); bg.modulate = Color.WHITE)
-	# Pull the text well inside the torn/weathered edges so no glyph rides the tear.
+	# Lift toward the viewer AND raise above neighbours, so an overlapped notice is
+	# never occluded while you read/click it (dense scatter can stack corners).
+	card.mouse_entered.connect(func(): card.move_to_front(); _hover_card(card, 1.05); bg.modulate = tint.lightened(0.08))
+	card.mouse_exited.connect(func(): _hover_card(card, 1.03 if sel else 1.0); bg.modulate = tint)
 	var pad := MarginContainer.new()
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pad.set_anchors_preset(Control.PRESET_FULL_RECT)
-	pad.add_theme_constant_override("margin_left", 18)
-	pad.add_theme_constant_override("margin_right", 18)
-	pad.add_theme_constant_override("margin_top", 16)   # clear the pin/wax at the top
-	pad.add_theme_constant_override("margin_bottom", 14)
+	for side in ["margin_left", "margin_right"]:
+		pad.add_theme_constant_override(side, 13)
+	pad.add_theme_constant_override("margin_top", 14)
+	pad.add_theme_constant_override("margin_bottom", 12)
 	card.add_child(pad)
 	var v := VBoxContainer.new()
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_theme_constant_override("separation", 3)
+	v.add_theme_constant_override("separation", 2)
 	pad.add_child(v)
-	v.add_child(_card_label(str(c.get("targetName", "?")), 15, Color(0.24, 0.15, 0.06), true, true))
-	v.add_child(_card_label(str(c.get("siteName", "?")), 10, Color(0.42, 0.33, 0.20), false, true))
+	var verb := str(intel.get("primaryVerb", ""))
+	var head := _card_label(Notice.headline(verb), 12, _headline_color(verb), true, true)
+	v.add_child(head)
+	v.add_child(_hrule(Color(0.42, 0.28, 0.16, 0.6)))
+	v.add_child(_card_label(str(intel.get("targetName", "?")), 14, Color(0.20, 0.12, 0.05), true, true))
+	v.add_child(_card_label("at %s" % intel.get("siteName", "?"), 9, Color(0.42, 0.32, 0.19), true, true))
+	# Threat is deliberately NOT shown on the wall — you learn it only by taking the
+	# notice down to read (it appears in the reader).
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(spacer)
-	# Threat row centred as a block: an HBox that shrinks to its content, itself
-	# centred in the card width so label+pips sit together over the page's middle.
-	var threat := HBoxContainer.new()
-	threat.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	threat.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	threat.add_child(_card_label("Threat ", 10, Color(0.55, 0.16, 0.14), false))
-	var pips := ThreatPips.new()
-	pips.set_tier(str(c.get("tier", "APPRENTICE")))
-	threat.add_child(pips)
-	v.add_child(threat)
-	v.add_child(_card_label(_verb_word(str(c.get("primaryVerb", "?"))), 11, Color(0.44, 0.26, 0.12), false, true))
-	# The wax seal pins the paper to the board (top-centre, over the edge). Its
-	# colour + sigil encode the ASSERTED Origin — readable board vocabulary (I3).
-	card.add_child(_wax_seal(str(c.get("origin", "SIN"))))
+	card.add_child(_wax_seal(str(intel.get("origin", "SIN"))))
+	if sel:
+		var ring := Panel.new()
+		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ring.set_anchors_preset(Control.PRESET_FULL_RECT)
+		var rb := StyleBoxFlat.new()
+		rb.bg_color = Color(0, 0, 0, 0)
+		rb.set_border_width_all(2)
+		rb.border_color = Color(0.85, 0.68, 0.32)
+		ring.add_theme_stylebox_override("panel", rb)
+		card.add_child(ring)
 	return card
+
+# An inert flavor notice: aged parchment, a header + a few lines, never clickable.
+func _make_flavor_notice(f: Dictionary, idx: int) -> Control:
+	var note := Panel.new()
+	note.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	note.modulate = Color(0.80, 0.76, 0.70)   # older, greyed back so live notices pop
+	var sb := StyleBoxEmpty.new()
+	note.add_theme_stylebox_override("panel", sb)
+	var bg := TextureRect.new()
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	if not _parch_tex.is_empty():
+		bg.texture = _parch_tex[(idx + 2) % _parch_tex.size()]
+	bg.modulate = _parch_tint("flavor-%d" % idx).darkened(0.10)
+	note.add_child(bg)
+	var pad := MarginContainer.new()
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.set_anchors_preset(Control.PRESET_FULL_RECT)
+	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(side, 11)
+	note.add_child(pad)
+	var v := VBoxContainer.new()
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_theme_constant_override("separation", 3)
+	pad.add_child(v)
+	v.add_child(_card_label(str(f.get("head", "")), 10, Color(0.32, 0.16, 0.09), true, true))
+	v.add_child(_card_label(str(f.get("body", "")), 8, Color(0.36, 0.27, 0.16), true, false))
+	return note
+
+# A thin ruled line (a scribe's rule under a heading).
+func _hrule(color: Color) -> Control:
+	var r := ColorRect.new()
+	r.color = color
+	r.custom_minimum_size = Vector2(0, 1)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return r
+
+# Take-down-to-read (R123): a dim over the board + the enlarged writ centred on it.
+# Clicking the dim (off the writ) returns it to the wall. Pure view state.
+func _show_notice_reader(canvas: Control, intel: Dictionary) -> void:
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.58)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.z_index = 10   # above the placard (z 5) so a taken-down writ covers the sign too
+	dim.gui_input.connect(func(e: InputEvent):
+		if e is InputEventMouseButton and e.pressed:
+			_select_board_card({}))
+	canvas.add_child(dim)
+	var cc := CenterContainer.new()
+	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cc.z_index = 10
+	canvas.add_child(cc)
+	cc.add_child(_build_notice_reader(intel))
+
+func _build_notice_reader(intel: Dictionary) -> Control:
+	# The enlarged parchment poster. A solid parchment-tinted FILL sits behind the
+	# torn parchment TEXTURE, so the sheet reads as real parchment and any torn/
+	# transparent edge blends into matching parch (never the dark board). The text
+	# is padded well inside the intact centre so it never rides a tear.
+	var tint := _parch_tint(str(intel.get("contractId", "")))
+	# The reader IS the parchment sprite (torn shape), enlarged — no rectangular
+	# backing behind it (that was the "square"). The reading is padded well inside
+	# the intact centre so no glyph rides a tear; the dimmed board shows past the
+	# torn edges, exactly like a poster taken off the wall.
+	var reader := Control.new()
+	reader.mouse_filter = Control.MOUSE_FILTER_STOP   # clicks on the writ don't dismiss
+	var inner := _board_inner_size()
+	reader.custom_minimum_size = Vector2(min(486.0, inner.x - 40.0), min(inner.y - 24.0, 396.0))
+	if not _parch_tex.is_empty():
+		var bg := TextureRect.new()
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+		bg.stretch_mode = TextureRect.STRETCH_SCALE
+		bg.texture = _parch_tex[absi(str(intel.get("contractId", "")).hash()) % _parch_tex.size()]
+		bg.modulate = tint
+		reader.add_child(bg)
+	var scroll := ScrollContainer.new()   # a long writ scrolls within the sheet
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	reader.add_child(scroll)
+	var pad := MarginContainer.new()
+	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pad.add_theme_constant_override("margin_left", 46)
+	pad.add_theme_constant_override("margin_right", 46)
+	pad.add_theme_constant_override("margin_top", 40)
+	pad.add_theme_constant_override("margin_bottom", 40)
+	scroll.add_child(pad)
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.custom_minimum_size = Vector2(min(394.0, inner.x - 132.0), 0)
+	col.add_theme_constant_override("separation", 6)
+	pad.add_child(col)
+	var ink := Color(0.20, 0.11, 0.04)
+	var ink_soft := Color(0.38, 0.27, 0.15)
+	# Headline (sacred register), inked by charge + rule.
+	var rverb := str(intel.get("primaryVerb", ""))
+	var head := _card_label(Notice.headline(rverb), 16, _headline_color(rverb), true, true)
+	head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(head)
+	col.add_child(_hrule(Color(0.42, 0.28, 0.16, 0.7)))
+	var title := _card_label(str(intel.get("targetName", "?")), 21, ink, true, true)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(title)
+	var site := _card_label("at %s" % intel.get("siteName", "?"), 12, ink_soft, true, true)
+	site.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(site)
+	# Asserted genus (seal + gloss) and threat, on one centred row each.
+	var org := str(intel.get("origin", "SIN"))
+	var org_row := HBoxContainer.new()
+	org_row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	org_row.add_theme_constant_override("separation", 6)
+	var oseal := WaxSeal.new()
+	oseal.set_origin(org)
+	oseal.custom_minimum_size = Vector2(18, 18)
+	org_row.add_child(oseal)
+	org_row.add_child(_card_label("Asserted %s: %s" % [_origin_word(org), ORIGIN_GLOSS.get(org, "")], 12, ink_soft, false))
+	col.add_child(org_row)
+	var threat := HBoxContainer.new()
+	threat.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	threat.add_theme_constant_override("separation", 4)
+	threat.add_child(_card_label("Threat", 12, Color(0.55, 0.16, 0.14), false))
+	var pips := ThreatPips.new()
+	pips.set_tier(str(intel.get("tier", "APPRENTICE")))
+	threat.add_child(pips)
+	col.add_child(threat)
+	# Preamble + the charge (procedural, verb-faithful).
+	var pre := _card_label(Notice.preamble(intel), 12, ink_soft, true, true)
+	pre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(pre)
+	var charge := _card_label(Notice.charge(intel), 14, ink, true, true)
+	charge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(charge)
+	# Honest empty Archive (no fabricated signs/notes/reward).
+	var arch := _card_label("From the Archive: no prior testament on record.", 11, ink_soft, true, true)
+	arch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(arch)
+	# The signature of the petitioner who reported it.
+	var sig := _card_label(Notice.signature(intel.get("requester", {})), 12, ink, true, true)
+	sig.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(sig)
+	col.add_child(_hrule(Color(0.42, 0.28, 0.16, 0.7)))
+	# The seal: the leader stamps to take up the charge (reversible).
+	col.add_child(_seal_block(intel, ink, ink_soft))
+	# Return to the board.
+	_popup_button("Return to the board", func(): _select_board_card({}), col)
+	return reader
+
+# The seal (TD-041): the leader stamps their seal on the open charge to take it up,
+# and clicks the stamped seal again to lift it — a reversible SELECT/DESELECT over
+# the Contract Board. Non-leaders see the seal's state read-only. Affordance is not
+# authority: the server validates (a raced NOT_* / WRONG_PHASE surfaces in status).
+func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
+	var cid := str(intel.get("contractId", ""))
+	var sel_c: Variant = _snapshot.get("contract")
+	var selected := sel_c != null and str(sel_c.get("contractId", "")) == cid
+	var leader := _is_leader()
+	var origin := str(intel.get("origin", "SIN"))
+
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 4)
+
+	# The stamp target: a clickable area holding a wax seal (faint until stamped) and
+	# a caption. The whole area is the hit target so "stamp your seal" reads as one act.
+	var stamp := Button.new()
+	stamp.flat = true
+	stamp.clip_contents = false
+	stamp.disabled = not leader
+	stamp.focus_mode = Control.FOCUS_NONE
+	stamp.custom_minimum_size = Vector2(0, 76)
+	stamp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stamp.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if leader else Control.CURSOR_ARROW
+	var empty := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		stamp.add_theme_stylebox_override(st, empty)
+	if leader:
+		stamp.pressed.connect(func():
+			if selected:
+				_log("seal %s accepted=false" % cid)
+				_net.send_message(Protocol.DESELECT_CONTRACT, {})
+			else:
+				_log("seal %s accepted=true" % cid)
+				_net.send_message(Protocol.SELECT_CONTRACT, {"contractId": cid}))
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	stamp.add_child(row)
+
+	# The wax seal: a faint imprint waiting to be pressed, or a firm seal once stamped.
+	var seal := WaxSeal.new()
+	seal.set_origin(origin)
+	seal.custom_minimum_size = Vector2(46, 46)
+	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	seal.modulate.a = 1.0 if selected else (0.30 if leader else 0.18)
+	row.add_child(seal)
+
+	var caption: String
+	if selected:
+		caption = "Sealed. The charge is taken up." + ("\n(click the seal to lift it)" if leader else "")
+	elif leader:
+		caption = "Stamp your seal to take up this charge."
+	else:
+		caption = "Awaiting the leader's seal."
+	var cap := _card_label(caption, 12, ink if selected else ink_soft, true, false)
+	cap.custom_minimum_size = Vector2(220, 0)
+	row.add_child(cap)
+
+	box.add_child(stamp)
+	return box
+
+# A seeded position jitter (fractions of the inner board) so notices don't sit on a
+# grid — organic like a real wall. Deterministic per seed string (same board twice
+# → identical scatter).
+func _seed_jitter(seed_str: String) -> Vector2:
+	var jx := float(absi((seed_str + "|jx").hash()) % 100) / 100.0 - 0.5
+	var jy := float(absi((seed_str + "|jy").hash()) % 100) / 100.0 - 0.5
+	return Vector2(jx, jy) * 0.06
+
+# A seeded hang angle (degrees), ~ -6.5°..+6.5° — a looser wall than a fixed pattern.
+func _seed_tilt(seed_str: String) -> float:
+	return float(absi((seed_str + "|tilt").hash()) % 1300) / 100.0 - 6.5
+
+# The carved "notice board" placard, hung at top-centre over the wall on two nails.
+func _place_placard(canvas: Control) -> void:
+	var inner := _board_inner_size()
+	var w := minf(392.0, inner.x - 48.0)
+	var h := 54.0
+	var placard := _notice_placard("PETITIONS BEFORE THE COLLEGIUM")
+	placard.custom_minimum_size = Vector2(w, h)
+	placard.size = Vector2(w, h)
+	placard.position = Vector2((inner.x - w) * 0.5, 10.0).floor()
+	# z_index wins over tree order absolutely, so a hovered paper (which raises to the
+	# front of its own layer) can never draw over the hanging sign.
+	placard.z_index = 5
+	canvas.add_child(placard)
+
+# A routed wood plaque with an incised (engraved) title, hung from two nail heads.
+# Pure render — no art dependency beyond the shared wood palette; inert to input.
+func _notice_placard(text: String) -> Control:
+	var root := Control.new()
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for nx in [0.30, 0.70]:
+		var nail := Panel.new()
+		nail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var nsb := StyleBoxFlat.new()
+		nsb.bg_color = Color(0.12, 0.08, 0.05)
+		nail.add_theme_stylebox_override("panel", nsb)   # square peg (sharp, pixel-consistent)
+		nail.custom_minimum_size = Vector2(6, 6)
+		nail.size = Vector2(6, 6)
+		nail.anchor_left = nx
+		nail.anchor_right = nx
+		nail.offset_left = -3.0
+		nail.offset_right = 3.0
+		nail.offset_top = -6.0
+		nail.offset_bottom = 0.0
+		root.add_child(nail)
+	# A flat, hard-edged wooden plaque (no rounded corners, no soft shadow) so it
+	# reads pixel-consistent as a stopgap; Pass 2 swaps in a routed-sign sprite.
+	var plaque := Panel.new()
+	plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plaque.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var psb := StyleBoxFlat.new()
+	psb.bg_color = Color(0.31, 0.20, 0.11)
+	psb.set_corner_radius_all(0)
+	psb.set_border_width_all(2)
+	psb.border_color = Color(0.15, 0.09, 0.05)
+	plaque.add_theme_stylebox_override("panel", psb)
+	root.add_child(plaque)
+	var face := _card_label(text, 18, Color(0.92, 0.80, 0.52), false, true)
+	face.set_anchors_preset(Control.PRESET_FULL_RECT)
+	face.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	face.add_theme_color_override("font_shadow_color", Color(0.06, 0.03, 0.01, 0.9))
+	face.add_theme_constant_override("shadow_offset_x", 1)
+	face.add_theme_constant_override("shadow_offset_y", 2)
+	root.add_child(face)
+	return root
 
 # Lift a card toward the viewer on hover (scale from its centre pivot).
 func _hover_card(card: Control, s: float) -> void:
@@ -870,46 +1302,6 @@ func _card_label(text: String, size: int, color: Color, do_wrap: bool, center: b
 	if center:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return l
-
-func _build_contract_detail(c: Dictionary) -> void:
-	_popup_title.text = "The Charge"
-	var title := Label.new()
-	title.text = str(c.get("targetName", "?"))
-	title.add_theme_font_size_override("font_size", 20)
-	title.add_theme_color_override("font_color", Color(0.90, 0.78, 0.45))
-	_popup_body.add_child(title)
-	_popup_label("Site: %s" % c.get("siteName", "?"))
-	# The asserted genus, shown with its own wax seal so the board's vocabulary and
-	# the detail agree. Labelled "asserted" because it is a claim, not the truth.
-	var origin := str(c.get("origin", "SIN"))
-	var org_row := HBoxContainer.new()
-	org_row.add_theme_constant_override("separation", 6)
-	var seal := WaxSeal.new()
-	seal.set_origin(origin)
-	seal.custom_minimum_size = Vector2(18, 18)
-	org_row.add_child(seal)
-	org_row.add_child(_card_label("Asserted: %s — %s" % [_origin_word(origin), ORIGIN_GLOSS.get(origin, "")], 12, Color(0.78, 0.66, 0.42), false))
-	_popup_body.add_child(org_row)
-	var threat := HBoxContainer.new()
-	threat.add_child(_card_label("Threat  ", 12, Color(0.82, 0.55, 0.55), false))
-	var pips := ThreatPips.new()
-	pips.set_tier(str(c.get("tier", "APPRENTICE")))
-	threat.add_child(pips)
-	_popup_body.add_child(threat)
-	# A flavored charge instead of a bare "verb: X" — seeded by the contractId, so
-	# each contract reads a little differently but stably (client-side prose over
-	# the server's verb; authored intel text is a later enhancement).
-	_popup_label(_contract_brief(c))
-	_popup_label("The Collegium does not hunt for glory, but for understanding.")
-	# Accept is a leader affordance; the server still gates leader/board/ready (P62).
-	if _is_leader():
-		if not _all_ready():
-			_popup_label("The whole party must be Ready before you can accept.")
-		_popup_button("Accept this contract", func():
-			_net.send_message(Protocol.SELECT_CONTRACT, {"contractId": c.get("contractId", "")}))
-	else:
-		_popup_label("Only the party leader can accept the contract.")
-	_popup_button("← Back to the board", func(): _select_board_card({}))
 
 func _select_board_card(c: Dictionary) -> void:
 	_board_selection = c
@@ -993,35 +1385,11 @@ func _texture_sb(path: String, margin: float, content: float, bg: Color, border:
 	flat.set_content_margin_all(content)
 	return flat
 
-# The procedural charge for a contract, assembled stably from its id: a verb
-# synonym + a locale frame + a qualifier. The three slots draw from independent
-# offsets of the id hash so they vary without moving in lockstep, but the same
-# contract always yields the same charge.
-func _contract_brief(c: Dictionary) -> String:
-	var verb := str(c.get("primaryVerb", ""))
-	var target := str(c.get("targetName", "the thing"))
-	var site := str(c.get("siteName", "the site"))
-	var syns: Array = VERB_SYNONYM.get(verb, ["Attend"])
-	var quals: Array = VERB_QUALIFIER.get(verb, ["Read the signs, and decide."])
-	# Three independent, stable indices from salted hashes of the id — no division,
-	# so the slots vary without moving in lockstep and always read the same.
-	var id := str(c.get("contractId", ""))
-	var word: String = str(syns[absi(id.hash()) % syns.size()])
-	var locale: String = str(CHARGE_LOCALE[absi((id + "|loc").hash()) % CHARGE_LOCALE.size()]) % site
-	var qual: String = str(quals[absi((id + "|qual").hash()) % quals.size()])
-	return "%s %s, %s. %s" % [word, target, locale, qual]
-
 # "SIN" -> "Sin". The asserted origin, sentence-cased for display.
 func _origin_word(origin: String) -> String:
 	if origin.is_empty():
 		return "?"
 	return origin.substr(0, 1) + origin.substr(1).to_lower()
-
-# "INVESTIGATE" -> "Investigate" (String.capitalize() would split all-caps letters).
-func _verb_word(verb: String) -> String:
-	if verb.is_empty():
-		return "?"
-	return verb.substr(0, 1) + verb.substr(1).to_lower()
 
 # Follow the local body, clamped inside the map; center on axes smaller than the
 # view. Reads the body's server target, never an integrated guess.
@@ -1063,7 +1431,7 @@ func _player_row(p: Dictionary) -> String:
 	var ready_label := "ready" if p.get("readyState", false) else "not ready"
 	var bag: Array = p.get("bag", [])
 	var bag_note := "" if bag.is_empty() else "  |  bag: " + ", ".join(bag.map(func(i): return Catalog.short_name(i)))
-	return "%s%s — %s%s" % [p["displayName"], marks, ready_label, bag_note]
+	return "%s%s:  %s%s" % [p["displayName"], marks, ready_label, bag_note]
 
 # One party member as a row: the text plus, for the leader looking at a
 # disconnected teammate, a Kick button (server re-validates everything; P39

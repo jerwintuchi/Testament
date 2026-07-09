@@ -6,6 +6,7 @@ import type { ContractRecord } from '../incarnate/contractRecord.js';
 const CONTRACT: ContractRecord = {
   contractId:     'c-001',
   origin:         'SIN',
+  requester:      { name: 'Aldis Vane', role: 'Reliquary-Steward', place: 'Ashfen' },
   targetName:     'The Ashen Warden',
   siteName:       'The Collapsed Chancel',
   primaryVerb:    'INVESTIGATE',

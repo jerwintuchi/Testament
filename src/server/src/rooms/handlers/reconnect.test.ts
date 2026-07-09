@@ -75,6 +75,7 @@ describe('handleReconnect', () => {
     room.phase = 'FIELD';
     room.contract = {
       contractId: 'c-001', tier: 'JOURNEYMAN', origin: 'RELIC',
+      requester: { name: 'Proctor Hald', role: 'Proctor', place: 'Gall' },
       targetName: 'T', siteName: 'S', primaryVerb: 'INVESTIGATE',
       expeditionSeed: 'seed-1',
       traitRoll: { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE', ward: 'COLD', disposition: 'STALKER' },

@@ -969,3 +969,100 @@ and bumped the count to nineteen; `pnpm build` is green again.
 via the seal and reads as scribed intent via the procedural brief, both trait-free.
 Authored per-Origin intel prose and Aseprite seal art remain later enhancements;
 the `origin` field is now available to the Deploy Gate summary (Phase C) for free.
+
+## TD-040 — Notice Board arrangement: dense organic scatter, dramatic sizes, carved placard (2026-07-08)
+
+**Context.** The notice-board client render (specs/notice-board, R122/T134) laid
+the 4 live contracts in a tidy upper row and flavor notices in a row below, with a
+strict "no live notice's text is clipped or overlapped" rule and a plain text
+title. A reference image (a tavern **Notice Board** — papers of varied size pinned
+at angles, overlapping, filling the whole board, under a carved hanging sign) set
+the target feel. In a `gds-ux`-facilitated pass the stakeholder chose, per option:
+dense organic scatter (overlap permitted), dramatic size variety, a carved hanging
+placard, and keep the take-down-to-read flow.
+
+**Decision.** `_build_contract_board` becomes a full-board seeded scatter:
+- **Arrangement** — quadrant anchor slots spread across the whole board (not a row)
+  plus `_seed_jitter`/`_seed_tilt` (deterministic per `contractId`), so papers fill
+  the board at human angles. Notices **may overlap** at corners. Live notices draw
+  **above** flavor and are clamped inside the wooden frame; a hovered live notice
+  raises to front (`move_to_front`). Flavor stays `MOUSE_FILTER_IGNORE` so overlap
+  never steals a live click (P65 intact).
+- **Size** — live sizes span small notes → big posters, seeded from `contractId`.
+  Explicitly **aesthetic, never tier-encoding** — contracts stay equal-weight, the
+  mystery is the mechanic (vision.md pillar 3).
+- **Header** — a carved `_notice_placard` ("PETITIONS BEFORE THE COLLEGIUM") hung at
+  top-centre on two nails, replacing the plain `_popup_title` on the board only
+  (title restored for the other stations).
+
+Reversal of R122's original "no overlap" AC; R122/T134 updated to match, and the
+overlap-with-readable-live-text invariant added in their place.
+
+**Boundary.** Client presentation only — no server/shared/protocol change. All game
+state, contract selection, and readiness remain server-authoritative over the
+existing `SELECT_CONTRACT`/`TOGGLE_READY` intents (I1/I2). No trait data added; every
+notice string still derives from `ContractIntel` + `contractId` + client flavor
+(P64). The placard and scatter use styleboxes + the shared wood palette — no new art
+(greybox convention holds; Aseprite placard/tack art is a later task).
+
+**Verification.** `main.gd` loads clean in Godot 4.7 via the MCP `run_project`
+(parse/API check; one `sign`-shadows-builtin warning fixed). The board's live render
++ `board live=4 flavor=N` log is confirmed by the `specs/notice-board/playtest.md`
+pass with `pnpm dev:server` up (T134/T137).
+
+**Process note.** This UX pass used the `gds-ux` skill, installed via `skillfish add
+bmad-code-org/bmad-module-game-dev-studio gds-ux` (skills-dir, no hooks/MCP). An
+earlier MCPmarket plugin install of the same skill was removed for carrying a
+SessionStart sync hook + per-skill telemetry + an embedded API token (not on the
+sanctioned toolchain).
+
+## TD-041 — Contract acceptance decoupled from commit: reversible seal, two-stage deploy, scalable board (2026-07-08)
+
+**Context.** Playtest feedback on the notice board: (1) the Contract Board broke
+under a fullscreen toggle — laid out against raw window pixels with no reflow, it
+lingered over-sized on the next windowed open; (2) parchment scaling differed
+between windowed and fullscreen; (3) acceptance should be a **reversible seal** the
+leader stamps/lifts, notified to the whole party, with the Countersign + per-Seeker
+ready ledger removed. This is Pass 1 (functional, greybox) of a two-pass overhaul;
+Pass 2 is the pixel-art reskin toward the reference notice board.
+
+**Decision — acceptance is a reversible selection, distinct from commit.**
+Previously `SELECT_CONTRACT` was a one-way commit: it staked the Surety and moved
+`WAITING → DEPLOYING`. Now:
+- `SELECT_CONTRACT` (leader, WAITING, at the board) sets `room.contract` **reversibly**
+  — no Surety, no phase change — and broadcasts the snapshot plus a transient
+  `CONTRACT_SELECTION { accepted, targetName, actorName }` notice (a client toast).
+  The ready-gate is dropped (party-ready belongs to the future pre-deployment stage).
+- New `DESELECT_CONTRACT` (leader, WAITING, at the board) lifts the seal, clearing
+  `room.contract`; idempotent no-op when nothing is selected.
+- `DEPLOY` is now **two-stage**: in WAITING it is the COMMIT (`WAITING → DEPLOYING`,
+  requires a selection, else `NO_CONTRACT_SELECTED` — this is where the Surety will
+  be staked once that system lands); in DEPLOYING it launches to FIELD as before.
+- `ACCEPT_CONTRACT` is retained only as a legacy/test convenience (select-first +
+  commit); the client no longer uses it. New error `NO_CONTRACT_SELECTED` (20 codes).
+
+**Decision — the seal UI.** The reader's Countersign button and per-Seeker ready
+ledger are replaced by a single **"Stamp your seal"** affordance: a wax seal that is
+faint (low-opacity) until stamped and firm once sealed, with the whole area as the
+hit target. The leader clicks to `SELECT`, clicks the stamped seal to `DESELECT`;
+non-leaders see the seal state read-only. Affordance ≠ authority: a raced
+`NOT_*`/`WRONG_PHASE` still surfaces (P56/P66 heritage).
+
+**Decision — scalable board.** Root cause of the fullscreen bugs was the absence of
+a content-scale mode. Set `window/stretch/mode = canvas_items`, `aspect = keep`
+(base 960×540): the logical viewport is now a constant 960×540 in windowed AND
+fullscreen, so the board (laid out against the viewport) is resolution-independent
+and the whole canvas — UI and camera view — scales uniformly to the window. Added a
+`size_changed` reflow + re-center as belt-and-suspenders.
+
+**Boundary.** Server-authoritative throughout (I1/I2). New wire: client
+`DESELECT_CONTRACT`, server `CONTRACT_SELECTION`, error `NO_CONTRACT_SELECTED`;
+protocol.gd regenerated. No trait data added. Verified: server 362 + shared 65 green,
+`pnpm build` clean, client loads clean in Godot 4.7 via MCP. Live board render +
+two-client seal/toast paths remain a user playtest (no screenshot tool over MCP).
+
+**Deferred to Pass 2.** The pixel-art asset set (carved frame + corner joints, plank
+backing, hanging routed sign, torn/deckled parchment variants, tacks, cobweb, torch
+glow) and the reskin toward the reference, via PIL generators (sanctioned toolchain).
+The `canvas_items` stretch change affects the whole game; the field/world view in
+fullscreen wants a human eyeball since MCP can't screenshot it.

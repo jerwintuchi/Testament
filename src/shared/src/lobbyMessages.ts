@@ -22,11 +22,16 @@ export type ToggleReadyPayload = Record<string, never>;
 
 export type AcceptContractPayload = Record<string, never>;
 
-// SELECT_CONTRACT (R110): the leader picks a specific contract off the board by
-// its id. This is the acceptance that stakes the Surety and moves to DEPLOYING.
+// SELECT_CONTRACT (R110, revised TD-041): the leader marks a contract off the
+// board as the party's chosen one ("stamp the seal"). Reversible — no Surety and
+// no phase change here; the commit to DEPLOYING happens at the Deploy Gate.
 export type SelectContractPayload = {
   contractId: string;
 };
+
+// DESELECT_CONTRACT (TD-041): the leader un-stamps the seal, clearing the party's
+// current contract selection. No payload — it clears whatever is selected.
+export type DeselectContractPayload = Record<string, never>;
 
 export type LeaveRoomPayload = Record<string, never>;
 
@@ -71,6 +76,16 @@ export type RoomDeployingPayload = {
   contract: ContractIntel;
 };
 
+// CONTRACT_SELECTION (TD-041): a transient notice broadcast to the whole room when
+// the leader stamps (accepted: true) or un-stamps (accepted: false) a contract.
+// Pure notification for a client toast; the authoritative selection travels on the
+// LOBBY_UPDATED snapshot's `contract`.
+export type ContractSelectionPayload = {
+  accepted: boolean;
+  targetName: string;
+  actorName: string;
+};
+
 export type StateResyncPayload = {
   snapshot: LobbySnapshot;
   fieldSnapshot: FieldSnapshot | null;  // null when phase is WAITING or DEPLOYING
@@ -101,6 +116,7 @@ export const LOBBY_ERROR_CODES = [
   'NOT_AT_CONTRACT_BOARD',  // ACCEPT_CONTRACT: leader not within STATION_RADIUS of the Contract Board (R99)
   'NOT_AT_QUARTERMASTER',   // REQUISITION: sender not within STATION_RADIUS of the Quartermaster (R100)
   'NOT_AT_DEPLOY_GATE',     // DEPLOY: leader not within STATION_RADIUS of the Deploy Gate (R101)
+  'NO_CONTRACT_SELECTED',   // DEPLOY (commit): no contract has been selected off the board yet (TD-041)
 ] as const;
 export type LobbyErrorCode = (typeof LOBBY_ERROR_CODES)[number];
 

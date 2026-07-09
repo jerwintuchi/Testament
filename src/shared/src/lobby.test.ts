@@ -70,6 +70,7 @@ describe('ContractIntel has no traitRoll or expeditionSeed field', () => {
     const contract: ContractIntel = {
       contractId: 'c-001',
       origin: 'SIN',
+      requester: { name: 'Aldis Vane', role: 'Reliquary-Steward', place: 'Ashfen' },
       targetName: 'The Ashen Warden',
       siteName: 'The Collapsed Chancel',
       primaryVerb: 'INVESTIGATE',

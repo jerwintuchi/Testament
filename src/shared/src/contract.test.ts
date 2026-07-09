@@ -21,6 +21,7 @@ const _intel = {
   contractId:  'abc-123',
   tier:        'APPRENTICE' as Tier,
   origin:      'SIN' as Origin,
+  requester:   { name: 'Aldis Vane', role: 'Reliquary-Steward', place: 'Ashfen' },
   targetName:  'The Ashen Warden',
   siteName:    'The Collapsed Chancel',
   primaryVerb: 'INVESTIGATE' as PrimaryVerb,
@@ -39,24 +40,27 @@ describe('PrimaryVerb', () => {
 });
 
 describe('ContractIntel', () => {
-  it('has exactly 6 fields', () => {
+  it('has exactly 7 fields', () => {
     const intel: ContractIntel = {
       contractId:  'test-id',
       tier:        'JOURNEYMAN',
       origin:      'BELIEF',
+      requester:   { name: 'Sister Wren', role: 'Parish-Priest', place: 'Gall' },
       targetName:  'The Weeping Mire',
       siteName:    'The Salt Marsh',
       primaryVerb: 'BANISH',
     };
     expect(Object.keys(intel).sort()).toEqual(
-      ['contractId', 'origin', 'primaryVerb', 'siteName', 'targetName', 'tier']
+      ['contractId', 'origin', 'primaryVerb', 'requester', 'siteName', 'targetName', 'tier']
     );
   });
 
   it('does not allow expeditionSeed (structural type check — see compile-time assertion above)', () => {
     // Runtime enforcement: no seed field on a plain ContractIntel object.
     const intel: ContractIntel = {
-      contractId: 'x', tier: 'MASTER', origin: 'RELIC', targetName: 'Y', siteName: 'Z', primaryVerb: 'CAPTURE',
+      contractId: 'x', tier: 'MASTER', origin: 'RELIC',
+      requester: { name: '', role: 'penitent', place: 'Low Fen' },
+      targetName: 'Y', siteName: 'Z', primaryVerb: 'CAPTURE',
     };
     expect(Object.keys(intel)).not.toContain('expeditionSeed');
     expect(Object.keys(intel)).not.toContain('traitRoll');

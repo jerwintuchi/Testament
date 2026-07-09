@@ -8,6 +8,7 @@ const _record = {
   contractId:     'c-001',
   tier:           'APPRENTICE',
   origin:         'SIN',
+  requester:      { name: 'Aldis Vane', role: 'Reliquary-Steward', place: 'Ashfen' },
   targetName:     'The Ashen Warden',
   siteName:       'The Collapsed Chancel',
   primaryVerb:    'INVESTIGATE',
@@ -21,6 +22,7 @@ describe('ContractRecord', () => {
       contractId:     'test-id',
       tier:           'MASTER',
       origin:         'RELIC',
+      requester:      { name: 'Proctor Hald', role: 'Proctor', place: 'Gall' },
       targetName:     'The Frost Penitent',
       siteName:       'The Ember Reach',
       primaryVerb:    'BANISH',
@@ -42,7 +44,9 @@ describe('ContractRecord', () => {
     // ContractRecord has expeditionSeed and traitRoll — ContractIntel does not.
     // This test ensures a ContractRecord cannot be assigned to ContractIntel without stripping.
     const record: ContractRecord = {
-      contractId: 'c', tier: 'APPRENTICE', origin: 'BELIEF', targetName: 't', siteName: 's',
+      contractId: 'c', tier: 'APPRENTICE', origin: 'BELIEF',
+      requester: { name: '', role: 'penitent', place: 'Low Fen' },
+      targetName: 't', siteName: 's',
       primaryVerb: 'CAPTURE', expeditionSeed: 'e',
       traitRoll: { aspect: 'ROT', frailty: 'SALT', tell: 'RECOIL' },
     };

@@ -46,6 +46,19 @@ describe('generateContract', () => {
     }
   });
 
+  it('names a requester with role + place; anonymous petitions have an empty name (P67)', () => {
+    let sawNamed = false;
+    let sawAnon = false;
+    for (let i = 0; i < 40; i++) {
+      const { requester } = generateContract(createRng(hashSeed(`req-${i}`)), 'APPRENTICE', `c-${i}`, `s-${i}`);
+      expect(requester.role.length).toBeGreaterThan(0);
+      expect(requester.place.length).toBeGreaterThan(0);
+      if (requester.name === '') sawAnon = true; else sawNamed = true;
+    }
+    expect(sawNamed).toBe(true);   // the tables produce both forms across the seed space
+    expect(sawAnon).toBe(true);
+  });
+
   it('embedded traitRoll is tier-correct (Apprentice has no ward/disposition/riteKey)', () => {
     const contract = generateContract(createRng(hashSeed('tier-check')), 'APPRENTICE', 'c', 's');
     const keys = Object.keys(contract.traitRoll);
@@ -75,21 +88,23 @@ describe('generateContract', () => {
 });
 
 describe('toContractIntel', () => {
-  it('returns exactly 6 keys — no expeditionSeed or traitRoll (P17/R48)', () => {
+  it('returns exactly 7 keys — no expeditionSeed or traitRoll (P17/R48/P64)', () => {
     const contract = generateContract(createRng(hashSeed('strip-test')), 'APPRENTICE', 'c-001', 'seed-xyz');
     const intel = toContractIntel(contract);
     const keys = Object.keys(intel).sort();
-    expect(keys).toEqual(['contractId', 'origin', 'primaryVerb', 'siteName', 'targetName', 'tier']);
+    expect(keys).toEqual(['contractId', 'origin', 'primaryVerb', 'requester', 'siteName', 'targetName', 'tier']);
     expect(keys).not.toContain('expeditionSeed');
     expect(keys).not.toContain('traitRoll');
   });
 
-  it('preserves contractId, tier, origin, targetName, siteName, primaryVerb', () => {
+  it('preserves contractId, tier, origin, requester, targetName, siteName, primaryVerb', () => {
     const contract = generateContract(createRng(hashSeed('preserve-test')), 'JOURNEYMAN', 'my-id', 'my-seed');
     const intel = toContractIntel(contract);
     expect(intel.contractId).toBe('my-id');
     expect(intel.tier).toBe('JOURNEYMAN');
     expect(['BELIEF', 'SIN', 'RELIC']).toContain(intel.origin);
+    expect(typeof intel.requester.role).toBe('string');
+    expect(typeof intel.requester.place).toBe('string');
     expect(typeof intel.targetName).toBe('string');
     expect(typeof intel.siteName).toBe('string');
     expect(typeof intel.primaryVerb).toBe('string');

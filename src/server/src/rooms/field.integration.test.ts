@@ -292,7 +292,9 @@ describe('T38: field-phase integration — Scenario B (guard failures)', () => {
     p2.close();
   }, 15000);
 
-  it('DEPLOY in WAITING phase emits LOBBY_ERROR WRONG_PHASE', async () => {
+  // TD-041: DEPLOY in WAITING is the commit stage; with no contract selected off the
+  // board it is rejected with NO_CONTRACT_SELECTED (not WRONG_PHASE).
+  it('DEPLOY in WAITING with no contract selected emits LOBBY_ERROR NO_CONTRACT_SELECTED', async () => {
     const host = await connect(port);
     host.send('CREATE_ROOM', { displayName: 'Host' });
     const created = await host.next();
@@ -302,7 +304,7 @@ describe('T38: field-phase integration — Scenario B (guard failures)', () => {
     host.send('DEPLOY');
     const err = await host.next();
     expect(err.type).toBe('LOBBY_ERROR');
-    expect((err.payload as { code: string }).code).toBe('WRONG_PHASE');
+    expect((err.payload as { code: string }).code).toBe('NO_CONTRACT_SELECTED');
 
     host.close();
   }, 10000);

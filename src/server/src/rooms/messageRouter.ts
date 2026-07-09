@@ -7,6 +7,7 @@ import { handleJoinRoom } from './handlers/joinRoom.js';
 import { handleToggleReady } from './handlers/toggleReady.js';
 import { handleAcceptContract } from './handlers/acceptContract.js';
 import { handleSelectContract } from './handlers/selectContract.js';
+import { handleDeselectContract } from './handlers/deselectContract.js';
 import { handleLeaveRoom } from './handlers/leaveRoom.js';
 import { handleReconnect } from './handlers/reconnect.js';
 import { handleDeploy } from './handlers/deploy.js';
@@ -58,6 +59,9 @@ export function routeMessage(
       break;
     case CLIENT_MESSAGES.SELECT_CONTRACT:
       handleSelectContract(socketId, payload, roomManager, emit, broadcast);
+      break;
+    case CLIENT_MESSAGES.DESELECT_CONTRACT:
+      handleDeselectContract(socketId, roomManager, emit, broadcast);
       break;
     case CLIENT_MESSAGES.LEAVE_ROOM:
       handleLeaveRoom(socketId, roomManager, emit, broadcast);

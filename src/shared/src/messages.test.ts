@@ -14,14 +14,14 @@ import type { ClientMessagePayloads, ServerMessagePayloads } from './messages.js
 describe('CLIENT_MESSAGES / SERVER_MESSAGES registry', () => {
   it('contains exactly the Testament protocol names, nothing else', () => {
     expect(Object.values(CLIENT_MESSAGES).sort()).toEqual([
-      'ACCEPT_CONTRACT', 'CREATE_ROOM', 'DEPLOY', 'EXTRACT', 'JOIN_ROOM',
-      'KICK_PLAYER', 'LEAVE_ROOM', 'MOVE', 'PROBE', 'RECONNECT', 'REQUISITION',
-      'SELECT_CONTRACT', 'TOGGLE_READY',
+      'ACCEPT_CONTRACT', 'CREATE_ROOM', 'DEPLOY', 'DESELECT_CONTRACT', 'EXTRACT',
+      'JOIN_ROOM', 'KICK_PLAYER', 'LEAVE_ROOM', 'MOVE', 'PROBE', 'RECONNECT',
+      'REQUISITION', 'SELECT_CONTRACT', 'TOGGLE_READY',
     ]);
     expect(Object.values(SERVER_MESSAGES).sort()).toEqual([
-      'ARCHIVE_UPDATED', 'FIELD_STARTED', 'FIELD_TESTAMENT', 'LOBBY_ERROR',
-      'LOBBY_UPDATED', 'POSITIONS', 'PROBE_RESULT', 'RECONNECT_TOKEN', 'ROOM_CREATED',
-      'ROOM_DEPLOYING', 'STATE_RESYNC',
+      'ARCHIVE_UPDATED', 'CONTRACT_SELECTION', 'FIELD_STARTED', 'FIELD_TESTAMENT',
+      'LOBBY_ERROR', 'LOBBY_UPDATED', 'POSITIONS', 'PROBE_RESULT', 'RECONNECT_TOKEN',
+      'ROOM_CREATED', 'ROOM_DEPLOYING', 'STATE_RESYNC',
     ]);
   });
 
@@ -58,9 +58,9 @@ describe('CLIENT_MESSAGES / SERVER_MESSAGES registry', () => {
 });
 
 describe('codegen-able enums and scalars', () => {
-  it('LOBBY_ERROR_CODES holds exactly the nineteen codes with no duplicates', () => {
-    expect(LOBBY_ERROR_CODES).toHaveLength(19);
-    expect(new Set(LOBBY_ERROR_CODES).size).toBe(19);
+  it('LOBBY_ERROR_CODES holds exactly the twenty codes with no duplicates', () => {
+    expect(LOBBY_ERROR_CODES).toHaveLength(20);
+    expect(new Set(LOBBY_ERROR_CODES).size).toBe(20);
   });
 
   it('ROOM_PHASES holds exactly the four phases in lifecycle order', () => {

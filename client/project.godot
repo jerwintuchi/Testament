@@ -22,15 +22,11 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 window/size/viewport_width=960
 window/size/viewport_height=540
+window/stretch/mode="canvas_items"
+window/stretch/scale_mode="integer"
 
 [gui]
 
-; Crisp *and* legible pixel text. Antialiasing off = crisp hard edges under the
-; Camera2D 2x upscale (a smoothed atlas is what made the labels look blurry).
-; Hinting = Normal snaps thin glyph strokes onto the pixel grid, so small text
-; stays readable (without it, at ~8px the arm of an 'r' falls between pixels and
-; drops out — "Seeker" → "Seelei"). Nearest canvas filter is set below. A
-; dedicated pixel font is a later art task.
 theme/default_font_antialiasing=0
 theme/default_font_hinting=2
 theme/default_font_subpixel_positioning=0

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { handleDeploy } from './deploy.js';
 import { handleCreateRoom } from './createRoom.js';
 import { handleAcceptContract } from './acceptContract.js';
+import { handleSelectContract } from './selectContract.js';
 import { handleToggleReady } from './toggleReady.js';
 import { RoomManager } from '../RoomManager.js';
 import { ReconnectTokenStore } from '../ReconnectTokenStore.js';
@@ -197,13 +198,34 @@ describe('handleDeploy', () => {
     expect(room.phase).toBe('DEPLOYING');
   });
 
-  it('DEPLOY in a WAITING room emits LOBBY_ERROR WRONG_PHASE', () => {
+  // TD-041: DEPLOY is two-stage. In WAITING it is the COMMIT (WAITING → DEPLOYING),
+  // valid only once a contract has been selected off the board.
+  it('DEPLOY in WAITING with no contract selected emits NO_CONTRACT_SELECTED, no commit', () => {
     const mgr = new RoomManager();
     const store = new ReconnectTokenStore();
     handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
+    standAt(mgr, 'host', 'DEPLOY_GATE');
     const { fn: emit, calls } = makeEmit();
     handleDeploy('host', mgr, store, emit, () => {}, noBroadcast);
-    expect((calls[0]?.[1] as { code: string }).code).toBe('WRONG_PHASE');
+    expect((calls[0]?.[1] as { code: string }).code).toBe('NO_CONTRACT_SELECTED');
+    expect(mgr.getRoomBySocketId('host')!.phase).toBe('WAITING');
+  });
+
+  it('DEPLOY in WAITING with a contract selected commits: WAITING → DEPLOYING, broadcasts ROOM_DEPLOYING, no FIELD_STARTED', () => {
+    const mgr = new RoomManager();
+    const store = new ReconnectTokenStore();
+    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
+    // Select a contract at the board (reversible), then walk to the gate and commit.
+    standAt(mgr, 'host', 'CONTRACT_BOARD');
+    const room = mgr.getRoomBySocketId('host')!;
+    handleSelectContract('host', { contractId: room.board[0]!.contractId }, mgr, () => {}, () => {});
+    standAt(mgr, 'host', 'DEPLOY_GATE');
+    const bcalls: Array<[string, string, unknown]> = [];
+    const { fn: emitTo, calls: emitToCalls } = makeEmitTo();
+    handleDeploy('host', mgr, store, () => {}, emitTo, (c, t, p) => bcalls.push([c, t, p]));
+    expect(room.phase).toBe('DEPLOYING');
+    expect(bcalls.some(([, t]) => t === 'ROOM_DEPLOYING')).toBe(true);
+    expect(emitToCalls).toHaveLength(0);   // committed, not yet launched to the field
   });
 
   it('sender not in any room emits LOBBY_ERROR NOT_IN_ROOM', () => {

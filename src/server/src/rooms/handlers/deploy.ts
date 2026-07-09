@@ -2,7 +2,7 @@ import type { RoomManager } from '../RoomManager.js';
 import type { ReconnectTokenStore } from '../ReconnectTokenStore.js';
 import type { EmitFn, EmitToFn, BroadcastFn } from '../types.js';
 import { buildStubFieldData } from '../fieldData.js';
-import { assertPhase } from '../phaseGuard.js';
+import { toContractIntel } from '../../incarnate/generateContract.js';
 import { deriveAmbientSigns } from '../../incarnate/deriveSigns.js';
 import { perceivedChannelsFor, filterSigns } from '../perception.js';
 import { generateSite } from '../../site/generateSite.js';
@@ -21,7 +21,14 @@ export function handleDeploy(
   broadcast: BroadcastFn,
 ): void {
   const room = roomManager.getRoomBySocketId(socketId);
-  if (!assertPhase(room, 'DEPLOYING', emit)) return;
+  if (!room) {
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_IN_ROOM', message: 'You are not in any room.' });
+    return;
+  }
+  if (room.phase !== 'WAITING' && room.phase !== 'DEPLOYING') {
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'WRONG_PHASE', message: `Cannot deploy in ${room.phase}.` });
+    return;
+  }
 
   const sender = room.players.find(p => p.socketId === socketId);
   if (!sender?.isLeader) {
@@ -35,7 +42,23 @@ export function handleDeploy(
     return;
   }
 
-  // room.contract is guaranteed non-null when phase is DEPLOYING (set by acceptContract).
+  // Stage 1 — commit (TD-041): WAITING -> DEPLOYING. The reversible selection made
+  // at the Contract Board is committed here (this is where the Surety will be staked
+  // once that system lands), opening the pre-deployment staging (Quartermaster
+  // requisition). A commit with no contract selected is rejected to the sender only,
+  // no mutation (I2).
+  if (room.phase === 'WAITING') {
+    if (!room.contract) {
+      emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NO_CONTRACT_SELECTED', message: 'Select a contract at the board before deploying.' });
+      return;
+    }
+    room.phase = 'DEPLOYING';
+    broadcast(room.code, SERVER_MESSAGES.ROOM_DEPLOYING, { contract: toContractIntel(room.contract) });
+    return;
+  }
+
+  // Stage 2 — launch: DEPLOYING -> FIELD. room.contract is guaranteed non-null in
+  // DEPLOYING (set at selection, required at the Stage-1 commit).
   const contract  = room.contract!;
   const fieldData = buildStubFieldData(contract);
   // Ambient signs only — the REACTION channel is probe-gated (R58, P22).

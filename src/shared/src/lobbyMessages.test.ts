@@ -13,7 +13,7 @@ import type { FieldSnapshot } from './fieldPhase.js';
 // T2: wire-protocol message payload types
 
 describe('LobbyErrorCode', () => {
-  it('contains exactly the nineteen expected error codes', () => {
+  it('contains exactly the twenty expected error codes', () => {
     // Exhaustive switch — TypeScript compiler enforces this at compile time. A
     // missing case makes `code` non-never on the final assignment below.
     const check = (code: LobbyErrorCode): number => {
@@ -37,6 +37,7 @@ describe('LobbyErrorCode', () => {
         case 'NOT_AT_QUARTERMASTER':   return 17;
         case 'NOT_AT_DEPLOY_GATE':     return 18;
         case 'UNKNOWN_CONTRACT':       return 19;
+        case 'NO_CONTRACT_SELECTED':   return 20;
       }
     };
     const codes: LobbyErrorCode[] = [
@@ -45,9 +46,10 @@ describe('LobbyErrorCode', () => {
       'TOKEN_NOT_FOUND', 'WRONG_PHASE', 'UNKNOWN_ITEM', 'BAG_OVERFLOW',
       'MISSING_GEAR', 'CANNOT_KICK', 'NOT_AT_EXTRACTION', 'NOT_AT_CONTRACT_BOARD',
       'NOT_AT_QUARTERMASTER', 'NOT_AT_DEPLOY_GATE', 'UNKNOWN_CONTRACT',
+      'NO_CONTRACT_SELECTED',
     ];
     const values = codes.map(check);
-    expect(new Set(values).size).toBe(19);
+    expect(new Set(values).size).toBe(20);
   });
 });
 
@@ -56,6 +58,7 @@ describe('RoomDeployingPayload', () => {
     const contract: ContractIntel = {
       contractId: 'c-001',
       origin: 'SIN',
+      requester: { name: 'Aldis Vane', role: 'Reliquary-Steward', place: 'Ashfen' },
       targetName: 'The Ashen Warden',
       siteName: 'The Collapsed Chancel',
       primaryVerb: 'INVESTIGATE',
@@ -67,7 +70,7 @@ describe('RoomDeployingPayload', () => {
     expect(Object.keys(payload.contract)).not.toContain('traitRoll');
     expect(Object.keys(payload.contract)).not.toContain('expeditionSeed');
     expect(Object.keys(payload.contract).sort()).toEqual(
-      ['contractId', 'origin', 'primaryVerb', 'siteName', 'targetName', 'tier'].sort()
+      ['contractId', 'origin', 'primaryVerb', 'requester', 'siteName', 'targetName', 'tier'].sort()
     );
   });
 });

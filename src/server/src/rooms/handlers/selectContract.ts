@@ -1,16 +1,16 @@
 import type { RoomManager } from '../RoomManager.js';
 import type { EmitFn, BroadcastFn } from '../types.js';
-import { allReady } from '../readyCheck.js';
 import { atStation } from '../stations.js';
-import { toContractIntel } from '../../incarnate/generateContract.js';
+import { toSnapshot } from '../snapshot.js';
 import { SERVER_MESSAGES } from '@testament/shared';
 
-// SELECT_CONTRACT (R110, invariant I2): the leader picks a contract off the board.
-// Selection IS the acceptance that stakes the Surety and moves the room to
-// DEPLOYING. Every gate is checked before any mutation, and an error goes to the
-// sender only. The chosen contract is PROMOTED from the board — never re-rolled —
-// so the hidden trait roll the party will read in the field is the one the board
-// was seeded with (the board the party browsed is the expedition they get).
+// SELECT_CONTRACT (R110, revised TD-041): the leader stamps a contract off the
+// board as the party's chosen one. REVERSIBLE — DESELECT_CONTRACT lifts the seal —
+// and NON-committing: no Surety is staked and the phase does not change. The commit
+// to DEPLOYING happens later at the Deploy Gate (handleDeploy). Every gate is
+// checked before any mutation and errors go to the sender only (I2). The chosen
+// contract is PROMOTED from the board — never re-rolled — so the hidden trait roll
+// the party reads in the field is the one the board was seeded with.
 export function handleSelectContract(
   socketId: string,
   payload: unknown,
@@ -49,10 +49,6 @@ export function handleSelectContract(
     emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_AT_CONTRACT_BOARD', message: 'Stand at the Contract Board to select a contract.' });
     return;
   }
-  if (!allReady(room.players)) {
-    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'PARTY_NOT_READY', message: 'All players must be ready before selecting a contract.' });
-    return;
-  }
 
   const chosen = room.board.find(c => c.contractId === contractId);
   if (!chosen) {
@@ -60,7 +56,13 @@ export function handleSelectContract(
     return;
   }
 
+  // Set the party's selection (reversible). The authoritative state travels on the
+  // LOBBY_UPDATED snapshot's `contract`; CONTRACT_SELECTION is the transient toast.
   room.contract = chosen;
-  room.phase = 'DEPLOYING';
-  broadcast(room.code, SERVER_MESSAGES.ROOM_DEPLOYING, { contract: toContractIntel(chosen) });
+  broadcast(room.code, SERVER_MESSAGES.LOBBY_UPDATED, { snapshot: toSnapshot(room) });
+  broadcast(room.code, SERVER_MESSAGES.CONTRACT_SELECTION, {
+    accepted: true,
+    targetName: chosen.targetName,
+    actorName: player.displayName,
+  });
 }

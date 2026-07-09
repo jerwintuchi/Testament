@@ -20,6 +20,7 @@ import type {
   ToggleReadyPayload,
   AcceptContractPayload,
   SelectContractPayload,
+  DeselectContractPayload,
   LeaveRoomPayload,
   ReconnectPayload,
   RequisitionPayload,
@@ -28,6 +29,7 @@ import type {
   LobbyUpdatedPayload,
   ReconnectTokenPayload,
   RoomDeployingPayload,
+  ContractSelectionPayload,
   StateResyncPayload,
   LobbyErrorPayload,
 } from './lobbyMessages.js';
@@ -51,6 +53,7 @@ export const CLIENT_MESSAGES = {
   TOGGLE_READY: 'TOGGLE_READY',
   ACCEPT_CONTRACT: 'ACCEPT_CONTRACT',
   SELECT_CONTRACT: 'SELECT_CONTRACT',
+  DESELECT_CONTRACT: 'DESELECT_CONTRACT',
   LEAVE_ROOM: 'LEAVE_ROOM',
   RECONNECT: 'RECONNECT',
   REQUISITION: 'REQUISITION',
@@ -68,6 +71,7 @@ export const SERVER_MESSAGES = {
   LOBBY_UPDATED: 'LOBBY_UPDATED',
   RECONNECT_TOKEN: 'RECONNECT_TOKEN',
   ROOM_DEPLOYING: 'ROOM_DEPLOYING',
+  CONTRACT_SELECTION: 'CONTRACT_SELECTION',
   FIELD_STARTED: 'FIELD_STARTED',
   PROBE_RESULT: 'PROBE_RESULT',
   POSITIONS: 'POSITIONS',
@@ -86,6 +90,7 @@ export type ClientMessagePayloads = {
   TOGGLE_READY: ToggleReadyPayload;
   ACCEPT_CONTRACT: AcceptContractPayload;
   SELECT_CONTRACT: SelectContractPayload;
+  DESELECT_CONTRACT: DeselectContractPayload;
   LEAVE_ROOM: LeaveRoomPayload;
   RECONNECT: ReconnectPayload;
   REQUISITION: RequisitionPayload;
@@ -100,6 +105,7 @@ export type ServerMessagePayloads = {
   LOBBY_UPDATED: LobbyUpdatedPayload;
   RECONNECT_TOKEN: ReconnectTokenPayload;
   ROOM_DEPLOYING: RoomDeployingPayload;
+  CONTRACT_SELECTION: ContractSelectionPayload;
   FIELD_STARTED: FieldStartedPayload;
   PROBE_RESULT: ProbeResultPayload;
   POSITIONS: PositionsPayload;
