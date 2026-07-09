@@ -124,13 +124,17 @@
       colours + snaps near-colours; a quantized gradient is 100% on-palette; VFX exemption
       only under `allow_vfx`; PNG writer emits a valid signature. **Green.**
 
-- [ ] T141 [DESIGN § Components "Batch 1", Shapes, Layout] — **Structure assets.**
-      Generate + Aseprite-finish: carved **frame** 9-slice (mitred corners + iron studs),
-      **plank backing** 9-slice, hanging **placard** (routed dark wood, dim-gold letters),
-      **stone/mortar surround**, and the **torch** (grayscale flame frames + grayscale
-      glow source). Godot import: Nearest, integer, correct 9-slice margins.
-      Verify: assets import clean; `run_project` parses clean (MCP); eyeball frame/placard/
-      surround read as the key-screen mock (`mockups/key-screen-board.html`).
+- [x] T141 [DESIGN § Components "Batch 1", Shapes, Layout] — **Structure assets.**
+      `client/assets/ui/gen_structure.py` (imports `ashember`) emits 7 palette-locked PNGs:
+      `board_frame.png` (64² carved 9-slice, mitred corners + iron studs), `board_backing.png`
+      (48² plank 9-slice), `board_placard.png` (64×24 routed plaque 9-slice — Godot draws the
+      gold text over it), `stone_tile.png` (48×32 tileable brick/mortar), `torch_flame.png`
+      (4-frame grayscale-additive sheet), `torch_glow.png` (96² radial grayscale-additive),
+      `torch_sconce.png` (iron bracket). Board art quantized to the ramps; flame/glow are
+      white+alpha VFX sources (tinted in Godot). Project default filter = Nearest, integer scale.
+      Test: `python3 gen_structure.py` — all `assert_on_palette` pass (VFX under `allow_vfx`);
+      flame/glow alpha coverage sane; `run_project` parses clean (MCP), no import errors.
+      Full on-board eyeball is T142. **Green.**
 
 - [ ] T142 [EXPERIENCE Game Feel, Foundation; DESIGN Elevation] — **Batch 1 integration.**
       Wire the structure assets into `_build_contract_board` (retire the greybox

@@ -8,3 +8,7 @@ dist/
 .claude/settings.local.json
 .vscode/
 CARRYOVER_PROMPT.txt
+
+# Python bytecode from asset generators
+__pycache__/
+*.pyc
