@@ -1,0 +1,291 @@
+<title>Notice Board — Palette Candidates</title>
+<style>
+  :root{
+    --ink:#17130f; --ink-2:#1f1a14;
+    --parch-txt:#cdbfa4; --parch-dim:#8f836c;
+    --gold:#b08a3e; --rule:#3a3025;
+    --serif:Georgia,"Times New Roman",serif;
+    --mono:"SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:
+      radial-gradient(120% 80% at 50% -10%, #241d15 0%, var(--ink) 60%);
+    color:var(--parch-txt);font-family:var(--serif);line-height:1.5;
+    -webkit-font-smoothing:antialiased;padding:48px 28px 72px}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{text-align:center;max-width:680px;margin:0 auto 14px}
+  .eyebrow{font-family:var(--mono);text-transform:uppercase;letter-spacing:.28em;
+    font-size:11px;color:var(--gold);margin:0 0 14px}
+  h1{font-size:clamp(30px,5vw,46px);margin:0 0 12px;font-weight:600;
+    text-wrap:balance;color:#e7d8b6;letter-spacing:.01em}
+  h1 em{font-style:italic;color:var(--gold)}
+  .lede{color:var(--parch-dim);font-size:16px;margin:0 auto;max-width:60ch}
+  .rule{height:1px;background:linear-gradient(90deg,transparent,var(--rule),transparent);
+    margin:34px auto 40px;max-width:900px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;max-width:460px;margin:0 auto}}
+  .card{background:linear-gradient(180deg,var(--ink-2),#15110c);
+    border:1px solid var(--rule);border-radius:6px;overflow:hidden;
+    box-shadow:0 12px 34px rgba(0,0,0,.5)}
+  .card > .body{padding:18px 18px 22px}
+  .name{font-size:22px;font-weight:600;color:#e7d8b6;margin:0 0 3px;letter-spacing:.01em}
+  .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--gold);margin:0 0 10px}
+  .concept{font-size:14px;color:var(--parch-dim);margin:0 0 18px;min-height:60px}
+
+  /* ── mini board mock ─────────────────────────────────────────── */
+  .mock{position:relative;height:190px;overflow:hidden;
+    /* stone/mortar surround */
+    background-color:var(--stone);
+    background-image:
+      linear-gradient(90deg, rgba(0,0,0,.35) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(0,0,0,.35) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.25));
+    background-size:26px 20px,26px 20px,100% 100%;
+    border-bottom:1px solid var(--rule)}
+  /* torch glow pools left + right */
+  .mock::before,.mock::after{content:"";position:absolute;top:0;bottom:0;width:46%;
+    pointer-events:none;mix-blend-mode:screen}
+  .mock::before{left:0;background:radial-gradient(60% 55% at 6% 42%,
+     var(--flameglow) 0%, transparent 68%)}
+  .mock::after{right:0;background:radial-gradient(60% 55% at 94% 42%,
+     var(--flameglow) 0%, transparent 68%)}
+  .flame{position:absolute;top:76px;width:10px;height:16px;border-radius:50% 50% 46% 46%;
+    background:radial-gradient(circle at 50% 70%, #fff2c8, var(--flame) 55%, transparent 75%);
+    box-shadow:0 0 14px 5px var(--flame);z-index:4}
+  .flame.l{left:9px} .flame.r{right:9px}
+  /* carved wooden frame + plank backing */
+  .board{position:absolute;inset:16px 30px;z-index:3;border-radius:3px;
+    border:7px solid var(--wood-bevel);
+    background-color:var(--wood);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 4px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,.10) 0 22px, rgba(0,0,0,.22) 22px 23px);
+    box-shadow:0 0 0 2px var(--wood-edge), inset 0 0 22px rgba(0,0,0,.55)}
+  /* mitred corner joints */
+  .board::before{content:"";position:absolute;inset:-7px;border-radius:3px;pointer-events:none;
+    background:
+      linear-gradient(135deg,var(--wood-bevel) 9px,transparent 9px) top left/16px 16px no-repeat,
+      linear-gradient(225deg,var(--wood-bevel) 9px,transparent 9px) top right/16px 16px no-repeat,
+      linear-gradient(45deg,var(--wood-bevel) 9px,transparent 9px) bottom left/16px 16px no-repeat,
+      linear-gradient(315deg,var(--wood-bevel) 9px,transparent 9px) bottom right/16px 16px no-repeat}
+  /* hanging routed placard */
+  .placard{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:6;
+    background:var(--wood-edge);color:var(--gold);font-family:var(--mono);
+    font-size:8.5px;letter-spacing:.13em;padding:4px 10px;border-radius:2px;
+    border:1px solid var(--wood-bevel);box-shadow:0 3px 6px rgba(0,0,0,.5);white-space:nowrap}
+  .placard::before,.placard::after{content:"";position:absolute;top:-7px;width:1px;height:7px;
+    background:#12100c}
+  .placard::before{left:8px}.placard::after{right:8px}
+  /* parchment notices */
+  .note{position:absolute;z-index:5;background:var(--parch);
+    color:#2a2115;font-family:var(--serif);border-radius:1px;
+    box-shadow:0 4px 9px rgba(0,0,0,.45);padding:8px 8px 7px;
+    background-image:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.14))}
+  .note .h{font-size:8.5px;font-weight:700;letter-spacing:.06em;
+    color:var(--wax);text-align:center;margin:0 0 4px}
+  .note .t{font-size:7px;line-height:1.35;color:#3a2c1c}
+  .note.a{width:78px;top:44px;left:44px;transform:rotate(-4deg)}
+  .note.b{width:72px;top:70px;left:132px;transform:rotate(3deg)}
+  .note.c{width:60px;top:112px;left:78px;transform:rotate(-2deg);
+    background:var(--parch-2)}
+  .seal{position:absolute;right:-6px;top:-6px;width:15px;height:15px;border-radius:50%;
+    background:radial-gradient(circle at 38% 34%, var(--wax-hi), var(--wax) 70%);
+    box-shadow:inset 0 -2px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.5)}
+  .pips{display:flex;gap:2px;justify-content:center;margin-top:4px}
+  .pip{width:5px;height:5px;transform:rotate(45deg);background:var(--gold)}
+  .pip.off{background:transparent;box-shadow:inset 0 0 0 1px var(--parch-dim)}
+  .foxing{position:absolute;width:7px;height:5px;border-radius:50%;
+    background:var(--foxing);opacity:.5}
+
+  /* ── ramps ───────────────────────────────────────────────────── */
+  .ramps{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+  .ramp{display:grid;grid-template-columns:70px 1fr;align-items:center;gap:10px}
+  .ramp .role{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--parch-dim)}
+  .chips{display:flex;gap:0;border-radius:3px;overflow:hidden;border:1px solid rgba(0,0,0,.4)}
+  .chip{flex:1;height:34px;position:relative}
+  .chip span{position:absolute;left:0;right:0;bottom:2px;text-align:center;
+    font-family:var(--mono);font-size:7.5px;color:rgba(255,255,255,.72);
+    text-shadow:0 1px 1px rgba(0,0,0,.8);font-variant-numeric:tabular-nums}
+  footer{max-width:760px;margin:46px auto 0;text-align:center;color:var(--parch-dim);
+    font-size:13.5px;border-top:1px solid var(--rule);padding-top:24px}
+  footer code{font-family:var(--mono);color:var(--gold);font-size:12.5px}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Testament · Notice Board · Pass 2</p>
+    <h1>Three candlelit <em>gothic</em> palettes</h1>
+    <p class="lede">Blended carved frame in a stone surround, flanking torchlight, solemn
+      parchment. Same board, same light logic — three moods. Each shown working, then
+      broken into role ramps. Pick one to lock; ramps become the palette-locked source.</p>
+  </header>
+  <div class="rule"></div>
+
+  <div class="grid">
+
+    <!-- ─────────────── A · ASH & EMBER ─────────────── -->
+    <div class="card" style="
+        --stone:#2b2f33; --wood:#5a3d28; --wood-edge:#3a2617; --wood-bevel:#7a5334;
+        --parch:#cbb583; --parch-2:#b6a071; --foxing:#9c7f4e;
+        --wax:#8f2f2a; --wax-hi:#c65a4e; --gold:#b08a3e;
+        --flame:#e8973c; --flameglow:rgba(232,151,60,.5)">
+      <div class="mock">
+        <div class="flame l"></div><div class="flame r"></div>
+        <div class="board">
+          <div class="placard">PETITIONS</div>
+          <div class="note a"><p class="h">SANCTION</p><p class="t">Still the thing that
+            walks the fen.</p><div class="pips"><i class="pip"></i><i class="pip"></i><i class="pip off"></i></div>
+            <div class="seal"></div></div>
+          <div class="note b"><p class="h">INQUIRY</p><p class="t">Read it, do not slay.</p>
+            <div class="seal"></div></div>
+          <div class="note c"><span class="foxing" style="left:8px;top:6px"></span>
+            <p class="t">…faded rite-notice…</p></div>
+        </div>
+      </div>
+      <div class="body">
+        <p class="name">Ash &amp; Ember</p>
+        <p class="tag">warm / cold contrast</p>
+        <p class="concept">Cold slate stone falls to shadow; the torch pools carry the
+          only warmth. The candlelit-gloom thesis at its most dramatic — bone parchment
+          glows against a near-blue dark. Amber ember accent.</p>
+        <div class="ramps">
+          <div class="ramp"><span class="role">Stone</span><div class="chips">
+            <div class="chip" style="background:#2b2f33"><span>2B2F33</span></div>
+            <div class="chip" style="background:#3c4248"><span>3C4248</span></div>
+            <div class="chip" style="background:#4c545a"><span>4C545A</span></div></div></div>
+          <div class="ramp"><span class="role">Wood</span><div class="chips">
+            <div class="chip" style="background:#3a2617"><span>3A2617</span></div>
+            <div class="chip" style="background:#5a3d28"><span>5A3D28</span></div>
+            <div class="chip" style="background:#7a5334"><span>7A5334</span></div></div></div>
+          <div class="ramp"><span class="role">Parchment</span><div class="chips">
+            <div class="chip" style="background:#a8946a"><span>A8946A</span></div>
+            <div class="chip" style="background:#cbb583"><span>CBB583</span></div>
+            <div class="chip" style="background:#e0cf9f"><span>E0CF9F</span></div></div></div>
+          <div class="ramp"><span class="role">Wax</span><div class="chips">
+            <div class="chip" style="background:#8f2f2a"><span>8F2F2A</span></div>
+            <div class="chip" style="background:#c65a4e"><span>C65A4E</span></div></div></div>
+          <div class="ramp"><span class="role">Gold</span><div class="chips">
+            <div class="chip" style="background:#8c6c30"><span>8C6C30</span></div>
+            <div class="chip" style="background:#b08a3e"><span>B08A3E</span></div></div></div>
+          <div class="ramp"><span class="role">Flame</span><div class="chips">
+            <div class="chip" style="background:#e8973c"><span>E8973C</span></div>
+            <div class="chip" style="background:#f0b25f"><span>F0B25F</span></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────── B · RELIQUARY GOLD ─────────────── -->
+    <div class="card" style="
+        --stone:#34302c; --wood:#6b4526; --wood-edge:#452a15; --wood-bevel:#8f6234;
+        --parch:#e3cf9e; --parch-2:#cdb681; --foxing:#b1935e;
+        --wax:#9c2b26; --wax-hi:#d3625a; --gold:#c9a24e;
+        --flame:#f2c96a; --flameglow:rgba(242,201,106,.42)">
+      <div class="mock">
+        <div class="flame l"></div><div class="flame r"></div>
+        <div class="board">
+          <div class="placard">PETITIONS</div>
+          <div class="note a"><p class="h">CONTAINMENT</p><p class="t">It must arrive
+            alive and whole.</p><div class="pips"><i class="pip"></i><i class="pip"></i><i class="pip"></i></div>
+            <div class="seal"></div></div>
+          <div class="note b"><p class="h">BANISHMENT</p><p class="t">Bring the rite.</p>
+            <div class="seal"></div></div>
+          <div class="note c"><span class="foxing" style="left:8px;top:6px"></span>
+            <p class="t">…a warning, nailed…</p></div>
+        </div>
+      </div>
+      <div class="body">
+        <p class="name">Reliquary Gold</p>
+        <p class="tag">warm / gilded chapel</p>
+        <p class="concept">Richer, warmer, less grim — deep walnut, cream vellum, crimson
+          wax, brighter ecclesiastical gold leaf. The board as a sacred treasury lit by
+          candle. Legible and inviting over ominous.</p>
+        <div class="ramps">
+          <div class="ramp"><span class="role">Stone</span><div class="chips">
+            <div class="chip" style="background:#34302c"><span>34302C</span></div>
+            <div class="chip" style="background:#47413a"><span>47413A</span></div>
+            <div class="chip" style="background:#585049"><span>585049</span></div></div></div>
+          <div class="ramp"><span class="role">Wood</span><div class="chips">
+            <div class="chip" style="background:#452a15"><span>452A15</span></div>
+            <div class="chip" style="background:#6b4526"><span>6B4526</span></div>
+            <div class="chip" style="background:#8f6234"><span>8F6234</span></div></div></div>
+          <div class="ramp"><span class="role">Parchment</span><div class="chips">
+            <div class="chip" style="background:#c2ab76"><span>C2AB76</span></div>
+            <div class="chip" style="background:#e3cf9e"><span>E3CF9E</span></div>
+            <div class="chip" style="background:#f2e4bd"><span>F2E4BD</span></div></div></div>
+          <div class="ramp"><span class="role">Wax</span><div class="chips">
+            <div class="chip" style="background:#9c2b26"><span>9C2B26</span></div>
+            <div class="chip" style="background:#d3625a"><span>D3625A</span></div></div></div>
+          <div class="ramp"><span class="role">Gold</span><div class="chips">
+            <div class="chip" style="background:#a07d34"><span>A07D34</span></div>
+            <div class="chip" style="background:#c9a24e"><span>C9A24E</span></div></div></div>
+          <div class="ramp"><span class="role">Flame</span><div class="chips">
+            <div class="chip" style="background:#f2c96a"><span>F2C96A</span></div>
+            <div class="chip" style="background:#f7dc95"><span>F7DC95</span></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────── C · SACRED DECAY ─────────────── -->
+    <div class="card" style="
+        --stone:#2c322b; --wood:#403324; --wood-edge:#241a10; --wood-bevel:#5c4a30;
+        --parch:#b7ad8b; --parch-2:#9f9670; --foxing:#7d6b4a;
+        --wax:#6e2420; --wax-hi:#a2483f; --gold:#8a7b3c;
+        --flame:#cbb968; --flameglow:rgba(203,185,104,.34)">
+      <div class="mock">
+        <div class="flame l"></div><div class="flame r"></div>
+        <div class="board">
+          <div class="placard">PETITIONS</div>
+          <div class="note a"><p class="h">SANCTION</p><p class="t">Leave nothing to
+            rise.</p><div class="pips"><i class="pip"></i><i class="pip off"></i><i class="pip off"></i></div>
+            <div class="seal"></div></div>
+          <div class="note b"><p class="h">INQUIRY</p><p class="t">Chronicle its nature.</p>
+            <div class="seal"></div></div>
+          <div class="note c"><span class="foxing" style="left:6px;top:5px"></span>
+            <span class="foxing" style="left:34px;top:20px"></span>
+            <p class="t">…penitent's plea…</p></div>
+        </div>
+      </div>
+      <div class="body">
+        <p class="name">Sacred Decay</p>
+        <p class="tag">cool / mould &amp; rot</p>
+        <p class="concept">The decay end. Mossy green-grey stone, blackened bog-oak,
+          greyed and foxed vellum, dried-blood wax, verdigris-tarnished gold. Grimmest of
+          the three — atmosphere over invitation, still legible.</p>
+        <div class="ramps">
+          <div class="ramp"><span class="role">Stone</span><div class="chips">
+            <div class="chip" style="background:#2c322b"><span>2C322B</span></div>
+            <div class="chip" style="background:#3d453a"><span>3D453A</span></div>
+            <div class="chip" style="background:#4d574a"><span>4D574A</span></div></div></div>
+          <div class="ramp"><span class="role">Wood</span><div class="chips">
+            <div class="chip" style="background:#241a10"><span>241A10</span></div>
+            <div class="chip" style="background:#403324"><span>403324</span></div>
+            <div class="chip" style="background:#5c4a30"><span>5C4A30</span></div></div></div>
+          <div class="ramp"><span class="role">Parchment</span><div class="chips">
+            <div class="chip" style="background:#968c6a"><span>968C6A</span></div>
+            <div class="chip" style="background:#b7ad8b"><span>B7AD8B</span></div>
+            <div class="chip" style="background:#cec4a0"><span>CEC4A0</span></div></div></div>
+          <div class="ramp"><span class="role">Wax</span><div class="chips">
+            <div class="chip" style="background:#6e2420"><span>6E2420</span></div>
+            <div class="chip" style="background:#a2483f"><span>A2483F</span></div></div></div>
+          <div class="ramp"><span class="role">Gold</span><div class="chips">
+            <div class="chip" style="background:#6a6033"><span>6A6033</span></div>
+            <div class="chip" style="background:#8a7b3c"><span>8A7B3C</span></div>
+            <div class="chip" style="background:#5f6b4a"><span>5F6B4A</span></div></div></div>
+          <div class="ramp"><span class="role">Flame</span><div class="chips">
+            <div class="chip" style="background:#cbb968"><span>CBB968</span></div>
+            <div class="chip" style="background:#ddcd8b"><span>DDCD8B</span></div></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    Mocks are CSS approximations for palette comparison — final art is 16×16-class pixel,
+    Nearest-filtered, palette-locked. Pick a direction (or mix ramps across them) and I
+    lock it into <code>DESIGN.md</code> as the source palette, then it drives the PIL
+    generators for frame, parchment, seals, and torch glow.
+  </footer>
+</div>

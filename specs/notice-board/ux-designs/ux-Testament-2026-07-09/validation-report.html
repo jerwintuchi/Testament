@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UX Design Validation: Testament Notice Board — Pass 2 Reskin</title>
+<style>
+  :root {
+    --bg: #fafaf9; --surface: #ffffff; --border: #e7e5e4; --text: #1c1917; --muted: #78716c;
+    --verdict-strong: #16a34a; --verdict-adequate: #65a30d; --verdict-thin: #d97706; --verdict-broken: #dc2626;
+    --sev-low: #64748b; --sev-medium: #ca8a04; --sev-high: #ea580c; --sev-critical: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; font-size: 15px; }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+  header.report-header { display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .counts { text-align: right; font-size: 12px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; white-space: nowrap; }
+  .counts b { display:inline-block; min-width: 1.4em; }
+  .synthesis { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--sev-high);
+    border-radius: 8px; padding: 18px 22px; margin-bottom: 24px; font-size: 15.5px; }
+  .synthesis p { margin: 0 0 10px; } .synthesis p:last-child { margin-bottom: 0; }
+  .dimension-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .dim-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .dim-card .dim-name { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; text-transform: capitalize; }
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section details { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  section summary { padding: 14px 20px; cursor: pointer; user-select: none; list-style: none; display: flex; align-items: center; gap: 12px; }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before { content: "▸"; display: inline-block; color: var(--muted); transition: transform 0.15s ease; }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 { display: inline; margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.005em; flex: 1; }
+  .verdict-pill { font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: white; }
+  .verdict-strong { background: var(--verdict-strong); } .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); } .verdict-broken { background: var(--verdict-broken); }
+  .verdict-pass { background: var(--verdict-strong); }
+  .dim-body { padding: 4px 20px 18px; } .dim-judgment { color: var(--text); font-size: 14.5px; } .dim-judgment p { margin: 0 0 10px; }
+  .findings-list { padding: 0 20px 4px; }
+  article.finding { padding: 14px 0; border-top: 1px solid var(--border); }
+  article.finding:first-child { border-top: none; }
+  article.finding header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .badge { font-size: 10.5px; padding: 3px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.4; }
+  .badge-sev-low { background: rgba(100,116,139,.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202,138,4,.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234,88,12,.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220,38,38,.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; } .finding-fix strong { color: var(--muted); font-weight: 600; }
+  .reviewer-source { font-size: 12px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+  table.ratios { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0 4px; }
+  table.ratios th, table.ratios td { border: 1px solid var(--border); padding: 5px 9px; text-align: left; }
+  table.ratios td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, Menlo, monospace; }
+  .fail { color: var(--sev-critical); font-weight: 600; } .pass { color: var(--verdict-strong); font-weight: 600; }
+  .mechanical { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-top: 24px; font-size: 14px; }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; } .mechanical li { margin-bottom: 4px; }
+  footer.report-footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); font-family: ui-monospace, Menlo, monospace; }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header class="report-header">
+      <div class="title">
+        <h1>Testament Notice Board — Pass 2 Reskin · UX Validation</h1>
+        <div class="subtitle">specs/notice-board/ux-designs/ux-Testament-2026-07-09/</div>
+      </div>
+      <div class="counts">
+        4 lenses · findings<br>
+        <span class="fail">critical 2</span> · <b style="color:var(--sev-high)">high 5</b><br>
+        <b style="color:var(--sev-medium)">medium 12</b> · <b style="color:var(--sev-low)">low 12</b>
+      </div>
+    </header>
+
+    <div class="synthesis">
+      <p>A <strong>strong, tightly-distilled spine pair</strong>. The palette is fully hex-locked, every prose
+        <code>{token}</code> resolves, all named sources and both reused components (<code>WaxSeal</code>,
+        <code>ThreatPips</code>) exist on disk, and both files hold canonical shape. A downstream implementer can
+        source-extract the visual identity and the behavioral delta cleanly — the gaps are at the edges, not the spine.</p>
+      <p>But the <strong>legibility lens materially sharpens the central risk</strong>: the candlelit-gloom mood the
+        reskin is built around is <em>asserted, not guaranteed</em>. The notice headline — the loudest, most load-bearing
+        string — is painted in wax red <code>#8F2F2A</code>, the lowest-luminance ink in the palette; it fails WCAG on all
+        but torch-lit paper and collapses to <strong>~1.5:1 under gloom</strong>. Threat pips fail the 3:1 graphical floor,
+        quietly undermining the "threat = pip count" non-color cue. No numeric contrast floor and no mandated live-notice
+        paper tone make any of it testable. Two criticals and five highs — all fixable in spec, before Batch 1.</p>
+      <p><strong>Behavior-drift passed clean</strong> (the reskin is correctly look-not-behavior; terminology is
+        byte-identical to the tested <code>specs/notice-board</code>). <strong>Art-canon</strong> is sound but flags two
+        conventions to honor: the torch glow / cobweb are specced as <em>colored screen-blend</em> against CLAUDE.md's
+        <em>grayscale ADD-blend</em> VFX rule, and the unresolved <em>Pillow-absent</em> pipeline decision — which threatens
+        the load-bearing glow generator — is not surfaced in the finalized spines.</p>
+    </div>
+
+    <div class="dimension-summary">
+      <div class="dim-card"><div class="dim-name">1 · Flow coverage</div><div class="dim-verdict" style="color:var(--verdict-adequate)">Adequate</div></div>
+      <div class="dim-card"><div class="dim-name">2 · Token completeness</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div>
+      <div class="dim-card"><div class="dim-name">3 · Component coverage</div><div class="dim-verdict" style="color:var(--verdict-adequate)">Adequate</div></div>
+      <div class="dim-card"><div class="dim-name">4 · State coverage</div><div class="dim-verdict" style="color:var(--verdict-adequate)">Adequate</div></div>
+      <div class="dim-card"><div class="dim-name">5 · Visual references</div><div class="dim-verdict" style="color:var(--verdict-thin)">Thin</div></div>
+      <div class="dim-card"><div class="dim-name">6 · Bloat</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div>
+      <div class="dim-card"><div class="dim-name">7 · Inheritance</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div>
+      <div class="dim-card"><div class="dim-name">8 · Shape fit</div><div class="dim-verdict" style="color:var(--verdict-strong)">Strong</div></div>
+    </div>
+
+    <!-- ── Rubric dimensions ─────────────────────────────────────── -->
+    <section class="dimension"><details open>
+      <summary><h2>1 · Flow coverage</h2><span class="verdict-pill verdict-adequate">Adequate</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>One well-formed Key Flow ("Wren takes up a charge") with named
+        protagonist, numbered steps, and an explicit climax. The Scope note legitimately narrows to the reskin delta — but
+        TD-041's headline feature is <em>reversibility</em>, and the reversal / co-op / error journeys never get their own beats.</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Deselect / lift-the-seal journey has no flow</h3><span class="finding-location">EXPERIENCE.md Key Flow</span></header>
+          <div class="finding-note">The load-bearing half of the reversible seal (R124/R127, <code>DESELECT_CONTRACT</code>) survives only as a passing clause ("She could lift it just as easily").</div>
+          <div class="finding-fix"><strong>Fix:</strong> add a step-4b beat: firm→faint seal, <code>CONTRACT_SELECTION {accepted:false}</code> toast to the party.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Non-leader co-op experience never walked</h3><span class="finding-location">EXPERIENCE.md State Patterns</span></header>
+          <div class="finding-note">Read-only seal, "Awaiting the leader's seal", toast-on-notify are in State Patterns but the two-client path a playtester must verify has no journey.</div>
+          <div class="finding-fix"><strong>Fix:</strong> a one-paragraph companion flow from a non-leader's seat.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">Raced-error path unrendered</h3><span class="finding-location">EXPERIENCE.md</span></header>
+          <div class="finding-note">Affordance≠authority (P66) is stated but no flow shows where a raced <code>NOT_*</code>/<code>WRONG_PHASE</code> lands on screen.</div>
+          <div class="finding-fix"><strong>Fix:</strong> name the error surface (see §4).</div></article>
+      </div>
+    </details></section>
+
+    <section class="dimension"><details>
+      <summary><h2>2 · Token completeness</h2><span class="verdict-pill verdict-strong">Strong</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>Every color role carries a hex; no color token missing (no true CRITICAL here). Prose <code>{token}</code> refs all resolve. Semantic-vs-accent rules committed. The one gap is a <em>numeric</em> contrast target (tracked as high, and expanded by the legibility lens).</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-high">high</span><h3 class="finding-title">No numeric contrast target for text-on-parchment-under-gloom</h3><span class="finding-location">DESIGN.md Do's; EXPERIENCE.md Accessibility</span></header>
+          <div class="finding-note">Legibility is a "hard floor" in prose but never bound to a ratio, so "readable contrast" is unverifiable downstream — the playtest can't assert it. (The legibility lens shows this is not merely cheap-to-fix but load-bearing: the current headline color fails.)</div>
+          <div class="finding-fix"><strong>Fix:</strong> commit a ratio — live headline &amp; body ≥ 4.5:1 against the composited (post-gloom) local backing; flavor exempt.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">No minimum glyph size for the internal 480×270 res</h3><span class="finding-location">DESIGN.md Typography</span></header>
+          <div class="finding-note">"Comfortably legible" is qualitative; <code>typography.face</code> defers to the existing font with no size/leading floor.</div>
+          <div class="finding-fix"><strong>Fix:</strong> name a minimum glyph size for running notice/headline text.</div></article>
+      </div>
+    </details></section>
+
+    <section class="dimension"><details>
+      <summary><h2>3 · Component coverage</h2><span class="verdict-pill verdict-adequate">Adequate</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>Interactive/stateful pieces (notice, wax_seal, torch) are well-paired across both spines; names stable. Decorative components lack behavioral notes.</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title"><code>threat_pips</code> has no behavioral entry</h3><span class="finding-location">EXPERIENCE.md State Patterns</span></header>
+          <div class="finding-note">A reused, load-bearing non-hue threat cue with a visual spec but no restated behavior ("N filled/empty from tier, no trait value, static").</div>
+          <div class="finding-fix"><strong>Fix:</strong> one State-Patterns line.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">Decor components lack a "static/inert" note</h3><span class="finding-location">DESIGN.md Components</span></header>
+          <div class="finding-note"><code>frame/backing/placard/surround/tack/cobweb/votive/foxing</code> have visual specs but no behavior note; most are inert, but <code>placard</code> carries title voice and <code>tack</code> is seeded.</div>
+          <div class="finding-fix"><strong>Fix:</strong> one-word "static, non-interactive" marker each.</div></article>
+      </div>
+    </details></section>
+
+    <section class="dimension"><details open>
+      <summary><h2>4 · State coverage</h2><span class="verdict-pill verdict-adequate">Adequate</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>Notice/seal/torch states covered incl. reduced-motion; "state never by color alone" explicit. Empty and error ends are the gaps (and the legibility lens adds focus/hit-target floors).</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">No empty-board state</h3><span class="finding-location">EXPERIENCE.md State Patterns</span></header>
+          <div class="finding-note">Nothing specifies what renders if the live-contract pool is 0 (or flavor-only). The reader has an honest empty line; the board surface has none.</div>
+          <div class="finding-fix"><strong>Fix:</strong> state the empty-board presentation, or assert the pool is always ≥1.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">No error visual surface committed</h3><span class="finding-location">EXPERIENCE.md Accessibility</span></header>
+          <div class="finding-note">A raced <code>NOT_*</code> "still surfaces" but <em>where</em> (status line? toast?) is never named, unlike the success toast pinned top-centre.</div>
+          <div class="finding-fix"><strong>Fix:</strong> name the error surface (reuse the top-centre <code>_show_toast</code> or the status line).</div></article>
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">No pressed/in-flight seal state</h3><span class="finding-location">EXPERIENCE.md Seal states</span></header>
+          <div class="finding-note">The click→snapshot-rebuild interval has no distinct optimistic-vs-confirmed state. Low, since the snapshot is truth.</div>
+          <div class="finding-fix"><strong>Fix:</strong> optionally note the transient pressed feedback.</div></article>
+      </div>
+    </details></section>
+
+    <section class="dimension"><details open>
+      <summary><h2>5 · Visual reference coverage</h2><span class="verdict-pill verdict-thin">Thin</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>The two imports are cited and captioned. The <code>.working/</code> artifacts are not linked from the spines — the most useful visual a consumer could extract is invisible.</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Key-screen mock is orphaned</h3><span class="finding-location">.working/key-screen-board.html</span></header>
+          <div class="finding-note">A full composed key screen referenced by neither spine nor the log — the single most useful reference, and invisible.</div>
+          <div class="finding-fix"><strong>Fix:</strong> link it from DESIGN.md (promote to <code>mockups/</code>) naming it the composed mock of the locked palette.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">Palette-candidates provenance breadcrumb missing</h3><span class="finding-location">DESIGN.md Colors</span></header>
+          <div class="finding-note">Referenced only in the decision log; a "palette derived from palette-candidates.html (Direction A)" line would close the provenance loop.</div>
+          <div class="finding-fix"><strong>Fix:</strong> one-line cite in DESIGN.md Colors.</div></article>
+      </div>
+    </details></section>
+
+    <section class="dimension"><details>
+      <summary><h2>6 · Bloat &amp; overspecification</h2><span class="verdict-pill verdict-strong">Strong</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>None of note. Tables used where prose would bloat; no source restatement; DESIGN prose carries editorial voice, EXPERIENCE stays behavioral.</p></div></div>
+    </details></section>
+
+    <section class="dimension"><details>
+      <summary><h2>7 · Inheritance discipline</h2><span class="verdict-pill verdict-strong">Strong</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>All sources resolve; component/helper names identical across spines and the source <code>design.md</code>; EXPERIENCE token refs resolve to DESIGN. One low nit: mixed path bases in the sources list.</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">Mixed path bases in sources</h3><span class="finding-location">DESIGN.md frontmatter</span></header>
+          <div class="finding-note"><code>imports/*.jpg</code> is dir-relative while <code>specs/…</code> and <code>docs/…</code> are repo-relative. Unambiguous here, but worth stating the base.</div>
+          <div class="finding-fix"><strong>Fix:</strong> note base = repo-root except <code>imports/</code>.</div></article>
+      </div>
+    </details></section>
+
+    <section class="dimension"><details>
+      <summary><h2>8 · Shape fit</h2><span class="verdict-pill verdict-strong">Strong</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p>DESIGN.md follows canonical section order; EXPERIENCE.md carries all required sections plus justified invented ones (Game Feel, HUD/diegesis). Both conformant.</p></div></div>
+    </details></section>
+
+    <!-- ── Extra reviewer lenses ─────────────────────────────────── -->
+    <section class="reviewer-section"><details open>
+      <summary><h2>Legibility under gloom</h2><span class="reviewer-source">review-legibility.md · critical 2 / high 2 / medium 4 / low 2</span></summary>
+      <div class="dim-body"><div class="dim-judgment">
+        <p><strong>Legibility is asserted, not guaranteed.</strong> Raw palette tokens pass at nominal values, but the spec's own "most of the board in shadow" composited render drops load-bearing text below WCAG floors. Computed ratios:</p>
+        <table class="ratios"><thead><tr><th>Foreground</th><th>Background</th><th>Ratio</th><th>Verdict</th></tr></thead><tbody>
+          <tr><td>Ink body <code>#2A2115</code></td><td>Parchment base <code>#CBB583</code></td><td class="num">7.9</td><td class="pass">PASS</td></tr>
+          <tr><td>Ink body <code>#2A2115</code></td><td>Parchment shadow × gloom</td><td class="num">2.9</td><td class="fail">FAIL</td></tr>
+          <tr><td>Headline <b>wax</b> <code>#8F2F2A</code></td><td>Parchment base</td><td class="num">4.0</td><td class="fail">FAIL</td></tr>
+          <tr><td>Headline <b>wax</b> <code>#8F2F2A</code></td><td>Parchment shadow × gloom</td><td class="num">1.5</td><td class="fail">FAIL (severe)</td></tr>
+          <tr><td>Gold pip <code>#B08A3E</code></td><td>Parchment base (graphical 3:1)</td><td class="num">1.6</td><td class="fail">FAIL</td></tr>
+        </tbody></table>
+      </div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-critical">critical</span><h3 class="finding-title">Headline is wax-red — the worst-contrast ink — with no tone floor</h3><span class="finding-location">DESIGN.md Typography §2 / Colors</span></header>
+          <div class="finding-note">The sacred verb (the single most load-bearing string) is painted in the lowest-luminance ink: passes only on torch-lit highlight paper, fails on base (4.0), invisible under gloom (1.5).</div>
+          <div class="finding-fix"><strong>Fix:</strong> render the headline in ink body <code>#2A2115</code> (demote wax to non-text accent: seal, rule, drop-cap). If wax is kept, hard-AC it onto ≥highlight paper + 1px <code>#12100C</code> outline, measured ≥4.5:1.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-critical">critical</span><h3 class="finding-title">No numeric floor + no mandated live-notice paper tone</h3><span class="finding-location">DESIGN.md Do's; EXPERIENCE.md Accessibility</span></header>
+          <div class="finding-note">Live-vs-flavor is a brightness axis, which <em>permits</em> a live notice at shadow tone — where body ink is 2.9:1 and a wax headline 1.5:1.</div>
+          <div class="finding-fix"><strong>Fix:</strong> "A live notice renders at ≥ <code>parchment.base</code>, never shadow, with a torch/glow contribution; body &amp; headline ≥ 4.5:1 vs composited local backing." Add a framebuffer-luminance AC to <code>playtest.md</code> on a worst-case seed.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-high">high</span><h3 class="finding-title">Torch coverage of the four live anchor slots not guaranteed</h3><span class="finding-location">DESIGN.md Layout</span></header>
+          <div class="finding-note">Two edge light sources, but live notices scatter across the whole board (the key-screen's RITE OF BANISHMENT sits bottom-center, between the pools). Legibility depends on torch reach, but nothing binds live anchors to the lit region.</div>
+          <div class="finding-fix"><strong>Fix:</strong> constrain live anchor slots to a guaranteed-lit envelope, <em>or</em> give every live notice its own local "lit paper" backlight independent of the wall torches.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-high">high</span><h3 class="finding-title">Threat pips fail 3:1 — the non-color threat cue is invisible</h3><span class="finding-location">DESIGN.md Colors/Shapes</span></header>
+          <div class="finding-note">Gold-on-parchment is 1.6–3.2:1; the empty pip is outlined in an even lower tone. If pips can't be resolved, "state never by color alone" is silently defeated.</div>
+          <div class="finding-fix"><strong>Fix:</strong> every pip (filled &amp; empty) carries a 1px <code>#12100C</code> outline; empty pip = outlined-hollow diamond, not a faint interior.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">"Legibility beats mood" not enforceable against occlusion</h3><span class="finding-location">DESIGN.md Don'ts; EXPERIENCE.md</span></header>
+          <div class="finding-note">At rest a live headline can sit under another notice's corner (raise is hover-only); cobweb/votive can land over a live notice. Enforced only by eyeball.</div>
+          <div class="finding-fix"><strong>Fix:</strong> reserve each live notice's headline+target+seal+pip band as a deterministic keep-out rect no other notice/decay may overlap; bind decay props to corners proven empty of live anchors.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Reduced-motion fallback may freeze the glow at its dim trough</h3><span class="finding-location">EXPERIENCE.md Game Feel</span></header>
+          <div class="finding-note">The glow pool <em>is</em> the load-bearing light; naive <code>animation:none</code> pins it to the CSS base (dim end), leaving the reduced-motion board darker than the animated one. Godot has no auto <code>prefers-reduced-motion</code> — needs an explicit toggle.</div>
+          <div class="finding-fix"><strong>Fix:</strong> with motion off, render the pool at fixed peak-equivalent brightness; only the <em>pulse</em> is decorative. Re-sample luminance AC with motion off.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Flavor readability ambiguous — lore or wallpaper?</h3><span class="finding-location">DESIGN.md Colors</span></header>
+          <div class="finding-note">Flavor text computes ~2.9:1 before a further 0.72 brightness cut (unreadable) — fine if pure atmosphere, but the authored strings read as intended lore.</div>
+          <div class="finding-fix"><strong>Fix:</strong> pick one — (a) flavor is deliberately sub-threshold atmosphere (keep its strings non-load-bearing), or (b) hold it to ≥4.5:1. Don't leave it in the middle.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">No focus / keyboard floor; live hit-target can fall below minimum</h3><span class="finding-location">EXPERIENCE.md Foundation</span></header>
+          <div class="finding-note">Popup opens with E but no focusable notices / focus-visible ring / seal focus state; a "small note" scatter variant can drop below the ~44px target, tilted and overlapped.</div>
+          <div class="finding-fix"><strong>Fix:</strong> live notices focusable (Tab=reading order) with a ≥3:1 gold focus ring, Enter/Space activates; enforce a minimum un-occluded live footprint (≥44×44) in the layout function.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">Origin colorblind cue + faint-seal visibility unstated</h3><span class="finding-location">EXPERIENCE.md State Patterns</span></header>
+          <div class="finding-note">Origin is missing from "state never by color alone" (sigil shape must be the load-bearing cue, color redundant); a faint unsealed seal risks reading as no seal in gloom.</div>
+          <div class="finding-fix"><strong>Fix:</strong> add Origin = sigil-shape to the list; keep the faint seal's ring/outline at full strength (≥3:1 edge) while only the fill is faint.</div></article>
+      </div>
+    </details></section>
+
+    <section class="reviewer-section"><details open>
+      <summary><h2>Art-canon compliance</h2><span class="reviewer-source">review-art-canon.md · high 2 / medium 2 / low 2 (trait-containment clean)</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p><strong>Sound, ship after two fixes.</strong> No-Incarnate-art, trust boundary, size-not-tier, solemn-not-whimsy, and P65 flavor-inert are all clean and stated as hard don'ts. Two conventions need honoring before assets are authored.</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-high">high</span><h3 class="finding-title">Colored screen-blend glow/cobweb vs "grayscale ADD-blend VFX"</h3><span class="finding-location">DESIGN.md torch/cobweb; EXPERIENCE.md Game Feel</span></header>
+          <div class="finding-note">A flame-<em>colored</em> screen-blend pool is a different technique from CLAUDE.md's canonical grayscale ADD-blend, and injects off-ramp intermediate colors.</div>
+          <div class="finding-fix"><strong>Fix:</strong> spec the glow (and web/overlay) as a grayscale additive source tinted at runtime via <code>modulate</code> to the flame ramp (or a Light2D whose color is the flame ramp over a grayscale cookie), Nearest, integer-scaled.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-high">high</span><h3 class="finding-title">Pillow-absent pipeline is OPEN and unsurfaced; threatens the load-bearing glow</h3><span class="finding-location">.decision-log.md (last entry); DESIGN.md Do's</span></header>
+          <div class="finding-note">The assets needing true alpha/gradients — torch glow ("load-bearing"), cobweb, torn/deckled edges, foxing — are exactly what the Pass-1 stdlib zlib+struct path makes painful. A finalized-DESIGN reader wouldn't know the generator is undecided.</div>
+          <div class="finding-fix"><strong>Fix:</strong> surface it in a DESIGN.md "Pipeline" note and resolve a-vs-b before Batch 1. If staying stdlib, confirm RGBA/gradient feasibility; else get Pillow approved (a toolchain env change) with the user first.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Pixel integrity under seeded rotation / non-integer scale unaddressed</h3><span class="finding-location">DESIGN.md Layout/Shapes</span></header>
+          <div class="finding-note">Arbitrary tilt + non-integer hover/reader scale of pixel sprites breaks the Nearest/integer-scale crispness mandate (edge shimmer, AA seams).</div>
+          <div class="finding-fix"><strong>Fix:</strong> pre-bake a few rotated deckle variants (seeded pick) or a pixel-rotation shader; restrict enlarge/hover to integer scale steps; forbid angles that soften the headline below the floor.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-medium">medium</span><h3 class="finding-title">Palette-lock is directional, not absolute</h3><span class="finding-location">DESIGN.md Colors/Do's</span></header>
+          <div class="finding-note">"Derive from these ramps" stops short of a no-off-ramp rule; blend/Light2D/modulate math produces colors between the 8 ramps.</div>
+          <div class="finding-fix"><strong>Fix:</strong> "No pixel outside the Ash &amp; Ember ramps; VFX tint uses the flame ramp only; any blended/lit output is quantized back to the locked palette before export."</div></article>
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">"16×16-class" latitude</h3><span class="finding-location">DESIGN.md Brand &amp; Style</span></header>
+          <div class="finding-note">Consistent with CLAUDE.md's own wording, so acceptable.</div>
+          <div class="finding-fix"><strong>Fix (optional):</strong> note frame/placard/tacks are authored on the 16px grid so "-class" isn't an excuse for half-pixel detail.</div></article>
+      </div>
+    </details></section>
+
+    <section class="reviewer-section"><details>
+      <summary><h2>Behavior-drift check</h2><span class="reviewer-source">review-behavior-drift.md · PASS · low 3</span></summary>
+      <div class="dim-body"><div class="dim-judgment"><p><strong>PASS — no critical/high drift.</strong> Look-not-behavior holds on all six checkpoints (reversible seal, two-stage deploy, take-down-to-read, trait containment, terminology, self-scoping); message names, verb→headline mapping, captions, toasts, and the empty-Archive line are byte-identical to <code>specs/notice-board</code>. Three polish notes only.</p></div></div>
+      <div class="findings-list">
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">"AUTHORIZED"-style wax settle is off-register</h3><span class="finding-location">EXPERIENCE.md Game Feel (l.63)</span></header>
+          <div class="finding-note">Qualified as cosmetic, but <code>AUTHORIZED</code> appears nowhere in the spec and clashes with the sacred register; a mock author could render it as a caption.</div>
+          <div class="finding-fix"><strong>Fix:</strong> drop the word; describe the settle in register, keeping rendered text to the R124 caption set.</div></article>
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">Key Flow narrates only the commit half of two-stage DEPLOY</h3><span class="finding-location">EXPERIENCE.md Key Flow (l.104–105)</span></header>
+          <div class="finding-note">Stops at DEPLOYING; a reader could conflate DEPLOYING with field entry and under-build the DEPLOYING-state Deploy Gate.</div>
+          <div class="finding-fix"><strong>Fix:</strong> one clause noting DEPLOYING is a staging screen and the field starts on a second Deploy action (or mark launch out of scope).</div></article>
+        <article class="finding"><header><span class="badge badge-sev-low">low</span><h3 class="finding-title">Seal captions listed flat, without role/state binding</h3><span class="finding-location">EXPERIENCE.md Voice (l.46–47)</span></header>
+          <div class="finding-note">Strings match the spec, but an implementer reading the voice doc in isolation could mis-bind a caption to the wrong role/state.</div>
+          <div class="finding-fix"><strong>Fix:</strong> annotate each caption with its leader/non-leader/sealed binding, or point to R124.</div></article>
+      </div>
+    </details></section>
+
+    <div class="mechanical">
+      <h3>Mechanical notes</h3>
+      <ul>
+        <li>Frontmatter well-formed on both files; all sources resolve on disk; reused <code>wax_seal.gd</code> / <code>threat_pips.gd</code> are real.</li>
+        <li>Cross-file names consistent (<code>_build_contract_board</code> / <code>_build_notice_reader</code> / <code>_seal_block</code> / <code>WaxSeal</code> / <code>ThreatPips</code>); protocol names match source <code>design.md</code>.</li>
+        <li>No dangling <code>{token}</code> references; DESIGN canonical order and EXPERIENCE required sections both conformant.</li>
+        <li>Most findings converge on <strong>one fix cluster</strong>: a measurable legibility floor + mandated live-notice tone + outlined pips + a lit-anchor/keep-out layout guarantee, mirrored as ACs in <code>specs/notice-board/playtest.md</code>.</li>
+      </ul>
+    </div>
+
+    <footer class="report-footer">
+      <div class="meta">
+        <span>Lenses: review-rubric · review-legibility · review-art-canon · review-behavior-drift</span>
+        <span>Generated: 2026-07-09</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
