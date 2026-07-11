@@ -136,12 +136,26 @@
       flame/glow alpha coverage sane; `run_project` parses clean (MCP), no import errors.
       Full on-board eyeball is T142. **Green.**
 
-- [ ] T142 [EXPERIENCE Game Feel, Foundation; DESIGN Elevation] — **Batch 1 integration.**
+- [x] T142 [EXPERIENCE Game Feel, Foundation; DESIGN Elevation] — **Batch 1 integration.**
       Wire the structure assets into `_build_contract_board` (retire the greybox
       styleboxes); torch = `AnimatedSprite2D` flame + glow via `Light2D`/`modulate` tinted
       to the flame ramp; add the **reduced-motion toggle** pinning the glow to **peak**.
       Verify: playtest **L5** (reduced-motion keeps light), **L7** (palette/pixel/VFX
       integrity), **L8** (empty board); `board live=4 flavor=N` still logs; MCP clean.
+      **Done:** captures at 1280×720 (int_scale=2, bars=0×0) show the carved 9-slice
+      frame, stone backing, routed placard, four sealed parchment notices + aged flavor,
+      and lit torches (flame+glow); F9/`--reduced-motion` capture pins the glow to peak
+      with the flame frozen (L5); `board live=4 flavor=4` logs. L7 green.
+      **Keep-out fit fix (folded in):** the live parchments overflowed their keep-out
+      footprints — the `bg` `TextureRect` kept its default `EXPAND_KEEP_SIZE`, which floors
+      the min size to the 182×118 source, so with `clip_contents=false` each paper spilled
+      ~2× past its rect and buried its neighbours even though the solver's footprints were
+      disjoint (`keepout ok=true`). Fixed by `EXPAND_IGNORE_SIZE` on the three parchment
+      `bg` sites (live/flavor/reader) so the paper obeys the notice rect; capture confirms
+      four disjoint, fully legible notices. L8 (empty board) is exercised at T146 (the
+      fixture preview hardcodes 4 live). The scatter/keep-out solver (`_layout_live`/
+      `_separate`) already lives here; T145's remaining scope (live-tone paper floor,
+      per-notice backlight, ≥44px hit-target, self-check styling) stays open.
 
 - [ ] T143 [DESIGN § Components "Batch 2", Shapes] — **Detail assets.**
       Generate + finish: torn/**deckled parchment** variants (a few **pre-rotated** angles,
