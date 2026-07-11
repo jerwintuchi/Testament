@@ -176,11 +176,21 @@
       outlined pips. MCP clean, no import errors. Wiring the deckled paper/tacks/cobweb
       into the notice + reader is T144.
 
-- [ ] T144 [DESIGN § Components, Typography] — **Batch 2 integration.**
+- [x] T144 [DESIGN § Components, Typography] — **Batch 2 integration.**
       Wire parchment/tacks/seal/pips/decay into the notice + reader; **headline in ink
       `#2A2115`** (never wax); live vs flavor tone split.
       Verify: playtest items **1–3** still green (prose/scatter/reader), **L2** (pips
       readable), and the reader shows ink headline + sigil seal.
+      **Done:** `_parch_tex` (old `parch_card`) retired; notices load the deckled
+      `parch_live` (live) / `parch_flavor` (aged) split and the reader loads `parch_live`
+      — all `TEXTURE_FILTER_NEAREST`, which kills the old reader blur. Each live notice
+      gets a seeded `_notice_tack` (nail·wax·pin·ribbon) pinning its top edge; the Origin
+      `WaxSeal` moved to a lower-right corner badge (`_wax_seal(origin, corner=true)`);
+      `_add_decay` tucks a grayscale-additive cobweb + a votive into corners proven clear
+      of live footprints (`_decay_clear`). Headline stays `INK`. Captures: board shows 4
+      disjoint deckled notices with tacks + corner seals (keepout ok=true); reader shows
+      crisp deckled paper, ink headline, cross-sigil seal, and 3-filled/2-hollow pips
+      (L2). MCP clean, no import errors.
 
 - [ ] T145 [DESIGN § Layout, Colors "Contrast floor"; EXPERIENCE Accessibility] —
       **Legibility cluster (layout).** Per-notice **local backlight** + **live-tone floor**

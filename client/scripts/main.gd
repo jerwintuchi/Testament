@@ -73,7 +73,11 @@ var _popup_kind := ""             # the station kind the open popup was built fo
 var _board_selection: Dictionary = {}  # the contract card being previewed, or {} = the grid view
 var _wood_sb: StyleBox            # Contract Board panel skin — the carved 9-slice frame (board_frame.png)
 var _backing_tex: Texture2D       # plank backing 9-slice, behind the notices
-var _parch_tex: Array = []        # 4 torn parchment card textures (unique tear patterns)
+var _parch_live: Array = []       # deckled LIVE parchment (warm, inner light) — 2 tear seeds (T143)
+var _parch_flavor: Array = []     # deckled FLAVOR parchment (aged, foxed) — 2 tear seeds
+var _tack_tex: Array = []         # nail · wax · pin · ribbon, seeded per live notice
+var _cobweb_tex: Texture2D        # grayscale-additive corner decay strand (tinted at runtime)
+var _votive_tex: Texture2D        # dead votive candle, ambient sacred-decay prop
 var _stone_bg: TextureRect        # tiled stone/mortar surround, dim; Contract Board only
 var _reduced_motion: bool = false # settings toggle (F9 in playtest): freeze flicker, pin glow to peak
 var _popup_tween: Tween           # the open/close animation, tracked so it can be killed on re-entry
@@ -188,10 +192,21 @@ func _ready() -> void:
 	# fills behind the notices; the stone/mortar tile is the surround. (Batch 1, T142.)
 	_wood_sb = _texture_sb("res://assets/ui/board_frame.png", 16.0, 18.0, Color(0.29, 0.19, 0.10), Color(0.45, 0.30, 0.15))
 	_backing_tex = load("res://assets/ui/board_backing.png") as Texture2D
-	for i in 4:
-		var t := load("res://assets/ui/parch_card_%d.png" % i) as Texture2D
+	# Batch-2 detail assets (T143/T144): deckled parchment split live vs flavor, tacks,
+	# and decay props. A missing texture is simply skipped (fallbacks below tolerate []).
+	for i in 2:
+		var lv := load("res://assets/ui/parch_live_%d.png" % i) as Texture2D
+		if lv != null:
+			_parch_live.append(lv)
+		var fv := load("res://assets/ui/parch_flavor_%d.png" % i) as Texture2D
+		if fv != null:
+			_parch_flavor.append(fv)
+	for tk in ["nail", "wax", "pin", "ribbon"]:
+		var t := load("res://assets/ui/tack_%s.png" % tk) as Texture2D
 		if t != null:
-			_parch_tex.append(t)
+			_tack_tex.append(t)
+	_cobweb_tex = load("res://assets/ui/cobweb.png") as Texture2D
+	_votive_tex = load("res://assets/ui/votive.png") as Texture2D
 	pcenter.add_child(_popup)
 	var ppad := MarginContainer.new()
 	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
@@ -1047,6 +1062,9 @@ func _build_contract_board() -> void:
 			mark.size = (fp as Rect2).size
 			mark.z_index = 20
 			canvas.add_child(mark)
+	# Sacred-decay ambiance (cobweb + votive), tucked into corners proven empty of any
+	# live petition so it never occludes a headline (DESIGN — decay is clutter, not cover).
+	_add_decay(canvas, inner, footprints)
 	# The carved sign hangs over the top of the board, above the papers (own layer).
 	_place_placard(canvas)
 	_log("board live=%d flavor=%d" % [live, FLAVOR_NOTICES.size()])
@@ -1177,8 +1195,9 @@ func _make_live_notice(intel: Dictionary, idx: int) -> Control:
 	# floors the min size to the full texture, so the paper overflowed the keep-out
 	# footprint and buried its neighbours. IGNORE_SIZE lets FULL_RECT shrink it to fit.
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	if not _parch_tex.is_empty():
-		bg.texture = _parch_tex[idx % _parch_tex.size()]
+	bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # deckled edges stay crisp, no blur
+	if not _parch_live.is_empty():
+		bg.texture = _parch_live[idx % _parch_live.size()]
 	bg.modulate = tint
 	card.add_child(bg)
 	# Lift toward the viewer AND raise above neighbours, so an overlapped notice is
@@ -1209,7 +1228,11 @@ func _make_live_notice(intel: Dictionary, idx: int) -> Control:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(spacer)
-	card.add_child(_wax_seal(str(intel.get("origin", "SIN"))))
+	# A tack pins the paper to the wall (nail·wax·pin·ribbon, seeded per notice); the
+	# Origin wax seal sits as a small badge in the lower-right — its SIGIL is the glance
+	# cue, not a hue (T143). Both draw above the text (own children, no VBox slot).
+	card.add_child(_notice_tack(str(intel.get("contractId", ""))))
+	card.add_child(_wax_seal(str(intel.get("origin", "SIN")), true))
 	if sel:
 		var ring := Panel.new()
 		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1233,10 +1256,11 @@ func _make_flavor_notice(f: Dictionary, idx: int) -> Control:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.stretch_mode = TextureRect.STRETCH_SCALE
-	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # fit the scrap, not the 182x118 source
-	if not _parch_tex.is_empty():
-		bg.texture = _parch_tex[(idx + 2) % _parch_tex.size()]
-	bg.modulate = _parch_tint("flavor-%d" % idx).darkened(0.28)
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # fit the scrap to the notice rect
+	bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if not _parch_flavor.is_empty():
+		bg.texture = _parch_flavor[idx % _parch_flavor.size()]   # already aged + foxed (T143)
+	bg.modulate = _parch_tint("flavor-%d" % idx).darkened(0.12)
 	note.add_child(bg)
 	var pad := MarginContainer.new()
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1293,13 +1317,14 @@ func _build_notice_reader(intel: Dictionary) -> Control:
 	reader.mouse_filter = Control.MOUSE_FILTER_STOP   # clicks on the writ don't dismiss
 	var inner := _board_inner_size()
 	reader.custom_minimum_size = Vector2(min(486.0, inner.x - 40.0), min(inner.y - 24.0, 396.0))
-	if not _parch_tex.is_empty():
+	if not _parch_live.is_empty():
 		var bg := TextureRect.new()
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 		bg.stretch_mode = TextureRect.STRETCH_SCALE
 		bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # fill the enlarged reader sheet
-		bg.texture = _parch_tex[absi(str(intel.get("contractId", "")).hash()) % _parch_tex.size()]
+		bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp deckled edge, no blur
+		bg.texture = _parch_live[absi(str(intel.get("contractId", "")).hash()) % _parch_live.size()]
 		bg.modulate = tint
 		reader.add_child(bg)
 	var scroll := ScrollContainer.new()   # a long writ scrolls within the sheet
@@ -1462,6 +1487,51 @@ func _additive_material() -> CanvasItemMaterial:
 	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	return m
 
+# A rect is "clear" when no live footprint intersects it — decay may only sit in space
+# no petition claims (keep-out heritage; DESIGN binds cobweb/votive to empty corners).
+func _decay_clear(rect: Rect2, footprints: Array) -> bool:
+	for fp in footprints:
+		if (fp as Rect2).intersects(rect):
+			return false
+	return true
+
+# Sacred-decay props: one cobweb in a clear top corner (grayscale-additive, tinted cold
+# and dim like the glow) + a dead votive at a clear base corner. Both inert, behind the
+# papers, and skipped entirely if their corner is occupied — clutter, never occlusion.
+func _add_decay(canvas: Control, inner: Vector2, footprints: Array) -> void:
+	if _cobweb_tex != null:
+		var wsz := 40.0
+		# prefer the top-left corner; if a petition claims it, mirror into the top-right.
+		for spec in [[Vector2(3, 3), 1.0], [Vector2(inner.x - wsz - 3, 3), -1.0]]:
+			var pos: Vector2 = spec[0]
+			var flip: float = spec[1]
+			if _decay_clear(Rect2(pos, Vector2(wsz, wsz)), footprints):
+				var web := TextureRect.new()
+				web.texture = _cobweb_tex
+				web.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				web.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+				web.material = _additive_material()
+				web.modulate = Color(0.62, 0.66, 0.72, 0.5)   # cold, dim (tinted VFX)
+				web.position = pos
+				if flip < 0.0:                                  # mirror for the right corner
+					web.scale.x = -1.0
+					web.position.x = pos.x + wsz
+				web.z_index = -1
+				canvas.add_child(web)
+				break
+	if _votive_tex != null:
+		var vsz := Vector2(14, 22)
+		for pos in [Vector2(6, inner.y - vsz.y - 4), Vector2(inner.x - vsz.x - 6, inner.y - vsz.y - 4)]:
+			if _decay_clear(Rect2(pos, vsz), footprints):
+				var vot := TextureRect.new()
+				vot.texture = _votive_tex
+				vot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				vot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+				vot.position = pos
+				vot.z_index = -1
+				canvas.add_child(vot)
+				break
+
 func _add_torches(canvas: Control, inner: Vector2) -> void:
 	var ember := Color(0.909, 0.592, 0.235)   # flame ember  #E8973C
 	var glowc := Color(0.941, 0.698, 0.372)   # flame glow   #F0B25F
@@ -1604,19 +1674,37 @@ func _hover_card(card: Control, s: float) -> void:
 
 # An origin-keyed wax seal, positioned straddling the top edge of a card. The
 # WaxSeal control draws the wax + a per-Origin sigil (Belief/Sin/Relic).
-func _wax_seal(origin: String) -> Control:
+func _wax_seal(origin: String, corner: bool = false) -> Control:
 	var seal := WaxSeal.new()
 	seal.set_origin(origin)
 	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	seal.anchor_left = 0.5
-	seal.anchor_right = 0.5
-	seal.anchor_top = 0.0
-	seal.anchor_bottom = 0.0
-	seal.offset_left = -9.0
-	seal.offset_right = 9.0
-	seal.offset_top = -7.0
-	seal.offset_bottom = 11.0
+	if corner:
+		# lower-right badge on the paper (the tack pins the top edge now)
+		seal.anchor_left = 1.0; seal.anchor_right = 1.0
+		seal.anchor_top = 1.0; seal.anchor_bottom = 1.0
+		seal.offset_left = -20.0; seal.offset_right = -2.0
+		seal.offset_top = -20.0; seal.offset_bottom = -2.0
+	else:
+		# straddling the top edge (reader / default)
+		seal.anchor_left = 0.5; seal.anchor_right = 0.5
+		seal.anchor_top = 0.0; seal.anchor_bottom = 0.0
+		seal.offset_left = -9.0; seal.offset_right = 9.0
+		seal.offset_top = -7.0; seal.offset_bottom = 11.0
 	return seal
+
+# A tack pinning a notice's top edge — nail · wax · pin · ribbon, chosen by the
+# contractId so a given notice always wears the same tack (deterministic). Static decor.
+func _notice_tack(cid: String) -> Control:
+	var tack := TextureRect.new()
+	tack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tack.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	if not _tack_tex.is_empty():
+		tack.texture = _tack_tex[absi((cid + "|tack").hash()) % _tack_tex.size()]
+	tack.anchor_left = 0.5; tack.anchor_right = 0.5
+	tack.anchor_top = 0.0; tack.anchor_bottom = 0.0
+	tack.offset_left = -6.0; tack.offset_right = 6.0
+	tack.offset_top = -5.0; tack.offset_bottom = 9.0
+	return tack
 
 func _card_label(text: String, size: int, color: Color, do_wrap: bool, center: bool = false) -> Label:
 	var l := Label.new()
