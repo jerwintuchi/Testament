@@ -12,3 +12,6 @@ CARRYOVER_PROMPT.txt
 # Python bytecode from asset generators
 __pycache__/
 *.pyc
+
+# Dev-only Godot frame captures (docs/technical/dev-environment.md)
+client/.captures/

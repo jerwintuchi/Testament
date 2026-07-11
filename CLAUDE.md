@@ -87,24 +87,31 @@ Completed Phase 4 specs:
 @.claude/rules/spec-workflow.md
 @.claude/rules/netcode-invariants.md
 
-## Local Tooling (Godot MCP)
+## Local Tooling (Godot, screenshots, server)
 
-A Godot MCP server may be registered in this environment, exposing `mcp__godot__*`
-tools (`run_project`, `get_debug_output`, `launch_editor`, `get_project_info`, plus
-scene/node helpers). When those tools are present, use them to drive the client
-directly instead of asking the user to press Play and paste errors:
+> **Read `docs/technical/dev-environment.md` before touching the client.** It has
+> the verified WSL↔Windows seams; do not re-derive them. The essentials:
 
-- The Godot client is the `client/` folder (the directory holding `project.godot`).
-- To check it: call `run_project` on `client/`, read `get_debug_output` for GDScript
-  errors and runtime logs, then `stop_project` when done.
-- A live server round-trip needs the Node server up first (`pnpm dev:server`,
-  `ws://localhost:3001`); without it the client reports "server offline" and idles,
-  which is not an error.
-- The MCP reaches only the render client. It does not relax the trust boundary:
-  never move game logic into the client to make a check pass.
-
-If the `mcp__godot__*` tools are absent, fall back to asking the user to run the
-client manually.
+- **One clone.** `/home/jerwin/projects/Testament` (WSL) is canonical.
+  `D:\Projects\Testament` is stale — never point Godot at it.
+- **Run Godot from Bash**, against the WSL clone over its UNC path:
+  ```bash
+  GODOT='/mnt/d/Godot_v4.7-stable_win64.exe'
+  CLIENT='\\wsl.localhost\Ubuntu-24.04\home\jerwin\projects\Testament\client'
+  "$GODOT" --path "$CLIENT" --quit-after 900 -- --capture=3   # screenshot, then quit
+  ```
+- **You can see the client.** The `DebugCapture` autoload writes the viewport to
+  `client/.captures/*.png` (F12, or `--capture=<s>`), which lands in the WSL tree
+  and can be `Read` back. Iterate on visuals by *looking*, never by guessing.
+  `--headless` cannot capture (dummy renderer) — it only checks that GDScript parses.
+- **A live round-trip needs the server up first** (`pnpm dev:server`, `ws://localhost:3001`),
+  started **in the background** — it is a watch process and never returns. Without
+  it the client reports "server offline" and idles, which is not an error.
+- `mcp__godot__*` tools may also be registered (`run_project`, `get_debug_output`,
+  `stop_project`, …). They have **no screenshot tool**, and being Windows-side they
+  need the UNC path. The direct Bash invocation above is verified and preferred.
+- None of this relaxes the trust boundary: capture is render-only, and game logic
+  never moves into the client to make a check pass.
 
 ## Art Direction & Sanctioned Toolchain — CLOSED LIST
 
@@ -112,7 +119,9 @@ client manually.
 > MediBang directions deprecated and purged.** (DECISION_LOG TD-033)
 
 Testament is **2D top-down pixel art**, full commitment. Canonical conventions:
-16x16 tiles; 480x270 internal resolution, integer-scaled; Nearest filtering;
+16x16 tiles; **640x360 internal resolution** (TD-042 — supersedes 480x270; the only
+base exact on 720p/1080p/1440p/4K), integer-scaled to fill via the `PixelScale`
+autoload; **mobile is a target platform** (TD-042); Nearest filtering;
 Seeker 16x24 logical / 48x48 canvas / feet anchor (24,44); part-lag animation
 rig; per-frame weapon sockets; grayscale ADD-blend VFX; palette-locked Aseprite
 sources. No 3D scenes, no 3D-to-sprite rendering, no `.blend`/`.fbx`/`.gltf`/

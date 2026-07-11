@@ -44,5 +44,5 @@ Future Expansion**, so a reader can open exactly the layer they need.
 - [systems/](systems/) — one doc per gameplay system (contracts, sign language, probing, loadout, perception, incarnates, combat, pressure, archive, scaling).
 - [content/](content/) — data-driven catalogs (incarnates, sites, conditions, relics and rites, mutations, objectives and clauses).
 - [lore/](lore/) — fiction deep-dives (collegium, choirs, cosmology, bestiary).
-- [technical/](technical/) — architecture, protocol, transport, determinism, persistence, Godot client, code map.
+- [technical/](technical/) — architecture, protocol, transport, determinism, persistence, Godot client, code map, [dev-environment](technical/dev-environment.md) (WSL↔Windows Godot, screenshots, running the server).
 - [art/](art/) — visual style guide and audio direction.

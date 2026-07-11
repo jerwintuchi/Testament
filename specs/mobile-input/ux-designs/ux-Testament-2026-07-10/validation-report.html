@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UX Design Validation: Testament Mobile Input</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section.dimension details, section.reviewer-section details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .verdict-broken { background: var(--verdict-broken); }
+
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+
+  .reviewer-source {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header class="report-header">
+      <div class="title">
+        <h1>Testament Mobile Input — UX Design Validation Report</h1>
+        <div class="subtitle">specs/mobile-input/ux-designs/ux-Testament-2026-07-10/</div>
+      </div>
+    </header>
+
+    <div class="synthesis">
+      <p>The spine pair is <b>mechanically excellent and substantively holed</b>. Every token resolves, every source is on disk, section orders are canonical, and the trust-boundary claim (“zero server change”) is <em>literally</em> true — no task touches <code>src/server</code> or <code>src/shared</code>, and <code>MovePayload.walk</code> already exists on the wire. The client-side legality recompute is a legitimately precedented render hint, not I1 game logic.</p>
+      <p>What fails is not the architecture but three things the spec asserted without checking. It <b>invented a testing convention</b> and cited it as established precedent, leaving its first task with no real verification. It <b>specified a Probe button that cannot form a legal wire message</b>, because <code>ProbePayload</code> requires a stimulus the single-slot design has no way to choose. And its <b>accessibility floor does not hold</b>: the two colour pairs carrying the HUD's most important state changes — the walk/run register (1.52:1) and the refusal flash (1.26:1) — fail the WCAG 3:1 threshold badly enough to be invisible, while “40 logical px ≈ 48dp” is true only at exactly integer factor 3 on a ~400dpi phone.</p>
+      <p>One deeper risk is latent rather than present. The reserved <code>DODGE</code> slot inherits the cluster's founding doctrine — <em>a control exists only while its action is legal</em> — and <code>combat.md</code> gates dodging on <b>reading the Omen</b>. Applied literally by a future implementer, the button's appearance becomes the Omen tell, and the HUD performs the read the player was supposed to earn. Pillar 3, defeated by an affordance. It is cheap to fence off now, while the grammar is being written.</p>
+      <p><b>Severity totals: 2 critical · 12 high · 15 medium · 23 low.</b></p>
+    </div>
+
+    <div class="dimension-summary">
+      <div class="dim-card"><div class="dim-name">Flow coverage</div><div class="dim-verdict" style="color:var(--verdict-strong)">strong</div></div>
+      <div class="dim-card"><div class="dim-name">Token completeness</div><div class="dim-verdict" style="color:var(--verdict-strong)">strong</div></div>
+      <div class="dim-card"><div class="dim-name">Component coverage</div><div class="dim-verdict" style="color:var(--verdict-thin)">thin</div></div>
+      <div class="dim-card"><div class="dim-name">State coverage</div><div class="dim-verdict" style="color:var(--verdict-adequate)">adequate</div></div>
+      <div class="dim-card"><div class="dim-name">Visual reference coverage</div><div class="dim-verdict" style="color:var(--verdict-adequate)">adequate</div></div>
+      <div class="dim-card"><div class="dim-name">Bloat &amp; overspecification</div><div class="dim-verdict" style="color:var(--verdict-adequate)">adequate</div></div>
+      <div class="dim-card"><div class="dim-name">Inheritance discipline</div><div class="dim-verdict" style="color:var(--verdict-strong)">strong</div></div>
+      <div class="dim-card"><div class="dim-name">Shape fit</div><div class="dim-verdict" style="color:var(--verdict-strong)">strong</div></div>
+    </div>
+
+    <section class="dimension">
+      <details>
+        <summary><h2>1. Flow coverage</h2><span class="verdict-pill verdict-strong">strong</span></summary>
+        <div class="dim-body"><div class="dim-judgment">Three Key Flows, each with a named protagonist, numbered steps and a climax beat; Flow 2 is a dedicated failure path. Sources are docs/code rather than a requirements list, so D1–D4 and the implemented intents were mapped instead.</div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">No flow exercises Probe or Extract</h4>
+          <span class="finding-location">EXPERIENCE.md Key Flows</span>
+        </header>
+        <div class="finding-note">The diagnosis loop (Probe) is Testament's core verb, demonstrated only abstractly as “the Interact pattern.”</div>
+        <div class="finding-fix"><strong>Fix:</strong> Fold a Probe/Extract beat into Flow 1, or note they share Interact's pattern with a different legality gate.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">Flow 3 is unreachable</h4>
+          <span class="finding-location">EXPERIENCE.md:273</span>
+        </header>
+        <div class="finding-note">Correct to record, but it is design intent, not a verifiable flow — no test-writer can drive it.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Label it “Reserved (not testable until ATTACK/DODGE land on the wire).”</div>
+      </article>
+        </div>
+      </details>
+    </section>
+    <section class="dimension">
+      <details>
+        <summary><h2>2. Token completeness</h2><span class="verdict-pill verdict-strong">strong</span></summary>
+        <div class="dim-body"><div class="dim-judgment">Every <code>colors:</code> entry carries a literal hex; 12/12 <code>{token}</code> refs and 17/17 backtick tokens resolve; 8/8 inherited colour names match the parent palette hex. Zero missing-hex.</div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">Toast has no colour token</h4>
+          <span class="finding-location">DESIGN.md colors:</span>
+        </header>
+        <div class="finding-note">The surface that renders every server refusal has no palette. A downstream implementer has nothing to build it from.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Add <code>toast_face</code>/<code>toast_ink</code>, or state which parent ramp it inherits.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title"><code>inherits:</code> is not a legal frontmatter key</h4>
+          <span class="finding-location">DESIGN.md:12-13</span>
+        </header>
+        <div class="finding-note">Purely documentary — zero <code>{parent.token}</code> refs, every value copied locally. It implies a resolution step that does not exist.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Fold into <code>sources:</code> (house style already does this) or drop it.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title"><code>walk_threshold: 0.60</code> contradicts the 0.55/0.65 band</h4>
+          <span class="finding-location">DESIGN.md:50</span>
+        </header>
+        <div class="finding-note">The code is right; the state table reads as a single crisp edge and will mislead a reader diffing spine vs code.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Annotate “0.60 nominal; boundary is the 0.55/0.65 band.”</div>
+      </article>
+        </div>
+      </details>
+    </section>
+    <section class="dimension">
+      <details>
+        <summary><h2>3. Component coverage</h2><span class="verdict-pill verdict-thin">thin</span></summary>
+        <div class="dim-body"><div class="dim-judgment">DESIGN lists {floating_stick, action_button, action_cluster, caption}; EXPERIENCE lists {floating stick, action button, action cluster, full-screen reader}. The lists are not identical, and two load-bearing surfaces have no row at all.</div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title">The Toast has no component row on either spine</h4>
+          <span class="finding-location">EXPERIENCE.md:48,68-70,116,253,264</span>
+        </header>
+        <div class="finding-note">It is the single channel for every server “no” — the entire affordance≠authority story. Dwell, stacking, dismiss trigger and max width are all unspecified.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Add a <code>toast</code> component to both spines: visual (face/ink/width/duration) and behavioral (queue vs replace, auto-dismiss, tap-to-dismiss).</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">Full-screen reader has a behavioral row but no visual spec</h4>
+          <span class="finding-location">EXPERIENCE.md:92-94</span>
+        </header>
+        <div class="finding-note">Its identity is presumably inherited from the notice-board spine, but that inheritance is never stated, so a consumer of this pair cannot resolve it.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Add a <code>reader</code> row to DESIGN.md, or cite “visual owned by specs/notice-board”.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title"><code>caption</code> is the reverse — DESIGN only</h4>
+          <span class="finding-location">DESIGN.md:163</span>
+        </header>
+        <div class="finding-note">Present on one spine, absent on the other.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Add a one-line Component Patterns entry, or fold into Action button.</div>
+      </article>
+        </div>
+      </details>
+    </section>
+    <section class="dimension">
+      <details>
+        <summary><h2>4. State coverage</h2><span class="verdict-pill verdict-adequate">adequate</span></summary>
+        <div class="dim-body"><div class="dim-judgment">Stick (Absent→Engaged-dead→Walking→Running→Released) and Action button (Absent→Available→Pressed→In-flight→Refused) are strongly covered. In-flight and error are explicit and correctly reasoned — in-flight stays pressed, never disabled.</div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">No cold-load / first-frame state</h4>
+          <span class="finding-location">EXPERIENCE.md:80</span>
+        </header>
+        <div class="finding-note">The HUD's legality is “read from snapshot, never from touch.” What is drawn on field entry before the first snapshot arrives? This is the one state that can flash wrong controls.</div>
+        <div class="finding-fix"><strong>Fix:</strong> No action buttons until the first snapshot; the stick is always available (local geometry, not snapshot-gated).</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">No offline / disconnected state</h4>
+          <span class="finding-location">both spines</span>
+        </header>
+        <div class="finding-note">Movement is server-applied. If the socket drops mid-field, the stick moves a Seeker that does not move, and the game reads as frozen with no explanation.</div>
+        <div class="finding-fix"><strong>Fix:</strong> State the disconnect behaviour (freeze HUD + toast, or defer to the lobby-resilience reconnect flow).</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">Cluster keyboard-focus behaviour is ambiguous</h4>
+          <span class="finding-location">EXPERIENCE.md:165</span>
+        </header>
+        <div class="finding-note">“Every touch affordance has a keyboard peer,” but the parity table routes keyboard through E/kit-gated actions, not focus traversal of the cluster.</div>
+        <div class="finding-fix"><strong>Fix:</strong> One line: “the cluster is touch-only; keyboard uses its parallel scheme (no focus ring).”</div>
+      </article>
+        </div>
+      </details>
+    </section>
+    <section class="dimension">
+      <details>
+        <summary><h2>5. Visual reference coverage</h2><span class="verdict-pill verdict-adequate">adequate</span></summary>
+        <div class="dim-body"><div class="dim-judgment"><code>imports/</code> is empty; no <code>mockups/</code> or <code>wireframes/</code>. For a spec whose thesis is an invisible, minimal HUD, an elaborate key-screen mock would over-specify and contradict the design. The ASCII zone diagram plus the IA extent table place every zone. The absence is defensible.</div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">Action-cluster arc geometry is unpinned</h4>
+          <span class="finding-location">DESIGN.md:157</span>
+        </header>
+        <div class="finding-note">“An arc in the right-thumb zone” does not fix radius, anchor, slot count, or the fixed slot order that “muscle memory is a promise” depends on.</div>
+        <div class="finding-fix"><strong>Fix:</strong> A 10-line ASCII of the cluster arc showing reserved slot positions, or name the slot count and anchor in prose.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">“Spines win on conflict with any mock” is dead boilerplate</h4>
+          <span class="finding-location">DESIGN.md:4</span>
+        </header>
+        <div class="finding-note">No artifacts exist; a consumer may hunt for what it implies.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Drop it, or note “no visual artifacts this run; the ASCII zone diagram is normative.”</div>
+      </article>
+        </div>
+      </details>
+    </section>
+    <section class="dimension">
+      <details>
+        <summary><h2>6. Bloat &amp; overspecification</h2><span class="verdict-pill verdict-adequate">adequate</span></summary>
+        <div class="dim-body"><div class="dim-judgment">DESIGN.md carries editorial voice legitimately — that is its job. Metrics are tokenized, not hardcoded in prose. No source-restatement bloat; the I1/I2 recap is load-bearing for the affordance≠authority thesis.</div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">Cross-spine duplication of the diegesis thesis</h4>
+          <span class="finding-location">EXPERIENCE.md:168-177 vs DESIGN.md:62-71</span>
+        </header>
+        <div class="finding-note">“Only non-diegetic surface,” “colder than the torch,” “vanishes when it has nothing to offer” are re-derived. The only new load-bearing rule is “no HUD element ever narrates the Incarnate.”</div>
+        <div class="finding-fix"><strong>Fix:</strong> Cut the section to that rule and cite DESIGN.md Brand &amp; Style for the rest.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">Mild editorial voice in the experience spine</h4>
+          <span class="finding-location">EXPERIENCE.md:88,206,173</span>
+        </header>
+        <div class="finding-note">“Muscle memory is a promise”, “a buzzing thumb is torture”. These motivate real rules and match house style.</div>
+        <div class="finding-fix"><strong>Fix:</strong> None required; if trimming, push flavor into the rule's rationale clause.</div>
+      </article>
+        </div>
+      </details>
+    </section>
+    <section class="dimension">
+      <details>
+        <summary><h2>7. Inheritance discipline</h2><span class="verdict-pill verdict-strong">strong</span></summary>
+        <div class="dim-body"><div class="dim-judgment">All 7 <code>sources:</code> paths resolve on disk. <code>MovePayload { dx, dy, walk? }</code> confirmed at <code>fieldMessages.ts:26</code>, so “zero server change / reuses the wire” is accurate. Every EXPERIENCE <code>{token}</code> resolves to a DESIGN token by name, verified literally.</div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">Only name break is the component-list mismatch</h4>
+          <span class="finding-location">see §3</span>
+        </header>
+        <div class="finding-note">No other drift.</div>
+        <div class="finding-fix"><strong>Fix:</strong> See §3.</div>
+      </article>
+        </div>
+      </details>
+    </section>
+    <section class="dimension">
+      <details>
+        <summary><h2>8. Shape fit</h2><span class="verdict-pill verdict-strong">strong</span></summary>
+        <div class="dim-body"><div class="dim-judgment">DESIGN.md section order is canonical and locked. Typography is omitted as a body section — legitimately omittable, and defensible since the face is inherited and there is one authored size. EXPERIENCE.md carries all eight required defaults with Key Flows last.</div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">DESIGN.md omits spec-required <code>name</code>/<code>description</code></h4>
+          <span class="finding-location">DESIGN.md frontmatter</span>
+        </header>
+        <div class="finding-note">Uses <code>project</code>/<code>surface</code> instead — matches notice-board house style.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Add them, or accept as a documented house-style deviation.</div>
+      </article>
+        </div>
+      </details>
+    </section>
+
+    <section class="reviewer-section">
+      <details>
+        <summary><h2>Reviewer — Accessibility</h2><span class="verdict-pill verdict-broken">broken</span></summary>
+        <div class="dim-body"><div class="dim-judgment">The floor is not level. Two of the HUD's most important state signals — the walk/run register (1.52:1) and the server-refusal flash (1.26:1) — fail the WCAG 3:1 non-text threshold so badly they are effectively invisible, and the register's only fallback is a haptic tick with no in-app toggle. The “40 logical px ≈ 48dp” claim holds only at exactly factor 3 / 400dpi. The spine also promises a screen-reader-nameable surface Godot 4.7 cannot deliver on mobile.<table style="border-collapse:collapse;margin-top:14px;font-size:13.5px;width:100%">
+   <tr style="text-align:left;color:#78716c"><th style="padding:4px 8px">Pair</th><th style="padding:4px 8px">Role</th><th style="padding:4px 8px">Ratio</th><th style="padding:4px 8px">Needs</th><th style="padding:4px 8px">Verdict</th></tr>
+   <tr><td style="padding:4px 8px"><code>#E0CF9F</code> / <code>#3C4248</code></td><td style="padding:4px 8px">icon</td><td style="padding:4px 8px">6.58:1</td><td style="padding:4px 8px">4.5:1</td><td style="padding:4px 8px;color:#16a34a">PASS</td></tr>
+   <tr><td style="padding:4px 8px"><code>#E0CF9F</code> / <code>#8F2F2A</code></td><td style="padding:4px 8px">icon on refused face</td><td style="padding:4px 8px">5.21:1</td><td style="padding:4px 8px">4.5:1</td><td style="padding:4px 8px;color:#16a34a">PASS</td></tr>
+   <tr><td style="padding:4px 8px"><code>#B08A3E</code> / <code>#3C4248</code></td><td style="padding:4px 8px">border</td><td style="padding:4px 8px">3.17:1</td><td style="padding:4px 8px">3:1</td><td style="padding:4px 8px;color:#65a30d">PASS (marginal)</td></tr>
+   <tr><td style="padding:4px 8px"><code>#CBB583</code> / <code>#4C545A</code></td><td style="padding:4px 8px">component</td><td style="padding:4px 8px">3.85:1</td><td style="padding:4px 8px">3:1</td><td style="padding:4px 8px;color:#16a34a">PASS</td></tr>
+   <tr><td style="padding:4px 8px"><code>#8F2F2A</code> / <code>#3C4248</code></td><td style="padding:4px 8px">refusal state</td><td style="padding:4px 8px"><b>1.26:1</b></td><td style="padding:4px 8px">3:1</td><td style="padding:4px 8px;color:#dc2626"><b>FAIL</b></td></tr>
+   <tr><td style="padding:4px 8px"><code>#8C6C30</code> / <code>#B08A3E</code></td><td style="padding:4px 8px">speed register</td><td style="padding:4px 8px"><b>1.52:1</b></td><td style="padding:4px 8px">3:1</td><td style="padding:4px 8px;color:#dc2626"><b>FAIL</b></td></tr>
+   </table></div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title">The tap-target floor does not hold across devices</h4>
+          <span class="finding-location">DESIGN.md spacing.tap_min; R135</span>
+        </header>
+        <div class="finding-note">40 logical px = 48.0dp <em>only</em> at factor 3 + 400dpi; 41.9dp on an iPhone 13 Pro Max (under Apple's 44pt); 32dp at factor 2 / 400dpi. <code>action_size</code> 44 is only 35dp at factor 2. The integer factor tracks pixel height, not density.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Derive at runtime from <code>DisplayServer.screen_get_dpi()</code>, clamping to <code>ceil(48 * dpi/160 / factor)</code>. Keep 40 as a lower bound, not the target.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title">The refusal flash is nearly isoluminant</h4>
+          <span class="finding-location">DESIGN.md colors.action_denied; Flow 2</span>
+        </header>
+        <div class="finding-note">1.26:1 against a 3:1 requirement. Priority is inverted — the low-stakes press ack is ~12:1 while the high-stakes refusal is a whisper. For a protanope the red collapses toward the stone.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Make refusal a <em>luminance</em> event, not a hue event: flash to a bright value, or invert to a light face with a red glyph.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title">The walk/run register is colour-only and fails 3:1</h4>
+          <span class="finding-location">DESIGN.md “Gold intensity = the speed register”</span>
+        </header>
+        <div class="finding-note">1.52:1. Directly contradicts EXPERIENCE.md's own “colour is never the only channel.” The register feeds field pressure (D3) — not cosmetic.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Give the registers a <b>shape</b> difference: solid inner ring for walk, a second concentric or ticked rim for run.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title">No motor accommodations exist</h4>
+          <span class="finding-location">design.md geometry block</span>
+        </header>
+        <div class="finding-note">No one-handed mode, no stick-size/deadzone/position customisation, no remapping, no switch path. A floating stick requires a sustained drag — hostile to tremor, limited grip endurance, or one usable hand.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Expose deadzone and radius as settings; offer a fixed-stick option; document a switch fallback even if deferred.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title">Haptics are load-bearing with no in-app control</h4>
+          <span class="finding-location">EXPERIENCE.md Game Feel</span>
+        </header>
+        <div class="finding-note">The boundary tick is <em>the</em> way “the register is felt, not read”, yet haptics are deferred to a device pass with no toggle. With system haptics off, the register has no cue at all — its visual channel already fails.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Add an in-app haptics toggle; never let haptics solely carry a gameplay-relevant state.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title">The screen-reader claim is not implementable</h4>
+          <span class="finding-location">EXPERIENCE.md Accessibility Floor</span>
+        </header>
+        <div class="finding-note">Godot 4.7 has no TalkBack/VoiceOver bridge (AccessKit work is desktop-scoped), and the HUD controls are custom <code>_draw</code> Controls exposing nothing to any a11y tree.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Soften to what is true — caption text exists per role/state, positioning a future glyph-free mode — and do not count it as satisfied.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">Tap-to-move was rejected to protect an unbuilt combat window</h4>
+          <span class="finding-location">D2; EXPERIENCE.md anti-patterns</span>
+        </header>
+        <div class="finding-note">ATTACK/DODGE have no wire intent and the slots draw nothing. An accessibility affordance is denied <em>today</em> on the strength of an <em>unbuilt</em> system.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Reconsider tap-to-move as an a11y option now, auto-disabling once a timed dodge exists on the wire.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">Nothing teaches the player the invisible left zone exists</h4>
+          <span class="finding-location">Flow 1; DESIGN.md</span>
+        </header>
+        <div class="finding-note">First-run is unspecified. “The empty screen is the design” is fine for a returning player and a real barrier for a new one.</div>
+        <div class="finding-fix"><strong>Fix:</strong> A one-time, dismissible ghost-stick or zone-shimmer cue.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">Reduced motion does not cover HUD control transitions</h4>
+          <span class="finding-location">EXPERIENCE.md; Flow 1 step 4</span>
+        </header>
+        <div class="finding-note">Flow 1 has the Interact button “fade in” while DESIGN.md forbids the stick fading. The button fade and cluster pop-in are uncovered by any setting.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Fold HUD control transitions under the reduced-motion lever; reconcile the contradiction.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">No path to larger text for low-vision players</h4>
+          <span class="finding-location">DESIGN.md typography</span>
+        </header>
+        <div class="finding-note">OS zoom is ignored by a fullscreen GL viewport; raising the integer factor zooms the world and shrinks the visible field.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Sanction an optional 2×/3× <em>integer</em> caption scale — crisp, on-grid, and not “sub-font scaling”.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">1px outline is 2 physical px at factor 2</h4>
+          <span class="finding-location">DESIGN.md colors.outline</span>
+        </header>
+        <div class="finding-note">High-contrast, but physically thin as the sole edge cue for low-vision users.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Scale the outline with the integer factor, or offer a 2-logical-px option.</div>
+      </article>
+        </div>
+      </details>
+    </section>
+    <section class="reviewer-section">
+      <details>
+        <summary><h2>Reviewer — Input scheme &amp; engine feasibility</h2><span class="verdict-pill verdict-thin">thin</span></summary>
+        <div class="dim-body"><div class="dim-judgment">The two pure functions are arithmetically sound — the hysteresis band is <em>not</em> inverted and the <code>&amp; 7</code> two's-complement wrap <em>is</em> correct, contrary to the usual suspicion. The danger is elsewhere: an unmodelled Probe→stimulus gap, a Y-axis sign trap in a comment, directional dither at octant boundaries, and multitouch assumptions true only under an unstated discipline.</div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-critical">critical</span>
+          <h4 class="finding-title">The Probe cluster button cannot produce a valid PROBE payload</h4>
+          <span class="finding-location">design.md “Legality → cluster”</span>
+        </header>
+        <div class="finding-note"><code>ProbePayload = { stimulus: Stimulus }</code> (fieldMessages.ts:19); the server gates per-stimulus (probe.ts:32). The existing UI draws one button per stimulus (main.gd:474-478). <em>Failing case:</em> a Seeker carrying Censer(FLAME)+Salt(SALT) taps the one Probe button — the client cannot choose, so it sends a malformed <code>PROBE {}</code> or silently picks one.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Either N Probe slots (one per carried stimulus) or a stimulus chooser on tap. Unresolved on both spines. <b>Must be designed before T151.</b></div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title">The octant comment will invert vertical movement</h4>
+          <span class="finding-location">design.md quantize8: “# 0..7, E counter-clockwise”</span>
+        </header>
+        <div class="finding-note">Godot screen space is Y-down, so increasing <code>angle()</code> sweeps visually clockwise. <em>Failing case:</em> thumb pushed straight down → <code>angle()=+PI/2</code> → octant 2; a Y-up-authored table returns <code>Vector2i(0,-1)</code> and the Seeker walks <b>up</b>.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Delete “counter-clockwise”; author <code>OCTANT = [E, DR, D, DL, W, UL, U, UR]</code> with <code>D=(0,1)</code>; assert <code>quantize8(Vector2(0,10)) == Vector2i(0,1)</code>.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title">“A held stick sends nothing” is false — direction spam is unbounded</h4>
+          <span class="finding-location">R130 AC; design.md P73; main.gd:641</span>
+        </header>
+        <div class="finding-note">Hysteresis covers walk/run only, never direction. <em>Failing case:</em> a thumb resting at ≈22.5° micro-wobbles ±0.5° per frame; <code>v</code> alternates <code>(1,0)↔(1,1)</code> and a MOVE is sent every frame. The keyboard has no analogue.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Add directional hysteresis — require the angle to cross an octant boundary by ±N° before re-quantizing.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title"><code>set_input_as_handled()</code> does not suppress the emulated mouse event</h4>
+          <span class="finding-location">EXPERIENCE.md Interaction Primitives; R134</span>
+        </header>
+        <div class="finding-note">A finger-0 touch generates an <em>independent</em> <code>InputEventMouseButton</code>. <em>Failing case:</em> Extract implemented as a themed <code>Button</code> → one tap sends EXTRACT twice.</div>
+        <div class="finding-fix"><strong>Fix:</strong> State as an invariant: field-HUD controls are IGNORE + manually hit-tested, never Godot <code>Button</code>s wired to <code>pressed</code>. Only popup controls may be.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title"><code>touch_hud._input</code> must gate on <code>_menu_open</code></h4>
+          <span class="finding-location">main.gd:163; design.md “Touch routing”</span>
+        </header>
+        <div class="finding-note"><code>mouse_filter</code> governs mouse/GUI propagation only — it has no effect on <code>InputEventScreenTouch</code> delivery. <em>Failing case:</em> open Quartermaster, tap the panel's left half → a phantom stick ring spawns behind the dimmer.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Early-return from <code>touch_hud._input</code> whenever <code>_menu_open</code>, mirroring the existing <code>_send_move_intent</code> guard.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title"><code>_send_move_intent</code> is keyboard-hardcoded</h4>
+          <span class="finding-location">main.gd:626-645</span>
+        </header>
+        <div class="finding-note">It computes <code>v</code> from <code>Input.is_physical_key_pressed</code> via <code>_dir_axis</code>; there is no seam to inject a touch vector. “One send path, two producers” is not a drop-in, and P71 is at risk if done naively.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Refactor to take <code>(dir, walk, active)</code> from whichever producer the input scheme owns; keep the single <code>send_message(MOVE, …)</code> call site.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title"><code>emulate_touch_from_mouse</code> is not set</h4>
+          <span class="finding-location">project.godot</span>
+        </header>
+        <div class="finding-note">Default is false, so a desktop mouse produces no <code>InputEventScreenTouch</code> — playtest items M1/M2/M3/M5/M6 are un-runnable as written.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Set <code>input_devices/pointing/emulate_touch_from_mouse=true</code> (or a debug-only toggle) as part of T154/T156.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">Self-check boundary rows must respect <code>round()</code>'s tie rule</h4>
+          <span class="finding-location">tasks.md T148</span>
+        </header>
+        <div class="finding-note"><code>round(0.5)=1</code>, <code>round(-0.5)=-1</code>; an exact octant midpoint resolves to one neighbour. A “both boundaries” assertion will spuriously fail.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Test boundary±ε for the two neighbours; test the midpoint once against <code>round()</code>'s actual result.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">The ring reports intent, not server speed</h4>
+          <span class="finding-location">EXPERIENCE.md “The register is felt”</span>
+        </header>
+        <div class="finding-note">Cannot desync today (no server walk-rejection path), but the ring would lie if a server clamp were ever added.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Note only.</div>
+      </article>
+        </div>
+      </details>
+    </section>
+    <section class="reviewer-section">
+      <details>
+        <summary><h2>Reviewer — Canon &amp; trust boundary</h2><span class="verdict-pill verdict-adequate">adequate</span></summary>
+        <div class="dim-body"><div class="dim-judgment">Trust-boundary discipline is genuinely strong: “zero server change” is <em>literally</em> true, and the client-side legality recompute is a legitimately-precedented render hint, not I1 game logic. Two things keep it from clean — a cited testing precedent that exists nowhere, and a reserved DODGE slot that points straight at a Pillar-3 trait-tell.</div></div>
+        <div class="findings-list">
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-critical">critical</span>
+          <h4 class="finding-title">The cited boot self-check precedent does not exist</h4>
+          <span class="finding-location">requirements.md:119; tasks.md T148</span>
+        </header>
+        <div class="finding-note">The <code>keepout seed=&lt;s&gt; ok=&lt;bool&gt;</code> string appears in exactly one place: <code>specs/notice-board/tasks.md:165</code> — an unchecked, unbuilt task. No self-check harness exists in any client code. The spec invented a verification mechanism and back-dated it as convention, so under spec-workflow <b>T148 has no real test</b>.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Either build the self-check as a first, real deliverable and stop calling it precedent, or verify the pure functions through the established MCP-playtest + <code>get_debug_output</code> path.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-high">high</span>
+          <h4 class="finding-title">The reserved DODGE slot points at a Pillar-3 violation</h4>
+          <span class="finding-location">D1/R131 vs combat.md:29-30,40; R137/P76</span>
+        </header>
+        <div class="finding-note">The cluster's doctrine is <em>appearance == legality</em>. A dodge is only useful during the Omen window, so a future implementer draws DODGE then — and the button's presence <em>becomes</em> the Omen tell, replacing the read the player was supposed to earn. A Sign readout by another name.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Record now: the ATTACK/DODGE slots, when populated, are gated on the Seeker's <b>capability</b> (kit/perception), never on the live state of any Incarnate sign. DODGE is drawn iff the Seeker carries the perception to read the Omen; its presence is identical whether or not an Omen is firing.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">“The only circle in Testament” never pins how the circle renders</h4>
+          <span class="finding-location">DESIGN.md:39,136; design.md:27</span>
+        </header>
+        <div class="finding-note">A runtime <code>draw_circle</code>/<code>draw_arc</code> produces anti-aliased vector edges, violating the Nearest-filtered pixel canon the same file swears to (TD-033).</div>
+        <div class="finding-fix"><strong>Fix:</strong> Palette-locked pixel assets (Aseprite or a <code>gen_*.py</code> sheet) blitted with Nearest, or a deliberately pixel-stepped draw.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-medium">medium</span>
+          <h4 class="finding-title">Resolution drift via <code>inherits:</code></h4>
+          <span class="finding-location">DESIGN.md:12-13,34-37</span>
+        </header>
+        <div class="finding-note">The caption size is inherited from the notice-board spine, whose <code>min_glyph</code> is authored at <b>480×270</b> — superseded by TD-042's 640×360. Every spatial metric was re-authored; the font token silently was not.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Re-author the HUD caption size against 640×360, or state explicitly which inherited token is re-validated.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">“Station” is used as canonical vocabulary but is not a GLOSSARY term</h4>
+          <span class="finding-location">EXPERIENCE.md:15,47; R131</span>
+        </header>
+        <div class="finding-note">Repo-established in <code>specs/collegium</code>, so drift rather than invention.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Add “Station” to GLOSSARY if it is now canonical, or reference the named stations.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">Extract-button-reveals-the-tile — examined and ruled acceptable</h4>
+          <span class="finding-location">R131; design.md:80</span>
+        </header>
+        <div class="finding-note">Extraction is a visible authored site node (TD-035), already position-gated server-side, and the same affordance class as the committed “Press E” prompt (main.gd:677).</div>
+        <div class="finding-fix"><strong>Fix:</strong> None; keep it symmetric with the station prompt.</div>
+      </article>
+      <article class="finding">
+        <header>
+          <span class="badge badge-sev-low">low</span>
+          <h4 class="finding-title">Active-spec swap must precede T148</h4>
+          <span class="finding-location">CLAUDE.md Active Work; .decision-log.md:143-145</span>
+        </header>
+        <div class="finding-note">Declining to switch while authoring was correct. Before implementation: notice-board reaches a shippable stop, CLAUDE.md swaps, and a DECISION_LOG entry records it. T153 and notice-board T142-T147 both edit <code>_build_contract_board</code>.</div>
+        <div class="finding-fix"><strong>Fix:</strong> Coordinate to avoid a two-spec collision on the same board code.</div>
+      </article>
+        </div>
+      </details>
+    </section>
+
+    <div class="mechanical">
+      <h3>Mechanical notes</h3>
+      <ul>
+        <li>All source paths resolve on disk (7/7, including the <code>inherits:</code> target). <code>MovePayload</code> confirmed at <code>src/shared/src/fieldMessages.ts:26</code>.</li>
+        <li>All token references resolve: 12/12 <code>{token}</code> refs, 17/17 backtick token names, 8/8 inherited colour names with matching hex. Zero missing-hex, zero broken cross-refs.</li>
+        <li>Component-list divergence is the one structural inconsistency: DESIGN has <code>{floating_stick, action_button, action_cluster, caption}</code>; EXPERIENCE has <code>{floating stick, action button, action cluster, full-screen reader}</code>. Toast appears in neither.</li>
+        <li>Frontmatter: DESIGN.md omits the spec-required <code>name</code>/<code>description</code>; <code>inherits:</code> is a non-spec key. Both match notice-board house style.</li>
+        <li><b>Verified-compliant, do not re-litigate:</b> <code>next_walk</code> hysteresis is correct; <code>quantize8</code>'s negative <code>&amp; 7</code> wrap is correct; <code>display/window/handheld/orientation</code> is the right key; both pure functions are static and table-verifiable; Extract legality is knowable client-side; <code>walk</code> cannot desync; hover-raise removal targets real code.</li>
+      </ul>
+    </div>
+
+    <div class="mechanical">
+      <h3>Blocking gate before T148</h3>
+      <ul>
+        <li>Resolve <b>C1</b> (a real test mechanism for T148) and <b>C2</b> (the Probe/stimulus design).</li>
+        <li>Record <b>H1</b>'s capability-gate rule while the cluster grammar is being written.</li>
+        <li>Land the active-spec swap + DECISION_LOG entry; coordinate <b>T153</b> against notice-board <b>T142–T147</b>, which edit the same <code>_build_contract_board</code> code.</li>
+      </ul>
+    </div>
+
+    <footer class="report-footer">
+      <div class="meta">
+        <span>DESIGN.md · EXPERIENCE.md</span>
+        <span>review-rubric.md · review-accessibility.md · review-input-scheme.md · review-canon.md</span>
+        <span>2026-07-10</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

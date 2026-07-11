@@ -1066,3 +1066,60 @@ backing, hanging routed sign, torn/deckled parchment variants, tacks, cobweb, to
 glow) and the reskin toward the reference, via PIL generators (sanctioned toolchain).
 The `canvas_items` stretch change affects the whole game; the field/world view in
 fullscreen wants a human eyeball since MCP can't screenshot it.
+
+## TD-042 — Internal resolution is 640×360; script-driven integer fill; mobile is a target platform (2026-07-10)
+
+**Context.** The client launched windowed at a 960×540 base with
+`stretch/aspect="keep"` and `scale_mode="integer"`. That is exact only on 1080p and
+4K; every other screen letterboxes. Asked whether the game "scales best in
+fullscreen on any monitor and/or phone," the honest answer was no. Separately, no
+document in the repo had ever named **mobile** as a target, though it is one.
+
+**Finding — the base viewport decides which screens letterbox** (measured, not
+derived; via the new `DebugCapture` harness, see `docs/technical/dev-environment.md`):
+
+| Screen | 480×270 (old canon) | 640×360 | 960×540 (old actual) |
+|---|---|---|---|
+| 1280×720 | bars | exact ×2 | bars |
+| 1920×1080 | exact ×4 | exact ×3 | exact ×2 |
+| 2560×1440 | bars | exact ×4 | **bars** |
+| 3840×2160 | exact ×8 | exact ×6 | exact ×4 |
+
+Note both the documented canon (480×270) and the shipped value (960×540) get 1440p
+wrong. `640×360` is exact on 720p, 1080p, 1440p and 4K.
+
+**Finding — `aspect="expand"` does not solve it.** Expand grows the logical viewport
+only on an *aspect-ratio* mismatch (ultrawide, portrait). When the ratio matches but
+the scale is fractional, it does nothing: 2560×1440 on a 960×540 base measured
+`logical=960×540` with bars. Worse, Godot derives the logical viewport from the
+*fractional* scale and then floors the draw scale, so `expand` + `integer` still bars
+on phone-class screens (2778×1284 measured `bars=444×204`).
+
+**Decision — choose the integer factor first, then size the viewport to it.** New
+render-only autoload `client/scripts/pixel_scale.gd` (`PixelScale`): on every window
+resize, `factor = max(1, min(win.x/640, win.y/360))` (integer division), then
+`content_scale_size = win / factor`, clamped to `MAX_LOGICAL = 1280×720`. The draw
+scale is then exactly `factor` — crisp pixels, art canon intact — and the viewport
+covers the window. Measured `bars=0×0` at 1280×720, 1920×1080, 2560×1440, 3840×2160,
+ultrawide 3440×1440, and phone 2400×1080 / 2340×1080 / 2778×1284 / 2556×1179.
+
+**Decision — internal resolution is 640×360**, superseding the 480×270 written in
+CLAUDE.md and in `specs/notice-board/ux-designs/*/DESIGN.md`. Existing UI metrics were
+authored against 960×540 and overflowed at the new base (the title screen's "Resume
+unfinished expedition" fell off); the menu's fonts, margins and separations were
+rescaled. **The Contract Board's Pass-2 layout has not been re-verified at 640×360**
+and its `min_glyph` / contrast floor were specified against 480×270 — both need
+reconciling before T147 signs off. Compare TD-041, where the board already proved
+brittle against raw window pixels.
+
+**Decision — mobile is a target platform**, recorded here for the first time. This is
+a UI constraint, not a scaling setting: `PixelScale` handles landscape phones, but
+touch input (there is none — the client is WASD/`E`/`Esc`), tap-target minimums,
+hover-free affordances, and orientation handling are unbuilt. Portrait could not be
+verified on a 1080p desktop (Windows clamps an over-tall window, so the measurement
+is invalid); it needs a device or emulator. A mobile-input spec is owed.
+
+**Consequences.** Trade accepted: with a filled viewport, a wider screen sees *more
+area* rather than bigger pixels. `MAX_LOGICAL` caps that at 1280×720 so an ultrawide
+cannot reveal an unbounded slice of the field; beyond the cap, bars return. The field
+camera may still want its own clamp. Fractional scaling remains forbidden (shimmer).
