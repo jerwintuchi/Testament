@@ -261,6 +261,10 @@ func _board_preview() -> void:
 	_snapshot = {"phase": Protocol.PHASE_WAITING, "board": _PREVIEW_BOARD, "players": [], "contract": null}
 	_world.visible = false
 	_open_station("CONTRACT_BOARD")
+	# `-- --reader` opens the first fixture's notice reader (where the threat pips and
+	# the enlarged seal live), so a capture can verify them without a click.
+	if OS.get_cmdline_user_args().has("--reader"):
+		_select_board_card.call_deferred(_PREVIEW_BOARD[1])
 	_log("board preview: %d fixture contracts" % _PREVIEW_BOARD.size())
 
 # On a window/viewport resize, re-fit an open station: recompute the board's

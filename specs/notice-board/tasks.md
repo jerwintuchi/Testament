@@ -157,13 +157,24 @@
       `_separate`) already lives here; T145's remaining scope (live-tone paper floor,
       per-notice backlight, ≥44px hit-target, self-check styling) stays open.
 
-- [ ] T143 [DESIGN § Components "Batch 2", Shapes] — **Detail assets.**
+- [x] T143 [DESIGN § Components "Batch 2", Shapes] — **Detail assets.**
       Generate + finish: torn/**deckled parchment** variants (a few **pre-rotated** angles,
       live vs flavor tones), **tacks** (nail·wax·pin·ribbon), **cobweb** (grayscale
       additive), **votive**, **foxing/curl**. Refine `WaxSeal` to distinct Origin **sigil
       shapes** + a full-strength **faint ring**; add the **1px black outline** to
       `ThreatPips` (empty = hollow diamond).
       Verify: assets import clean; palette-membership check (T140 helper) passes; MCP clean.
+      **Done:** `gen_detail.py` (imports `ashember`) emits 15 palette-locked PNGs —
+      `parch_live_{0,1}`, `parch_flavor_{0,1}` (deckled, warm-inner-light live vs
+      aged/foxed flavor) + 4 baked ±5° tilts, `tack_{nail,wax,pin,ribbon}`, `cobweb`
+      (VFX grayscale-additive), `votive`, `foxing`; `assert_on_palette` passes for all
+      (cobweb under `allow_vfx`). `wax_seal.gd`: full-strength black outer ring +
+      `set_faint()` (fill washes toward parchment, ring+sigil stay firm) + thicker
+      Origin sigils. `threat_pips.gd`: 1px `#12100C` outline on every pip, empty = hollow
+      diamond. Verified by reader capture (`--board-preview --reader`): SIN seal reads as
+      a firm disc with a pale inverted-cross sigil; APPRENTICE shows 3 filled + 2 hollow
+      outlined pips. MCP clean, no import errors. Wiring the deckled paper/tacks/cobweb
+      into the notice + reader is T144.
 
 - [ ] T144 [DESIGN § Components, Typography] — **Batch 2 integration.**
       Wire parchment/tacks/seal/pips/decay into the notice + reader; **headline in ink

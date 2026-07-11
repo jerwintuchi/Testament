@@ -9,7 +9,9 @@ extends Control
 const MAX_PIPS := 5
 const PIP := 12                        # px per pip cell
 const FILLED := Color(0.80, 0.29, 0.29)  # threat red (danger accent, art direction)
-const EMPTY := Color(0.34, 0.30, 0.30)
+const OUTLINE := Color(0x12 / 255.0, 0x10 / 255.0, 0x0C / 255.0)  # Ash&Ember black — every pip
+									   # is outlined so the COUNT reads through gloom, regardless
+									   # of fill (DESIGN: threat by count, empty = hollow diamond).
 
 # Tier → how many pips are lit. Only three tiers exist today (signs.ts Tier);
 # raising the ceiling later is a data change here, not a shape change.
@@ -31,8 +33,8 @@ func _draw() -> void:
 			Vector2(cx, cy - r), Vector2(cx + r, cy),
 			Vector2(cx, cy + r), Vector2(cx - r, cy)])
 		if i < _level:
-			draw_colored_polygon(pts, FILLED)
-		else:
-			var outline := pts
-			outline.append(pts[0])
-			draw_polyline(outline, EMPTY, 1.0)
+			draw_colored_polygon(pts, FILLED)          # lit threat pip…
+		var edge := pts
+		edge.append(pts[0])
+		draw_polyline(edge, OUTLINE, 1.0)              # …with a 1px black outline; an empty
+													   # pip is this edge alone (hollow diamond).
