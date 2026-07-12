@@ -30,7 +30,6 @@ window/size/viewport_height=360
 window/size/mode=3
 window/stretch/mode="canvas_items"
 window/stretch/scale_mode="integer"
-window/stretch/aspect="keep"
 
 [gui]
 

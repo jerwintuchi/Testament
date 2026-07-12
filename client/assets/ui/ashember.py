@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-"""Ash & Ember — the Notice Board Pass-2 generator foundation (T140).
+"""Ash & Ember — the Notice Board reskin generator foundation (T140).
 
-The shared, dependency-free toolkit every reskin generator imports: the locked
-Ash & Ember palette, a pure-stdlib RGBA PNG writer, per-pixel helpers, the
-grayscale-additive VFX source convention, and a quantize-to-ramp + palette
-membership check that ENFORCES the palette lock (DESIGN.md § Colors / `pipeline`).
+The shared, dependency-free toolkit every reskin generator imports: the curated
+Ash & Ember palette, smooth multi-stop shading (`ramp_shade`) + light-temperature
+helpers, a pure-stdlib RGBA PNG writer, per-pixel helpers, the grayscale-additive
+VFX source convention, and a quantize-to-ramp + palette membership check.
 
-Toolchain: stdlib only (no Pillow — settled; the env has no pip). Sanctioned per
-CLAUDE.md "Python/PIL generators". Aseprite finishing happens on the emitted PNGs.
+Art-rebrand (2026-07-11): the palette is a CURATED expanded set (~34 colours), not
+the old 15/18-colour lock. Ash & Ember stays the named identity — every generator's
+output still resolves to these defined ramps, so the board reads cohesive — but each
+ramp now carries shadow/rim stops so `ramp_shade` can render weathered, torch-lit
+gradients (baked directional light, edge AO, foxing) instead of flat fills. So
+`assert_on_palette` checks COHESION (output ∈ the curated set), not a hard 24-bit ban.
 
-    from ashember import PALETTE, RAMP, write_png, quantize, on_palette, additive
-    python3 ashember.py            # runs the self-test (palette lock + quantize)
+Toolchain: stdlib only (no Pillow — settled; the env has no pip). Generators are the
+primary pipeline; hand-authored Aseprite finishing on the emitted PNGs is supplementary.
+
+    from ashember import RAMP, ramp_shade, warm, cool, write_png, quantize, additive
+    python3 ashember.py            # runs the self-test (palette cohesion + quantize)
 """
 import zlib
 import struct
@@ -24,26 +31,43 @@ def _hex(h):
     return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
 
 
+# Expanded curated set (~34 colours) per the 2026-07-11 art rebrand: Ash & Ember
+# stays the named identity, but each ramp gains shadow/rim stops so `ramp_shade`
+# can render smooth, weathered, torch-lit gradients that still resolve to a DEFINED
+# palette (cohesion kept; the lock relaxed from 15/18 → curated ramps, not open
+# 24-bit). Every historical named stop below keeps its exact hex — extending the
+# ramps never moves an existing colour, so prior generators/tests are unaffected.
+# Each ramp is ordered dark → light.
 RAMP = {
-    "stone":     [_hex("#2B2F33"), _hex("#3C4248"), _hex("#4C545A")],
-    "wood":      [_hex("#3A2617"), _hex("#5A3D28"), _hex("#7A5334")],
-    "parchment": [_hex("#A8946A"), _hex("#CBB583"), _hex("#E0CF9F")],
+    "black":     [_hex("#0A0806"), _hex("#12100C"), _hex("#1C1813")],
+    "stone":     [_hex("#22242A"), _hex("#2B2F33"), _hex("#3C4248"),
+                  _hex("#4C545A"), _hex("#616A72")],
+    "wood":      [_hex("#2A1B10"), _hex("#3A2617"), _hex("#5A3D28"),
+                  _hex("#7A5334"), _hex("#916339")],
+    "parchment": [_hex("#8A7A54"), _hex("#A8946A"), _hex("#CBB583"),
+                  _hex("#E0CF9F"), _hex("#F1E4BE")],
+    "foxing":    [_hex("#5E3F22"), _hex("#6B4A2A"), _hex("#83603A")],
     "ink":       [_hex("#2A2115"), _hex("#5A4A34")],
-    "wax":       [_hex("#8F2F2A"), _hex("#C65A4E")],
-    "gold":      [_hex("#8C6C30"), _hex("#B08A3E")],
-    "flame":     [_hex("#E8973C"), _hex("#F0B25F")],
-    "black":     [_hex("#12100C")],
+    "wax":       [_hex("#5E1D1A"), _hex("#8F2F2A"), _hex("#C65A4E"), _hex("#E1897B")],
+    "gold":      [_hex("#6E5426"), _hex("#8C6C30"), _hex("#B08A3E"), _hex("#D6AE5C")],
+    "flame":     [_hex("#E8973C"), _hex("#F0B25F"), _hex("#F9DCA6")],
 }
 
-# Convenience named accessors (the tones the spec cites by name).
-STONE_DEEP, STONE_MID, STONE_LIT = RAMP["stone"]
-WOOD_EDGE, WOOD_BASE, WOOD_BEVEL = RAMP["wood"]
-PARCH_SHADOW, PARCH_BASE, PARCH_HI = RAMP["parchment"]
+# Convenience named accessors (the tones the spec/generators cite by name). These
+# resolve to the SAME hexes as before the ramp expansion, so existing code is stable.
+STONE_DEEP, STONE_MID, STONE_LIT = RAMP["stone"][1], RAMP["stone"][2], RAMP["stone"][3]
+WOOD_EDGE, WOOD_BASE, WOOD_BEVEL = RAMP["wood"][1], RAMP["wood"][2], RAMP["wood"][3]
+PARCH_SHADOW, PARCH_BASE, PARCH_HI = RAMP["parchment"][1], RAMP["parchment"][2], RAMP["parchment"][3]
 INK, INK_FADED = RAMP["ink"]
-WAX, WAX_HI = RAMP["wax"]
-GOLD_DIM, GOLD = RAMP["gold"]
-FLAME_EMBER, FLAME_GLOW = RAMP["flame"]
-BLACK = RAMP["black"][0]
+WAX, WAX_HI = RAMP["wax"][1], RAMP["wax"][2]
+GOLD_DIM, GOLD = RAMP["gold"][1], RAMP["gold"][2]
+FLAME_EMBER, FLAME_GLOW = RAMP["flame"][0], RAMP["flame"][1]
+BLACK = RAMP["black"][1]
+# New stops the richer renderers reach for directly.
+STONE_SHADOW, STONE_HI = RAMP["stone"][0], RAMP["stone"][4]
+WOOD_DEEP, WOOD_HI = RAMP["wood"][0], RAMP["wood"][4]
+PARCH_DEEP, PARCH_RIM = RAMP["parchment"][0], RAMP["parchment"][4]
+FLAME_PALE = RAMP["flame"][2]
 
 # Flat set of every locked colour, for the membership check.
 PALETTE = [c for ramp in RAMP.values() for c in ramp]
@@ -73,13 +97,55 @@ def lerp_rgb(a, b, t):
             a[2] + (b[2] - a[2]) * t)
 
 
+def ramp_shade(name, t):
+    """Sample a continuous position 0..1 along a named ramp (dark→light).
+
+    This is the smooth-shading primitive: drive it with a baked lighting term and
+    the result rides the full expanded ramp, so a lit gradient reads as rendered
+    (many tonal steps) yet still snaps to the defined palette under `quantize`.
+    Returns a float RGB — quantize() it before writing.
+    """
+    r = RAMP[name]
+    if len(r) == 1:
+        return r[0]
+    t = max(0.0, min(1.0, t)) * (len(r) - 1)
+    i = int(t)
+    if i >= len(r) - 1:
+        return r[-1]
+    return lerp_rgb(r[i], r[i + 1], t - i)
+
+
+def warm(rgb, amt):
+    """Push a colour toward ember warmth (baked torch-light). amt 0..1."""
+    return lerp_rgb(rgb, FLAME_PALE, max(0.0, min(1.0, amt)))
+
+
+def cool(rgb, amt):
+    """Sink a colour toward cold shadow. amt 0..1."""
+    return lerp_rgb(rgb, RAMP["stone"][0], max(0.0, min(1.0, amt)))
+
+
+def over(base, top, alpha):
+    """Composite `top` onto `base` at `alpha` (0..1) — for stains/foxing/AO."""
+    return lerp_rgb(base, top, max(0.0, min(1.0, alpha)))
+
+
+def smooth(a, b, x):
+    """Smoothstep of x from edge a to edge b → 0..1."""
+    if b == a:
+        return 0.0 if x < a else 1.0
+    t = max(0.0, min(1.0, (x - a) / float(b - a)))
+    return t * t * (3 - 2 * t)
+
+
 # ── Palette lock: quantize + membership ──────────────────────────────────────
 def quantize(rgb):
     """Snap an arbitrary RGB to the nearest locked palette colour.
 
     Perceptually-weighted squared distance (eyes are most sensitive to green).
-    Everything an authored board sprite emits should pass through this so no
-    off-ramp pixel ever reaches the board (DESIGN.md: palette-lock is absolute).
+    Everything an authored board sprite emits passes through this so the board
+    stays cohesive — every pixel lands on a curated Ash & Ember ramp entry, even
+    when it was computed as a smooth lit gradient (art-rebrand 2026-07-11).
     """
     r, g, b = clamp_rgb(rgb)
     best, best_d = PALETTE[0], None
@@ -154,7 +220,12 @@ def write_png(path, w, h, pixel):
 def _selftest():
     # 1. Ramps are all distinct and well-formed.
     assert len(PALETTE) == len(PALETTE_SET), "duplicate palette colours"
-    assert len(PALETTE) == 3 + 3 + 3 + 2 + 2 + 2 + 2 + 1, "unexpected palette size"
+    assert len(PALETTE) == 3 + 5 + 5 + 5 + 3 + 2 + 4 + 4 + 3 == 34, "unexpected palette size"
+
+    # 1b. ramp_shade rides the ramp and is monotone-ish at the ends.
+    assert ramp_shade("parchment", 0.0) == PARCH_DEEP
+    assert ramp_shade("parchment", 1.0) == PARCH_RIM
+    assert quantize(ramp_shade("wood", 0.5)) in PALETTE_SET
 
     # 2. quantize() is identity on locked colours.
     for c in PALETTE:
@@ -189,7 +260,7 @@ def _selftest():
         assert f.read(8) == b"\x89PNG\r\n\x1a\n", "bad PNG signature"
     os.remove(tmp)
 
-    print("ashember self-test OK — %d locked colours; quantize + palette-lock enforced." % len(PALETTE))
+    print("ashember self-test OK — %d curated colours; quantize + ramp_shade cohesion." % len(PALETTE))
 
 
 if __name__ == "__main__":

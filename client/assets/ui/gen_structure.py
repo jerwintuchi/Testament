@@ -13,7 +13,9 @@ each is on-palette (VFX sources under allow_vfx). Aseprite finishing happens aft
 import os
 from ashember import (
     RAMP, write_png, quantize, noise, lerp_rgb, additive, assert_on_palette,
-    STONE_DEEP, STONE_MID, STONE_LIT, WOOD_EDGE, WOOD_BASE, WOOD_BEVEL,
+    ramp_shade, warm, cool, over, smooth,
+    STONE_DEEP, STONE_MID, STONE_LIT, STONE_SHADOW, STONE_HI,
+    WOOD_EDGE, WOOD_BASE, WOOD_BEVEL, WOOD_DEEP, WOOD_HI,
     GOLD_DIM, GOLD, BLACK,
 )
 
@@ -24,49 +26,89 @@ def _q(rgb, a=255):
     return quantize(rgb) + (a,)
 
 
-# ── Carved frame — 9-slice border, mitred corners, iron studs ────────────────
-# 64×64, border B; the interior is transparent so the backing shows through.
-# Light reads from top-left (bevel-lit top/left faces, shadowed bottom/right).
-FRAME_W = FRAME_H = 64
-FRAME_B = 12
-_STUDS = ((6, 6), (57, 6), (6, 57), (57, 57))
+# ── Carved frame — 9-slice border, heavy timber, iron corner brackets ────────
+# 88×88, border B; the interior is transparent so the backing shows through.
+# A thick, deeply-carved moulding (Prototype v1): raised outer bevel → broad face →
+# deep routed groove → gilt inner liner, with a wrought-iron L-bracket bolted over
+# each corner. Light reads from the top-left (lit top/left faces, shadowed B/R).
+FRAME_W = FRAME_H = 88
+FRAME_B = 26
+_BRACKET = 22          # iron corner bracket reach along each rail
+_BRACKET_W = 9         # bracket band width (outer edge inward)
+_BOLTS = ((4, 4), (4, 15), (15, 4))   # bolt heads on the bracket (corner-local)
 
 
 def frame_px(x, y):
     left, top, right, bottom = x, y, FRAME_W - 1 - x, FRAME_H - 1 - y
     d = min(left, top, right, bottom)
-
-    # iron studs (fixed corner regions — 9-slice-safe)
-    for cx, cy in _STUDS:
-        dx, dy = x - cx, y - cy
-        r2 = dx * dx + dy * dy
-        if r2 <= 3:
-            return _q(STONE_LIT if (dx + dy) < 0 else STONE_MID)   # lit rivet head
-        if r2 <= 6:
-            return _q(STONE_DEEP)                                   # rivet shadow ring
-
     if d >= FRAME_B:
         return (0, 0, 0, 0)                                         # hollow interior
+
+    # Corner-local coordinates (distance from the nearest corner along each rail).
+    near_l, near_r = left < FRAME_B, right < FRAME_B
+    near_t, near_b = top < FRAME_B, bottom < FRAME_B
+    cxr = left if near_l else right
+    cyr = top if near_t else bottom
+    in_corner = (near_l or near_r) and (near_t or near_b)
+
+    # ── Wrought-iron corner bracket: an L of dark iron bolted over the timber, its
+    # outer band beveled and lit at the top-left, with three domed bolt heads.
+    if in_corner and cxr < _BRACKET and cyr < _BRACKET and (cxr < _BRACKET_W or cyr < _BRACKET_W):
+        for bx, by in _BOLTS:
+            r2 = (cxr - bx) ** 2 + (cyr - by) ** 2
+            if r2 <= 2:
+                return _q(ramp_shade("stone", 0.96))                # bolt crown (specular)
+            if r2 <= 6:
+                return _q(ramp_shade("stone", 0.58))                # domed bolt body
+            if r2 <= 9:
+                return _q(ramp_shade("black", 0.55))                # bolt shadow ring
+        if cxr == 0 or cyr == 0:
+            return _q(ramp_shade("black", 0.20))                    # iron outer edge
+        edge_lit = cxr <= 1 or cyr <= 1
+        inner_edge = cxr == _BRACKET_W - 1 or cyr == _BRACKET_W - 1
+        it = 0.30 + noise(x, y, 41) * 0.010
+        if edge_lit:
+            it = 0.60                                               # lit chamfer, top-left
+        elif inner_edge:
+            it = 0.16                                               # shadowed inner step
+        return _q(ramp_shade("stone", it))
+
     if d == 0:
-        return BLACK + (255,)                                       # outer outline
+        return _q(ramp_shade("black", 0.20))                       # outer outline
 
     lit = (d == left or d == top)                                   # top-left catches light
-    # mitred corner joint: a darker 45° seam where two border runs meet
-    in_corner = (left < FRAME_B and top < FRAME_B) or (right < FRAME_B and top < FRAME_B) \
-        or (left < FRAME_B and bottom < FRAME_B) or (right < FRAME_B and bottom < FRAME_B)
-    if in_corner:
-        cdx = min(left, right)
-        cdy = min(top, bottom)
-        if abs(cdx - cdy) <= 0:
-            return _q(WOOD_EDGE)                                    # the joint seam
 
-    if d == 1:
-        return _q(WOOD_BEVEL if lit else WOOD_EDGE)                # outer bevel
-    if d == FRAME_B - 2:
-        return _q(WOOD_EDGE)                                       # routed inner groove
-    if d == FRAME_B - 1:
-        return _q(WOOD_BEVEL if lit else WOOD_BASE)               # inner lip
-    return _q(lerp_rgb(WOOD_BASE, WOOD_BEVEL if lit else WOOD_EDGE, 0.15), )  # frame flat
+    # Carved height profile across the border width: raised outer bevel, broad face,
+    # a deep routed groove, a gilt inner lip, then a fall to the interior edge.
+    b = d / float(FRAME_B - 1)                                      # 0 outer .. 1 inner
+    if b < 0.14:
+        height = 0.50 + b * 3.0                                     # steep outer bevel rising
+    elif b < 0.46:
+        height = 0.94 - (b - 0.14) * 0.30                           # broad lit face
+    elif b < 0.60:
+        height = 0.16                                              # DEEP routed groove (recessed)
+    elif b < 0.82:
+        height = 0.82                                              # inner lip
+    else:
+        height = 0.66 - (b - 0.82) * 1.8                           # fall to interior edge
+
+    base_t = height * (1.0 if lit else 0.58)                        # stronger directional contrast
+
+    # Mitred 45° corner joint: a darker seam where two border runs meet.
+    if in_corner and abs(min(left, right) - min(top, bottom)) <= 0:
+        base_t *= 0.50
+
+    # Wood grain: lengthwise streaks (both rail orientations) + fine speckle, so the
+    # timber reads carved and aged, not a flat bevel (Prototype v1).
+    base_t += noise(x // 7, y, 22) * 0.014                           # vertical streak (L/R rails)
+    base_t += noise(x, y // 7, 23) * 0.014                           # horizontal streak (T/B rails)
+    base_t += noise(x, y, 13) * 0.006                                # fine speckle
+    col = ramp_shade("wood", max(0.0, min(1.0, base_t)))
+    if 0.46 <= b < 0.60:                                            # grime settled in the deep groove
+        col = over(col, ramp_shade("black", 0.42), 0.55)
+    if b >= 0.82:                                                   # gilded inner liner (Prototype-v1)
+        col = ramp_shade("gold", 0.72 if lit else 0.32)
+    return _q(col)
 
 
 # ── Plank backing — 9-slice-safe wood field ──────────────────────────────────
@@ -122,12 +164,30 @@ def stone_px(x, y):
     off = (BRICK_W // 2) if (row % 2) else 0
     xm = (x + off) % BRICK_W
     ym = y % BRICK_H
-    if ym == 0 or xm == 0:                                        # mortar lines (wrap-safe)
-        return _q(STONE_DEEP)
-    v = noise(x, y, 5) * 0.7
-    lit = 6 if ((x + y) % 7 == 0) else 0                          # faint ambient sparkle
-    base = STONE_MID
-    return _q((base[0] + v + lit, base[1] + v + lit, base[2] + v + lit))
+    col_id = (x + off) // BRICK_W
+
+    # Deep mortar recess (wrap-safe on all edges): the darkest tone, so bricks
+    # read as raised blocks with real gaps between them.
+    if ym == 0 or xm == 0:
+        return _q(ramp_shade("stone", 0.0))
+
+    # Per-brick tone: each block sits at a slightly different value, with an
+    # occasional darker/soot-stained stone — masonry variety, not one flat field.
+    brick = noise(col_id, row, 5)                                 # -8..8 per block
+    base_t = 0.44 + brick * 0.017
+    if noise(col_id, row, 6) > 5:
+        base_t -= 0.15                                           # sooted/older stone
+
+    # Beveled brick face: lit toward top-left, occluded toward the mortar gaps.
+    chamf = smooth(0.0, 3.0, float(min(min(xm, BRICK_W - xm), min(ym, BRICK_H - ym))))
+    dirl = 0.0
+    if xm <= 2:            dirl += 0.10                           # left face catches light
+    if ym <= 1:            dirl += 0.12                           # top face catches light
+    if xm >= BRICK_W - 2:  dirl -= 0.10
+    if ym >= BRICK_H - 2:  dirl -= 0.10
+    t = base_t + dirl - (1.0 - chamf) * 0.22                     # AO into the mortar
+    t += noise(x, y, 51) * 0.010                                 # fine mineral speckle
+    return _q(ramp_shade("stone", t))
 
 
 # ── Torch — grayscale-additive flame frames + glow, on-palette sconce ────────
@@ -166,6 +226,47 @@ def glow_px(x, y):
         return additive(0)
     a = (1.0 - r) ** 2.2                                          # soft falloff, no hard rim
     return additive(int(220 * a))
+
+
+# ── Crest — a carved medallion for the top of the frame (the Collegium sigil) ─
+# A dark wood oval with a gilded bevel rim and a gold cross-sigil, hung over the
+# top-centre of the board frame (the heraldic crest in the reference / Prototype v1).
+CREST_W, CREST_H = 46, 36
+
+
+def crest_px(x, y):
+    cx, cy = CREST_W / 2.0, CREST_H / 2.0
+    ex = (x - cx) / (CREST_W / 2.0 - 1.0)
+    ey = (y - cy) / (CREST_H / 2.0 - 1.0)
+    rr = ex * ex + ey * ey
+    if rr > 1.0:
+        return (0, 0, 0, 0)
+    if rr > 0.84:                                                # gilded outer rim, top-left lit
+        return _q(ramp_shade("gold", 0.62 if (ex + ey) < 0 else 0.26))
+    if rr > 0.72:                                                # recessed shadow ring
+        return _q(ramp_shade("black", 0.30))
+    field = ramp_shade("wood", 0.26 + noise(x, y, 88) * 0.006)   # dark wood field
+    gx, gy = abs(x - cx), abs(y - cy)
+    vbar = gx <= 1.0 and gy <= 11.0                             # cross upright
+    hbar = abs(y - (cy - 3.0)) <= 1.0 and gx <= 6.0            # cross arm (upper third)
+    if vbar or hbar:
+        return _q(ramp_shade("gold", 0.74 if x <= cx else 0.46))
+    return _q(field)
+
+
+# ── Vignette — a warm-dark radial overlay for the whole board (ambience) ─────
+# Deepest at the corners, clear at the centre, so the wall reads torch-lit: a lit
+# pool in the middle falling to near-black at the edges (the Prototype-v1 mood).
+# On-palette black (#0A0806) with a radial alpha — stretched over the popup.
+VIG_W, VIG_H = 256, 160
+
+
+def vignette_px(x, y):
+    nx = (x - VIG_W / 2.0) / (VIG_W / 2.0)
+    ny = (y - VIG_H / 2.0) / (VIG_H / 2.0)
+    r = ((nx * nx + ny * ny) ** 0.5) / (2 ** 0.5)             # 0 centre .. 1 corner
+    a = smooth(0.30, 1.0, r) * 236                            # clear centre, dark corners
+    return ramp_shade("black", 0.0) + (int(a),)              # #0A0806 + radial alpha
 
 
 def sconce_px(x, y):

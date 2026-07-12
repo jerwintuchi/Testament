@@ -1123,3 +1123,157 @@ is invalid); it needs a device or emulator. A mobile-input spec is owed.
 area* rather than bigger pixels. `MAX_LOGICAL` caps that at 1280×720 so an ultrawide
 cannot reveal an unbounded slice of the field; beyond the cap, bars return. The field
 camera may still want its own clamp. Fractional scaling remains forbidden (shimmer).
+
+## TD-043 — Art direction pivots to weathered HD-pixel with in-engine lighting; TD-033's palette-lock relaxed (2026-07-11)
+
+**Context.** Reviewing the Notice Board Pass-2 against a Darkest-Dungeon-style
+reference (an ornate, aged, torch-lit commission wall), the shipped board read
+**flat and brand-new** — the direct, structural consequence of TD-033's strict
+15-colour palette-lock and its "no lighting, flat colour" posture. The user's target
+vibe is the opposite: **weathered through time, warm, dramatically lit**. They
+explicitly authorized overriding the palette-lock canon to reach it, and — asked
+whether the pivot was board-only or game-wide — chose **game-wide now**.
+
+**Method.** A throwaway PIL study (`client/assets/ui/gen_prototype.py`) composited the
+board with richer ramps, baked weathering (moss, water streaks, foxing, water-stain
+rings, torn/curled paper, rust, grime) and a **baked warm light pass** (two torch
+pools + centre fill → cool dark edges) to preview the mood. That single light pass is
+what dissolved the flatness; it stands in for the real engine lighting.
+
+**Decision — the art target is weathered gothic HD-pixel.** Smooth 24-bit shading at
+the native **640×360** (TD-042), upscaled **nearest** — the HD-pixel register
+(Blasphemous / Dead Cells / Curse of the Dead Gods), not flat greybox and not
+painterly HD raster. TD-033's **strict palette-lock is relaxed**: richer, weathered
+ramps and gradients are now allowed. `ashember.py`'s `assert_on_palette` / `quantize`
+become **advisory**, not a gate; the Pass-2 generators may be re-authored with fuller
+ramps.
+
+**Decision — lighting is now a core visual pillar.** Scenes are **lit, not evenly
+bright**: per-torch **Light2D** + **particle** flames + **shaders** on wall, board and
+cards. Ambient occlusion, drop shadows and warm/cool falloff are part of the canon
+look, not optional polish.
+
+**Decision — scope is game-wide.** The weathered HD-pixel + lighting language governs
+**every** surface — field tiles, Seeker sprites, HUD, menus — as they are built or
+re-skinned. The **Notice Board is the first canonical example**; other screens adopt
+it from there.
+
+**What does NOT change.** TD-033's *tool purge* stands: **no** Blender 3D, MediBang,
+painterly external raster, `.blend`/`.fbx`/`.gltf`/`.obj`, or Node3D scenes. The
+sanctioned toolchain is unchanged — **Godot 4.7 / Aseprite / Python-PIL generators**.
+640×360, nearest filtering, 16×16 tiles, the Seeker 16×24/48×48 rig and part-lag
+animation (TD-042) all stand. The **trust boundary** is untouched: lighting/shaders
+are render-only; no game logic moves to the client. And the **game-truth invariants**
+hold — still no reward coins (TD-017), no Incarnate art on the board (mystery is the
+mechanic), every card trait-free `ContractIntel` (I3/I5).
+
+**Consequences / owed work.**
+- CLAUDE.md "Art Direction & Sanctioned Toolchain — CLOSED LIST" is amended to state
+  the weathered HD-pixel target + lighting pillar and the relaxed lock (done alongside
+  this entry).
+- The Notice Board Pass-2 layout pivots **scatter → framed grid** (ref-faithful),
+  which **moots T145's keep-out/scatter solver**; T145–T147 are re-scoped to the
+  grid + weathering + the Godot lighting layer. Godot build order (user choice):
+  **layout + interaction first** (grid, real `ContractIntel`, seals/pips, hover,
+  selection → DEPLOYING), lit afterward.
+- New work is owed: a Godot **lighting layer** spec (Light2D torches + wall/board/card
+  shaders + flame particles), and a later sweep re-skinning field/HUD/sprites to match.
+- `gen_prototype.py` is a **throwaway study**, not a shipped generator; it is kept only
+  as the look reference for the Godot pass.
+
+## TD-044 — Painterly/HD-raster restriction lifted; the contract board's target is Prototype v1 richness (2026-07-11)
+
+**Context.** The contract board is being built toward the pinned **Prototype v1** study
+(the rich, weathered, torch-lit board that references a hand-painted HD-raster contract
+board). The user judged the code-generated board too crude, and an HTML/CSS reference
+mock a regression to a flat "old" style. TD-033's tool purge (kept by TD-043) forbade
+"painterly / HD raster sources," which the user named as the restriction to lift.
+
+**Decision — the painterly / HD-raster restriction is lifted (user-authorized, 2026-07-11).**
+Painterly / HD raster source art is **no longer forbidden** for the Notice/Contract Board
+(and, for cohesion, game-wide as adopted). The target look is **Prototype v1's richness**:
+rich weathered aged parchment, an ornate carved **gilded** frame with a crest, **red
+banner torches**, a dense **4-over-3 grid**, **legend + active-assignment** bars, and a
+deep torch-lit ambience. This supersedes — does not edit — the raster clause of TD-033 /
+TD-043 (the log is append-only, Key Invariant #4).
+
+**Capability note (a tooling fact, not a rule).** Claude Code builds art **through code**
+(the Python generators) + Godot; it has **no image-painting tool** in this environment.
+So what Claude can deliver itself is **rich HD-pixel matching Prototype v1** — v1 is
+itself a code/PIL composite, so this is achievable end-to-end. True hand-painted raster
+*beyond* v1 would need **author-supplied** painted / AI-generated source images, which
+Claude then slices, composites, and wires into Godot. **Chosen path (user, 2026-07-11):
+match Prototype v1 in code-generated rich HD-pixel — no external assets.**
+
+**What still stands.** The rest of TD-033's purge is unchanged: **no** Blender 3D, no
+Node3D scenes, no `.blend`/`.fbx`/`.gltf`/`.obj`, no MediBang, no `.mdp`. Toolchain stays
+Godot 4.7 / Aseprite / Python generators. Trust boundary and game-truth invariants are
+untouched — the board's cards stay **trait-free** `ContractIntel` (the user's "Neither"
+call: **no threat, no reward** on the wall; I3/I5 hold), and there is no Incarnate art.
+
+**Owed work.** Rebuild the live Godot contract board 1:1 to Prototype v1 — dense 4-over-3
+grid, ornate gilded frame + crest, red banner torches, legend + active-assignment bars,
+richer aged parchment — pushing `gen_structure.py` / `gen_detail.py` to v1-grade richness;
+resync the notice-board spec's card/layout language to the grid + v1 richness.
+
+## TD-045 — Contract Board is canonically 8 contracts (2026-07-11)
+
+**Decision (user, 2026-07-11).** The Collegium posts **8** contracts on the board at once,
+up from 4 — a full commission wall that fills the Notice Board's **4×2 grid** (Prototype
+v1) and reads as a busy Collegium, not a short list. `BOARD_SIZE = 8` in
+`src/server/src/incarnate/generateBoard.ts`; the generator already honours an arbitrary
+`size`, so this is a **one-constant data change**, not a shape change — determinism (I3)
+and the trait-free wire (`toContractIntel` strips seed+roll, I3/I5) are unchanged. The
+client grid caps at 8 and the preview fixture carries 8.
+
+**Consequences.** `generateBoard.test.ts` asserts length via `BOARD_SIZE`, so it stays
+green (verified). R109's "board pool" is now size 8 (spec note owed). No balance system
+depends on the count yet; if Collegium-Rank gating later varies how many are shown, that
+is a further data change. The board stays **APPRENTICE**-tier v1 until Rank exists.
+
+## TD-046 — Canonical art register is hand-painted raster 2D pixel art; Claude generates raster PNGs directly (2026-07-12)
+
+**Context.** Through TD-033 → TD-043 → TD-044 the art canon accreted a tangle of
+qualifiers: a *strict palette-lock* (TD-033, later "relaxed" and "advisory"), a
+*"weathered HD-pixel"* register (TD-043), and a raster clause that was forbidden
+(TD-033), then "lifted but **author-supplied only**" because "Claude has no image-painting
+tool, so its own deliverable is **code-generated HD-pixel**" (TD-044). In practice this
+left contradictory guidance and pushed Claude toward runtime-drawn vector primitives
+(the wax seals, the verb badges) that read flat against the hand-painted board. The user
+asked to **name one canonical style — hand-painted raster 2D pixel art — and remove the
+prior competing direction.**
+
+**Decision (user-authorized, 2026-07-12).** Testament's single canonical visual register
+is **hand-painted raster 2D pixel art**: warm, weathered, dramatically torch-lit, in the
+Prototype-v1 idiom. Every UI/world surface is authored as a **raster PNG** (aged
+parchment, carved gilded frame, wax seals, verb sigils, tacks, banner, crest), imported
+**Nearest**, and lit in-engine (TD-043's Light2D pillar stands). The strict
+palette-lock is **retired outright** (not merely "advisory"): 24-bit painted ramps,
+gradients, AO, and bevel shading are the norm. This supersedes — does not edit (Invariant
+#4) — the *register* language of TD-043 and the *author-supplied-only* clause of TD-044.
+
+**The tooling correction (the load-bearing change).** TD-044 said true raster "beyond
+v1" needs **author-supplied** images because Claude cannot paint. That constraint is
+**dropped.** Verified 2026-07-12: Claude generates raster PNGs end-to-end with the Python
+generators (`ashember.py` + `gen_*.py`) and imports brand-new files **headlessly** via
+`godot --headless --import` (creates the `.png.import` so a game-run loads them — this
+removes the prior "new PNGs don't load without the editor" blocker). So **raster is now a
+first-class Claude deliverable**, not only an author hand-off. Author-supplied painted /
+AI-generated source art remains welcome for richness beyond what the generators reach, but
+is no longer *required* for raster.
+
+**Consequences (this pass).** The wax seals (`wax_seal.gd`) and verb badges
+(`verb_badge.gd`), previously drawn at runtime with `draw_*` primitives, are **redesigned
+as hand-painted raster PNGs** with generators, imported headlessly. Orphaned/superseded
+sprites were deleted (`board_backing/frame/wood`, `foxing`, `stone_tile`, `parch_card_*`,
+`parch_live_*`); the live asset set is the 20 PNGs the board actually loads plus the
+`_proto_board.png` reference. `docs/art.md` + `docs/art/style-guide.md` are updated to
+this register; CLAUDE.md's art block is rewritten to name it and drop the palette-lock /
+"code-generated-only" framing.
+
+**What still stands.** TD-033's **tool purge** is unchanged: **no** Blender 3D, no Node3D
+scenes, no `.blend`/`.fbx`/`.gltf`/`.obj`, no MediBang, no `.mdp`. Toolchain stays Godot
+4.7 / Aseprite / Python generators. Canonical conventions hold: 16×16 tiles, **640×360**
+internal (TD-042), Nearest, integer scale, mobile a target. Trust boundary and game-truth
+invariants untouched — the board stays trait-free `ContractIntel`, no Incarnate art, no
+reward/threat on the wall (I3/I5).

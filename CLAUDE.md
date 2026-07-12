@@ -57,18 +57,24 @@ longer invisible until first move), a server-authoritative Shift-to-walk registe
 9-slice popup (`assets/ui/panel.png`, `_build_popup_theme`). **T121 (full MCP
 playtest) is still unrun — the spec is left open, re-exercised by Station UI.**
 
-Active spec: **`specs/station-ui/`** (T122–T130) — the three station popups grow
-into the full **preparation loop** (mockup-driven), in the gothic parchment/gold
-theme. Phase A: a browsable multi-contract **board** (`ContractIntel[]`, no
-Incarnate art — mystery is the mechanic) with leader `SELECT_CONTRACT`. Phase B:
-a **Stipend**-priced Quartermaster with item detail. Phase C: a Deploy Gate
-summary showing each Seeker's **bag** (roles emerge from loadout, never a class).
-Grounded in `docs/systems/contracts.md` + `loadout-economy.md`; trait containment
-via `toContractIntel` (I3/I5). Server+shared+client. v1 gear icons stay greybox.
+Station UI v2 is shipped server/shared-side (`specs/station-ui/`, T122–T130): the
+contract **board** + leader `SELECT_CONTRACT` (T122–T124), Stipend-priced
+Quartermaster and Deploy Gate. Superseded on the client by the Notice Board.
 
-@specs/station-ui/requirements.md
-@specs/station-ui/design.md
-@specs/station-ui/tasks.md
+Active spec: **`specs/notice-board/`** — the Contract Board reframed as a diegetic
+gothic **commission wall**: procedurally-generated parchment notices (requester
+intel, Origin-keyed wax seals, procedural charge prose), a reversible
+`SELECT_CONTRACT` + two-stage `handleDeploy` (TD-041), all trait-free intel
+(`toContractIntel`, I3/I5). Server side is done (T131–T132, T138–T139). Now in
+**Pass 2 — hand-painted raster reskin** (640×360, Nearest, no palette-lock; TD-046):
+T140–T144 done (generator foundation + Batch-1/2 structure & detail assets wired
+onto notice + reader), then an art-director polish pass (raster seals/badges, torch
+light on frame/pillars, unified shadow direction, mounted banner+crest, pinned paper,
+aged wood, board code modularized). **Next: T145** (legibility/keep-out cluster).
+
+@specs/notice-board/requirements.md
+@specs/notice-board/design.md
+@specs/notice-board/tasks.md
 
 Completed Phase 4 specs:
 - `specs/raw-ws-transport/`: raw WebSocket transport (wsHub, protocol envelope) + Godot client spike
@@ -115,18 +121,35 @@ Completed Phase 4 specs:
 
 ## Art Direction & Sanctioned Toolchain — CLOSED LIST
 
-> Decision log: **2026-07-05 — 2D top-down pixel reaffirmed; Blender 3D and
-> MediBang directions deprecated and purged.** (DECISION_LOG TD-033)
+> Decision log: **2026-07-05 — 2D top-down pixel reaffirmed; Blender 3D and MediBang
+> purged.** (TD-033) · **2026-07-11 — in-engine lighting made a pillar; palette-lock
+> relaxed.** (TD-043) · **2026-07-12 — single canonical register: hand-painted raster 2D
+> pixel art; Claude generates raster PNGs directly (headless import).** (TD-046)
 
-Testament is **2D top-down pixel art**, full commitment. Canonical conventions:
-16x16 tiles; **640x360 internal resolution** (TD-042 — supersedes 480x270; the only
-base exact on 720p/1080p/1440p/4K), integer-scaled to fill via the `PixelScale`
-autoload; **mobile is a target platform** (TD-042); Nearest filtering;
-Seeker 16x24 logical / 48x48 canvas / feet anchor (24,44); part-lag animation
-rig; per-frame weapon sockets; grayscale ADD-blend VFX; palette-locked Aseprite
-sources. No 3D scenes, no 3D-to-sprite rendering, no `.blend`/`.fbx`/`.gltf`/
-`.obj` assets, no Node3D-derived scenes, no painterly/HD raster sources, no
-`.mdp` files.
+Testament's one canonical register is **hand-painted raster 2D pixel art** (TD-046):
+warm, weathered, aged, and **dramatically torch-lit**, in the **Prototype v1** idiom
+(Blasphemous / Dead Cells / Curse of the Dead Gods) — never flat greybox. Every UI/world
+surface is authored as a **raster PNG** (aged parchment, carved gilded frame, wax seals,
+verb sigils, tacks, banner, crest), imported **Nearest**, and lit in-engine.
+Canonical conventions: 16x16 tiles; **640x360 internal resolution** (TD-042 —
+supersedes 480x270; the only base exact on 720p/1080p/1440p/4K), integer-scaled to
+fill via the `PixelScale` autoload; **mobile is a target platform** (TD-042); Nearest
+filtering; Seeker 16x24 logical / 48x48 canvas / feet anchor (24,44); part-lag
+animation rig; per-frame weapon sockets; grayscale ADD-blend VFX.
+- **Claude generates raster directly** (TD-046): the Python generators (`ashember.py` +
+  `gen_*.py`) author raster PNGs end-to-end; brand-new files are imported with
+  `godot --headless --import` (writes the `.png.import` so a game-run loads them). Raster
+  is a first-class Claude deliverable — **not** author-supplied only. Author-painted / AI
+  source art is still welcome for richness beyond the generators, never required.
+- **No palette-lock.** The strict 15-colour lock is **retired** (TD-046, not merely
+  "advisory"): 24-bit painted ramps, gradients, AO, and bevel shading are the norm.
+- **Lighting is a core pillar** (TD-043): scenes are lit, not evenly bright —
+  per-source **Light2D**, **particle** flames, and **shaders** on walls/props/UI, with
+  AO, drop shadows, and warm/cool falloff. The Notice Board is the canonical example;
+  every surface (field, sprites, HUD, menus) adopts this as built or re-skinned.
+- Still forbidden (TD-033 tool purge): no 3D scenes, no 3D-to-sprite rendering, no
+  `.blend`/`.fbx`/`.gltf`/`.obj` assets, no Node3D-derived scenes, no MediBang, no
+  `.mdp` files.
 
 | Tool | Role |
 |---|---|

@@ -3,8 +3,10 @@ import type { ContractRecord } from './contractRecord.js';
 import { createRng, hashSeed } from '../rng/seeded.js';
 import { generateContract } from './generateContract.js';
 
-// How many contracts the Collegium posts on the board at once.
-export const BOARD_SIZE = 4;
+// How many contracts the Collegium posts on the board at once. Canonically 8
+// (TD-045) — a full commission wall (the 4×2 grid of the Notice Board, Prototype v1),
+// so the board reads as a busy Collegium, not a short list.
+export const BOARD_SIZE = 8;
 
 // v1 board tier. Collegium Rank gates tier (docs/systems/contracts.md, TD-012);
 // until Rank exists the whole board is APPRENTICE. The tier is per-entry data, so

@@ -16,7 +16,8 @@ each is on-palette (VFX sources under allow_vfx). Aseprite finishing after.
 import os
 from ashember import (
     write_png, quantize, noise, lerp_rgb, additive, assert_on_palette,
-    PARCH_SHADOW, PARCH_BASE, PARCH_HI, INK, INK_FADED,
+    ramp_shade, warm, cool, over, smooth,
+    PARCH_SHADOW, PARCH_BASE, PARCH_HI, PARCH_DEEP, PARCH_RIM, INK, INK_FADED,
     WAX, WAX_HI, GOLD_DIM, GOLD, STONE_MID, STONE_LIT, BLACK,
 )
 
@@ -32,15 +33,17 @@ def _q(rgb, a=255):
 # at the notice's scale (DESIGN § Shapes: "drawn at pixel size, not 9-sliced").
 # live  = paper ≥ base tone, warm, its own faint inner light (clickable notice).
 # flavor = aged/greyed, darker, foxed (inert scrap). Two tear seeds per tone.
-PARCH_W, PARCH_H = 104, 128
+# Authored at 2x (208x256) so the enlarged READER (~486px) and the grid cards both stay
+# crisp under Nearest — the old 104x128 stretched ~4x in the reader and read chunky.
+PARCH_W, PARCH_H = 208, 256
 
 
 def _tear(edge_pos, span, seed):
-    """How far the torn edge bites in at position `edge_pos` along a run — 0..4px,
-    a slow wobble + fine fray, deterministic per seed so a variant is stable."""
-    slow = (noise(edge_pos // 6, 0, seed) + 8) / 16.0        # 0..1 coarse bay/peninsula
-    fine = (noise(edge_pos, 0, seed + 91) + 8) % 3           # 0..2 fibre fray
-    return int(1 + slow * 3) + fine
+    """How far the torn edge bites in at position `edge_pos` along a run — a slow
+    wobble + fine fray, deterministic per seed so a variant is stable (2x scale)."""
+    slow = (noise(edge_pos // 12, 0, seed) + 8) / 16.0       # 0..1 coarse bay/peninsula
+    fine = (noise(edge_pos, 0, seed + 91) + 8) % 5           # 0..4 fibre fray
+    return int(2 + slow * 6) + fine
 
 
 def _parch_px(x, y, seed, live):
@@ -50,22 +53,61 @@ def _parch_px(x, y, seed, live):
             or top < _tear(x, PARCH_W, seed + 11) or bottom < _tear(x, PARCH_W, seed + 17)):
         return (0, 0, 0, 0)
     d = min(left, top, right, bottom)
-    grain = noise(x, y, seed + 3) * (0.5 if live else 0.6)
+
+    # 1. Baked directional light — a warm source high of centre. The sheet is
+    #    brightest under it and falls toward the lower corners; the bottom hangs a
+    #    touch further into shadow, so the paper reads lit, not evenly flat.
+    cx, cy = PARCH_W * 0.5, PARCH_H * 0.34
+    nx = (x - cx) / (PARCH_W * 0.60)
+    ny = (y - cy) / (PARCH_H * 0.80)
+    light = 1.0 - (nx * nx + ny * ny) * 0.50
+    light -= (y / float(PARCH_H)) * 0.10
+
+    # 2. Edge ambient occlusion — the deckled rim sits in the board's shadow;
+    #    darken within ~16px (2x scale), deepest at the tear. This is the depth cue
+    #    the flat version lacked (paper looks like it lifts off the wall).
+    ao = smooth(0.0, 16.0, float(d))
+    light *= 0.52 + 0.48 * ao
+
+    # 3. Laid-fibre grain: coarse vertical streaks (the mould lines) + fine flecks.
+    light += noise(x // 4, y, seed + 3) * 0.010
+    light += noise(x, y, seed + 9) * 0.006
+
     if live:
-        # warm sheet with a soft inner light: brighter toward the centre.
-        cx, cy = PARCH_W / 2.0, PARCH_H / 2.0
-        rr = ((x - cx) / cx) ** 2 + ((y - cy) / cy) ** 2      # 0 centre .. ~2 corner
-        base = lerp_rgb(PARCH_HI, PARCH_BASE, min(1.0, rr * 0.6))
+        t = 0.30 + light * 0.52                               # warm mid, not bleached at the crown
     else:
-        # aged, greyed-down; foxing blotches speckled through the fibre.
-        base = lerp_rgb(PARCH_SHADOW, PARCH_BASE, 0.25)
-        blot = noise(x // 3, y // 4, seed + 40)
-        if blot > 5 and (noise(x, y, seed + 41) % 4 == 0):
-            base = lerp_rgb(base, INK_FADED, 0.5)             # foxing spot
-    col = (base[0] + grain, base[1] + grain, base[2] + grain)
-    if d <= 1:                                                # torn-fibre edge shadow
-        col = lerp_rgb(col, INK_FADED, 0.35)
-    return _q(col)
+        t = 0.08 + light * 0.50                               # aged, greyed, darker
+    base = ramp_shade("parchment", t)
+
+    # 4. Light temperature — ember-warm the lit crown, cold-sink the shadowed rim; plus a
+    #    strong standing amber cast over the whole live sheet (aged tallow-lit paper, v1),
+    #    slowly modulated so the warmth pools unevenly like real aged stock.
+    if live:
+        amber = 0.20 + (noise(x // 20, y // 24, seed + 70) + 8) / 16.0 * 0.10
+        base = warm(base, amber)
+    if light > 0.56:
+        base = warm(base, (light - 0.56) * (0.66 if live else 0.34))
+    elif light < 0.40:
+        base = cool(base, (0.40 - light) * 0.28)
+
+    # 5a. Broad tea-stain blooms: large soft sepia washes (the big age-marks in v1).
+    #     Big, low-contrast cells so the aging reads as washes, not a checkerboard grid.
+    stain = noise(x // 34, y // 40, seed + 60)
+    if stain > 4:
+        base = over(base, ramp_shade("foxing", 0.24), (stain - 4) * (0.045 if live else 0.065))
+    # 5b. Foxing specks: clustered sepia spots, denser than before, heavier on flavor.
+    bloom = noise(x // 9, y // 11, seed + 40)
+    grit = noise(x, y, seed + 41)
+    if bloom > (2 if not live else 4) and grit % (3 if not live else 4) == 0:
+        fa = (0.34 if not live else 0.22) + (grit % 3) * 0.06
+        base = over(base, ramp_shade("foxing", 0.30 + (bloom % 3) * 0.16), fa)
+
+    # 6. Torn-fibre edge shadow, softened a couple pixels inward (2x scale).
+    if d <= 2:
+        base = over(base, INK_FADED, 0.42)
+    elif d <= 4:
+        base = over(base, INK_FADED, 0.18)
+    return _q(base)
 
 
 def parch_live(seed):
