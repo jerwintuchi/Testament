@@ -8,6 +8,19 @@ extends RefCounted
 
 const BoardGeo = preload("res://scripts/ui/board_geometry.gd")
 
+# The ONE torch light rig (R133/P72): two flames on the gutter pillars. Every consumer —
+# the visual torch placement here AND the surround's `board_surface.gdshader` uniforms in
+# main — reads this, so the light never desyncs. Positions are in SCREEN_UV space (0..1).
+static func torch_rig(vp: Vector2) -> Array:
+	var col := Color(1.0, 0.72, 0.42)          # warm ember cast
+	var out: Array = []
+	for at_right in [false, true]:
+		var cx: float = vp.x * (0.94 if at_right else 0.06)
+		var cup_y := vp.y * 0.71               # sconce cup (banner foot), matches add_torches
+		var ly := cup_y - 12.0                 # flame centre
+		out.append({"uv": Vector2(cx / vp.x, ly / vp.y), "color": col, "radius": 0.62})
+	return out
+
 # Flanking wall torches, drawn on the stone-wall layer (behind the centred board) in
 # VIEWPORT space so the banners hang on the masonry beside the inset board (Prototype v1).
 # Clears and rebuilds `stone_bg`'s children each call. Reduced motion pins the glow to peak.
@@ -122,21 +135,10 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> vo
 		# Flame ON TOP of the sconce: its base (bottom of the 16x24 frame @1.2 -> 28.8h) seats
 		# on the cup, so centre = cup_y - 14.4 puts the flame base at cup_y and the tip above.
 		stone_bg.add_child(torch_flame(Vector2(torch_x, cup_y - 14.4), ember, reduced_motion))
-		# A real 2D light at the flame (TD-043): it relights the stone wall AND the board's frame
-		# edge from where the fire actually is, so the surfaces dynamically catch the firelight
-		# (not a flat sprite). Same CanvasLayer as the frame, so the carved edge picks it up.
-		# texture_scale 3.2 gives a ~205px reach — well past the gutter onto the frame's outer rail.
-		var light := PointLight2D.new()
-		light.texture = light_falloff()
-		light.color = Color(1.0, 0.72, 0.42)                    # warm ember cast
-		light.energy = 1.20 if reduced_motion else 1.35
-		light.texture_scale = 3.2                               # reach the frame's outer rail
-		light.position = Vector2(torch_x, cup_y - 12.0)
-		stone_bg.add_child(light)
-		if not reduced_motion:
-			var lt := light.create_tween().set_loops()
-			lt.tween_property(light, "energy", 1.55, 1.8).set_trans(Tween.TRANS_SINE)
-			lt.tween_property(light, "energy", 1.15, 1.8).set_trans(Tween.TRANS_SINE)
+		# NOTE (TD-047): the surfaces are lit by `board_surface.gdshader` reading `torch_rig`,
+		# NOT by a Light2D — verified that a PointLight2D does not reach these Control nodes
+		# (cranked to energy 8 = zero change). The additive glow/wash sprites above are the
+		# flame's own bloom; the wall/backing/frame relief comes from the shader.
 
 # A small contained flame in the sconce (v1 candle) — a 4-frame grayscale-additive sheet
 # tinted to the ember ramp. Reduced motion freezes it on frame 0.

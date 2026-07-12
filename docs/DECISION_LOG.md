@@ -1277,3 +1277,64 @@ scenes, no `.blend`/`.fbx`/`.gltf`/`.obj`, no MediBang, no `.mdp`. Toolchain sta
 internal (TD-042), Nearest, integer scale, mobile a target. Trust boundary and game-truth
 invariants untouched — the board stays trait-free `ContractIntel`, no Incarnate art, no
 reward/threat on the wall (I3/I5).
+
+## TD-047 — Board lighting goes dynamic: normal-mapped surfaces + hybrid light shader + particle fire; new active spec (2026-07-12)
+
+**Context.** After the TD-046 art-director polish, the board's lighting was still largely
+**baked**: `frame_v1.png` carried painted highlights and the fire was a 4-frame additive
+sprite sheet. The user asked to make the surround **dynamically** lit — recolour `frame_v1`
+generic and let the light "reflect" on it (shader), and redo the sconce/fire as a **particle**
+flame with flicker — and to **spec it first**.
+
+**Decisions (user-authorized, 2026-07-12).** New active visual spec **`specs/board-lighting/`**
+(R129–R135, P71–P74, T148–T154), client render-only (I1/I2 hold — no server/shared/wire change):
+- **Technique = hybrid: normal map + `light()` shader.** The surround (frame, backing, wall)
+  becomes `CanvasTexture` diffuse+normal, lit natively by the torch `PointLight2D`s; a thin
+  `canvas_item` `light()` override adds a stylised ember rim/warmth. Chosen over a bare custom
+  shader because Godot's 2D renderer already does normal-mapped lighting for free — the shader
+  adds only what Light2D can't, and reads the light **natively** so it can't desync (P72).
+- **Fire = CPUParticles2D** (renders in the DebugCapture pipeline so it's eyeball-verifiable;
+  mobile-portable per TD-042). GPU particles declined for capture/mobile risk.
+- **Scope = frame + backing + wall.** `wall_v1`/`backing_v1` keep their painted diffuse (art
+  unchanged, normal map added); **`frame_v1.png` is re-authored NEUTRAL** so the torchlight
+  supplies its colour. This **explicitly lifts the earlier "don't redesign the wall/frame" note
+  — for lighting only** (frame diffuse neutralised; wall art untouched).
+- **Reduced motion** (F9) freezes the flame to a static sprite + pinned-peak light (P73);
+  everything stays **capture-verifiable** and headless-parseable (P74).
+- **Diegetic props (added same day, R136–R141).** The **parchments** (notices + reader) and the
+  **banner** are also lit by the one rig — the banner is redesigned as clean raster (frayed crimson,
+  plain, no stray pixels) + a cloth normal; the parchments get warm falloff under a **legibility
+  floor** (ambient fill + unlit ink so a writ never sinks below readable, P75). The **backing**
+  diffuse is re-authored **darker** (hard modulate dropped; light supplies brightness). The **crest +
+  placard** are top-center, **out of the bottom torches' reach, so they are deliberately NOT lit**
+  (user ruling — no faked top hotspot, P77): **restyled + recoloured only**, tonally matched. All
+  board surfaces unified to the one hand-painted raster register (P78).
+
+**One flagged risk (T149 go/no-go).** If `CanvasTexture` normal-mapping does not light a
+`NinePatchRect`/`TextureRect` *Control* on this Godot build, the fallback is a per-surface
+`canvas_item` shader that samples the normal itself (still the hybrid) — to be recorded here if
+taken.
+
+**Resolution (Phase A, 2026-07-12) — the risk hit; fallback taken.** Godot's `Light2D` (2D
+lighting) **does not reach these Control nodes at all**: a torch `PointLight2D` cranked to
+energy 8 / scale 7 changed the render by a measured `(0,1)` — i.e. nothing. The "torch glow" on
+the board was always the **additive glow sprites**, never Light2D lighting the wood. So the
+native-`CanvasTexture`-lit-by-`PointLight2D` path is **dead for this UI**, and Phase A ships the
+flagged fallback: a `canvas_item` **fragment** shader (`assets/ui/board_surface.gdshader`) that
+samples the normal map and lights it from **uniform torch lights** (rgb+energy+radius in
+`SCREEN_UV` space) — no Light2D dependency. One rig (`BoardDecor.torch_rig`) drives both the
+torch-sprite placement and the shader uniforms so they can't desync (P72 preserved). The frame is
+a shader-lit `NinePatchRect` **overlay** tracking the popup rect (a `StyleBox` can't hold a
+material, and an in-canvas frame is clipped by the board's `ScrollContainer`); backing (NinePatch)
++ wall (TextureRect) take the material directly; the dark `backing_v1` is pre-lifted in-shader via
+`diffuse_gain`. **9-slicing survives the shader** (per-patch UV interpolation is unaffected —
+verified on backing + frame). The dead `PointLight2D` block is removed; `--lights-off` now zeroes
+the shader `light_count`. **V1 green:** lit rakes warm relief across frame/backing/wall,
+`--lights-off` shows flat neutral wood (lit-vs-off diff `(0,213)` vs the PointLight2D's `(0,1)`).
+**Consequence for Phase C:** the particle fire's sympathetic light must also feed the shader rig
+(animate `light_col[i].a`), not a Light2D.
+
+**Notice-board Pass-2 status.** T145–T147 (a11y/keyboard, empty-board, error-toast, the L1–L8
+verification) remain **open/deferred** — several T145 items already folded into the TD-046 pass
+(keep-out, pinned paper, legibility). This log switches the *active* spec to board-lighting; the
+notice-board spec is paused, not abandoned.

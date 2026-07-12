@@ -77,6 +77,7 @@ var _popup_kind := ""             # the station kind the open popup was built fo
 var _board_selection: Dictionary = {}  # the contract card being previewed, or {} = the grid view
 var _wood_sb: StyleBox            # Contract Board panel skin — the carved 9-slice frame (board_frame.png)
 var _backing_tex: Texture2D       # plank backing 9-slice, behind the notices
+var _board_frame: NinePatchRect   # carved frame overlay, shader-lit; tracks the popup rect (TD-047)
 var _parch_live: Array = []       # deckled LIVE parchment (warm, inner light) — 2 tear seeds (T143)
 var _parch_flavor: Array = []     # deckled FLAVOR parchment (aged, foxed) — 2 tear seeds
 var _tack_tex: Array = []         # nail · wax · pin · ribbon, seeded per live notice
@@ -184,9 +185,12 @@ func _ready() -> void:
 	_stone_bg.stretch_mode = TextureRect.STRETCH_SCALE
 	# Painterly brick sliced from the Prototype-v1 raster (TD-044): the actual painted wall.
 	# LINEAR filter keeps its soft raster look, not pixelated.
+	# Torch-lit via board_surface.gdshader (Light2D doesn't reach Control nodes — TD-047): the
+	# diffuse is plain, the normal + uniform torch lights live in the shader material.
 	_stone_bg.texture = load("res://assets/ui/wall_v1.png") as Texture2D
 	_stone_bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	_stone_bg.modulate = Color(1.35, 1.24, 1.08, 1.0)   # lift the dim slice back to a visible lit wall
+	_stone_bg.material = _surface_material("res://assets/ui/wall_v1_n.png")
+	_stone_bg.modulate = Color(1.0, 1.0, 1.0, 1.0)   # brightness now comes from the shader lighting
 	_stone_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stone_bg.visible = false
 	_popup_dim.add_child(_stone_bg)
@@ -206,8 +210,9 @@ func _ready() -> void:
 	# fills behind the notices; the stone/mortar tile is the surround. (Batch 1, T142.)
 	# Painterly wooden frame sliced from the Prototype-v1 raster (TD-044): a 9-slice with
 	# a transparent interior and the crest painted out (drawn separately). LINEAR-filtered.
+	# Frame + backing: shader-lit like the wall once the wall proof lands (T149). Plain for now.
 	_wood_sb = _texture_sb("res://assets/ui/frame_v1.png", 33.0, 20.0, Color(0.29, 0.19, 0.10), Color(0.45, 0.30, 0.15))
-	_backing_tex = load("res://assets/ui/backing_v1.png") as Texture2D   # painterly wood planks sliced from v1
+	_backing_tex = load("res://assets/ui/backing_v1.png") as Texture2D
 	# Batch-2 detail assets (T143/T144): deckled parchment split live vs flavor, tacks,
 	# and decay props. A missing texture is simply skipped (fallbacks below tolerate []).
 	for i in 2:
@@ -224,6 +229,18 @@ func _ready() -> void:
 	_cobweb_tex = load("res://assets/ui/cobweb.png") as Texture2D
 	_votive_tex = load("res://assets/ui/votive.png") as Texture2D
 	pcenter.add_child(_popup)
+	# Carved frame overlay (TD-047): the board's frame is a shader-lit NinePatch that tracks the
+	# popup rect from OUTSIDE the clipping ScrollContainer, so the torches light its relief (a
+	# StyleBox can't hold a material, and an in-canvas frame is clipped). Shown for the board only.
+	_board_frame = NinePatchRect.new()
+	_board_frame.texture = load("res://assets/ui/frame_v1.png") as Texture2D
+	_board_frame.patch_margin_left = 33; _board_frame.patch_margin_top = 33
+	_board_frame.patch_margin_right = 33; _board_frame.patch_margin_bottom = 33
+	_board_frame.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_board_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_board_frame.visible = false
+	_board_frame.z_index = 3
+	pcenter.add_child(_board_frame)
 	var ppad := MarginContainer.new()
 	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
 		ppad.add_theme_constant_override(side, 10)
@@ -613,6 +630,10 @@ func _process(_delta: float) -> void:
 	_follow_camera()
 	_update_stations()
 	_send_move_intent()
+	# Keep the carved frame overlay glued to the popup (it slides in / re-centres on resize).
+	if _board_frame != null and _board_frame.visible and _popup != null:
+		_board_frame.global_position = _popup.global_position
+		_board_frame.size = _popup.size
 
 # Interaction: E opens the station in range, Esc closes an open popup. Discrete
 # key edges (not held), read by physical location.
@@ -813,12 +834,21 @@ func _open_station(kind: String) -> void:
 	_popup_close.visible = (kind != "CONTRACT_BOARD")
 	if _keyhint != null:
 		_keyhint.visible = (kind == "CONTRACT_BOARD")
-	if kind == "CONTRACT_BOARD" and _wood_sb != null:
-		_popup.add_theme_stylebox_override("panel", _wood_sb)
+	if kind == "CONTRACT_BOARD":
+		# Transparent panel that only supplies the content inset (the frame is drawn by the
+		# shader-lit _board_frame overlay); keeps the canvas layout identical to the old skin.
+		var clear := StyleBoxFlat.new()
+		clear.bg_color = Color(0, 0, 0, 0)
+		clear.set_content_margin_all(20)
+		_popup.add_theme_stylebox_override("panel", clear)
 		_popup_scroll.custom_minimum_size = _board_inner_size()
+		_board_frame.material = _surface_material("res://assets/ui/frame_v1_n.png", 0.5, 1.0)
+		_board_frame.visible = true
 	else:
 		_popup.remove_theme_stylebox_override("panel")
 		_popup_scroll.custom_minimum_size = Vector2(400, 240)
+		if _board_frame != null:
+			_board_frame.visible = false
 	_clear_popup_body()
 	_build_station_content(kind)
 	_animate_body_in()
@@ -1018,11 +1048,11 @@ func _build_contract_board() -> void:
 		backing.patch_margin_bottom = 12
 		backing.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # painterly raster, keep it soft
 		backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# backing_v1.png is a very dark slice (~22/255 luminance), so lift it hard (values >1
-		# brighten) into a warm dim plank so the board has a visible wooden floor.
-		# Match the carved FRAME's brown (rendered ~106,54,17), not an orange. backing_v1 has
-		# very low blue (8), so the blue channel is lifted hardest to de-orange the planks.
-		backing.modulate = Color(2.7, 2.5, 3.1)
+		# Torch-lit via the surface shader (TD-047): the dark backing_v1 is pre-lifted in-shader
+		# (diffuse_gain) then lit by the torch rig — tests that a fragment shader preserves the
+		# NinePatch 9-slice AND takes the dynamic light (the frame conversion depends on this).
+		backing.material = _surface_material("res://assets/ui/backing_v1_n.png", 0.55, 2.6)
+		backing.modulate = Color(1.0, 1.0, 1.0)
 		# z_index MUST stay >= 0: at -2 the plank drew BEHIND the popup's opaque panel
 		# background and vanished, so the dark stone wall showed through ("see-through board").
 		# Tree order (added before the notices) already keeps it behind the cards.
@@ -1890,11 +1920,51 @@ func _btn_box(bg: Color, border: Color) -> StyleBoxFlat:
 
 # A 9-slice StyleBox from a texture, with a flat fallback if the texture is missing
 # or not yet imported (so the popup never breaks on a cold asset).
-func _texture_sb(path: String, margin: float, content: float, bg: Color, border: Color, mod_color: Color = Color.WHITE) -> StyleBox:
+# A CanvasTexture pairs a diffuse with a NORMAL map, so Godot's 2D renderer lights the
+# surface from the torch PointLight2Ds with real directional relief (TD-047 / board-lighting).
+func _canvas_tex(diffuse: Texture2D, normal: Texture2D) -> CanvasTexture:
+	var ct := CanvasTexture.new()
+	ct.diffuse_texture = diffuse
+	ct.normal_texture = normal
+	ct.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	return ct
+
+# A ShaderMaterial that lights a board surface from the torch rig (TD-047). Light2D does
+# not reach these Control nodes, so board_surface.gdshader samples the normal map + the
+# uniform torch lights itself. One rig (BoardDecor.torch_rig) feeds every surface (P72).
+func _surface_material(normal_path: String, ambient: float = 0.42, diffuse_gain: float = 1.0) -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://assets/ui/board_surface.gdshader") as Shader
+	mat.set_shader_parameter("normal_tex", load(normal_path) as Texture2D)
+	mat.set_shader_parameter("ambient", ambient)
+	mat.set_shader_parameter("diffuse_gain", diffuse_gain)
+	var vp := get_viewport_rect().size
+	var rig := BoardDecor.torch_rig(vp)
+	var uvs := PackedVector2Array()
+	var cols := PackedColorArray()
+	var rads := PackedFloat32Array()
+	for t in rig:
+		uvs.append(t["uv"])
+		var c: Color = t["color"]; c.a = 1.35            # energy in alpha
+		cols.append(c)
+		rads.append(t["radius"])
+	mat.set_shader_parameter("light_uv", uvs)
+	mat.set_shader_parameter("light_col", cols)
+	mat.set_shader_parameter("light_rad", rads)
+	# `--lights-off` (debug, V1) kills the torch lights so a capture shows flat neutral wood —
+	# the relief/warmth must vanish, proving the shader (not a baked diffuse) does the lighting.
+	mat.set_shader_parameter("light_count", 0 if OS.get_cmdline_user_args().has("--lights-off") else rig.size())
+	mat.set_shader_parameter("aspect", vp.x / maxf(1.0, vp.y))
+	return mat
+
+func _texture_sb(path: String, margin: float, content: float, bg: Color, border: Color, mod_color: Color = Color.WHITE, normal_path: String = "") -> StyleBox:
 	var tex := load(path) as Texture2D
 	if tex != null:
 		var sb := StyleBoxTexture.new()
-		sb.texture = tex
+		if normal_path != "":
+			sb.texture = _canvas_tex(tex, load(normal_path) as Texture2D)   # normal-mapped, lit by torches
+		else:
+			sb.texture = tex
 		sb.set_texture_margin_all(margin)
 		sb.set_content_margin_all(content)
 		sb.modulate_color = mod_color

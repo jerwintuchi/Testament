@@ -61,16 +61,24 @@ Station UI v2 is shipped server/shared-side (`specs/station-ui/`, T122–T130): 
 contract **board** + leader `SELECT_CONTRACT` (T122–T124), Stipend-priced
 Quartermaster and Deploy Gate. Superseded on the client by the Notice Board.
 
-Active spec: **`specs/notice-board/`** — the Contract Board reframed as a diegetic
-gothic **commission wall**: procedurally-generated parchment notices (requester
-intel, Origin-keyed wax seals, procedural charge prose), a reversible
-`SELECT_CONTRACT` + two-stage `handleDeploy` (TD-041), all trait-free intel
-(`toContractIntel`, I3/I5). Server side is done (T131–T132, T138–T139). Now in
-**Pass 2 — hand-painted raster reskin** (640×360, Nearest, no palette-lock; TD-046):
-T140–T144 done (generator foundation + Batch-1/2 structure & detail assets wired
-onto notice + reader), then an art-director polish pass (raster seals/badges, torch
-light on frame/pillars, unified shadow direction, mounted banner+crest, pinned paper,
-aged wood, board code modularized). **Next: T145** (legibility/keep-out cluster).
+Active spec: **`specs/board-lighting/`** (TD-047) — the Contract Board's lighting goes
+**dynamic**: the surround (frame, backing, wall) becomes **normal-mapped** surfaces lit by the
+torches, plus an ember rim, and a **CPUParticles2D** flame with flicker (redrawn raster sconce).
+`frame_v1` is re-authored NEUTRAL so the light supplies its colour (frame edit authorized for
+lighting, TD-047). Client render-only (I1/I2). **Phase A done (T148–T149): V1 green** — but the
+technique **pivoted**: Godot `Light2D` does **not** reach Control-node UI, so lighting is a
+`canvas_item` **fragment shader** (`board_surface.gdshader`) sampling the normal map from
+**uniform** torch lights (one `BoardDecor.torch_rig` feeds sprites + shader). **Next: Phase B**
+(T150 ember-rim tuning), then C (particle fire) / D (props). R129–R141, T148–T159.
+
+@specs/board-lighting/requirements.md
+@specs/board-lighting/design.md
+@specs/board-lighting/tasks.md
+
+Paused: **`specs/notice-board/`** — the diegetic commission wall (server done T131–T132,
+T138–T139; client Pass-2 raster reskin T140–T144 + the TD-046 art-director polish done).
+Remaining **T145–T147** (a11y/keyboard, empty-board, error-toast, L1–L8 verification) are
+deferred, not abandoned.
 
 @specs/notice-board/requirements.md
 @specs/notice-board/design.md
