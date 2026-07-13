@@ -209,3 +209,23 @@ static func vignette_gradient() -> GradientTexture2D:
 	gt.width = 320
 	gt.height = 200
 	return gt
+
+# Per-notice backlight (T145 / L3): a warm radial pool laid BEHIND each live writ so its
+# legibility is its own, not borrowed from the torch — a notice reads even with the torches
+# frozen (reduced-motion) or in a dim gutter. Additive (BoardGeo.additive_material), so it
+# lifts the wood around the paper into a lit halo without washing the paper's own tone.
+static func backlight_gradient() -> GradientTexture2D:
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	g.colors = PackedColorArray([
+		Color(0.46, 0.32, 0.15, 1.0),    # warm amber core (added over the wood)
+		Color(0.30, 0.20, 0.09, 0.45),
+		Color(0.14, 0.09, 0.04, 0.0)])
+	var gt := GradientTexture2D.new()
+	gt.gradient = g
+	gt.fill = GradientTexture2D.FILL_RADIAL
+	gt.fill_from = Vector2(0.5, 0.5)
+	gt.fill_to = Vector2(1.0, 0.5)
+	gt.width = 96
+	gt.height = 120
+	return gt

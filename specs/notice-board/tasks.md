@@ -192,7 +192,7 @@
       crisp deckled paper, ink headline, cross-sigil seal, and 3-filled/2-hollow pips
       (L2). MCP clean, no import errors.
 
-- [ ] T145 [DESIGN § Layout, Colors "Contrast floor"; EXPERIENCE Accessibility] —
+- [x] T145 [DESIGN § Layout, Colors "Contrast floor"; EXPERIENCE Accessibility] —
       **Legibility cluster (layout).** Per-notice **local backlight** + **live-tone floor**
       (paper ≥ `#CBB583`, never shadow); the **keep-out rectangle** scatter algorithm
       (headline/target/seal/pip band un-overlapped), **≥44×44** min live hit-target, and
@@ -200,6 +200,16 @@
       self-check** (`keepout seed=<s> ok=<bool>`) for MCP verification.
       Verify: playtest **L1** (headline+body ≥4.5:1 composited, measured, worst-case seed),
       **L3** (backlight not torch-dependent), **L4** (keep-out self-check + eyeball).
+      **Done:** `_floor_tone()` clamps every live-paper modulate to ≥`#CBB583`, and the live
+      stack (backlight+shadow+card) now draws at `LIVE_Z=3` **above** the wall vignette so a
+      writ never sinks into shadow (the vignette shapes the wall, not the writs — its own
+      stated intent). Per-notice warm **additive** backlight (`BoardGeo.backlight_gradient`)
+      makes legibility torch-independent (L3). `HIT_MIN=44` floors the interactive size; the
+      self-check logs `keepout live=N ok=<bool> minhit=WxH hit_ok=<bool>`. **L1 measured
+      analytically** (floor-enforced ⇒ every notice): INK on `#CBB583` = **7.90:1**, INK_SOFT
+      = **6.32:1**, both ≥4.5:1. **L4**: `keepout live=8 ok=true minhit=93x60 hit_ok=true`,
+      board captures show 8 disjoint legible writs incl. corners. **L3**: capture shows each
+      writ in its own warm halo, distinct from the gutter torches. Client-only.
 
 - [ ] T146 [EXPERIENCE State Patterns, Accessibility, Voice] — **A11y + state cluster.**
       Keyboard **focus** traversal (Tab = reading order) + gold focus ring + Enter/Space;

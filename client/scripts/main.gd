@@ -332,13 +332,30 @@ const _PREVIEW_BOARD := [
 ]
 
 func _board_preview() -> void:
-	_snapshot = {"phase": Protocol.PHASE_WAITING, "board": _PREVIEW_BOARD, "players": [], "contract": null}
+	# `-- --board-empty` previews the empty wall (L8); default is the 8-contract fixture.
+	var pv_board: Array = [] if OS.get_cmdline_user_args().has("--board-empty") else _PREVIEW_BOARD
+	_snapshot = {"phase": Protocol.PHASE_WAITING, "board": pv_board, "players": [], "contract": null}
 	_world.visible = false
 	_open_station("CONTRACT_BOARD")
 	# `-- --reader` takes the second fixture down to read (threat pips + enlarged seal).
 	if OS.get_cmdline_user_args().has("--reader"):
 		_select_board_card.call_deferred(_PREVIEW_BOARD[1])
-	_log("board preview: %d fixture contracts" % _PREVIEW_BOARD.size())
+	# `-- --focus-first` grabs keyboard focus on the first writ so an unattended capture can
+	# verify the gilt focus ring (L6) without injecting a Tab key.
+	if OS.get_cmdline_user_args().has("--focus-first"):
+		_focus_first_notice.call_deferred()
+	_log("board preview: %d fixture contracts" % pv_board.size())
+
+# Focus the reading-first live notice (top-left) — the keyboard entry point (T146 / L6).
+# (Groups aren't ordered, so pick geometrically: top row, then left-most.)
+func _focus_first_notice() -> void:
+	var cards := get_tree().get_nodes_in_group("live_notice")
+	cards.sort_custom(func(a: Control, b: Control) -> bool:
+		if absf(a.position.y - b.position.y) > 8.0:
+			return a.position.y < b.position.y
+		return a.position.x < b.position.x)
+	if not cards.is_empty() and cards[0] is Control:
+		(cards[0] as Control).grab_focus()
 
 # On a window/viewport resize, re-fit an open station: recompute the board's
 # scroll size and rebuild its body (the notice scatter is resolution-scaled), then
@@ -467,6 +484,13 @@ func _on_message(type: String, payload: Variant) -> void:
 				_set_token("")
 			_awaiting_resume = false
 			_set_status("✝ %s: %s" % [payload["code"], payload["message"]])
+			# Surface a raced rejection where the leader is looking (T146): affordance is not
+			# authority — a stamp/deploy the server refuses (NOT_LEADER / NOT_AT_CONTRACT_BOARD /
+			# WRONG_PHASE / NO_CONTRACT_SELECTED / UNKNOWN_CONTRACT) appears on the board's own
+			# toast, not just the far-off status line. Rebuild restores the true seal state.
+			if _menu_open and _popup_kind == "CONTRACT_BOARD":
+				_show_toast("✝ %s" % payload["message"])
+				_rebuild_popup_body()
 			_log("LOBBY_ERROR %s — %s" % [payload["code"], payload["message"]])
 
 func _ingest_probe_result(payload: Dictionary) -> void:
@@ -660,7 +684,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_open_station(_active_station)
 		get_viewport().set_input_as_handled()
 	elif event.physical_keycode == KEY_ESCAPE and _menu_open:
-		_close_station()
+		# ESC steps back one layer for a keyboard user (T146): a taken-down writ returns to the
+		# wall first (the Return button is deliberately focus-less), then ESC closes the station.
+		if _popup_kind == "CONTRACT_BOARD" and not _board_selection.is_empty():
+			_select_board_card({})
+		else:
+			_close_station()
 		get_viewport().set_input_as_handled()
 	elif event.physical_keycode == KEY_F9:
 		# Reduced-motion toggle (playtest lever L5): freeze torch flicker, pin the glow
@@ -1008,6 +1037,33 @@ const FLAVOR_NOTICES := [
 # the palette's lowest-luminance colour and fails the contrast floor as text.
 const INK := Color("2A2115")
 const INK_SOFT := Color("3D3120")   # darker: legible on v1's warm painted paper
+# Live-tone floor (T145 / L1): a live writ's paper never composites darker than this warm
+# ivory, so ink (INK/INK_SOFT) always clears the 4.5:1 contrast floor regardless of where on
+# the wall the notice lands. Enforced on every live-paper modulate (incl. hover).
+const TONE_FLOOR := Color("CBB583")
+# Minimum interactive size for a live notice (T145 / L6): a touch/click target is never
+# smaller than 44x44 even on a cramped viewport. The grid already exceeds this; this is the guard.
+const HIT_MIN := Vector2(44.0, 44.0)
+# The live-notice stack (backlight, shadow, card) draws at this z — above the wall vignette
+# (z 2), below the bar (4) / placard (5) / reader (10). Keeps the writs off the shadowed wall.
+const LIVE_Z := 3
+
+# Clamp a colour so no channel falls below the live-tone floor (alpha untouched).
+func _floor_tone(c: Color) -> Color:
+	return Color(maxf(c.r, TONE_FLOOR.r), maxf(c.g, TONE_FLOOR.g), maxf(c.b, TONE_FLOOR.b), c.a)
+
+# A gilt keyboard-focus ring (T146 / L6): a gold border + soft warm glow, drawn as a control's
+# `focus` stylebox so Tab-traversal is always visible on the dark wall. Reused by the live
+# notices and the seal stamp so keyboard focus reads the same everywhere.
+func _focus_ring() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0, 0, 0)
+	sb.set_border_width_all(2)
+	sb.border_color = Color(0.95, 0.80, 0.38)          # gilt gold
+	sb.set_corner_radius_all(3)
+	sb.shadow_color = Color(0.90, 0.68, 0.26, 0.55)    # warm bleed off the gilt edge
+	sb.shadow_size = 5
+	return sb
 
 # Normalised inside BoardGeo.live_bounds(), not inside the whole canvas.
 # Flavor scraps fill the gaps and the edges. Drawn BEHIND the live notices, so they
@@ -1118,6 +1174,7 @@ func _build_contract_board() -> void:
 	# ever bury another, then placed at the resolved rects. Flavor stays behind them.
 	var placed := BoardGeo.layout_live(board, inner)
 	var footprints: Array = []
+	var min_hit := Vector2(INF, INF)   # smallest live hit-target, self-checked ≥ HIT_MIN (T145)
 	for idx in placed.size():
 		var intel: Dictionary = board[idx]
 		var cid := str(intel.get("contractId", ""))
@@ -1126,7 +1183,26 @@ func _build_contract_board() -> void:
 		# A subtle hand-pinned lean (±~2.7°) so the writs read as tacked paper, not a printed
 		# grid — small enough that the keep-out solver's cell gaps stay disjoint (self-checked).
 		var tilt := BoardGeo.seed_tilt(cid) * 0.42
+		# The whole live stack rides ABOVE the wall vignette (z 2): the vignette shapes the
+		# corners of the WALL, never the writs (its own stated intent), so a live paper never
+		# sinks below the legibility floor no matter where on the board it lands (T145 / L1, L3).
+		var hit_size := Vector2(maxf(size.x, HIT_MIN.x), maxf(size.y, HIT_MIN.y))
+		min_hit = Vector2(minf(min_hit.x, hit_size.x), minf(min_hit.y, hit_size.y))
 		var pos := (centre - size * 0.5).floor()
+		# Per-notice backlight: a warm amber pool behind the writ (additive), so the paper owns
+		# its own light and reads even with the torches frozen or in a dim gutter (L3). Larger
+		# than the paper so it haloes the wood around the sheet.
+		var glow := TextureRect.new()
+		glow.texture = BoardGeo.backlight_gradient()
+		glow.material = BoardGeo.additive_material()
+		glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		glow.stretch_mode = TextureRect.STRETCH_SCALE
+		glow.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		var gsz := size * 1.55
+		glow.size = gsz
+		glow.position = (centre - gsz * 0.5).floor()
+		glow.z_index = LIVE_Z
+		notes.add_child(glow)
 		# Cast shadow: the paper's own silhouette in translucent black, offset down-right (the
 		# board's ONE light), so each notice sits proud of the wood instead of printed on it.
 		var shadow := TextureRect.new()
@@ -1141,18 +1217,23 @@ func _build_contract_board() -> void:
 		shadow.pivot_offset = size * 0.5
 		shadow.rotation_degrees = tilt
 		shadow.position = pos + Vector2(3.0, 5.0)
+		shadow.z_index = LIVE_Z
 		notes.add_child(shadow)
 		var node := _make_live_notice(intel, idx)
-		node.custom_minimum_size = size
+		node.custom_minimum_size = hit_size
 		node.size = size
 		node.pivot_offset = size * 0.5
 		node.rotation_degrees = tilt
 		node.position = pos
+		node.z_index = LIVE_Z
+		node.add_to_group("live_notice")   # keyboard entry point (T146 / L6): first-in-order gets focus
 		notes.add_child(node)
 		footprints.append(Rect2(centre - BoardGeo.rotated_extent(size, tilt) * 0.5, BoardGeo.rotated_extent(size, tilt)))
 	var live := placed.size()
-	# Self-check for the playtest (T145): no live petition may bury another, rotation included.
-	_log("keepout live=%d ok=%s" % [live, live > 0 and BoardGeo.all_disjoint(footprints, 0.0)])
+	# Self-check for the playtest (T145): no live petition may bury another (rotation included),
+	# and every live hit-target clears the 44x44 minimum.
+	var hit_ok := live == 0 or (min_hit.x >= HIT_MIN.x and min_hit.y >= HIT_MIN.y)
+	_log("keepout live=%d ok=%s minhit=%dx%d hit_ok=%s" % [live, live > 0 and BoardGeo.all_disjoint(footprints, 0.0), int(min_hit.x) if live > 0 else 0, int(min_hit.y) if live > 0 else 0, hit_ok])
 	if OS.is_debug_build():
 		_log("keepout inner=%v bounds=%s" % [inner, BoardGeo.live_bounds(inner)])
 		for i in footprints.size():
@@ -1160,12 +1241,18 @@ func _build_contract_board() -> void:
 	# Empty board (L8): no live petitions → a solemn scrap over the bare wall, never a
 	# blank popup. (T146 refines the styling; this is the honest empty state.)
 	if live == 0:
-		var empty := _card_label("The wall stands empty.\nNo petitions before the Collegium.", 16, Color(0.80, 0.72, 0.55), true, true)
-		empty.custom_minimum_size = Vector2(340, 48)
-		empty.size = Vector2(340, 48)
-		empty.position = Vector2((inner.x - 340.0) * 0.5, inner.y * 0.5 - 24.0).floor()
-		empty.z_index = 1
-		canvas.add_child(empty)
+		# A solemn empty state (T146 / L8), never a blank popup. Two-line: a title read + a
+		# quieter subtitle, above the vignette (z LIVE_Z) so the wall's shadow never swallows it.
+		var ebox := VBoxContainer.new()
+		ebox.alignment = BoxContainer.ALIGNMENT_CENTER
+		ebox.add_theme_constant_override("separation", 4)
+		ebox.custom_minimum_size = Vector2(360, 60)
+		ebox.size = Vector2(360, 60)
+		ebox.position = Vector2((inner.x - 360.0) * 0.5, inner.y * 0.5 - 30.0).floor()
+		ebox.z_index = LIVE_Z
+		ebox.add_child(_card_label("The wall stands empty.", 17, Color(0.86, 0.78, 0.58), true, true))
+		ebox.add_child(_card_label("No petitions stand before the Collegium.", 12, Color(0.66, 0.58, 0.44), true, true))
+		canvas.add_child(ebox)
 	if OS.is_debug_build():
 		_dump_notes.call_deferred(notes)
 	if OS.get_cmdline_user_args().has("--board-debug"):
@@ -1271,9 +1358,13 @@ func _make_live_notice(intel: Dictionary, idx: int) -> Control:
 	var card := Button.new()
 	card.flat = true
 	card.clip_contents = true   # a long target never spills its writ onto the wall below
+	# Keyboard reachable (T146 / L6): Tab traverses the writs in board (reading) order, Enter/
+	# Space takes one down — a Button gives that natively once it is focusable and shows a ring.
+	card.focus_mode = Control.FOCUS_ALL
 	var empty := StyleBoxEmpty.new()
-	for st in ["normal", "hover", "pressed", "focus"]:
+	for st in ["normal", "hover", "pressed"]:
 		card.add_theme_stylebox_override(st, empty)
+	card.add_theme_stylebox_override("focus", _focus_ring())
 	if sel:
 		card.rotation_degrees = 0.0   # the one taken down hangs straight
 	card.pressed.connect(func(): _select_board_card(intel))
@@ -1289,9 +1380,9 @@ func _make_live_notice(intel: Dictionary, idx: int) -> Control:
 	bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # v1 painted paper stays soft/painterly
 	if not _parch_live.is_empty():
 		bg.texture = _parch_live[idx % _parch_live.size()]
-	# Lift the paper toward v1's bright, lit ivory — the base tint read too muddy/dim once
-	# the wall vignette laid over it, so the writs sank into the backing instead of popping.
-	bg.modulate = tint.lightened(0.16)
+	# Lift the paper toward v1's bright, lit ivory, then floor it so no seed/tint ever drops a
+	# live writ below the legibility floor (T145 / L1). The stack also rides above the vignette.
+	bg.modulate = _floor_tone(tint.lightened(0.16))
 	card.add_child(bg)
 	# Paper curl: a soft inner shadow fading up from the foot, so the sheet lifts off the
 	# wall and shades itself (never a dead-flat rectangle). Above the paper, under the text.
@@ -1320,8 +1411,8 @@ func _make_live_notice(intel: Dictionary, idx: int) -> Control:
 	card.add_child(mark)
 	# Lift toward the viewer AND raise above neighbours, so an overlapped notice is
 	# never occluded while you read/click it (dense scatter can stack corners).
-	card.mouse_entered.connect(func(): card.move_to_front(); _hover_card(card, 1.05); bg.modulate = tint.lightened(0.26))
-	card.mouse_exited.connect(func(): _hover_card(card, 1.03 if sel else 1.0); bg.modulate = tint.lightened(0.16))
+	card.mouse_entered.connect(func(): card.move_to_front(); _hover_card(card, 1.05); bg.modulate = _floor_tone(tint.lightened(0.26)))
+	card.mouse_exited.connect(func(): _hover_card(card, 1.03 if sel else 1.0); bg.modulate = _floor_tone(tint.lightened(0.16)))
 	var verb := str(intel.get("primaryVerb", ""))
 	var pad := MarginContainer.new()
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1577,15 +1668,21 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	stamp.flat = true
 	stamp.clip_contents = false
 	stamp.disabled = not leader
-	stamp.focus_mode = Control.FOCUS_NONE
+	# Keyboard reachable for the leader only (T146 / L6): a non-leader's seal is read-only, so it
+	# takes no focus. The gilt ring marks it when Tabbed to; Enter/Space stamps.
+	stamp.focus_mode = Control.FOCUS_ALL if leader else Control.FOCUS_NONE
 	stamp.custom_minimum_size = Vector2(0, 76)
 	stamp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stamp.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if leader else Control.CURSOR_ARROW
 	var empty := StyleBoxEmpty.new()
-	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+	for st in ["normal", "hover", "pressed", "disabled"]:
 		stamp.add_theme_stylebox_override(st, empty)
+	stamp.add_theme_stylebox_override("focus", _focus_ring() if leader else empty)
 	if leader:
 		stamp.pressed.connect(func():
+			# In-flight (T146): one stamp per round-trip. Disable until the LOBBY_UPDATED
+			# snapshot rebuilds the block, so a double-tap can't fire two SELECT/DESELECTs.
+			stamp.disabled = true
 			if selected:
 				_log("seal %s accepted=false" % cid)
 				_net.send_message(Protocol.DESELECT_CONTRACT, {})
