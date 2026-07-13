@@ -62,5 +62,15 @@ When moving from one feature to another, update CLAUDE.md's active-work block:
 ```
 Add a DECISION_LOG.md entry: "Switched active spec from X to Y — reason."
 
+## Keep the dependency map current
+When a task adds or removes a **script↔asset dependency** (a new `load()`/`preload()`, a new
+generator output, a new scene `ext_resource`), regenerate the map so the next session can trust it:
+```bash
+python3 tools/asset_map.py          # regenerate docs/technical/asset-map.md
+python3 tools/asset_map.py --check  # exit 1 if stale — run before marking the task done
+```
+Record non-obvious wiring (the *why*) with a provenance header; see
+[docs/technical/code-map.md](../../docs/technical/code-map.md).
+
 ## Golden Rule
 If you can't point to a test that verifies it, the feature doesn't exist.

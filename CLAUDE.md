@@ -81,19 +81,37 @@ anchored to the nameplate rect) so it crowns over the top edge; two-line gilt ti
 `TOP_RESERVE_FRAC` 0.20→0.235 so notices still show every line. V1–V6 green, client-only, suites
 green. R147–R151, T163–T166.
 
-Active spec: **`specs/board-consistency/`** (TD-050) — a Contract Board scene consistency pass on the
-user's review of the heraldry header: **crest smaller + crisp** (kill the LINEAR-downscale mush; sword+
-laurel defined), title → **"CONTRACT BOARD"** only (single line), **de-crowd** the notices (KEEP the
-TD-040 scatter — the oversized crest was crowding it), **one-register** style pass fixing **both sharpness
-AND detail** (crisp the soft, level DOWN the over-busy; the carved **frame is the anchor, untouched**;
-DON'T deviate the TD-046 canon), **banners shortened** off the sconces, **backing + wall lifted** to
-visible-but-moody (partial walk-back of TD-048, surfaces only). Client render-only (I1/I2). **Spec written
-(R152–R158, P86–P91, T167–T172); implementation not started.** **Next: implement T167 (crest) → T168
-(title/de-crowd) → T169 (banners) → T170 (surfaces) → T171 (style pass) → T172 (verify).**
+Completed: **`specs/board-consistency/`** (TD-050) — a Contract Board scene consistency pass on the
+user's review of the heraldry header. **COMPLETE (T167–T172, V1–V7 green, client-only):** the crest is
+re-authored at display resolution in `gen_heraldry.py` (80×70, bolder sword/laurel strokes, SS=4) and
+shown **1:1 NEAREST** in `board_decor.board_crest` (display size == source, killing the LINEAR-downscale
+mush); the title collapsed to a single gilt **"CONTRACT BOARD"** line; `TOP_RESERVE_FRAC` 0.235→0.205 so
+the KEPT TD-040 scatter sits clear of the compact header (`keepout ok=true`, all notice lines show);
+**banners shortened** to `vp.y·0.5` with the sconce **decoupled** to its own gutter position
+(`vp.y·0.71`, matching `torch_rig`) so cloth clears the fixture; **wall + backing lifted** (wall ambient
+0.30→0.48, backing 0.42/1.1→0.56/1.25 — partial walk-back of TD-048, surfaces only, still darker than
+parchment/frame); **one-register style pass** eased the flavor foxing + live-paper fibre jitter
+(`gen_detail.py`/`gen_parch_v1.py`) and cobweb opacity (0.5→0.34), leaving the carved **frame untouched**
+as the anchor. Server 362 + shared 65 suites green (untouched); headless parses clean.
 
-@specs/board-consistency/requirements.md
-@specs/board-consistency/design.md
-@specs/board-consistency/tasks.md
+Active spec: **`specs/dependency-map/`** (TD-051) — DERIVE the script↔asset dependency graph instead of
+hand-maintaining it. **COMPLETE (T173–T177, `--selftest` + `--check` green, tooling/docs only):**
+`tools/asset_map.py` (stdlib) statically scans `client/` for the four edge kinds (gd `load`/`preload`,
+tscn `ext_resource`, py `write_png`) and emits `docs/technical/asset-map.md` — every asset's
+producer(s) + consumer(s), each script's loads/preloads/loaded-by, generators' writes, plus **Orphans**
+(dead art), **Dangling** (ref to a missing file), and **Unresolved dynamic references** (variable-path
+loads — declared blind spots). Templated `%d/%s/{}` paths are globbed against on-disk files. `--check`
+makes staleness a hard failure (exit 1) so the committed map can't silently drift; `--selftest` asserts
+known edges + determinism (the named test). `docs/technical/code-map.md` (was a placeholder) is filled
+with how to read/regenerate the map + the **provenance-header** convention (the *why* a scanner can't
+infer); CLAUDE.md + spec-workflow.md point new work at "regenerate + `--check` on any dependency change".
+First map already surfaced real findings: `crest_v1.png` is written by TWO generators (`gen_emblems.py`
+legacy + `gen_heraldry.py` current — a latent conflict), and `parch_live_*` + `board_placard.png` are
+orphaned dead art. Stdlib-only; no server/shared/client-runtime change.
+
+@specs/dependency-map/requirements.md
+@specs/dependency-map/design.md
+@specs/dependency-map/tasks.md
 
 Paused: **`specs/notice-board/`** — the diegetic commission wall (server done T131–T132,
 T138–T139; client Pass-2 raster reskin T140–T144 + the TD-046 art-director polish done).
@@ -146,6 +164,13 @@ Completed Phase 4 specs:
   need the UNC path. The direct Bash invocation above is verified and preferred.
 - None of this relaxes the trust boundary: capture is render-only, and game logic
   never moves into the client to make a check pass.
+
+**Before scouring for "which script loads this PNG / which generator writes it / who
+preloads this `.gd`?" — read the generated dependency map first:**
+`docs/technical/asset-map.md` (produced by `tools/asset_map.py`; `res://` == `client/`).
+It lists every asset's producer + consumers, orphans (dead art), dangling refs, and
+unresolved dynamic loads. Regenerate + `--check` it when a dependency changes (see
+`docs/technical/code-map.md` for how to read it + the provenance-header convention). TD-051.
 
 ## Art Direction & Sanctioned Toolchain — CLOSED LIST
 

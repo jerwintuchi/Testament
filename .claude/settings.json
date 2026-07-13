@@ -7,5 +7,19 @@
       "Bash(node *)"
     ],
     "deny": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/tools/asset_map_hook.py\"",
+            "statusMessage": "Refreshing asset-map.md"
+          }
+        ]
+      }
+    ]
   }
 }

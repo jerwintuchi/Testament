@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Pre-commit — block a commit if the generated dependency map has drifted from source.
+#
+# The PostToolUse hook (.claude/settings.json) keeps docs/technical/asset-map.md current during a
+# Claude session; this is the durable backstop for edits made OUTSIDE a session (a human in Godot/an
+# IDE, another tool, a merge). If the committed map no longer matches the source, the commit is
+# blocked with a one-line fix. Spec: dependency-map / TD-051.
+#
+# Install (per clone, once):  git config core.hooksPath tools/git-hooks
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+command -v python3 >/dev/null 2>&1 || exit 0   # no python → skip rather than block
+
+if ! python3 "$ROOT/tools/asset_map.py" --check; then
+  echo "" >&2
+  echo "[pre-commit] docs/technical/asset-map.md has drifted from source — regenerate + stage it:" >&2
+  echo "    python3 tools/asset_map.py && git add docs/technical/asset-map.md" >&2
+  exit 1
+fi
+exit 0

@@ -1424,3 +1424,45 @@ moody key, and run a one-register sharpness+detail consistency pass anchored to 
 **Partially walks back TD-048** for the **backing + wall only** — the surfaces rise to visible; the frame's
 restored colour, the parchment legibility floor, and the near-zero fire cast all **stand**. The carved frame
 is deliberately **not** touched.
+
+## TD-051 — Dependency map: generate the script↔asset graph, don't hand-maintain it (2026-07-13)
+
+**Context.** Every fresh session burned context re-scouring the tree to answer basic wiring questions
+— "which script `load`s this PNG? which `gen_*.py` writes it? who `preload`s this `.gd`?". The board
+work especially has a dense web (`gen_heraldry.py` → `crest_v1.png` → `board_decor.gd`, placed by
+`board_geometry.gd`, …). The user asked for durable dependency documentation so a fresh session can
+continue without re-deriving the graph, and invited a better solution.
+
+**Decision.** DERIVE the graph, don't hand-write it. Open `specs/dependency-map/` (R159–R164,
+P92–P94, T173–T177): a stdlib-Python tool `tools/asset_map.py` statically scans `client/` for the four
+edge kinds (gd `load`/`preload`, tscn `ext_resource`, py `write_png`) and emits
+`docs/technical/asset-map.md` — every asset's producer(s) + consumer(s), each script's
+loads/preloads/loaded-by, generators' writes, plus **Orphans** (dead art), **Dangling** (ref to a
+missing file), and **Unresolved dynamic references** (paths built from a variable — declared blind
+spots, never silently dropped). Templated paths (`%d`/`%s`/`{}`) are globbed against on-disk files.
+
+**Why generated, not a hand-written doc or inline-only comments.** A dependency doc is only useful if
+a session can *trust* it without re-verifying; the moment it can drift, the session must re-scour
+anyway and the doc bought nothing — a **stale** map is worse than none. So the graph is derived and a
+**`--check`** mode makes staleness a hard failure (exit 1), keeping the committed map honest. Inline
+**provenance headers** are kept for the orthogonal thing a scanner can't infer — *why* a dependency
+exists (a clip escape, a filter choice, a superseded twin); documented in `docs/technical/code-map.md`
+(placeholder filled). The named test is the tool's own `--selftest` (asserts known edges +
+determinism) + the `--check` round-trip (Python-tooling convention, mirrors `ashember.py`).
+
+**Immediate findings (the payoff).** The first generated map surfaced, with zero scouring: two
+generators both write `crest_v1.png` (`gen_emblems.py` legacy + `gen_heraldry.py` current — a latent
+conflict), and `parch_live_*` + `board_placard.png` are orphaned dead art. Exactly the kind of
+knowledge that used to cost a session to rediscover.
+
+**Scope & containment.** Dev-tooling / docs only (P94): stdlib-only, reads `client/`+`src/`, writes
+only under `docs/`, imported by nothing at runtime, mutates no asset/script/scene. No server/shared/
+client-runtime change. CLAUDE.md + `.claude/rules/spec-workflow.md` point new work at "regenerate
+`asset-map.md` + pass `--check` when a dependency changes".
+
+**Auto-update (keeps the map current with no manual step).** Two hooks close the drift gap:
+- **PostToolUse** (`.claude/settings.json` → `tools/asset_map_hook.py`): regenerates the map in-session
+  whenever a `client/` `.gd`/`.tscn` or a generator `.py` is edited.
+- **git pre-commit** (`tools/git-hooks/pre-commit`, installed via `git config core.hooksPath
+  tools/git-hooks`): blocks a commit whose map has drifted from source — the backstop for edits made
+  outside a Claude session (human/IDE/merge). A CI `--check` step is the remaining natural follow-up.
