@@ -191,7 +191,7 @@ func _ready() -> void:
 	# diffuse is plain, the normal + uniform torch lights live in the shader material.
 	_stone_bg.texture = load("res://assets/ui/wall_v1.png") as Texture2D
 	_stone_bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	_stone_bg.material = _surface_material("res://assets/ui/wall_v1_n.png", 0.30, 1.0)  # background masonry: darkest (TD-048)
+	_stone_bg.material = _surface_material("res://assets/ui/wall_v1_n.png", 0.48, 1.0)  # masonry: darkest surface, but visible (TD-050 partial walk-back of TD-048)
 	_stone_bg.modulate = Color(1.0, 1.0, 1.0, 1.0)   # brightness now comes from the shader lighting
 	_stone_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stone_bg.visible = false
@@ -1071,7 +1071,7 @@ func _build_contract_board() -> void:
 		# Torch-lit via the surface shader (TD-047): the dark backing_v1 is pre-lifted in-shader
 		# (diffuse_gain) then lit by the torch rig — tests that a fragment shader preserves the
 		# NinePatch 9-slice AND takes the dynamic light (the frame conversion depends on this).
-		backing.material = _surface_material("res://assets/ui/backing_v1_n.png", 0.42, 1.1)
+		backing.material = _surface_material("res://assets/ui/backing_v1_n.png", 0.56, 1.25)  # TD-050: plank grain reads at rest, still below the parchment/frame key
 		backing.modulate = Color(1.0, 1.0, 1.0)
 		# z_index MUST stay >= 0: at -2 the plank drew BEHIND the popup's opaque panel
 		# background and vanished, so the dark stone wall showed through ("see-through board").
@@ -1651,7 +1651,7 @@ func _add_decay(canvas: Control, inner: Vector2, footprints: Array) -> void:
 				web.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				web.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 				web.material = BoardGeo.additive_material()
-				web.modulate = Color(0.62, 0.66, 0.72, 0.5)   # cold, dim (tinted VFX)
+				web.modulate = Color(0.62, 0.66, 0.72, 0.34)  # cold, dim (tinted VFX) — TD-050: a whisper, not a focal detail
 				web.position = pos
 				if flip < 0.0:                                  # mirror for the right corner
 					web.scale.x = -1.0
@@ -1738,7 +1738,7 @@ func _place_placard(canvas: Control) -> void:
 	var pr := BoardGeo.placard_rect(inner)
 	var w := pr.size.x
 	var h := pr.size.y
-	var placard := _notice_placard("THE COLLEGIUM", "CONTRACT BOARD")
+	var placard := _notice_placard("CONTRACT BOARD")
 	placard.custom_minimum_size = Vector2(w, h)
 	placard.size = Vector2(w, h)
 	placard.position = pr.position.floor()
@@ -1754,12 +1754,12 @@ func _place_placard(canvas: Control) -> void:
 # hung at the top-centre of the frame. LINEAR-filtered so the painted gilt stays soft.
 # A routed wood plaque with an incised (engraved) title, hung from two nail heads.
 # Pure render — no art dependency beyond the shared wood palette; inert to input.
-func _notice_placard(title: String, subtitle: String) -> Control:
+func _notice_placard(title: String) -> Control:
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# The carved nameplate (board_nameplate.png) as a 9-slice, so it stretches to width while
 	# the iron corner brackets + bolts stay un-smeared in the fixed corners (TD-049). Godot
-	# draws the two-line gilt title over the recessed centre field. Falls back to a flat plaque.
+	# draws the single gilt title over the recessed centre field. Falls back to a flat plaque.
 	var ptex := load("res://assets/ui/board_nameplate.png") as Texture2D
 	if ptex != null:
 		var plaque := NinePatchRect.new()
@@ -1768,9 +1768,9 @@ func _notice_placard(title: String, subtitle: String) -> Control:
 		plaque.texture = ptex
 		plaque.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		plaque.patch_margin_left = 22
-		plaque.patch_margin_top = 22
+		plaque.patch_margin_top = 15
 		plaque.patch_margin_right = 22
-		plaque.patch_margin_bottom = 16
+		plaque.patch_margin_bottom = 11
 		root.add_child(plaque)
 	else:
 		var plaque := Panel.new()
@@ -1782,34 +1782,16 @@ func _notice_placard(title: String, subtitle: String) -> Control:
 		psb.border_color = Color(0.15, 0.09, 0.05)
 		plaque.add_theme_stylebox_override("panel", psb)
 		root.add_child(plaque)
-	# Two-line gilt title, centred over the plate (unlit ink on top → legibility independent
-	# of the baked nameplate lighting, P85): the order name over the station name.
-	var vb := VBoxContainer.new()
-	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
-	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	vb.add_theme_constant_override("separation", -1)
-	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var t1 := _card_label(title, 17, Color(0.92, 0.80, 0.50), false, true)
+	# Single gilt title, centred over the plate (unlit ink on top → legibility independent of
+	# the baked nameplate lighting, P85). TD-050: "CONTRACT BOARD" only (dropped "THE COLLEGIUM").
+	var t1 := _card_label(title, 16, Color(0.92, 0.80, 0.50), false, true)
+	t1.set_anchors_preset(Control.PRESET_FULL_RECT)
+	t1.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	t1.add_theme_constant_override("shadow_offset_x", 1)
 	t1.add_theme_constant_override("shadow_offset_y", 2)
 	t1.add_theme_color_override("font_shadow_color", Color(0.05, 0.02, 0.01, 0.95))
-	vb.add_child(t1)
-	var t2 := _card_label(_letterspace(subtitle), 9, Color(0.78, 0.65, 0.40), false, true)
-	t2.add_theme_color_override("font_shadow_color", Color(0.05, 0.02, 0.01, 0.9))
-	t2.add_theme_constant_override("shadow_offset_x", 1)
-	t2.add_theme_constant_override("shadow_offset_y", 1)
-	vb.add_child(t2)
-	root.add_child(vb)
+	root.add_child(t1)
 	return root
-
-# Space out a caps subtitle (a poor-man's letter-spacing for the pixel font).
-func _letterspace(s: String) -> String:
-	var out := ""
-	for i in s.length():
-		out += s[i]
-		if i < s.length() - 1:
-			out += " "
-	return out
 
 # Lift a card toward the viewer on hover (scale from its centre pivot).
 func _hover_card(card: Control, s: float) -> void:

@@ -70,10 +70,10 @@ def card(seed):
         mott = _snoise(x, y, seed + 60, 40.0)       # ~[-8,8], smooth
         f *= 1.0 + mott * 0.008                      # ±6% soft staining
         f = max(0.45, min(1.16, f))
-        j = noise(x, y, seed + 13) * 0.6            # per-pixel fibre jitter breaks mirror symmetry
+        j = noise(x, y, seed + 13) * 0.42           # TD-050: fibre jitter eased — clean-aged, not speckled
         rr, gg, bb = int(pr * f * LIFT + j), int(pg * f * LIFT + j), int(pb * f * LIFT + j)
-        if mott < -3.0:                              # warm-brown foxing in the stained pools
-            a = (-3.0 - mott) * 0.020
+        if mott < -3.0:                              # warm-brown foxing in the stained pools (TD-050: eased)
+            a = (-3.0 - mott) * 0.014
             gg = int(gg * (1.0 - a)); bb = int(bb * (1.0 - a * 1.6))
         if d <= 2:                                   # torn-edge shadow
             rr, gg, bb = int(rr * 0.68), int(gg * 0.68), int(bb * 0.68)

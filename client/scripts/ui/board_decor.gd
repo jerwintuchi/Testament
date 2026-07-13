@@ -40,7 +40,7 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> vo
 		var banner_cx: float = vp.x * (0.94 if at_right else 0.06)   # on the gutter "pillar", off the screen edge
 		var btex_h := 474.0
 		var btex_w := 74.0
-		var target_h := vp.y * 0.72           # a full-height tapestry hang (v1), narrow strip
+		var target_h := vp.y * 0.5            # TD-050: SHORT hang — foot ends above the sconce with a gap
 		var bs := target_h / btex_h
 		var banner_w := btex_w * bs
 		var banner_top := vp.y * 0.010
@@ -100,7 +100,10 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> vo
 		# meets the sconce's top bar; the sconce stem hangs below, the flame rises above.
 		var banner_bottom := banner_top + target_h
 		var torch_x := banner_cx                       # under the banner, not beside it
-		var cup_y := banner_bottom - vp.y * 0.02       # sconce cup at the banner's foot
+		# TD-050: the sconce is DECOUPLED from the (now short) banner foot — it stays at its own
+		# gutter position (vp.y*0.71, matching torch_rig's light), leaving a clear gap between the
+		# banner hem (banner_bottom ≈ 0.51) and the cup so cloth + fixture read as two things.
+		var cup_y := vp.y * 0.71
 		# The broad GUTTER WASH (a board-wide additive pool @ ~3.4x) is DROPPED in the dungeon
 		# re-grade (TD-048): it was the orange bloom that washed out the mood and stole the show.
 		# The fire now casts near-zero across the board — only the tight cup glow below remains.
@@ -230,27 +233,30 @@ static func light_falloff() -> GradientTexture2D:
 # Wrapped with a soft, offset cast shadow (the same oval silhouette in black) so the
 # medallion reads as MOUNTED PROUD of the board wood, not a dark cutout in it.
 static func board_crest() -> Control:
-	var tex := load("res://assets/ui/crest_v1.png") as Texture2D   # 150x132 heraldic emblem (TD-049)
+	var tex := load("res://assets/ui/crest_v1.png") as Texture2D   # 80x70 heraldic emblem (TD-050: authored small)
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var cs := Vector2(82, 72)                                      # display size (keeps ~150:132)
+	# Display 1:1 with the authored size (80×70) and filter NEAREST — crisp pixel edges, NO engine
+	# scaling at all (TD-050). Any mismatch here re-introduces a downscale mush; keep it == source.
+	# Smaller than the old 82×72 so it stops crowding the top notice row.
+	var cs := Vector2(80, 70)
 	root.custom_minimum_size = cs
 	root.size = cs
-	# Drop shadow: the crest silhouette in translucent black, nudged down-right and
-	# slightly enlarged. LINEAR + oversize gives it a soft edge (no blur pass needed).
+	# Drop shadow: the crest silhouette in translucent black, nudged down-right. NEAREST keeps it
+	# a crisp offset silhouette (matched to the face); the alpha is what softens it, not a blur.
 	var shadow := TextureRect.new()
 	shadow.texture = tex
-	shadow.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	shadow.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shadow.stretch_mode = TextureRect.STRETCH_SCALE
 	shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	shadow.modulate = Color(0.0, 0.0, 0.0, 0.42)
 	shadow.position = Vector2(-2.0, 3.0)
-	shadow.size = cs + Vector2(4, 4)
+	shadow.size = cs + Vector2(2, 2)
 	root.add_child(shadow)
 	var face := TextureRect.new()
 	face.texture = tex
-	face.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	face.stretch_mode = TextureRect.STRETCH_SCALE
 	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

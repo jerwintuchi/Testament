@@ -17,7 +17,7 @@ Stdlib only (imports ashember). Brand-new PNGs need `godot --headless --import`.
 import math
 import ashember as A
 
-SS = 3
+SS = 4
 LX, LY = -0.60, -0.66          # upper-left key (points toward the light)
 
 # Gilded-bronze metal ramp — DIM (dungeon-dark, TD-048): the emblem catches the eye by
@@ -56,9 +56,13 @@ def _seg(px, py, ax, ay, bx, by):
 
 
 # ── Crest geometry (150x132) ───────────────────────────────────────────────────
-CW, CH = 150, 132
+CW, CH = 150, 132                  # DESIGN space (all crest geometry is defined here)
+# Output/display size (TD-050): the crest is rendered DOWN to ~display resolution with baked AA,
+# then shown 1:1 NEAREST in-engine — no LINEAR downscale mush, and smaller so it stops crowding
+# the top notice row. Sword/laurel strokes are thickened in design space to survive the shrink.
+CREST_OW, CREST_OH = 80, 70
 CX = 75.0
-RING_CY, RING_R, RING_BAND = 60.0, 30.0, 4.2
+RING_CY, RING_R, RING_BAND = 60.0, 30.0, 3.6
 
 # Laurel leaves: precompute per-side positions along an arc just outside the ring.
 def _laurel_leaves():
@@ -67,14 +71,14 @@ def _laurel_leaves():
         # A wreath hugging the ring's LOWER flanks: the branch sweeps from the base (near the
         # pommel) up the outer side to about shoulder height. Leaves are big + overlapping,
         # tilted tangent-to-the-branch (they lie along it, fanning up — not radiating as spikes).
-        for k in range(6):
-            u = k / 5.0
+        for k in range(5):
+            u = k / 4.0
             ang = math.radians(-108.0 + 96.0 * u)          # -108°(low base) → -12°(upper side)
-            rad = RING_R + 4.0
+            rad = RING_R + 4.5
             lx = CX + s * math.cos(ang) * rad
             ly = RING_CY - math.sin(ang) * rad
             leaf_ang = ang + math.radians(90.0)             # long axis TANGENT to the branch
-            size = 7.0 - 2.6 * u                            # taper toward the tip
+            size = 9.5 - 3.2 * u                            # BIGGER, fewer leaves so they read small
             leaves.append((lx, ly, leaf_ang, size, s))
     return leaves
 
@@ -93,9 +97,9 @@ def _crest_layers(fx, fy):
         d = abs(math.hypot(fx - ccx, fy - ccy) - cr)
         ang = math.atan2(fy - ccy, fx - ccx)               # keep ~3/4 of the ring (open inner)
         open_ok = not (-0.5 < ang < 0.9 if s > 0 else 2.2 < abs(ang))
-        if d < 2.0 and open_ok:
+        if d < 2.6 and open_ok:
             lit = _cl(0.5 + (-(fx - ccx) * LX - (fy - ccy) * LY) / cr * 0.4)
-            out.append((_cl((2.0 - d) / 1.2), metal(lit * 0.85, rim=_cl((1.3 - d)) * 0.3)))
+            out.append((_cl((2.6 - d) / 1.4), metal(lit * 0.85, rim=_cl((1.3 - d)) * 0.3)))
 
     # 2) RING — bronze annulus behind the sword, broken at the very top (blade passes through).
     rr = math.hypot(dx, dy)
@@ -121,22 +125,23 @@ def _crest_layers(fx, fy):
 
     # 4) SWORD (front, upright, centred) — blade / crossguard / grip / pommel.
     ax = abs(fx - CX)
-    # blade: tip y=16 → guard y=64, half-width 1→5.2
+    # blade: tip y=16 → guard y=64, BOLDER half-width (1.8→7.0) so it survives the shrink + a
+    # clear bright centre ridge so the sword reads as the hero inside the ring.
     if 16.0 <= fy <= 64.0:
-        bhw = 1.0 + (fy - 16.0) / 48.0 * 4.4
+        bhw = 1.8 + (fy - 16.0) / 48.0 * 5.2
         if ax < bhw:
             ridge = 1.0 - ax / bhw                          # centre ridge highlight
-            lit = _cl(0.34 + ridge * 0.5 + (CX - fx) / max(bhw, 1.0) * 0.12)
-            rimf = _cl((bhw - ax) / bhw) * 0.0 + _cl(ridge - 0.7) * 0.9
+            lit = _cl(0.36 + ridge * 0.52 + (CX - fx) / max(bhw, 1.0) * 0.12)
+            rimf = _cl(ridge - 0.6) * 1.0
             out.append((1.0, metal(lit, rim=rimf)))
-    # crossguard: a bar at y≈66 with tips curving slightly down
+    # crossguard: a wider bar at y≈66 with tips curving slightly down
     gy = 66.0 + 0.010 * (fx - CX) ** 2
-    if abs(fy - gy) < 3.0 and ax < 25.0:
-        lit = _cl(0.4 + (66.0 - fy) * 0.14 + (CX - fx) * 0.004)
-        out.append((_cl((3.0 - abs(fy - gy)) * 1.5), metal(lit, rim=_cl((66.0 - fy)) * 0.4)))
-    # grip
-    if 69.0 <= fy <= 84.0 and ax < 2.6:
-        lit = _cl(0.3 + (2.6 - ax) / 2.6 * 0.3)
+    if abs(fy - gy) < 3.6 and ax < 26.0:
+        lit = _cl(0.42 + (66.0 - fy) * 0.13 + (CX - fx) * 0.004)
+        out.append((_cl((3.6 - abs(fy - gy)) * 1.4), metal(lit, rim=_cl((66.0 - fy)) * 0.4)))
+    # grip (thicker)
+    if 69.0 <= fy <= 84.0 and ax < 3.2:
+        lit = _cl(0.3 + (3.2 - ax) / 3.2 * 0.3)
         out.append((1.0, metal(lit * 0.8)))
     # pommel: domed disc
     pd = math.hypot(fx - CX, fy - 88.0)
@@ -168,8 +173,8 @@ def crest_px(fx, fy):
 
 
 # ── Carved nameplate (112x48, 9-slice with iron corner brackets) ────────────────
-NW, NH = 112, 48
-NMX, NMY_T, NMY_B = 22, 22, 16     # 9-slice patch margins (keep the brackets un-stretched)
+NW, NH = 112, 36                   # TD-050: shorter plate for a single-line title (was 48, two lines)
+NMX, NMY_T, NMY_B = 22, 15, 11     # 9-slice patch margins (keep the corner plates un-stretched)
 
 
 def _wood(fx, fy):
@@ -252,15 +257,22 @@ def _ascii(W, H, pixel):
     return "\n".join(rows)
 
 
+# Render the crest at OUTPUT resolution, sampling the 150×132 DESIGN space — so the emblem is
+# authored small with baked AA (crisp when shown 1:1 NEAREST), not downscaled by the engine.
+def _crest_out():
+    sx, sy = CW / float(CREST_OW), CH / float(CREST_OH)
+    return _supersample(CREST_OW, CREST_OH, lambda ox, oy: crest_px(ox * sx, oy * sy))
+
+
 def main(ascii_only=False):
-    crest = _supersample(CW, CH, crest_px)
+    crest = _crest_out()
     plate = _supersample(NW, NH, nameplate_px)
     if ascii_only:
-        print("=== crest_v1 ===\n" + _ascii(CW, CH, crest))
+        print("=== crest_v1 ===\n" + _ascii(CREST_OW, CREST_OH, crest))
         print("\n=== board_nameplate ===\n" + _ascii(NW, NH, plate))
         return
-    A.write_png("crest_v1.png", CW, CH, crest)
-    print("wrote crest_v1.png (%dx%d)" % (CW, CH))
+    A.write_png("crest_v1.png", CREST_OW, CREST_OH, crest)
+    print("wrote crest_v1.png (%dx%d)" % (CREST_OW, CREST_OH))
     A.write_png("board_nameplate.png", NW, NH, plate)
     print("wrote board_nameplate.png (%dx%d)" % (NW, NH))
 

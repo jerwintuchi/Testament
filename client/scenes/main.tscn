@@ -1,17 +1,17 @@
-[gd_scene load_steps=3 format=3 uid="uid://crm2u5io7vy4t"]
+[gd_scene format=3 uid="uid://crm2u5io7vy4t"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://b0eoghopshiqc" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/space_view.tscn" id="2_space"]
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" unique_id=712476270]
 script = ExtResource("1_main")
 
-[node name="World" type="Node2D" parent="."]
+[node name="World" type="Node2D" parent="." unique_id=1952194008]
 visible = false
 
-[node name="SpaceView" parent="World" instance=ExtResource("2_space")]
+[node name="SpaceView" parent="World" unique_id=1263963240 instance=ExtResource("2_space")]
 
-[node name="Bodies" type="Node2D" parent="World"]
+[node name="Bodies" type="Node2D" parent="World" unique_id=1963195761]
 
-[node name="Camera2D" type="Camera2D" parent="World"]
+[node name="Camera2D" type="Camera2D" parent="World" unique_id=924679708]
 zoom = Vector2(2, 2)

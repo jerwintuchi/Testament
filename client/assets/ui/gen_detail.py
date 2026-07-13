@@ -94,12 +94,13 @@ def _parch_px(x, y, seed, live):
     #     Big, low-contrast cells so the aging reads as washes, not a checkerboard grid.
     stain = noise(x // 34, y // 40, seed + 60)
     if stain > 4:
-        base = over(base, ramp_shade("foxing", 0.24), (stain - 4) * (0.045 if live else 0.065))
-    # 5b. Foxing specks: clustered sepia spots, denser than before, heavier on flavor.
+        base = over(base, ramp_shade("foxing", 0.24), (stain - 4) * (0.040 if live else 0.052))
+    # 5b. Foxing specks: clustered sepia spots — TD-050 levelled DOWN (fewer + fainter) so the
+    #     aging reads as clean-aged washes, not a speckle-storm outlier against the carved frame.
     bloom = noise(x // 9, y // 11, seed + 40)
     grit = noise(x, y, seed + 41)
-    if bloom > (2 if not live else 4) and grit % (3 if not live else 4) == 0:
-        fa = (0.34 if not live else 0.22) + (grit % 3) * 0.06
+    if bloom > (3 if not live else 4) and grit % (4 if not live else 4) == 0:
+        fa = (0.26 if not live else 0.18) + (grit % 3) * 0.05
         base = over(base, ramp_shade("foxing", 0.30 + (bloom % 3) * 0.16), fa)
 
     # 6. Torn-fibre edge shadow, softened a couple pixels inward (2x scale).

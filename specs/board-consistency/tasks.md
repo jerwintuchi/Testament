@@ -8,14 +8,14 @@
 
 ## Header
 
-- [ ] T167 [R152 / P87] — **Crest: smaller + crisp.** Re-author the crest in `gen_heraldry.py` at ~display
+- [x] T167 [R152 / P87] — **Crest: smaller + crisp.** Re-author the crest in `gen_heraldry.py` at ~display
       resolution (≈96×86, bolder strokes so sword/laurel survive small; bump `SS`); in
       `board_decor.board_crest` display it smaller (≈66×59) with `TEXTURE_FILTER_NEAREST` on face + shadow
       (kill the LINEAR downscale mush). Headless-import.
       Verify: **V1** — capture + a zoom show a smaller crest with crisp, defined sword + laurel (no blur);
       it still crowns the nameplate.
 
-- [ ] T168 [R153, R154 / P88] — **Single-line title + de-crowd.** `_notice_placard(title)` → one centred
+- [x] T168 [R153, R154 / P88] — **Single-line title + de-crowd.** `_notice_placard(title)` → one centred
       gilt "CONTRACT BOARD" (drop the VBox / "THE COLLEGIUM" / `_letterspace`); `placard_rect` back to a
       single-line height (~`inner.y·0.075`); `TOP_RESERVE_FRAC` back toward ~0.20 so the scatter sits clear
       of the compact header (scatter algorithm unchanged).
@@ -24,12 +24,12 @@
 
 ## Surfaces
 
-- [ ] T169 [R156 / P90] — **Banners shorter, clear of sconces.** In `board_decor.add_torches`, shorten the
+- [x] T169 [R156 / P90] — **Banners shorter, clear of sconces.** In `board_decor.add_torches`, shorten the
       banner (`target_h ≈ vp.y·0.5`) so its foot ends above the sconce with a visible gap; keep the mount +
       crimson render + hem glow. Sconce/flame position unchanged.
       Verify: **V5** — capture shows each banner stopping above its sconce with a clear gap (no overlap).
 
-- [ ] T170 [R157 / P91] — **Backing + wall visible (moody).** Raise the wall `ambient` (~0.30→0.48) and the
+- [x] T170 [R157 / P91] — **Backing + wall visible (moody).** Raise the wall `ambient` (~0.30→0.48) and the
       backing `ambient`/`diffuse_gain` (~0.42/1.1→0.56/1.25) in `_surface_material`/shader so the grain +
       masonry read at rest, kept below the parchment/frame key; ease the centre vignette a touch if it
       re-sinks the lifted backing.
@@ -38,7 +38,7 @@
 
 ## Style pass
 
-- [ ] T171 [R155 / P89] — **One-register consistency pass.** Audit the scene against the frame: (sharpness)
+- [x] T171 [R155 / P89] — **One-register consistency pass.** Audit the scene against the frame: (sharpness)
       crisp the seals/badges/tacks where a LINEAR downscale softens them (author nearer display size /
       NEAREST); (detail, level DOWN) ease parchment foxing/mottle + fibre jitter (`gen_parch_v1.py`), reduce
       cobweb/votive prominence (`_add_decay`/`gen_detail`), simplify any over-fussy seal sigil. Frame left
@@ -48,7 +48,7 @@
 
 ## Verification
 
-- [ ] T172 [R152–R158 / P86–P91] — **Verification pass.** Run the DebugCapture pipeline (`--board-preview`,
+- [x] T172 [R152–R158 / P86–P91] — **Verification pass.** Run the DebugCapture pipeline (`--board-preview`,
       incl. `--reader`), fix any GDScript/import errors; confirm **no server/shared file changed** and the
       server + shared Vitest suites are still green (untouched); `--headless` parses clean. Refresh the
       board-preview artifact.

@@ -21,7 +21,7 @@ const LIVE_SIZE_FRACS := [Vector2(0.185, 0.455), Vector2(0.160, 0.380), Vector2(
 const FLAVOR_SIZE_FRACS := [Vector2(0.120, 0.300), Vector2(0.105, 0.270), Vector2(0.145, 0.230),
 	Vector2(0.115, 0.310), Vector2(0.100, 0.250), Vector2(0.150, 0.260)]
 # Reserved bands: the hanging placard along the top, the flanking torch margin down each side.
-const TOP_RESERVE_FRAC := 0.235
+const TOP_RESERVE_FRAC := 0.205
 const SIDE_RESERVE_FRAC := 0.03
 # Aged-parchment tints, seeded per notice — warm variety without encoding anything.
 const PARCH_TINTS := [
@@ -42,12 +42,12 @@ static func bar_height(inner: Vector2) -> float:
 
 # A modest routed plaque like Prototype v1 (~⅖ width), hung below the crest.
 static func placard_rect(inner: Vector2) -> Rect2:
-	# Widened header (TD-049): a carved nameplate spanning much of the board, seated in the top
-	# band. The heraldic crest is a popup-tracking OVERLAY that crowns over its top edge, so the
-	# plate stays compact here (two gilt lines) and the notices reserve just below it.
-	var w := clampf(inner.x * 0.60, 240.0, maxf(240.0, inner.x - 32.0))
-	var h := maxf(38.0, inner.y * 0.125)
-	return Rect2(((inner.x - w) * 0.5), inner.y * 0.105, w, h).abs()
+	# Header nameplate (TD-049/TD-050): a carved plate seated in the top band; the heraldic crest
+	# is a popup-tracking OVERLAY that crowns over its top edge. Single-line now (TD-050) — shorter
+	# so the notices reserve higher and the smaller crest no longer crowds the top row.
+	var w := clampf(inner.x * 0.56, 230.0, maxf(230.0, inner.x - 32.0))
+	var h := maxf(30.0, inner.y * 0.098)
+	return Rect2(((inner.x - w) * 0.5), inner.y * 0.09, w, h).abs()
 
 # The live-notice bounds: below the placard, inside the side reserves, above the bar.
 static func live_bounds(inner: Vector2) -> Rect2:
