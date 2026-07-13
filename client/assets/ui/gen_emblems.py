@@ -243,55 +243,6 @@ def make_sconce():
 BRONZE = {"deep": (40, 28, 13), "base": (92, 68, 35), "hi": (176, 142, 82), "rim": (26, 18, 9)}
 
 
-def _sig_star(nx, ny):
-    """Radiant star: a central disc + eight tapering rays (unit space, r≈1 at edge)."""
-    r = math.hypot(nx, ny)
-    if r < 0.22:
-        return True
-    ang = math.atan2(ny, nx) % (math.pi / 4.0)
-    da = min(ang, math.pi / 4.0 - ang)          # angular distance to nearest 45° spoke
-    if 0.22 <= r < 0.82:
-        return da < 0.16 * (1.0 - r * 0.7)       # rays taper as they reach outward
-    return False
-
-
-def make_crest():
-    W, H = 150, 70
-    cx, cy = 75.0, 35.0
-    RX, RY = 70.0, 32.0
-
-    def sample(fx, fy):
-        dx, dy = fx - cx, fy - cy
-        # elliptical radius (1.0 at the oval edge)
-        er = math.hypot(dx / RX, dy / RY)
-        if er > 1.0:
-            return (0, 0, 0, 0)
-        nx, ny = dx / RX, dy / RY
-        # domed bronze: lambert from the upper-left key + a centre dome lift. Dim base so the
-        # medallion reads in the top's AMBIENT DIM (R139), not as a pale floating pebble.
-        lit = _clampf(0.26 + 0.32 * (nx * LX + ny * LY) + (1.0 - er) * 0.14)
-        body = A.lerp_rgb(BRONZE["deep"], BRONZE["hi"], lit)
-        body = A.lerp_rgb(body, BRONZE["base"], 0.30)
-        g = A.noise(int(fx), int(fy), 4) * 0.5
-        body = (body[0] + g, body[1] + g, body[2] + g)
-        # raised outer rim (last ~14% of the ellipse) — a deeper bevel so it reads MOUNTED
-        # (recessed edge catching a lit crown up-left), not a flat disc.
-        if er > 0.86:
-            t = (er - 0.86) / 0.14
-            body = A.lerp_rgb(body, BRONZE["rim"], t * 0.92)
-            if (nx * LX + ny * LY) > 0.2:                    # up-left crown catches the key
-                body = A.lerp_rgb(body, BRONZE["hi"], _clampf((nx * LX + ny * LY) * t))
-        # debossed radiant-star sigil (recessed toward deep, lit far lip)
-        snx, sny = dx / (RX * 0.62), dy / (RY * 0.62)
-        if _sig_star(snx, sny):
-            body = A.lerp_rgb(body, BRONZE["deep"], 0.66)
-            if _sig_star(snx - 0.08, sny - 0.08) and not _sig_star(snx + 0.07, sny + 0.07):
-                body = A.lerp_rgb(body, BRONZE["hi"], 0.5)   # lower-right recess wall catches light
-        return (A.clamp(body[0]), A.clamp(body[1]), A.clamp(body[2]), 255)
-
-    return _supersample(W, H, sample)
-
-
 # ── spark.png — CPUParticles2D flame particle (T153) ─────────────────────────────
 # A tiny soft round grayscale-additive dot (white + radial alpha), tinted to the
 # flame ramp at runtime by the particle system's color_ramp. VFX source (exempt from
@@ -340,8 +291,8 @@ def main():
     print("wrote torch_sconce.png")
     A.write_png("spark.png", 8, 8, make_spark())
     print("wrote spark.png")
-    A.write_png("crest_v1.png", 150, 70, make_crest())
-    print("wrote crest_v1.png")
+    # crest_v1.png is authored by gen_heraldry.py (TD-049 blade-and-laurel crest) — the old
+    # radiant-star medallion (make_crest/_sig_star) was retired to end a double-producer (TD-051).
 
 
 if __name__ == "__main__":

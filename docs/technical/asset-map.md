@@ -32,7 +32,7 @@
 - **`board_nameplate.png`** — produced-by: `client/assets/ui/gen_heraldry.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`board_surface.gdshader`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`cobweb.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`crest_v1.png`** — produced-by: `client/assets/ui/gen_emblems.py`, `client/assets/ui/gen_heraldry.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
+- **`crest_v1.png`** — produced-by: `client/assets/ui/gen_heraldry.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
 - **`frame_v1.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`panel.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
@@ -110,7 +110,7 @@
 ## Generators — writes
 
 - **`client/assets/ui/gen_banner.py`** → `banner_v1.png`
-- **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `crest_v1.png`, `seal_belief.png`, `seal_relic.png`, `seal_sin.png`, `spark.png`, `torch_sconce.png`
+- **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_belief.png`, `seal_relic.png`, `seal_sin.png`, `spark.png`, `torch_sconce.png`
 - **`client/assets/ui/gen_heraldry.py`** → `board_nameplate.png`, `crest_v1.png`
 - **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `frame_v1.png`, `frame_v1_n.png`, `wall_v1_n.png`
 
