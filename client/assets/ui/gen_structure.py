@@ -147,9 +147,12 @@ def placard_px(x, y):
         return _q(WOOD_BEVEL if lit else WOOD_EDGE)               # bevel
     if d == 3:
         return _q(GOLD_DIM if lit else WOOD_EDGE)                 # inner routed gold-lined groove
-    # dark plaque field (reads behind gold lettering)
+    if d == 4:
+        return _q(WOOD_EDGE if lit else WOOD_DEEP)                # carved inner lip below the groove
+    # dark plaque field, DEEPENED for the dungeon-dark key (T159) so the gilt title pops
     v = noise(x, y, 11) * 0.4
-    return _q((WOOD_EDGE[0] + v, WOOD_EDGE[1] + v, WOOD_EDGE[2] + v))
+    field = lerp_rgb(WOOD_DEEP, WOOD_EDGE, 0.30)                  # between deep + edge, darker than before
+    return _q((field[0] + v, field[1] + v, field[2] + v))
 
 
 # ── Stone / mortar surround — tileable, ambient-candlelit ────────────────────
@@ -299,7 +302,8 @@ if __name__ == "__main__":
         ("stone_tile.png",   STONE_W, STONE_H, stone_px, False),
         ("torch_flame.png",  FLAME_W * FLAME_N, FLAME_H, flame_sheet_px, True),
         ("torch_glow.png",   GLOW_R * 2, GLOW_R * 2, glow_px, True),
-        ("torch_sconce.png", SCONCE_W, SCONCE_H, sconce_px, False),
+        # torch_sconce.png is now owned by gen_emblems.make_sconce (T152 redraw) — removed
+        # here so a gen_structure run never clobbers the dungeon-dark iron sconce.
     ]
     for name, w, h, fn, is_vfx in jobs:
         assert_on_palette(w, h, fn, name, allow_vfx=is_vfx)       # palette lock, pre-write

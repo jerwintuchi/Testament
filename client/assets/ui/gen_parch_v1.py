@@ -13,6 +13,12 @@ from ashember import write_png, noise, smooth
 HERE = os.path.dirname(os.path.abspath(__file__))
 PBW, PBH, PB = read_png(os.path.join(HERE, "_slices/paper_band1.png"))
 W, H = 200, 168
+# Live-tone lift (T156/R136): the raw v1 painted paper is a dim amber (~lum 0.09), so
+# against the TD-048 dungeon-dark board the notices sat BELOW the legibility floor
+# (ink < 4.5:1). Lift the paper partway toward the live tone — readable ink, but short
+# of full cream so the writs stay warm/aged (the user's "lift partway" ruling). Tuned
+# against the worst-lit (farthest-from-torch) notice measured off a capture.
+LIFT = 1.6
 # A small near-flat patch of the band: tiling a flat patch avoids the mirrored-gradient
 # arcs a whole-band tile produced. The card's own light (below) supplies the falloff.
 PX0, PY0, PSZ = 50, 6, 22
@@ -65,7 +71,7 @@ def card(seed):
         f *= 1.0 + mott * 0.008                      # ±6% soft staining
         f = max(0.45, min(1.16, f))
         j = noise(x, y, seed + 13) * 0.6            # per-pixel fibre jitter breaks mirror symmetry
-        rr, gg, bb = int(pr * f + j), int(pg * f + j), int(pb * f + j)
+        rr, gg, bb = int(pr * f * LIFT + j), int(pg * f * LIFT + j), int(pb * f * LIFT + j)
         if mott < -3.0:                              # warm-brown foxing in the stained pools
             a = (-3.0 - mott) * 0.020
             gg = int(gg * (1.0 - a)); bb = int(bb * (1.0 - a * 1.6))

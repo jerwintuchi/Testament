@@ -82,12 +82,16 @@
       **Done** — **V8 green**: the capture shows a deep board with the parchments popping; no re-author
       needed (the re-grade delivered the deeper key R137 asked for).
 
-- [ ] T156 [R136 / P75] — **Parchments lit + legibility floor.** Ensure the torch rig reaches the
-      board centre so notices/reader catch warm falloff; add the **ambient fill** (dim cool
-      DirectionalLight2D / low full-board light) + ease the centre vignette so no writ drops below the
-      floor; keep ink Labels unlit on top.
-      Verify: **V7** — near-torch writ warmer than far; worst-lit notice paper ≥ floor and ink ≥ 4.5:1
-      (measured off capture, worst-case seed).
+- [x] T156 [R136 / P75] — **Parchment legibility floor.** Reconciled with TD-048: the parchments are
+      **unlit baked paper** (no dynamic rig lighting — that would fight the near-zero cast), so the floor
+      is met by **lifting the paper itself**. `gen_parch_v1.py` gains a `LIFT` (×1.6) that raises the dim
+      v1 painted paper **partway** toward the live tone (the user's ruling: readable, keep aged warmth —
+      NOT full cream); the vignette (`board_geometry.vignette_gradient`) is **eased** (dark ring pushed
+      0.66→0.78, α 0.42→0.30) so outer notices aren't sunk; ink Labels stay unlit on top.
+      **Done** — **V7 green** (measured off the capture, worst-lit notices): paper lands at **lum ≈0.27–0.29**
+      (warm aged tan, short of the 0.47 cream floor by design) with **ink ≈4.8–5.1:1** at every worst-lit
+      (farthest-from-torch) notice — comfortably above the 4.5 floor. (Supersedes R136's "lit by the rig +
+      ambient fill" for the dungeon-dark grade; the floor now lives in the asset, not fragile lighting.)
 
 - [x] T157 [R138 / P76] — **Banner redesign.** New `gen_banner.py` authors `banner_v1.png` fresh —
       a plain frayed blood-crimson tapestry: three soft vertical fold-drapes as VALUE, a torn/deckled
@@ -102,15 +106,21 @@
       **Done** — **V9 green**: pixel-scan finds **0** stray dark specks (vs the corrupted proto slice);
       the capture shows a clean crimson drape with a warm hem by the flame.
 
-- [ ] T158 [R139 / P77, P78] — **Crest restyle + recolour (NOT lit).** Re-author `crest_v1.png` as a
-      consistent raster bronze medallion (Origin-neutral sigil), tonally matched, faint baked gilt
-      self-highlight, keep the mounted cast shadow. No normal, no shader. Headless-import.
-      Verify: part of **V10** — crest matches the register, sits in ambient dim.
+- [x] T158 [R139 / P77, P78] — **Crest regenerated (NOT lit).** Re-authored `crest_v1.png` as a
+      generated bronze oval medallion (`gen_emblems.make_crest`), replacing the proto slice + its
+      Origin-suggestive **cross** with an **Origin-neutral RADIANT STAR** (illumination / the Watcher /
+      "we seek truth" — deliberately not the eye/inverted-cross/diamond of Belief/Sin/Relic). Domed
+      bronze lit top-left, debossed sigil with a lit far lip, a raised rim bevel so it reads MOUNTED;
+      **darkened key** so it sits in the top's ambient dim (first cut read as a pale floating pebble).
+      `board_crest` still draws the cast shadow. No normal, no shader. Headless-imported.
+      **Done** — part of **V10 green**: the crest matches the register and sits in the ambient dim.
 
-- [ ] T159 [R140 / P77, P78] — **Placard restyle + recolour (NOT lit).** Re-author `board_placard.png`
-      as a consistent routed raster plaque (Godot draws gilt title over it), tonally matched. No normal,
-      no shader. Headless-import.
-      Verify: part of **V10** — placard matches the register, ambient dim.
+- [x] T159 [R140 / P77, P78] — **Placard regenerated (NOT lit).** Re-authored `board_placard.png`
+      (`gen_structure.placard_px`): **deepened field** (lerp WOOD_DEEP↔WOOD_EDGE) + a **carved inner lip**
+      so the Godot-drawn gilt title pops harder against the dungeon-dark key; kept the gold-lined groove +
+      brass nails. Also **removed `torch_sconce.png` from `gen_structure`'s jobs** (gen_emblems owns the
+      redrawn sconce now — a full gen_structure run no longer clobbers it). No normal, no shader.
+      **Done** — part of **V10 green**: the placard matches the register, ambient dim, gilt title reads.
 
 ## Phase B-2 — Lighting Restraint (dungeon-dark re-grade, TD-048)
 

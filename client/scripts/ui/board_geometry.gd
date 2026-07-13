@@ -191,11 +191,13 @@ static func decay_clear(rect: Rect2, footprints: Array) -> bool:
 # pool that gives the board its Prototype-v1 ambience.
 static func vignette_gradient() -> GradientTexture2D:
 	var grad := Gradient.new()
-	grad.offsets = PackedFloat32Array([0.0, 0.66, 1.0])
+	# Eased (T156): the dark ring is pushed outward + lightened so the outer notices are
+	# not sunk below the legibility floor — the vignette shapes the corners, never the writs.
+	grad.offsets = PackedFloat32Array([0.0, 0.78, 1.0])
 	grad.colors = PackedColorArray([
 		Color(0.03, 0.02, 0.012, 0.0),
-		Color(0.028, 0.018, 0.010, 0.12),
-		Color(0.02, 0.013, 0.007, 0.42)])   # gutters keep their lit wood — v1 is warm, not crushed black
+		Color(0.028, 0.018, 0.010, 0.07),
+		Color(0.02, 0.013, 0.007, 0.30)])   # gutters keep their lit wood — v1 is warm, not crushed black
 	var gt := GradientTexture2D.new()
 	gt.gradient = grad
 	gt.fill = GradientTexture2D.FILL_RADIAL
