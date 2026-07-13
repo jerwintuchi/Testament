@@ -1372,3 +1372,27 @@ wood" expectation** — with baked colour restored, lights-off now shows a *colo
 and R129's "light does the work" proof shifts to the small **local** lit-vs-off delta at each sconce,
 not a global one. The parchment notices are unlit baked paper, so their T145 contrast floor is
 unaffected by however dark the surround goes.
+
+## TD-049 — Board header goes heraldic: ornate blade-and-laurel crest + carved nameplate; new active spec (2026-07-13)
+
+**Context.** With board-lighting closed (TD-047/TD-048), the board header was still plain: the
+radiant-star medallion (T158) + routed placard (T159) were tonally cohesive but simple. The user
+supplied a Prototype-v1-family reference — a **Blasphemous-idiom carved header**: an ornate gilded-
+bronze emblem (upright **sword** + encircling **ring** + **laurel wreath** + **filigree scrollwork**)
+crowning a wide **carved-plank nameplate** with **iron corner brackets** and a two-line gilt title
+("THE COLLEGIUM" / "CONTRACT BOARD") — and ruled: "the crest and placard should look like this — not
+exactly, but **the design itself**."
+
+**Decision.** Open a new spec `specs/board-heraldry/` (R147–R151, P82–P85, T163–T166) to re-author the
+header to that design language: a generated ornate crest (`gen_heraldry.py`), a carved nameplate with
+iron corner brackets (9-slice), a widened header, and a big-title/subtitle. Binding = the *design
+language* (blade-and-laurel crest; carved plate with corner brackets; title + subtitle); the exact
+pixels are not. Origin-neutral (the blade of inquiry + the scholar's laurel is the **Collegium's**, not
+a trait sigil — P84). The title wording moves to the reference's signage form ("THE COLLEGIUM / CONTRACT
+BOARD"), on-canon (the order + the station name), trivially revertible to the diegetic petition-line.
+
+**Scope & containment.** **Client render-only** (I1/I2 hold — no server/shared/wire/game-state change,
+R151). Continues the TD-048 dungeon-dark grade: the header is **baked + tonally matched** (no dynamic
+shader — same reach ruling as the crest/placard), an accent on the dark, never a bright slab. **Supersedes**
+the T158 radiant-star crest + T159 routed placard (the immediate baseline). Generator gotchas carry over
+(run from `client/assets/ui/`; new PNGs need `--headless --import`).

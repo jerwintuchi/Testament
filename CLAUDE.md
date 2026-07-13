@@ -61,34 +61,25 @@ Station UI v2 is shipped server/shared-side (`specs/station-ui/`, T122–T130): 
 contract **board** + leader `SELECT_CONTRACT` (T122–T124), Stipend-priced
 Quartermaster and Deploy Gate. Superseded on the client by the Notice Board.
 
-Active spec: **`specs/board-lighting/`** (TD-047) — the Contract Board's lighting goes
-**dynamic**: the surround (frame, backing, wall) becomes **normal-mapped** surfaces lit by the
-torches, plus an ember rim, and a **CPUParticles2D** flame with flicker (redrawn raster sconce).
-`frame_v1` is re-authored NEUTRAL so the light supplies its colour (frame edit authorized for
-lighting, TD-047). Client render-only (I1/I2). **Phase A done (T148–T149): V1 green** — but the
-technique **pivoted**: Godot `Light2D` does **not** reach Control-node UI, so lighting is a
-`canvas_item` **fragment shader** (`board_surface.gdshader`) sampling the normal map from
-**uniform** torch lights (one `BoardDecor.torch_rig` feeds sprites + shader). **Phase B (T150) done,
-then RE-GRADED (TD-048):** T150's warmth over-corrected — washed out the dungeon mood + drowned the
-material colour, so **Phase B-2 — Lighting Restraint** (R142–R146, P79–P81, T160–T162, V11–V13)
-re-grades to **deep dungeon-dark**: **restore `frame_v1`'s baked carved-wood colour** (reversing the
-Phase-A neutralisation), pull the shader/fire cast in to a tight dim per-sconce halo (near-zero board
-cast), fire alive but not stealing the show. **The spec is COMPLETE (Phases A–D, T148–T162 + T154; only the T151 heat-haze stretch is
-consciously deferred).** Phase B-2 (642e3af): frame re-coloured to carved warm wood, shader pulled to
-a tight cup halo, wash dropped. Phase C (e5a007c): the sconce is a redrawn dungeon-dark iron cup
-(`gen_emblems.make_sconce`), the flame is a `CPUParticles2D` with organic flicker (`board_decor.
-torch_flame`, `spark.png`), reduced-motion → static frame-0. Phase D (d8e9d54, a025e8e): clean
-generated crimson banner (`gen_banner.py`, defect gone), parchment legibility floor lifted **partway**
-(`gen_parch_v1.py` LIFT ×1.6 + eased vignette — warm/aged, ink ≥4.8:1, NOT dynamically lit per TD-048),
-crest regenerated as an Origin-neutral bronze **radiant-star** medallion (`make_crest`), placard
-deepened for gilt pop. **T154 verified**: V1–V13 green, client-only diff, server (362)+shared (65)
-suites green, `--headless` clean. Reconciliations with the newer TD-048 dungeon-dark grade (parchments/
-banner baked, not rig-lit) are recorded in `tasks.md`. **Next: a new spec** — the paused notice-board
-a11y tail (T145–T147) is the obvious candidate. R129–R146, T148–T162.
+Completed: **`specs/board-lighting/`** (TD-047/TD-048) — dynamic torch lighting, **Phases A–D
+done + verified** (T148–T162 + T154; only the T151 heat-haze stretch deferred). Surround normal-
+mapped + shader-lit to a deep dungeon key (`board_surface.gdshader` reading one `BoardDecor.torch_rig`
+— Godot Light2D does NOT reach Control UI), `CPUParticles2D` sconce flame, clean crimson banner
+(`gen_banner.py`), parchment legibility floor lifted partway (`gen_parch_v1.py`). Commits b011623→6b9d225.
 
-@specs/board-lighting/requirements.md
-@specs/board-lighting/design.md
-@specs/board-lighting/tasks.md
+Active spec: **`specs/board-heraldry/`** (TD-049) — re-author the board **header** to the user's
+Blasphemous-idiom reference: an ornate gilded-bronze **crest** (upright **sword** + **ring** + **laurel
+wreath** + **filigree scroll**, Origin-neutral — the order's blade-and-laurel, not a trait sigil) crowning
+a wide **carved-plank nameplate** with **iron corner brackets** + a two-line gilt title ("THE COLLEGIUM"
+/ "CONTRACT BOARD"). Replaces the T158 radiant-star medallion + T159 routed placard. Client render-only
+(I1/I2); baked + tonally matched to the dungeon-dark board (no dynamic shader — same reach ruling). New
+generator `gen_heraldry.py` (crest + nameplate) + header re-wire (`_notice_placard`/`placard_rect`/
+`board_crest`). Binding = the **design language**, not pixel-identity (user ruling). **Next: implement
+T163 (crest) → T164 (nameplate) → T165 (wire) → T166 (verify).** R147–R151, P82–P85, T163–T166.
+
+@specs/board-heraldry/requirements.md
+@specs/board-heraldry/design.md
+@specs/board-heraldry/tasks.md
 
 Paused: **`specs/notice-board/`** — the diegetic commission wall (server done T131–T132,
 T138–T139; client Pass-2 raster reskin T140–T144 + the TD-046 art-director polish done).
