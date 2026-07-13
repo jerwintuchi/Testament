@@ -230,11 +230,12 @@ static func light_falloff() -> GradientTexture2D:
 # Wrapped with a soft, offset cast shadow (the same oval silhouette in black) so the
 # medallion reads as MOUNTED PROUD of the board wood, not a dark cutout in it.
 static func board_crest() -> Control:
-	var tex := load("res://assets/ui/crest_v1.png") as Texture2D
+	var tex := load("res://assets/ui/crest_v1.png") as Texture2D   # 150x132 heraldic emblem (TD-049)
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.custom_minimum_size = Vector2(76, 35)
-	root.size = Vector2(76, 35)
+	var cs := Vector2(82, 72)                                      # display size (keeps ~150:132)
+	root.custom_minimum_size = cs
+	root.size = cs
 	# Drop shadow: the crest silhouette in translucent black, nudged down-right and
 	# slightly enlarged. LINEAR + oversize gives it a soft edge (no blur pass needed).
 	var shadow := TextureRect.new()
@@ -245,7 +246,7 @@ static func board_crest() -> Control:
 	shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	shadow.modulate = Color(0.0, 0.0, 0.0, 0.42)
 	shadow.position = Vector2(-2.0, 3.0)
-	shadow.size = Vector2(80, 37)
+	shadow.size = cs + Vector2(4, 4)
 	root.add_child(shadow)
 	var face := TextureRect.new()
 	face.texture = tex
@@ -253,6 +254,6 @@ static func board_crest() -> Control:
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	face.stretch_mode = TextureRect.STRETCH_SCALE
 	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	face.size = Vector2(76, 35)
+	face.size = cs
 	root.add_child(face)
 	return root

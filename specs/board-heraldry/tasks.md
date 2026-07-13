@@ -8,41 +8,47 @@
 
 ## Assets
 
-- [ ] T163 [R147 / P83, P84] — **Ornate crest generator.** New `client/assets/ui/gen_heraldry.py`
-      (imports `ashember`): a `metal()` shading primitive on the bronze/gold ramp + composited
-      crest — filigree scrolls, broken ring, laurel wreath, upright sword (blade/fuller/guard/
-      grip/pommel), central boss — supersampled AA, lit top-left, Origin-neutral. Emit a taller
-      `crest_v1.png` (≈150×132). Headless-import.
-      Verify: **V1** — capture shows the layered blade-and-laurel-and-scroll emblem; sword + ring
-      + wreath + filigree each read; no Origin sigil. (If the filigree reads messy at capture size,
-      simplify to a pair of curls and record the call.)
+- [x] T163 [R147 / P83, P84] — **Ornate crest generator.** New `client/assets/ui/gen_heraldry.py`
+      (imports `ashember`): a `metal()` primitive on a DIM bronze/gold ramp (dungeon-dark — catches
+      by ornament + gilt edges, not brightness) + a composited crest — top filigree C-scrolls,
+      broken ring, laurel wreath (leaves along a lower-flank arc, tangent-tilted so they read as a
+      wreath, not radial spikes), upright sword (blade/fuller/crossguard/grip/pommel), central boss.
+      Supersampled AA, lit top-left, Origin-neutral (blade + laurel = the order's). `crest_v1.png`
+      150×132. Headless-imported.
+      **Done** — **V1 green**: the capture shows the layered blade-and-laurel-and-scroll emblem, each
+      component reading; no Origin sigil. (First cut was too bright gold → re-graded to dim bronze.)
 
-- [ ] T164 [R148 / P83] — **Carved nameplate generator.** Add a nameplate to `gen_heraldry.py`
-      (or `gen_structure.py`) → `board_nameplate.png` (≈112×48, 9-slice): iron corner brackets +
-      bolts in the fixed corners, beveled plank border, deep warm-wood field with horizontal grain
-      + a recessed title panel. Headless-import.
-      Verify: **V2** — capture shows the carved plate with iron corner brackets/bolts + bevel;
-      stretched to the title width, no smeared corner (9-slice holds).
+- [x] T164 [R148 / P83] — **Carved nameplate generator.** Added `nameplate_px` to `gen_heraldry.py`
+      → `board_nameplate.png` (112×48, 9-slice, margins 22/22/22/16): a dark IRON CORNER PLATE with a
+      beveled lit outer rim + a domed brass bolt in each fixed corner, a warm plank bevel border, a
+      deep warm-wood field with horizontal grain, and a recessed darker title panel. Headless-imported.
+      **Done** — **V2 green**: the capture shows the carved plate with dark iron corner fittings +
+      brass bolts; stretched to the title width the corners hold (9-slice). (First cut's corner L-arms
+      read as a light-grey frame → re-authored to dark iron plates with the bolt fixed.)
 
 ## Wiring
 
-- [ ] T165 [R148, R149, R150 / P85] — **Header re-wire.** `_notice_placard(title, subtitle)` →
-      two gilt labels ("THE COLLEGIUM" large / "CONTRACT BOARD" small, letter-spaced, centred,
-      drop-shadowed, unlit on top), nameplate 9-slice swapped in (margins 22/22/22/16), nails
-      dropped. `placard_rect` widened (`w ≈ inner.x·0.62`, taller) + `board_crest` grown
-      (≈96×85) and raised to crown/overlap the plate. Notices below un-occluded.
-      Verify: **V3** — "THE COLLEGIUM / CONTRACT BOARD" gilt, centred, legible (≥ floor at the
-      title). **V4** — crest crowns + overlaps the wider plate; `keepout ok=true` still logs.
+- [x] T165 [R148, R149, R150 / P85] — **Header re-wire.** `_notice_placard(title, subtitle)` → two
+      gilt labels ("THE COLLEGIUM" 17px / "CONTRACT BOARD" 9px letter-spaced, centred, drop-shadowed,
+      unlit on top), nameplate 9-slice swapped in (margins 22/22/22/16), nails dropped. `placard_rect`
+      widened (`w = inner.x·0.60`, taller for two lines). **Crest made a popup-tracking OVERLAY**
+      (`_board_crest`, created in `_init`, added to `pcenter` OUTSIDE the clipping ScrollContainer,
+      synced in `_process` anchored to the nameplate's global rect — base overlapping the plate top by
+      14px) so the emblem crowns OVER the top edge without being clipped at y=0; `TOP_RESERVE_FRAC`
+      0.20→0.235 so the notices reserve just below the compact plate.
+      **Done** — **V3 green**: "THE COLLEGIUM / CONTRACT BOARD" gilt, centred, **8.6:1** at the title.
+      **V4 green**: the crest crowns + overlaps the plate; `keepout ok=true` logs; notices show all
+      lines. Reader view unaffected (the crest stays crowning above the dimmed board).
 
 ## Verification
 
-- [ ] T166 [R147–R151 / P82–P85] — **Verification pass.** Run the DebugCapture pipeline
-      (`--board-preview`, incl. a stretched-title case), fix any GDScript/import errors; confirm
-      **no server/shared file changed** and the server + shared Vitest suites are still green
-      (untouched); `--headless` parses clean. Place the capture beside the reference (V6 design
-      fidelity). Refresh the board-preview artifact.
-      Verify: **V1–V6** green; `git diff --name-only` shows only client/docs/specs paths;
-      headless clean; suites green.
+- [x] T166 [R147–R151 / P82–P85] — **Verification pass.** DebugCapture pipeline (`--board-preview`
+      + `--reader`) exercised across the iterations; the 9-slice stretches cleanly at the header
+      width. **Done** — **V1–V6 green**: layered crest (V1), carved plate + iron corners hold under
+      stretch (V2), title 8.6:1 (V3), crest crowns + `keepout ok=true` (V4), `--headless` clean +
+      `git diff` client/docs/specs only + server 362 / shared 65 green (V5), and the capture beside
+      the reference reads as the same design language — ornate blade-and-laurel crest + carved
+      nameplate + title/subtitle (V6). Board-preview artifact refreshed.
 
 ## Notes
 

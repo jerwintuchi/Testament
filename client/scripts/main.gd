@@ -78,6 +78,8 @@ var _board_selection: Dictionary = {}  # the contract card being previewed, or {
 var _wood_sb: StyleBox            # Contract Board panel skin — the carved 9-slice frame (board_frame.png)
 var _backing_tex: Texture2D       # plank backing 9-slice, behind the notices
 var _board_frame: NinePatchRect   # carved frame overlay, shader-lit; tracks the popup rect (TD-047)
+var _board_crest: Control         # heraldic crest overlay, crowning the header (TD-049); tracks popup top
+var _board_placard_ref: Control   # the in-canvas nameplate the crest overlay anchors to
 var _parch_live: Array = []       # deckled LIVE parchment (warm, inner light) — 2 tear seeds (T143)
 var _parch_flavor: Array = []     # deckled FLAVOR parchment (aged, foxed) — 2 tear seeds
 var _tack_tex: Array = []         # nail · wax · pin · ribbon, seeded per live notice
@@ -241,6 +243,13 @@ func _ready() -> void:
 	_board_frame.visible = false
 	_board_frame.z_index = 3
 	pcenter.add_child(_board_frame)
+	# Heraldic crest overlay (TD-049): sits OUTSIDE the clipping ScrollContainer (like the
+	# frame) so the emblem can crown OVER the top edge of the header — as in the reference —
+	# instead of being clipped at the board's inner top. Tracks the popup top-centre in _process.
+	_board_crest = BoardDecor.board_crest()
+	_board_crest.z_index = 7                # above the frame (3) — the crest crowns everything
+	_board_crest.visible = false
+	pcenter.add_child(_board_crest)
 	var ppad := MarginContainer.new()
 	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
 		ppad.add_theme_constant_override(side, 10)
@@ -634,6 +643,13 @@ func _process(_delta: float) -> void:
 	if _board_frame != null and _board_frame.visible and _popup != null:
 		_board_frame.global_position = _popup.global_position
 		_board_frame.size = _popup.size
+	if _board_crest != null and _board_crest.visible and is_instance_valid(_board_placard_ref):
+		# Anchor the crest to the nameplate: centred on it, its base overlapping the plate's
+		# top edge by ~14px so the emblem crowns the sign (as in the reference).
+		var np := _board_placard_ref.get_global_rect()
+		_board_crest.global_position = Vector2(
+			np.position.x + (np.size.x - _board_crest.size.x) * 0.5,
+			np.position.y - _board_crest.size.y + 14.0).floor()
 
 # Interaction: E opens the station in range, Esc closes an open popup. Discrete
 # key edges (not held), read by physical location.
@@ -844,11 +860,15 @@ func _open_station(kind: String) -> void:
 		_popup_scroll.custom_minimum_size = _board_inner_size()
 		_board_frame.material = _surface_material("res://assets/ui/frame_v1_n.png", 0.40, 1.0)
 		_board_frame.visible = true
+		if _board_crest != null:
+			_board_crest.visible = true
 	else:
 		_popup.remove_theme_stylebox_override("panel")
 		_popup_scroll.custom_minimum_size = Vector2(400, 240)
 		if _board_frame != null:
 			_board_frame.visible = false
+		if _board_crest != null:
+			_board_crest.visible = false
 	_clear_popup_body()
 	_build_station_content(kind)
 	_animate_body_in()
@@ -1178,11 +1198,8 @@ func _build_contract_board() -> void:
 	_add_board_bar(canvas, inner)
 	# The carved sign hangs over the top of the board, above the papers (own layer).
 	_place_placard(canvas)
-	# Collegium crest medallion at the top-centre, crowning the placard.
-	var crest := BoardDecor.board_crest()
-	crest.position = Vector2((inner.x - crest.size.x) * 0.5, 1.0).floor()
-	crest.z_index = 6
-	canvas.add_child(crest)
+	# The heraldic crest is drawn as a popup-tracking OVERLAY (created in _init, synced in
+	# _process) so it can crown over the top edge — not clipped by the ScrollContainer.
 	_log("board live=%d flavor=%d" % [live, flavor_n])
 	# If a notice has been taken down, lay it on the reader over the dimmed board.
 	if not _board_selection.is_empty():
@@ -1721,7 +1738,7 @@ func _place_placard(canvas: Control) -> void:
 	var pr := BoardGeo.placard_rect(inner)
 	var w := pr.size.x
 	var h := pr.size.y
-	var placard := _notice_placard("PETITIONS BEFORE THE COLLEGIUM")
+	var placard := _notice_placard("THE COLLEGIUM", "CONTRACT BOARD")
 	placard.custom_minimum_size = Vector2(w, h)
 	placard.size = Vector2(w, h)
 	placard.position = pr.position.floor()
@@ -1729,6 +1746,7 @@ func _place_placard(canvas: Control) -> void:
 	# front of its own layer) can never draw over the hanging sign.
 	placard.z_index = 5
 	canvas.add_child(placard)
+	_board_placard_ref = placard   # the crest overlay anchors to this in _process
 
 # A radial warm-dark vignette (runtime, no PNG import): clear at the centre, near-black
 # at the corners — the torch-lit pool that gives the board its Prototype-v1 ambience.
@@ -1736,37 +1754,23 @@ func _place_placard(canvas: Control) -> void:
 # hung at the top-centre of the frame. LINEAR-filtered so the painted gilt stays soft.
 # A routed wood plaque with an incised (engraved) title, hung from two nail heads.
 # Pure render — no art dependency beyond the shared wood palette; inert to input.
-func _notice_placard(text: String) -> Control:
+func _notice_placard(title: String, subtitle: String) -> Control:
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for nx in [0.30, 0.70]:
-		var nail := Panel.new()
-		nail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var nsb := StyleBoxFlat.new()
-		nsb.bg_color = Color(0.12, 0.08, 0.05)
-		nail.add_theme_stylebox_override("panel", nsb)   # square peg (sharp, pixel-consistent)
-		nail.custom_minimum_size = Vector2(6, 6)
-		nail.size = Vector2(6, 6)
-		nail.anchor_left = nx
-		nail.anchor_right = nx
-		nail.offset_left = -3.0
-		nail.offset_right = 3.0
-		nail.offset_top = -6.0
-		nail.offset_bottom = 0.0
-		root.add_child(nail)
-	# Pass 2: the routed-sign sprite (board_placard.png) as a 9-slice, so the plaque
-	# stretches to any title width; Godot draws the gold lettering over it. Falls back
-	# to a flat wooden plaque if the texture is missing.
-	var ptex := load("res://assets/ui/board_placard.png") as Texture2D
+	# The carved nameplate (board_nameplate.png) as a 9-slice, so it stretches to width while
+	# the iron corner brackets + bolts stay un-smeared in the fixed corners (TD-049). Godot
+	# draws the two-line gilt title over the recessed centre field. Falls back to a flat plaque.
+	var ptex := load("res://assets/ui/board_nameplate.png") as Texture2D
 	if ptex != null:
 		var plaque := NinePatchRect.new()
 		plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		plaque.set_anchors_preset(Control.PRESET_FULL_RECT)
 		plaque.texture = ptex
-		plaque.patch_margin_left = 14
-		plaque.patch_margin_top = 8
-		plaque.patch_margin_right = 14
-		plaque.patch_margin_bottom = 8
+		plaque.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		plaque.patch_margin_left = 22
+		plaque.patch_margin_top = 22
+		plaque.patch_margin_right = 22
+		plaque.patch_margin_bottom = 16
 		root.add_child(plaque)
 	else:
 		var plaque := Panel.new()
@@ -1774,19 +1778,38 @@ func _notice_placard(text: String) -> Control:
 		plaque.set_anchors_preset(Control.PRESET_FULL_RECT)
 		var psb := StyleBoxFlat.new()
 		psb.bg_color = Color(0.31, 0.20, 0.11)
-		psb.set_corner_radius_all(0)
 		psb.set_border_width_all(2)
 		psb.border_color = Color(0.15, 0.09, 0.05)
 		plaque.add_theme_stylebox_override("panel", psb)
 		root.add_child(plaque)
-	var face := _card_label(text, 11, Color(0.92, 0.80, 0.52), false, true)
-	face.set_anchors_preset(Control.PRESET_FULL_RECT)
-	face.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	face.add_theme_color_override("font_shadow_color", Color(0.06, 0.03, 0.01, 0.9))
-	face.add_theme_constant_override("shadow_offset_x", 1)
-	face.add_theme_constant_override("shadow_offset_y", 2)
-	root.add_child(face)
+	# Two-line gilt title, centred over the plate (unlit ink on top → legibility independent
+	# of the baked nameplate lighting, P85): the order name over the station name.
+	var vb := VBoxContainer.new()
+	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", -1)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var t1 := _card_label(title, 17, Color(0.92, 0.80, 0.50), false, true)
+	t1.add_theme_constant_override("shadow_offset_x", 1)
+	t1.add_theme_constant_override("shadow_offset_y", 2)
+	t1.add_theme_color_override("font_shadow_color", Color(0.05, 0.02, 0.01, 0.95))
+	vb.add_child(t1)
+	var t2 := _card_label(_letterspace(subtitle), 9, Color(0.78, 0.65, 0.40), false, true)
+	t2.add_theme_color_override("font_shadow_color", Color(0.05, 0.02, 0.01, 0.9))
+	t2.add_theme_constant_override("shadow_offset_x", 1)
+	t2.add_theme_constant_override("shadow_offset_y", 1)
+	vb.add_child(t2)
+	root.add_child(vb)
 	return root
+
+# Space out a caps subtitle (a poor-man's letter-spacing for the pixel font).
+func _letterspace(s: String) -> String:
+	var out := ""
+	for i in s.length():
+		out += s[i]
+		if i < s.length() - 1:
+			out += " "
+	return out
 
 # Lift a card toward the viewer on hover (scale from its centre pivot).
 func _hover_card(card: Control, s: float) -> void:
