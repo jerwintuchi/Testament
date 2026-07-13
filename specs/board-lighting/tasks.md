@@ -31,13 +31,19 @@
 
 ## Phase B — Hybrid light shader
 
-- [ ] T150 [R130 / P71, P72] — **Ember-rim `light()` shader.** New
-      `client/assets/ui/board_surface.gdshader` (`canvas_item`, `light()` override: rim +
-      warm-to-ember, scaled by `LIGHT_ENERGY`/attenuation, native `LIGHT_*` — no manual uniform).
-      Assign a `ShaderMaterial` to the frame NinePatch (+ backing/wall if it reads well). Guard:
-      drop the material on shader error (graceful degrade).
-      Verify: **V2** — capture shows a warm ember rim on the frame's flame-facing edges cooling
-      with distance; run log has no shader-compile error.
+- [x] T150 [R130 / P71, P72] — **Ember-rim + warm-ambient tuning (uniform-based, per the T149
+      pivot).** The spec's `light()`-override wording is pre-pivot: Light2D never reaches these
+      Control nodes, so there is no native `LIGHT_*` to hook — the ember rim + warmth live in
+      `board_surface.gdshader`'s **uniforms/fragment**, driven by the one torch rig (P72). Done:
+      the rim term (`ember * pow(ndl,3) * rim_strength * atten`) already glows the flame-facing
+      edges and cools with `atten`; Phase B **fixed the "pale-grey where the light doesn't reach"
+      symptom** — added a warm `ambient_tint` so unlit wood reads as dim warm wood not cold silver,
+      and swapped the hard linear-clamp falloff for a `smoothstep` shoulder + a taller torch reach
+      (`radius` 0.62→0.74) so the warm pool climbs the board smoothly instead of cutting to grey
+      mid-frame. **V2 green** — lit capture shows the warm ember gradient/rim on the flame-facing
+      frame edges cooling with distance and the whole surround reading as warm torchlit wood; the
+      `--lights-off` capture collapses to flat uniform dim wood (relief/warmth gone → the shader,
+      not the diffuse, does the work — V1 still holds); no shader-compile error in either run.
 
 - [ ] T151 [R130] — **(Stretch) heat-haze** quad above each flame (time-scrolled UV wobble),
       amount→0 under reduced motion. **Deferrable**: skip if it costs legibility or capture
@@ -90,13 +96,51 @@
       no shader. Headless-import.
       Verify: part of **V10** — placard matches the register, ambient dim.
 
+## Phase B-2 — Lighting Restraint (dungeon-dark re-grade, TD-048)
+
+> Supersedes the T150 grade. A re-tune + one asset re-author; no new shader machinery. Order:
+> T160 (restore frame colour) → T161 (shader restraint) → T162 (fire-sprite restraint), each
+> capture-verified, then folded into the T154 verification pass.
+
+- [x] T160 [R143 / P80] — **Restore the frame's baked colour.** In `gen_normals.py`, re-author
+      `frame_v1.png` **from the preserved `_frame_v1_src.png`** (carved warm wood, its own hue baked
+      in; optionally value-darkened for the dungeon key) instead of neutralising it; keep
+      `frame_v1_n.png`. Headless-import.
+      **Done** — `_neutral_frame_pixel` replaced by `_restore_frame_pixel` (per-channel scale keeps the
+      wood hue; highlights >mid compressed ×0.65 so no baked hotspot reads as a fake light; ×0.82 darken
+      for the dungeon key); `frame_v1_n.png` unchanged (regen from same source is deterministic).
+      `python3 gen_normals.py` clean; headless-reimported; `--lights-off` capture shows the frame as
+      coloured carved warm wood (own hue present), not neutral grey (part of V11).
+
+- [x] T161 [R142, R144 / P79, P81] — **Shader restraint (dungeon-dark).** Retire/neutralise the
+      Phase-B warm `ambient_tint` (cool/low dungeon fill); pull `gain` down, the `torch_rig` radius
+      in (from 0.74 → tight cup halo), the `light_col` energy down; drop the backing `diffuse_gain`
+      toward ~1.0 so the planks read their own deep colour. Keep the low `ambient` floor so material
+      whispers; one rig still feeds every surface (P72).
+      **Done** — shader defaults: `ambient_tint` → faint-cool `(0.82,0.85,0.95)`, `gain` 1.7→0.7,
+      `rim_strength` 0.7→0.35, `ambient` 0.42→0.40; `torch_rig` radius 0.74→0.24; `light_col.a`
+      (energy) 1.35→0.9; per-surface ambient/diffuse_gain — frame `(0.40,1.0)`, backing `(0.42,1.1)`
+      (was 2.6 wash), wall `(0.30,1.0)`. **V11 green** — lit capture reads deep dungeon-dark: surround
+      near-black with the carved-wood colour whispering, only a tight per-sconce lift, orange wash gone;
+      the lit-vs-`--lights-off` delta is now small + local (superseding V1's global delta, by design).
+
+- [x] T162 [R145, R146 / P81, P73] — **Fire-sprite restraint.** In `board_decor.gd add_torches`,
+      shrink-hard-or-drop the broad gutter `wash` sprite and reduce the cup `glow` to a small dim halo
+      (near-zero board throw); flame stays alive; `--reduced-motion` still freezes flame + pins the dim
+      light.
+      **Done** — the board-wide gutter `wash` sprite (`torch_glow` @3.4×3.9) is **dropped**; the cup
+      `glow` shrunk 1.35×1.5→0.7×0.78 and dimmed α0.52→0.28 (flicker 0.34↔0.22). **V12 green** — the
+      flame stays alive with near-zero cast (a tight dim halo, no board bloom); `--reduced-motion`
+      capture is steady with the glow pinned to peak (P73). No shader/SCRIPT error; headless parse clean.
+
 ## Cross-cutting
 
-- [ ] T154 [R129–R141 / P71–P78] — **Verification pass.** Run `specs/board-lighting/playtest.md`
-      (**V1–V10**) on a worst-case seed via the DebugCapture pipeline, incl. `--reduced-motion`; fix any
+- [ ] T154 [R129–R146 / P71–P81] — **Verification pass.** Run `specs/board-lighting/playtest.md`
+      (**V1–V13**) on a worst-case seed via the DebugCapture pipeline, incl. `--reduced-motion`; fix any
       GDScript/shader errors; confirm **no server/shared file changed** and the server + shared
-      Vitest suites are still green (untouched); `--headless` parses clean.
-      Verify: V1–V10 green; `git diff --name-only` shows only client paths; MCP/headless clean.
+      Vitest suites are still green (untouched); `--headless` parses clean. (V11 supersedes V1's global
+      lights-off delta with the small local one; re-baseline captures.)
+      Verify: V1–V13 green; `git diff --name-only` shows only client paths; MCP/headless clean.
 
 ## Notes
 

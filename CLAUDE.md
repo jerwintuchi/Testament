@@ -68,8 +68,13 @@ torches, plus an ember rim, and a **CPUParticles2D** flame with flicker (redrawn
 lighting, TD-047). Client render-only (I1/I2). **Phase A done (T148–T149): V1 green** — but the
 technique **pivoted**: Godot `Light2D` does **not** reach Control-node UI, so lighting is a
 `canvas_item` **fragment shader** (`board_surface.gdshader`) sampling the normal map from
-**uniform** torch lights (one `BoardDecor.torch_rig` feeds sprites + shader). **Next: Phase B**
-(T150 ember-rim tuning), then C (particle fire) / D (props). R129–R141, T148–T159.
+**uniform** torch lights (one `BoardDecor.torch_rig` feeds sprites + shader). **Phase B (T150) done,
+then RE-GRADED (TD-048):** T150's warmth over-corrected — washed out the dungeon mood + drowned the
+material colour, so **Phase B-2 — Lighting Restraint** (R142–R146, P79–P81, T160–T162, V11–V13)
+re-grades to **deep dungeon-dark**: **restore `frame_v1`'s baked carved-wood colour** (reversing the
+Phase-A neutralisation), pull the shader/fire cast in to a tight dim per-sconce halo (near-zero board
+cast), fire alive but not stealing the show. **Next: implement T160–T162** (spec'd, not yet built),
+then C (particle fire) / D (props). R129–R146, T148–T162.
 
 @specs/board-lighting/requirements.md
 @specs/board-lighting/design.md

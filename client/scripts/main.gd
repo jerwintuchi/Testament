@@ -189,7 +189,7 @@ func _ready() -> void:
 	# diffuse is plain, the normal + uniform torch lights live in the shader material.
 	_stone_bg.texture = load("res://assets/ui/wall_v1.png") as Texture2D
 	_stone_bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	_stone_bg.material = _surface_material("res://assets/ui/wall_v1_n.png")
+	_stone_bg.material = _surface_material("res://assets/ui/wall_v1_n.png", 0.30, 1.0)  # background masonry: darkest (TD-048)
 	_stone_bg.modulate = Color(1.0, 1.0, 1.0, 1.0)   # brightness now comes from the shader lighting
 	_stone_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stone_bg.visible = false
@@ -842,7 +842,7 @@ func _open_station(kind: String) -> void:
 		clear.set_content_margin_all(20)
 		_popup.add_theme_stylebox_override("panel", clear)
 		_popup_scroll.custom_minimum_size = _board_inner_size()
-		_board_frame.material = _surface_material("res://assets/ui/frame_v1_n.png", 0.5, 1.0)
+		_board_frame.material = _surface_material("res://assets/ui/frame_v1_n.png", 0.40, 1.0)
 		_board_frame.visible = true
 	else:
 		_popup.remove_theme_stylebox_override("panel")
@@ -1051,7 +1051,7 @@ func _build_contract_board() -> void:
 		# Torch-lit via the surface shader (TD-047): the dark backing_v1 is pre-lifted in-shader
 		# (diffuse_gain) then lit by the torch rig — tests that a fragment shader preserves the
 		# NinePatch 9-slice AND takes the dynamic light (the frame conversion depends on this).
-		backing.material = _surface_material("res://assets/ui/backing_v1_n.png", 0.55, 2.6)
+		backing.material = _surface_material("res://assets/ui/backing_v1_n.png", 0.42, 1.1)
 		backing.modulate = Color(1.0, 1.0, 1.0)
 		# z_index MUST stay >= 0: at -2 the plank drew BEHIND the popup's opaque panel
 		# background and vanished, so the dark stone wall showed through ("see-through board").
@@ -1945,7 +1945,7 @@ func _surface_material(normal_path: String, ambient: float = 0.42, diffuse_gain:
 	var rads := PackedFloat32Array()
 	for t in rig:
 		uvs.append(t["uv"])
-		var c: Color = t["color"]; c.a = 1.35            # energy in alpha
+		var c: Color = t["color"]; c.a = 0.9             # energy in alpha (dimmed for the dungeon grade, TD-048)
 		cols.append(c)
 		rads.append(t["radius"])
 	mat.set_shader_parameter("light_uv", uvs)

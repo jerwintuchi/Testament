@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""gen_normals.py — normal maps + neutral frame diffuse for board dynamic lighting.
+"""gen_normals.py — normal maps + restored-colour frame diffuse for board dynamic lighting.
 
-Board Dynamic Lighting v1 (DECISION_LOG TD-047, spec specs/board-lighting/, T148/R129).
-Makes the wooden surround react to the torch Light2Ds: each surface gets a companion
-tangent-space **normal map**, and `frame_v1.png` is re-authored **NEUTRAL** so the torch
-LIGHT — not the diffuse — supplies its colour/direction. Stdlib only (pngio read +
-ashember write), so the user can regenerate; new PNGs are imported with
+Board Dynamic Lighting (DECISION_LOG TD-047 → re-graded TD-048, spec specs/board-lighting/,
+T148/R129 → T160/R143). Each surround surface gets a companion tangent-space **normal map**.
+The frame diffuse is **re-authored from the preserved painted source** to read as carved warm
+wood in its OWN colour (baked, legible even unlit) — the dungeon-dark re-grade (TD-048) reverses
+the earlier TD-047 neutralisation, where the frame was flattened so the torchlight supplied its
+colour; that washed out the mood, so colour is baked back in and the light is now only a whisper.
+Stdlib only (pngio read + ashember write), so the user can regenerate; new PNGs are imported with
 `godot --headless --path <UNC> --import`.
 
 Idempotent: the painted frame source is preserved as `_frame_v1_src.png` and every run
-derives from it (never from the already-neutralised `frame_v1.png`).
+derives from it (never from the already-processed `frame_v1.png`).
 
 Emits:
   _frame_v1_src.png   (first run only — a copy of the original painted frame, kept as source)
-  frame_v1.png        (RE-AUTHORED neutral warm-grey wood; relief now comes from the normal+light)
+  frame_v1.png        (RE-AUTHORED carved warm wood: source hue kept, baked hotspots softened,
+                       value darkened modestly for the dungeon key; TD-048/T160/R143)
   frame_v1_n.png      (strong carved-relief normal, derived from the painted source's luminance)
   backing_v1_n.png    (gentle plank normal; diffuse unchanged)
   wall_v1_n.png       (gentle brick normal; diffuse unchanged)
@@ -28,8 +31,6 @@ import pngio
 import ashember as A
 
 FLIP_G = False   # set True if the relief lights inverted in the V1 capture
-
-BASE_WOOD = (118, 106, 92)   # warm-neutral grey wood the neutral frame is toned to
 
 
 def _load_luma(path):
@@ -66,23 +67,30 @@ def _normal_pixel(w, h, lum, strength):
     return pixel
 
 
-def _neutral_frame_pixel(px):
-    """A pixel that flattens the painted frame to neutral warm-grey wood.
+DARKEN = 0.82              # modest value pull-down for the dungeon key (keeps hue)
+HIGHLIGHT_COMPRESS = 0.65  # soften baked hotspots so nothing reads as a fake light
 
-    Kills the baked colour/hotspot (compressed value, desaturated) so the torch light
-    supplies hue + direction; the carved FORM survives via the companion normal map.
-    Transparent interior stays transparent.
+
+def _restore_frame_pixel(px):
+    """A pixel that RESTORES the painted frame's own carved-wood colour (TD-048/R143).
+
+    Per-channel scaling keeps the wood's hue; baked highlights above mid are compressed
+    (so a painted hotspot never reads as a light the scene doesn't have), then the whole
+    frame is darkened modestly for the dungeon key. The carved FORM is still carried by the
+    companion normal map for the tight per-sconce halo. Transparent interior stays transparent.
     """
     def pixel(x, y):
         r, g, b, a = px(x, y)
         if a == 0:
             return (0, 0, 0, 0)
         L = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
-        c = 0.5 + (L - 0.5) * 0.5          # compress value contrast (kill hotspots)
-        tone = 0.55 + c * 0.85             # mid brightness band
-        return (A.clamp(BASE_WOOD[0] * tone),
-                A.clamp(BASE_WOOD[1] * tone),
-                A.clamp(BASE_WOOD[2] * tone), a)
+        # Soften only the highlights (L>0.5), leave shadows; per-channel scale preserves hue.
+        scale = 1.0
+        if L > 0.5:
+            f = 0.5 + (L - 0.5) * HIGHLIGHT_COMPRESS
+            scale = f / L
+        scale *= DARKEN
+        return (A.clamp(r * scale), A.clamp(g * scale), A.clamp(b * scale), a)
     return pixel
 
 
@@ -94,8 +102,8 @@ def main():
     fw, fh, flum, fpx = _load_luma("_frame_v1_src.png")
     A.write_png("frame_v1_n.png", fw, fh, _normal_pixel(fw, fh, flum, 8.0))
     print("wrote frame_v1_n.png (%dx%d)" % (fw, fh))
-    A.write_png("frame_v1.png", fw, fh, _neutral_frame_pixel(fpx))
-    print("re-authored frame_v1.png NEUTRAL")
+    A.write_png("frame_v1.png", fw, fh, _restore_frame_pixel(fpx))
+    print("re-authored frame_v1.png carved warm wood (TD-048/T160)")
 
     # Backing + wall: diffuse UNCHANGED, gentle luminance-bump normals only.
     for name, strength in (("backing_v1", 4.0), ("wall_v1", 4.0)):

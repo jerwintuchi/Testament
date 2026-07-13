@@ -196,7 +196,69 @@ One raster register across every board surface; one light rig for every LIT prop
 + banner); crest + placard the two documented un-lit exceptions. Decor stays low-contrast so gilt still
 leads the eye to headline/target/seal.
 
+## Phase B-2 — Lighting Restraint (dungeon-dark re-grade, R142–R146 / TD-048)
+
+> Satisfies R142–R146. A **re-grade**, not new machinery: it re-tunes the Phase-A/B shader
+> uniforms + the Phase-C-era additive sprites toward *dark*, and **restores the frame's baked
+> colour** (reversing the Phase-A neutralisation). One rig still (P72); render-only (P71).
+
+### Restore material colour (R143) — `gen_normals.py`
+
+Phase A saved the original warm frame as **`_frame_v1_src.png`** before neutralising (T148 note).
+The re-grade **stops neutralising**: `gen_normals.py` re-authors `frame_v1.png` **from that
+preserved source** — the carved warm-wood diffuse, optionally **value-darkened** a touch for the
+dungeon key, but keeping its own hue baked in. `frame_v1_n.png` (the carved relief normal) is
+**unchanged**. `backing_v1.png`/`wall_v1.png` diffuse art is unchanged; they simply stop being
+over-lifted by the shader (below), so their own colour reads at the low key. Re-import headless.
+
+### Shader restraint (R144) — `board_surface.gdshader` uniforms
+
+No shader-code rewrite; the fragment math stays. The re-grade is in the **uniform values** set by
+`main.gd _surface_material` (per surface) and the rig:
+- **Retire the warm `ambient_tint`** added in Phase B (or set it **cool/neutral** — a dim dungeon
+  fill, never a second warm source). Keep a **low `ambient`** floor so the now-coloured diffuse
+  *whispers* in the dark (board is dark, not pure black).
+- **Pull `gain` well down** (the lit term) and **`radius` well in** (the `torch_rig` radius, the
+  one source of truth — Phase B pushed it to 0.74; the re-grade brings it to a tight cup halo).
+  Lower the `light_col` energy (the alpha packed in `_surface_material`). Net: the fire lifts only
+  the immediate sconce surround; **near-zero cast** across the board (R142/R144).
+- **Drop `diffuse_gain` on the backing** back toward ~1.0 (Phase A pre-lifted it to 2.6, which now
+  reads as a wash) so the backing shows its own deep aged-wood colour at the dim key. (Consistent
+  with the still-pending **R137** "darker backing"; this re-grade sets the key that R137 authors to.)
+- The `smoothstep` shoulder (Phase B) may stay — with a small radius it just softens the tiny halo.
+
+`--lights-off` now zeroes `light_count` and the board shows the **coloured dark wooden board**
+(material carries the colour) — the lit-vs-off delta becomes **small + local** at each sconce
+(V11), by design, superseding V1's global "flat neutral wood" delta.
+
+### Fire sprite restraint (R145) — `board_decor.gd add_torches`
+
+The additive bloom, not the shader, was most of the "steals the show" wash:
+- **Shrink hard or drop the broad gutter `wash`** sprite (today `torch_glow` @ ~3.4×3.9, α≈0.17) —
+  it is the board-wide orange pool; the re-grade removes it or reduces it to a faint, small remnant.
+- **Reduce the cup `glow`** sprite (today @ ~1.35×1.5, α≈0.52) to a **small, dim** halo hugging the
+  flame — near-zero throw onto the frame/backing/wall.
+- The **flame** itself (sprite now, CPUParticles2D at Phase C) stays **alive** — flicker unchanged
+  in spirit; only its *cast* shrinks. **Reduced motion** still freezes it + pins the (dim) light (P73).
+
+### Files touched (all client, re-grade)
+
+Edited: `gen_normals.py` (frame re-coloured from `_frame_v1_src.png`, not neutralised) → re-authored
+`frame_v1.png`; `board_surface.gdshader` **uniform defaults** (cool/neutral ambient, lower rim) and/or
+`main.gd _surface_material` args (`ambient`, `gain`, `diffuse_gain`, energy); `board_decor.gd`
+`torch_rig` radius + `add_torches` wash/glow scale·alpha. **No server/shared files** (R135).
+
 ## Correctness Properties
+
+- **P79 (dungeon-dark at rest, R142):** with the flames lit, the surround's measured mean brightness
+  (off frame/backing/wall, excluding parchments + flame sprites) is at a **low key**; only a tight
+  per-sconce region exceeds it — no board-wide warm gradient. The dark mood is the dominant read.
+- **P80 (material colour is baked, R143):** the frame (and backing/wall) show their **own hue with
+  the light off** (`frame_v1.png` re-authored from `_frame_v1_src.png`, not the neutral grey) — the
+  colour no longer depends on the light reaching the surface; reverses the Phase-A neutral premise.
+- **P81 (fire doesn't steal the show, R144/R145):** the flame's lit halo + additive glow occupy only
+  a **small fraction** of the board area above the dim floor; the broad wash is gone; the fire is
+  alive but its cast is near-zero — the material, not the firelight, carries the board.
 
 - **P71 (render-only, R135):** every change is a client node/asset/shader; no `src/server` or
   `src/shared` edit, no wire message, no game-state read/write (I1/I2).

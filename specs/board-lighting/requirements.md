@@ -134,6 +134,71 @@ lit**.
   plaque (Godot still draws the gilt title text over it); tonally matched. **No normal map, no
   torch lighting** (same reach ruling as the crest, P77).
 
+## Phase B-2 — Lighting Restraint (dungeon-dark re-grade) — TD-048
+
+> Added 2026-07-13 (user). Phase B's warmth/reach tuning (T150) over-corrected: the firelight
+> grew so bright it **washed out the dark ambient Collegium/dungeon mood** and drowned the
+> material colour of the frame edges, backing, and wall — the sconce light was *stealing the
+> show*. The user re-graded the board (three locked answers, 2026-07-13):
+> **(1) mood = deep dungeon-dark** — the surround sits mostly near-black; the flames are the
+> only warm source, casting **near-zero** onto surfaces (a tight cup halo at most), and the
+> wood/stone colour only *whispers* out of the dark;
+> **(2) colour source = restore the material's own colour** — **`frame_v1.png` is re-authored
+> BACK to carved warm wood** (baked colour, legible even unlit), **reversing the Phase-A
+> neutralisation** (TD-047's "neutral frame, light supplies colour" premise is retired for the
+> frame); backing + wall read in their own colour at a low key;
+> **(3) fire reach = flame visible, near-zero cast** — the flame flickers and looks alive, but
+> lights surfaces almost not at all; the board stays near-fully dark.
+> Still client render-only (I1/I2); trust boundary untouched (R135 stands). This **supersedes
+> the Phase-B (T150) grade** — the warm ambient tint, `smoothstep`+extended reach, and broad
+> additive wash are pulled back; the Phase-A normal-map/shader machinery is **kept but scoped**
+> to a tight, dim halo. Numbering continues global: **R142+**, correctness **P79+**, tasks **T160+**.
+
+**R142** (client): the board surround reads **deep dungeon-dark at rest**, even with the flames lit.
+- AC: with both flames present, the frame, backing, and wall read **predominantly dark** — the
+  mean brightness of the surround (excluding the parchments, which are unlit baked paper, and the
+  flame sprites themselves) sits at a **low key**; only a **tight region around each sconce cup**
+  is visibly lifted. No board-wide warm gradient, no orange wash climbing the board (the Phase-B
+  reach is pulled back in).
+- AC: the dark, moody Collegium ambience is the dominant read; the light is an **accent**, not the
+  subject. (Heritage: canon "lit, not evenly bright" — here weighted hard toward *dark*.)
+
+**R143** (client): the frame, backing, and wall show their **own material colour**, baked, visible
+even with the light off — **reversing the Phase-A frame neutralisation** (TD-048).
+- AC: **`frame_v1.png` is re-authored back to carved warm wood** (its own hue baked into the
+  diffuse), from the preserved original source (`_frame_v1_src.png`, kept at T148) rather than the
+  neutralised grey; the frame reads as coloured carved wood at rest, not as a grey that only gains
+  colour when lit. `frame_v1_n.png` (the carved relief normal) is **kept**.
+- AC: `backing_v1.png` and `wall_v1.png` read in their **own** aged-wood / stone colour at the dim
+  key (the shader `diffuse_gain` no longer over-lifts the backing into a wash); with `--lights-off`
+  the whole board still reads as a **coloured dark wooden board** (the material carries the colour),
+  not flat neutral grey. (This intentionally changes V1's old "flat neutral wood" expectation — see
+  Verification V11.)
+
+**R144** (client): the shader firelight is **scoped to a tight, dim halo** at each sconce; the
+Phase-B over-correction is reverted.
+- AC: the warm **`ambient_tint`** is retired (or set to a **low, cool** dungeon fill, not warm), the
+  lit-term **`gain`** and the torch **`radius`** are pulled well in, and the `light_col` energy is
+  lowered — so the firelight lifts only the immediate cup surround and casts **near-zero** across the
+  board. The Phase-A rig (one `torch_rig`, P72) and the normal-mapped relief are **kept**, just scoped.
+- AC: a low **ambient** floor remains so the baked material colour still *whispers* in the dark (the
+  board is dark, never pure black); the ambient is cool/neutral (dungeon), never a second warm source.
+
+**R145** (client): the fire's **additive glow/wash sprites** are restrained so the fire never
+overpowers the material or steals the show.
+- AC: the broad **gutter wash** sprite (today `torch_glow` at ~3.4×3.9, the board-wide bloom) is
+  **shrunk hard or dropped**, and the cup **glow** sprite is reduced to a small, dim halo at the
+  flame — near-zero throw onto the frame/backing/wall; the flame sprite/particles stay **alive**
+  (flicker unchanged in spirit), but their *cast* is minimal.
+- AC: reduced motion (F9/`--reduced-motion`) still freezes the flame + pins the (now dim) light to
+  its peak — the accessibility lever is preserved at the new low intensity (P73 unchanged).
+
+**R146** (client): the re-grade regresses **none** of the standing invariants.
+- AC: one rig still feeds every consumer (P72); render-only (P71); capture-verifiable + headless-clean
+  (P74); reduced motion holds (P73); no server/shared/wire/game-state change (R135). Board behaviour
+  (select/deselect/deploy, notice legibility) is untouched — the parchments, being unlit baked paper,
+  keep their contrast floor regardless of how dark the surround goes.
+
 ## Cross-cutting
 
 **R141** (client): the whole board art is **one consistent hand-painted raster set** on **one
@@ -180,3 +245,17 @@ No GDScript unit harness (client-spec convention). Each requirement is verified 
 - **V10 (R139/R140/R141/P77/P78):** capture shows the restyled crest + placard tonally matched to
   the board (consistent raster), sitting in the top's ambient dim (not dynamically lit); no prop
   is in a foreign style.
+- **V11 (R142/R143/P79/P80):** the lit capture reads **deep dungeon-dark** — the surround's mean
+  brightness (sampled off the frame/backing/wall, excluding parchments + flames) sits at a low key,
+  with only a tight lifted region at each sconce (measured against the Phase-B capture: the board is
+  visibly darker and the orange wash is gone). **`--lights-off` now shows a coloured dark wooden
+  board** (the frame reads carved warm wood, backing/wall in their own hue), **not** flat neutral
+  grey — the material carries the colour (this deliberately supersedes V1's old "flat neutral wood"
+  expectation: R129's proof shifts to the small *local* lit-vs-off delta at each sconce, not a global one).
+- **V12 (R144/R145/P81):** the flame reads **alive** (flicker; two captures ~0.3s apart differ) yet
+  its **cast is near-zero** — the lit region above the dim floor occupies only a small fraction of
+  the board area around each sconce; no board-wide gradient or orange bloom. `--reduced-motion` still
+  freezes the flame + pins the dim light (P73).
+- **V13 (R146/P71/P72/P74):** one rig still feeds sprites + shader (a single `torch_rig` edit moves
+  both); `--headless` parses clean (no SCRIPT/shader error); `git diff --name-only` shows client
+  paths only; server + shared suites remain green (untouched).

@@ -1338,3 +1338,37 @@ the shader `light_count`. **V1 green:** lit rakes warm relief across frame/backi
 verification) remain **open/deferred** — several T145 items already folded into the TD-046 pass
 (keep-out, pinned paper, legibility). This log switches the *active* spec to board-lighting; the
 notice-board spec is paused, not abandoned.
+
+## TD-048 — Board lighting re-graded to dungeon-dark; Phase-A frame neutralisation reversed (2026-07-13)
+
+**Context.** Phase B's warmth/reach tuning (T150: warm `ambient_tint`, `smoothstep`+extended torch
+`radius` 0.62→0.74, plus the standing broad additive gutter wash) **over-corrected**. On review the
+user judged the firelight so bright it **washed out the dark ambient Collegium/dungeon mood** and
+drowned the **material colour** of the frame edges, backing, and wall — the sconce fire was *stealing
+the show*. The board should read as a dark gothic surface where the **material** is the subject and
+the fire is merely **alive**, not a floodlight.
+
+**Decisions (user-authorised, 2026-07-13; three locked answers).**
+- **Mood = deep dungeon-dark.** The surround sits mostly near-black; the flames are the only warm
+  source and cast **near-zero** onto surfaces (a tight cup halo at most); wood/stone colour only
+  *whispers* out of the dark. Canon "lit, not evenly bright" (TD-043) is weighted hard toward *dark*.
+- **Colour source = restore the material's own colour.** **`frame_v1.png` is re-authored BACK to
+  carved warm wood** (baked hue, legible even unlit), from the preserved original `_frame_v1_src.png`
+  (kept at T148). This **reverses the Phase-A / TD-047 premise** that the frame be *neutralised* so
+  "the torchlight supplies its colour" — that premise is **retired for the frame** (its normal map
+  `frame_v1_n.png` is kept). Backing + wall read in their own colour at a low key (the shader
+  `diffuse_gain` over-lift is dropped).
+- **Fire reach = flame visible, near-zero cast.** The flame flickers/looks alive but lights surfaces
+  almost not at all: shader `gain`/`radius`/energy pulled well in, warm `ambient_tint` retired (or set
+  to a low **cool** dungeon fill), and the broad additive **gutter wash** sprite shrunk-hard-or-dropped
+  with the cup glow reduced to a small dim halo.
+
+**Scope & containment.** Still `specs/board-lighting/`, **client render-only** (I1/I2 hold — no
+server/shared/wire/game-state change, R135 stands). New **Phase B-2 — Lighting Restraint**: R142–R146,
+P79–P81, T160–T162, verification V11–V13. The Phase-A normal-map/uniform-shader machinery and the one
+`torch_rig` (P72) are **kept but scoped** to a tight, dim halo. **Supersession:** the T150 grade is
+superseded (its warmth/reach walked back); **V11 supersedes V1's old "`--lights-off` ⇒ flat neutral
+wood" expectation** — with baked colour restored, lights-off now shows a *coloured dark wooden board*
+and R129's "light does the work" proof shifts to the small **local** lit-vs-off delta at each sconce,
+not a global one. The parchment notices are unlit baked paper, so their T145 contrast floor is
+unaffected by however dark the surround goes.

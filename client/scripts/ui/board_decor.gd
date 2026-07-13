@@ -18,7 +18,9 @@ static func torch_rig(vp: Vector2) -> Array:
 		var cx: float = vp.x * (0.94 if at_right else 0.06)
 		var cup_y := vp.y * 0.71               # sconce cup (banner foot), matches add_torches
 		var ly := cup_y - 12.0                 # flame centre
-		out.append({"uv": Vector2(cx / vp.x, ly / vp.y), "color": col, "radius": 0.62})
+		# Tight cup halo (TD-048 dungeon re-grade): the flame lifts only its immediate surround,
+		# casting near-zero across the board (was 0.74, a board-climbing pool — the show-stealer).
+		out.append({"uv": Vector2(cx / vp.x, ly / vp.y), "color": col, "radius": 0.24})
 	return out
 
 # Flanking wall torches, drawn on the stone-wall layer (behind the centred board) in
@@ -97,20 +99,9 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> vo
 		var banner_bottom := banner_top + target_h
 		var torch_x := banner_cx                       # under the banner, not beside it
 		var cup_y := banner_bottom - vp.y * 0.02       # sconce cup at the banner's foot
-		# Warm GUTTER WASH: a broad additive pool of firelight thrown across the stone pillar
-		# and toward the frame, so the fire visibly lights its surroundings (not a pasted sprite).
-		var wash := Sprite2D.new()
-		wash.texture = load("res://assets/ui/torch_glow.png") as Texture2D
-		wash.scale = Vector2(3.4, 3.9)
-		wash.position = Vector2(torch_x, cup_y - vp.y * 0.08)
-		wash.material = BoardGeo.additive_material()
-		wash.modulate = Color(glowc.r, glowc.g, glowc.b, 0.20 if reduced_motion else 0.17)
-		wash.z_index = -1
-		stone_bg.add_child(wash)
-		if not reduced_motion:
-			var wt := wash.create_tween().set_loops()
-			wt.tween_property(wash, "modulate:a", 0.22, 2.2).set_trans(Tween.TRANS_SINE)
-			wt.tween_property(wash, "modulate:a", 0.13, 2.2).set_trans(Tween.TRANS_SINE)
+		# The broad GUTTER WASH (a board-wide additive pool @ ~3.4x) is DROPPED in the dungeon
+		# re-grade (TD-048): it was the orange bloom that washed out the mood and stole the show.
+		# The fire now casts near-zero across the board — only the tight cup glow below remains.
 		# Iron sconce (T-bracket): its top bar is the cup. Centered sprite (12x20 @1.4 -> 28h),
 		# so top ≈ position.y-14; place position.y = cup_y+12 to seat the cup bar around cup_y.
 		var sconce := Sprite2D.new()
@@ -119,26 +110,27 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> vo
 		sconce.position = Vector2(torch_x, cup_y + 12.0)
 		sconce.z_index = 3
 		stone_bg.add_child(sconce)
-		# Glow: additive candle-pool, centred just above the cup on the flame.
+		# Glow: a SMALL, DIM additive halo hugging the flame (TD-048 dungeon re-grade — was a
+		# 1.35x candle-pool at a=0.52; now a tight cup halo with near-zero throw onto the board).
 		var glow := Sprite2D.new()
 		glow.texture = load("res://assets/ui/torch_glow.png") as Texture2D
-		glow.scale = Vector2(1.35, 1.5)
+		glow.scale = Vector2(0.7, 0.78)
 		glow.position = Vector2(torch_x, cup_y - 8.0)
 		glow.material = BoardGeo.additive_material()
-		glow.modulate = Color(glowc.r, glowc.g, glowc.b, 0.58 if reduced_motion else 0.52)
+		glow.modulate = Color(glowc.r, glowc.g, glowc.b, 0.32 if reduced_motion else 0.28)
 		glow.z_index = 3
 		stone_bg.add_child(glow)
 		if not reduced_motion:
 			var t := glow.create_tween().set_loops()
-			t.tween_property(glow, "modulate:a", 0.62, 1.8).set_trans(Tween.TRANS_SINE)
-			t.tween_property(glow, "modulate:a", 0.44, 1.8).set_trans(Tween.TRANS_SINE)
+			t.tween_property(glow, "modulate:a", 0.34, 1.8).set_trans(Tween.TRANS_SINE)
+			t.tween_property(glow, "modulate:a", 0.22, 1.8).set_trans(Tween.TRANS_SINE)
 		# Flame ON TOP of the sconce: its base (bottom of the 16x24 frame @1.2 -> 28.8h) seats
 		# on the cup, so centre = cup_y - 14.4 puts the flame base at cup_y and the tip above.
 		stone_bg.add_child(torch_flame(Vector2(torch_x, cup_y - 14.4), ember, reduced_motion))
 		# NOTE (TD-047): the surfaces are lit by `board_surface.gdshader` reading `torch_rig`,
 		# NOT by a Light2D — verified that a PointLight2D does not reach these Control nodes
-		# (cranked to energy 8 = zero change). The additive glow/wash sprites above are the
-		# flame's own bloom; the wall/backing/frame relief comes from the shader.
+		# (cranked to energy 8 = zero change). The small additive glow sprite above is the flame's
+		# own dim bloom; the wall/backing/frame relief comes from the shader (dungeon-dark, TD-048).
 
 # A small contained flame in the sconce (v1 candle) — a 4-frame grayscale-additive sheet
 # tinted to the ember ramp. Reduced motion freezes it on frame 0.
