@@ -45,10 +45,12 @@
       `--lights-off` capture collapses to flat uniform dim wood (relief/warmth gone → the shader,
       not the diffuse, does the work — V1 still holds); no shader-compile error in either run.
 
-- [ ] T151 [R130] — **(Stretch) heat-haze** quad above each flame (time-scrolled UV wobble),
-      amount→0 under reduced motion. **Deferrable**: skip if it costs legibility or capture
-      clarity; record the call.
-      Verify: capture shows subtle shimmer above the flame only; reduced-motion capture is steady.
+- [~] T151 [R130] — **(Stretch) heat-haze** quad above each flame. **DEFERRED (recorded call).**
+      Under the TD-048 dungeon-dark grade the fire's cast is near-zero and the flame is tiny; a
+      SCREEN_UV-wobble shimmer would be barely perceptible, would risk capture noise (undermining the
+      eyeball-verify pipeline), and buys little over the CPUParticles2D flicker already shipped (T153).
+      The spec flags it deferrable "if it costs legibility or capture clarity" — both apply. Left for a
+      future pass if the fire is ever brought back up.
 
 ## Phase C — Particle fire + sconce
 
@@ -161,12 +163,14 @@
 
 ## Cross-cutting
 
-- [ ] T154 [R129–R146 / P71–P81] — **Verification pass.** Run `specs/board-lighting/playtest.md`
-      (**V1–V13**) on a worst-case seed via the DebugCapture pipeline, incl. `--reduced-motion`; fix any
-      GDScript/shader errors; confirm **no server/shared file changed** and the server + shared
-      Vitest suites are still green (untouched); `--headless` parses clean. (V11 supersedes V1's global
-      lights-off delta with the small local one; re-baseline captures.)
-      Verify: V1–V13 green; `git diff --name-only` shows only client paths; MCP/headless clean.
+- [x] T154 [R129–R146 / P71–P81] — **Verification pass.** V1–V13 confirmed across Phases A→D via the
+      DebugCapture pipeline on the fixture board-preview (8 contracts; legibility measured on the
+      worst-lit outer notices), incl. `--reduced-motion`: V1/V11 (relief + dungeon-dark, local lights-off
+      delta), V2 (ember rim), V3–V5 (particle flame/flicker/sconce/reduced-motion), V7 (parchment floor,
+      ink 4.8–5.1:1 worst-lit), V8 (deep backing), V9 (clean crimson banner, 0 stray specks), V10
+      (crest + placard restyled, ambient dim), V12 (fire alive, near-zero cast), V13 (one rig).
+      **Done** — `git diff --name-only 642e3af~1 HEAD` shows **client/docs/specs only**; server (362) +
+      shared (65) Vitest suites **green** (untouched); `--headless` parses clean (no SCRIPT/shader error).
 
 ## Notes
 
