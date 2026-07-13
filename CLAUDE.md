@@ -73,9 +73,13 @@ wreath** + **filigree scroll**, Origin-neutral — the order's blade-and-laurel,
 a wide **carved-plank nameplate** with **iron corner brackets** + a two-line gilt title ("THE COLLEGIUM"
 / "CONTRACT BOARD"). Replaces the T158 radiant-star medallion + T159 routed placard. Client render-only
 (I1/I2); baked + tonally matched to the dungeon-dark board (no dynamic shader — same reach ruling). New
-generator `gen_heraldry.py` (crest + nameplate) + header re-wire (`_notice_placard`/`placard_rect`/
-`board_crest`). Binding = the **design language**, not pixel-identity (user ruling). **Next: implement
-T163 (crest) → T164 (nameplate) → T165 (wire) → T166 (verify).** R147–R151, P82–P85, T163–T166.
+generator `gen_heraldry.py` (crest + nameplate) + header re-wire. Binding = the **design language**,
+not pixel-identity (user ruling). **COMPLETE (T163–T166, commit 9338501):** `gen_heraldry.py` emits
+the dim-bronze crest (sword+ring+laurel+filigree) + carved nameplate (iron corner plates + brass
+bolts, 9-slice); the crest is a popup-tracking **overlay** (outside the clipping ScrollContainer,
+anchored to the nameplate rect) so it crowns over the top edge; two-line gilt title 8.6:1;
+`TOP_RESERVE_FRAC` 0.20→0.235 so notices still show every line. V1–V6 green, client-only, suites
+green. **Next: a new spec** — the paused notice-board a11y tail (T145–T147). R147–R151, T163–T166.
 
 @specs/board-heraldry/requirements.md
 @specs/board-heraldry/design.md
