@@ -79,11 +79,21 @@ the dim-bronze crest (sword+ring+laurel+filigree) + carved nameplate (iron corne
 bolts, 9-slice); the crest is a popup-tracking **overlay** (outside the clipping ScrollContainer,
 anchored to the nameplate rect) so it crowns over the top edge; two-line gilt title 8.6:1;
 `TOP_RESERVE_FRAC` 0.20→0.235 so notices still show every line. V1–V6 green, client-only, suites
-green. **Next: a new spec** — the paused notice-board a11y tail (T145–T147). R147–R151, T163–T166.
+green. R147–R151, T163–T166.
 
-@specs/board-heraldry/requirements.md
-@specs/board-heraldry/design.md
-@specs/board-heraldry/tasks.md
+Active spec: **`specs/board-consistency/`** (TD-050) — a Contract Board scene consistency pass on the
+user's review of the heraldry header: **crest smaller + crisp** (kill the LINEAR-downscale mush; sword+
+laurel defined), title → **"CONTRACT BOARD"** only (single line), **de-crowd** the notices (KEEP the
+TD-040 scatter — the oversized crest was crowding it), **one-register** style pass fixing **both sharpness
+AND detail** (crisp the soft, level DOWN the over-busy; the carved **frame is the anchor, untouched**;
+DON'T deviate the TD-046 canon), **banners shortened** off the sconces, **backing + wall lifted** to
+visible-but-moody (partial walk-back of TD-048, surfaces only). Client render-only (I1/I2). **Spec written
+(R152–R158, P86–P91, T167–T172); implementation not started.** **Next: implement T167 (crest) → T168
+(title/de-crowd) → T169 (banners) → T170 (surfaces) → T171 (style pass) → T172 (verify).**
+
+@specs/board-consistency/requirements.md
+@specs/board-consistency/design.md
+@specs/board-consistency/tasks.md
 
 Paused: **`specs/notice-board/`** — the diegetic commission wall (server done T131–T132,
 T138–T139; client Pass-2 raster reskin T140–T144 + the TD-046 art-director polish done).

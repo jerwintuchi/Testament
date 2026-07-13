@@ -1396,3 +1396,31 @@ R151). Continues the TD-048 dungeon-dark grade: the header is **baked + tonally 
 shader — same reach ruling as the crest/placard), an accent on the dark, never a bright slab. **Supersedes**
 the T158 radiant-star crest + T159 routed placard (the immediate baseline). Generator gotchas carry over
 (run from `client/assets/ui/`; new PNGs need `--headless --import`).
+
+## TD-050 — Contract Board consistency pass: crest resize/crisp, single-line title, de-crowd, style-level, banners, surfaces (2026-07-13)
+
+**Context.** After the heraldry header (TD-049) shipped, the user reviewed the whole Contract Board
+scene and asked for a consistency pass. Their requests + rulings (2026-07-13):
+- **Crest** — too large + blurry; make it **smaller and crisp** (the sword + laurel must read as defined
+  forms). The blur is the LINEAR downscale of the 150×132 source to ~82×72; the size crowds the top notice row.
+- **Title** — drop "THE COLLEGIUM"; the nameplate reads **"CONTRACT BOARD"** only (single line).
+- **Contract spacing** — **keep the organic scatter** (TD-040); the inconsistent spacing is the oversized
+  crest crowding, not the scatter — fixing the crest fixes it.
+- **Style consistency** — the scene's pixel styling is inconsistent; make it **one register**, fixing
+  **both sharpness AND detail** (crisp the soft/blurry, level DOWN the over-busy). **Keep the carved frame**
+  (the user likes it) — it is the **reference register**. **DON'T deviate the styling** (stay in TD-046
+  hand-painted raster canon).
+- **Banners** — too long, overlapping the sconces; **shorten** so they end above the sconce with a gap.
+- **Backing + wall** — not visible (over-sunk by TD-048); make them **visible but still moody** (read the
+  grain + masonry, kept darker than the parchments/frame).
+
+**Decision.** Open a new spec `specs/board-consistency/` (R152–R158, P86–P91, T167–T172): re-author the
+crest smaller + crisp (author near display size, NEAREST), single-line title, restore the notice reserve so
+the kept scatter de-crowds, shorten the banners off the sconces, lift the backing + wall to a visible-but-
+moody key, and run a one-register sharpness+detail consistency pass anchored to the (untouched) frame.
+
+**Scope & containment.** **Client render-only** (I1/I2 hold — no server/shared/wire/game-state change, R158).
+**Re-tunes TD-049** (two-line title + 82×72 crest → single line + smaller crisp crest; heraldry design kept).
+**Partially walks back TD-048** for the **backing + wall only** — the surfaces rise to visible; the frame's
+restored colour, the parchment legibility floor, and the near-zero fire cast all **stand**. The carved frame
+is deliberately **not** touched.
