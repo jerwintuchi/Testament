@@ -56,15 +56,17 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> vo
 		bshadow.modulate = Color(0.0, 0.0, 0.0, 0.32)
 		bshadow.z_index = -1
 		stone_bg.add_child(bshadow)
-		# Red tattered banner sliced from the Prototype-v1 raster (TD-044), LINEAR-filtered,
-		# modulated dark so it reads as a dim crimson tapestry, not a bright streak.
+		# Frayed blood-crimson tapestry, freshly GENERATED (T157/gen_banner.py — replaces the
+		# proto slice + its stray-pixel corruption). The dim crimson + fold value + warm hem are
+		# BAKED into the diffuse (dungeon-dark, TD-048: the banner is a plain Sprite2D, read by
+		# its own value), so it renders near-as-authored — only a whisper of dim to sink it back.
 		var banner := Sprite2D.new()
 		banner.texture = load("res://assets/ui/banner_v1.png") as Texture2D
 		banner.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		banner.scale = Vector2(bs, bs)
 		banner.centered = true
 		banner.position = banner_pos
-		banner.modulate = Color(0.46, 0.15, 0.15)   # dim blood-crimson, low green/blue (not orange)
+		banner.modulate = Color(0.90, 0.86, 0.86)   # baked crimson shows; a touch dimmed for the dark key
 		banner.z_index = 0
 		stone_bg.add_child(banner)
 		# Iron mount rod the banner hangs from — a dark bar with two nail heads at the top edge,

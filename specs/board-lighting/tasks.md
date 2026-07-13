@@ -75,11 +75,12 @@
 
 ## Phase D — Diegetic props (parchments lit; banner redesign+lit; backing darker; crest/placard restyle)
 
-- [ ] T155 [R137] — **Darker backing.** Re-author `backing_v1.png` deeper/lower-value (in
-      `gen_normals.py`/`gen_structure.py`); in `_build_contract_board` drop the hard
-      `modulate = Color(2.7,2.5,3.1)` to a gentle tint so the Phase-A light supplies brightness; keep
-      the grain overlay + the T148 normal map.
-      Verify: **V8** — capture shows a deeper backing, parchments popping, near-torch planks lifting warm.
+- [x] T155 [R137] — **Darker backing.** Satisfied by the TD-048 dungeon re-grade: `backing_v1.png`
+      already reads deep (native meanV≈22), the hard `modulate = Color(2.7,2.5,3.1)` was **already
+      dropped to `Color(1,1,1)`**, and T161 pulled the shader `diffuse_gain` back to 1.1 (no wash). The
+      grain overlay + T148 normal map are kept.
+      **Done** — **V8 green**: the capture shows a deep board with the parchments popping; no re-author
+      needed (the re-grade delivered the deeper key R137 asked for).
 
 - [ ] T156 [R136 / P75] — **Parchments lit + legibility floor.** Ensure the torch rig reaches the
       board centre so notices/reader catch warm falloff; add the **ambient fill** (dim cool
@@ -88,11 +89,18 @@
       Verify: **V7** — near-torch writ warmer than far; worst-lit notice paper ≥ floor and ink ≥ 4.5:1
       (measured off capture, worst-case seed).
 
-- [ ] T157 [R138 / P76] — **Banner redesign + lit.** New `gen_banner.py` (or `gen_emblems.py` add):
-      author `banner_v1.png` fresh (frayed crimson tapestry, plain, folds-as-value, no stray pixels) +
-      `banner_v1_n.png` normal (drape folds). Render as `Sprite2D` w/ `CanvasTexture`, lit by the rig;
-      keep the mount. Headless-import.
-      Verify: **V9** — capture shows the flame raking the folds; a pixel-scan finds no off-register cluster.
+- [x] T157 [R138 / P76] — **Banner redesign.** New `gen_banner.py` authors `banner_v1.png` fresh —
+      a plain frayed blood-crimson tapestry: three soft vertical fold-drapes as VALUE, a torn/deckled
+      hem, smooth low-freq age variation (the first cut's `x//8,y//10` worn-patches read as blocky
+      rectangles — the very defect being removed — replaced by overlapping sines), and a warm glow
+      baked into the lower hem where the sconce burns at the banner's foot. No emblem, no stray pixels.
+      `board_decor` modulate lifted (0.46,0.15,0.15 → 0.90,0.86,0.86) so the baked crimson reads.
+      **Adaptation (TD-048):** per the dungeon-dark grade the fold relief + torch warmth are BAKED into
+      the diffuse (the banner is a plain `Sprite2D`); **no companion `banner_v1_n.png` / dynamic rake**
+      is wired — a dynamic light on the banner would fight the near-zero cast, and the baked value reads
+      the drape against the near-black board. (Supersedes R138's "cloth normal + lit by the rig".)
+      **Done** — **V9 green**: pixel-scan finds **0** stray dark specks (vs the corrupted proto slice);
+      the capture shows a clean crimson drape with a warm hem by the flame.
 
 - [ ] T158 [R139 / P77, P78] — **Crest restyle + recolour (NOT lit).** Re-author `crest_v1.png` as a
       consistent raster bronze medallion (Origin-neutral sigil), tonally matched, faint baked gilt
