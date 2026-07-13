@@ -73,8 +73,14 @@ then RE-GRADED (TD-048):** T150's warmth over-corrected — washed out the dunge
 material colour, so **Phase B-2 — Lighting Restraint** (R142–R146, P79–P81, T160–T162, V11–V13)
 re-grades to **deep dungeon-dark**: **restore `frame_v1`'s baked carved-wood colour** (reversing the
 Phase-A neutralisation), pull the shader/fire cast in to a tight dim per-sconce halo (near-zero board
-cast), fire alive but not stealing the show. **Next: implement T160–T162** (spec'd, not yet built),
-then C (particle fire) / D (props). R129–R146, T148–T162.
+cast), fire alive but not stealing the show. **Phase B-2 (T160–T162) is DONE + committed** (642e3af):
+frame re-coloured to carved warm wood, shader pulled to a tight cup halo, broad additive wash dropped.
+**Phase C (T152–T153) is DONE** (uncommitted): the sconce is a redrawn dungeon-dark iron cup
+(`gen_emblems.make_sconce`), the flame is a `CPUParticles2D` with organic flicker (`board_decor.
+torch_flame`, `spark.png`), reduced-motion falls back to a static frame-0 flame — V3/V4/V5 green.
+**Next: Phase D** (T155–T159: darker backing, parchments lit + legibility floor, banner redesign+lit,
+crest/placard restyle-not-lit), then T154 (V1–V13 verification). T151 heat-haze is a deferrable
+stretch. R129–R146, T148–T162.
 
 @specs/board-lighting/requirements.md
 @specs/board-lighting/design.md

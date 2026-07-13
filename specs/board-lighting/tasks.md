@@ -52,18 +52,26 @@
 
 ## Phase C — Particle fire + sconce
 
-- [ ] T152 [R132] — **Redesigned raster sconce.** Extend `gen_emblems.py` → a redrawn iron
-      `torch_sconce.png` (wall plate + bowl, top-left key). Headless-import; seat the emitter at
-      the bowl.
-      Verify: **V4** — capture shows the new sconce holding the flame at its cup.
+- [x] T152 [R132] — **Redesigned raster sconce.** Extended `gen_emblems.py` (`make_sconce` +
+      `_seg_cov`) → a redrawn iron `torch_sconce.png` (12×20, bowl/cup + thick post + wall-plate
+      foot, top-left key). Re-graded DUNGEON-DARK to match TD-048: near-black **warm-neutral** iron
+      (firelit iron catches ember, not steel-blue — the first cut read as a pale bluish martini
+      glass) with only a faint warm rim on the up-left lip and a warm ember cavity at the cup.
+      Headless-imported; the emitter seats at the bowl (`board_decor` `cup_y - 2.0`).
+      **Done** — **V4 green**: the capture shows a dim iron cup holding the flame, dark below, cast
+      contained.
 
-- [ ] T153 [R131, R133, R134 / P73, P74] — **CPUParticles2D flame + flicker.** Replace the
-      4-frame `AnimatedSprite2D` with a `CPUParticles2D` at the cup (rise+taper, ember→smoke ramp,
-      additive, turbulence/scale variance for flicker); add `spark.png` (tiny soft additive dot);
-      the rig's light energy flickers in sympathy. **Reduced motion (F9/`--reduced-motion`):**
-      static flame + pinned-peak light.
-      Verify: **V3** — capture shows the particle flame; two captures ~0.3s apart differ (live
-      flicker); the light moves with it. **V5** — `--reduced-motion` capture is steady.
+- [x] T153 [R131, R133, R134 / P73, P74] — **CPUParticles2D flame + flicker.** Replaced the
+      4-frame `AnimatedSprite2D` with a `CPUParticles2D` at the cup (`torch_flame`): rectangle
+      emission (bowl-width), buoyant rise (`gravity y -60`), grow-then-shrink `scale_amount_curve`,
+      ember→smoke `color_ramp`, additive blend, and velocity/scale/lifetime variance +
+      `tangential_accel ±18` for organic flicker (no visible loop). Added `spark.png` (8×8 soft
+      additive dot). The sympathetic glow flicker + peak-pin already live in `add_torches` (T162).
+      **Reduced motion (`--reduced-motion`):** `_static_flame` returns the frozen frame-0 sprite,
+      seated at the cup; glow pinned by the caller.
+      **Done** — **V3 green**: particle flame renders; two captures ~0.3s apart differ (mean-diff
+      1.52 over the flame region → live flicker). **V5 green**: `--reduced-motion` capture is a
+      steady static flame + pinned glow. Headless parse clean, no SCRIPT/shader error.
 
 ## Phase D — Diegetic props (parchments lit; banner redesign+lit; backing darker; crest/placard restyle)
 

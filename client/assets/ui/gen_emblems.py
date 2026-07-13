@@ -154,6 +154,102 @@ def make_badge(verb):
     return _supersample(W, H, sample)
 
 
+# ── Iron wall-sconce (T152) ──────────────────────────────────────────────────────
+# A redrawn iron torch-holder: a shallow BOWL/cup at the top (holds the flame), an
+# iron STEM hanging below it, and a WALL PLATE + rivet bolting the whole to the
+# masonry. Lit top-left to match the board's one-key convention (gen_emblems header);
+# the bowl's inner lip carries a faint warm underglow so it reads as holding fire even
+# before the CPUParticles2D flame (T153) seats in its cup. 12x20 so `board_decor`'s
+# existing seating math ("12x20 @1.4 -> 28h") is unchanged.
+# Dungeon-dark iron (TD-048): near-black, WARM-neutral (firelit iron catches ember, not
+# steel-blue). The sconce reads as a dark silhouette with only a faint warm rim where the
+# flame above rakes its top-left edge — never a bright pale shape competing with the flame.
+IRON_DEEP = (12, 11, 10)     # near-black warm iron (down-right, body)
+IRON_BASE = (24, 21, 18)     # body mid
+IRON_HI   = (58, 48, 36)     # dim warm top-left catch
+IRON_RIM  = (98, 74, 44)     # warm ember rim on the up-left lip
+EMBER_LO  = (120, 52, 18)    # dark ember (bowl interior floor)
+
+
+def _seg_cov(nx, ny, px, py, qx, qy, half):
+    """Coverage (0..1) of point (nx,ny) inside a rounded segment p-q of radius `half`."""
+    vx, vy = qx - px, qy - py
+    L2 = vx * vx + vy * vy
+    t = 0.0 if L2 == 0 else _clampf(((nx - px) * vx + (ny - py) * vy) / L2)
+    ex, ey = px + t * vx, py + t * vy
+    return _clampf((half - math.hypot(nx - ex, ny - ey)) / 0.9)
+
+
+def make_sconce():
+    W, H = 12, 20
+    cx = 6.0
+
+    def sample(fx, fy):
+        # Region coverages (in pixel space) --------------------------------------
+        # POST: a thick vertical iron column (brazier stem, NOT a wine-glass stem) from
+        # under the bowl to the wall plate — thickness is what stops the goblet read.
+        stem = _seg_cov(fx, fy, cx, 6.8, cx, 14.5, 2.2)
+        # WALL PLATE: a squat horizontal foot bolted to the masonry.
+        plate = _seg_cov(fx, fy, cx - 3.0, 16.0, cx + 3.0, 16.0, 1.9)
+        # BOWL: two iron walls sloping up-and-out from the post to a rim, with a cavity
+        # between them the flame sits in. A tighter rim (less martini-flare) + thicker walls.
+        wall_l = _seg_cov(fx, fy, cx - 3.6, 1.8, cx - 1.2, 6.4, 1.3)
+        wall_r = _seg_cov(fx, fy, cx + 3.6, 1.8, cx + 1.2, 6.4, 1.3)
+        rim = _seg_cov(fx, fy, cx - 3.7, 1.9, cx + 3.7, 1.9, 1.1)
+        bowl = max(wall_l, wall_r, rim)
+        iron = max(stem, plate, bowl)
+        # CAVITY: interior of the bowl (above the post, between the walls) — warm.
+        cav = 0.0
+        if 2.1 < fy < 6.2:
+            span = 3.5 - (fy - 2.1) * 0.66          # narrows downward
+            cav = _clampf((span - abs(fx - cx)) / 1.0) * _clampf((fy - 2.1) / 0.8)
+        if iron <= 0.02 and cav <= 0.02:
+            return (0, 0, 0, 0)
+
+        # Lighting: top-left key, but DIM (dungeon-dark) — the body stays near-black; only
+        # the up-left edges catch a faint warm value. Deep shadow down-right.
+        leftness = _clampf((cx - fx) / 6.0 + 0.5)
+        topness = _clampf((14.0 - fy) / 14.0)
+        lit = _clampf(0.12 + leftness * 0.22 + topness * 0.16)
+        body = A.lerp_rgb(IRON_DEEP, IRON_HI, lit)
+        body = A.lerp_rgb(body, IRON_BASE, 0.30)
+        # silhouette rim catch on the extreme up-left of any iron edge
+        edge = 1.0 - max(stem, plate, bowl)
+        if iron > 0.35 and leftness > 0.62 and topness > 0.35:
+            body = A.lerp_rgb(body, IRON_RIM, _clampf((leftness - 0.62) * 1.4))
+        g = A.noise(int(fx), int(fy), 5) * 0.4
+        body = (body[0] + g, body[1] + g, body[2] + g)
+
+        # The warm cavity (fuel bed) reads over the iron where it's exposed.
+        if cav > 0.02:
+            floor = _clampf((fy - 2.0) / 3.6)       # brighter (higher) near the rim
+            warmc = A.lerp_rgb(EMBER_LO, A.warm(EMBER_LO, 0.6), floor)
+            a_iron = iron
+            body = A.lerp_rgb(body, warmc, cav * (1.0 - a_iron * 0.4))
+
+        a = max(iron, cav)
+        return (A.clamp(body[0]), A.clamp(body[1]), A.clamp(body[2]), A.clamp(a * 255))
+
+    return _supersample(W, H, sample)
+
+
+# ── spark.png — CPUParticles2D flame particle (T153) ─────────────────────────────
+# A tiny soft round grayscale-additive dot (white + radial alpha), tinted to the
+# flame ramp at runtime by the particle system's color_ramp. VFX source (exempt from
+# the palette lock by convention).
+def make_spark():
+    W = H = 8
+    cx = cy = 3.5
+
+    def sample(fx, fy):
+        d = math.hypot(fx - cx, fy - cy) / 3.5
+        a = _clampf(1.0 - d)
+        a = a * a                                   # soft round falloff
+        return (255, 255, 255, int(a * 255))
+
+    return _supersample(W, H, sample)
+
+
 # ── Supersampled render → averaged downsample (painterly AA edges) ───────────────
 def _supersample(W, H, sample):
     grid = {}
@@ -181,6 +277,10 @@ def main():
     for v in ("investigate", "eliminate", "capture", "banish"):
         A.write_png("badge_%s.png" % v, 24, 24, make_badge(v))
         print("wrote badge_%s.png" % v)
+    A.write_png("torch_sconce.png", 12, 20, make_sconce())
+    print("wrote torch_sconce.png")
+    A.write_png("spark.png", 8, 8, make_spark())
+    print("wrote spark.png")
 
 
 if __name__ == "__main__":

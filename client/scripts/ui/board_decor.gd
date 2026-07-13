@@ -124,38 +124,87 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> vo
 			var t := glow.create_tween().set_loops()
 			t.tween_property(glow, "modulate:a", 0.34, 1.8).set_trans(Tween.TRANS_SINE)
 			t.tween_property(glow, "modulate:a", 0.22, 1.8).set_trans(Tween.TRANS_SINE)
-		# Flame ON TOP of the sconce: its base (bottom of the 16x24 frame @1.2 -> 28.8h) seats
-		# on the cup, so centre = cup_y - 14.4 puts the flame base at cup_y and the tip above.
-		stone_bg.add_child(torch_flame(Vector2(torch_x, cup_y - 14.4), ember, reduced_motion))
+		# Flame seated at the sconce cup: `torch_flame` emits from this BASE point and rises.
+		# The bowl rim sits ~2px below the sprite top, so seat the base just inside the cup.
+		stone_bg.add_child(torch_flame(Vector2(torch_x, cup_y - 2.0), ember, reduced_motion))
 		# NOTE (TD-047): the surfaces are lit by `board_surface.gdshader` reading `torch_rig`,
 		# NOT by a Light2D — verified that a PointLight2D does not reach these Control nodes
 		# (cranked to energy 8 = zero change). The small additive glow sprite above is the flame's
 		# own dim bloom; the wall/backing/frame relief comes from the shader (dungeon-dark, TD-048).
 
-# A small contained flame in the sconce (v1 candle) — a 4-frame grayscale-additive sheet
-# tinted to the ember ramp. Reduced motion freezes it on frame 0.
-static func torch_flame(center: Vector2, ember: Color, reduced_motion: bool) -> AnimatedSprite2D:
-	var frames := SpriteFrames.new()      # ships with a "default" animation
-	frames.set_animation_speed("default", 11.0)
-	frames.set_animation_loop("default", true)
+# The sconce flame (T153) — a CPUParticles2D that rises + tapers from the cup, running an
+# ember→smoke ramp with additive blend and per-particle velocity/scale/lifetime variance +
+# a randomised tangential accel, so it FLICKERS organically with no visible loop period.
+# `base` is the cup lip (emission origin); particles rise above it. Kept small so its cast
+# stays near-zero (TD-048 dungeon re-grade) — the fire is alive, not the show. Reduced
+# motion returns a STATIC frame-0 flame instead (deterministic, capture-stable); the
+# sympathetic glow is pinned to peak by the caller (add_torches).
+static func torch_flame(base: Vector2, ember: Color, reduced_motion: bool) -> Node2D:
+	if reduced_motion:
+		return _static_flame(base, ember)
+	var fire := CPUParticles2D.new()
+	fire.position = base
+	fire.z_index = 4                       # a wall fixture; the paper hangs in front
+	fire.texture = load("res://assets/ui/spark.png") as Texture2D
+	fire.material = BoardGeo.additive_material()
+	fire.local_coords = false              # particles trail in world space as the flame licks
+	fire.amount = 20
+	fire.lifetime = 0.52
+	fire.lifetime_randomness = 0.4
+	fire.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	fire.emission_rect_extents = Vector2(2.4, 1.2)   # bowl-width base
+	fire.direction = Vector2(0, -1)
+	fire.spread = 12.0
+	fire.gravity = Vector2(0, -60.0)       # buoyant rise
+	fire.initial_velocity_min = 16.0
+	fire.initial_velocity_max = 34.0
+	fire.damping_min = 8.0
+	fire.damping_max = 22.0
+	fire.tangential_accel_min = -18.0      # side-to-side lick → flicker
+	fire.tangential_accel_max = 18.0
+	fire.scale_amount_min = 0.55
+	fire.scale_amount_max = 1.15
+	fire.scale_amount_curve = _flame_scale_curve()
+	fire.color_ramp = _flame_ramp()
+	return fire
+
+# Grow-then-shrink over particle life: a small spark at birth, fattening as it leaves the
+# cup, pinching out as it cools near the top.
+static func _flame_scale_curve() -> Curve:
+	var c := Curve.new()
+	c.add_point(Vector2(0.0, 0.35))
+	c.add_point(Vector2(0.28, 1.0))
+	c.add_point(Vector2(1.0, 0.1))
+	return c
+
+# Ember→smoke: pale-warm core at the base, ember mid, dark ember, fading transparent (with
+# additive blend the fade contributes nothing, so the flame tip dissolves cleanly).
+static func _flame_ramp() -> Gradient:
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.35, 0.7, 1.0])
+	g.colors = PackedColorArray([
+		Color(1.0, 0.85, 0.52, 0.85),
+		Color(0.95, 0.58, 0.22, 0.75),
+		Color(0.5, 0.16, 0.06, 0.30),
+		Color(0.05, 0.05, 0.05, 0.0),
+	])
+	return g
+
+# Reduced-motion fallback: the retired 4-frame sheet, frozen on frame 0, seated so its base
+# sits at the cup lip (`base`). Additive, ember-tinted, matching the live flame's footprint.
+static func _static_flame(base: Vector2, ember: Color) -> Sprite2D:
+	var spr := Sprite2D.new()
 	var sheet := load("res://assets/ui/torch_flame.png") as Texture2D
 	if sheet != null:
-		for i in 4:
-			var at := AtlasTexture.new()
-			at.atlas = sheet
-			at.region = Rect2(i * 16, 0, 16, 24)
-			frames.add_frame("default", at)
-	var spr := AnimatedSprite2D.new()
-	spr.sprite_frames = frames
+		var at := AtlasTexture.new()
+		at.atlas = sheet
+		at.region = Rect2(0, 0, 16, 24)
+		spr.texture = at
 	spr.scale = Vector2(1.2, 1.2)
-	spr.position = center
+	spr.position = base + Vector2(0, -14.4)   # centre up so the 28.8px-tall flame's base = cup
 	spr.material = BoardGeo.additive_material()
 	spr.modulate = ember
-	spr.z_index = 4              # a wall fixture, lit; the paper hangs in front of the glow
-	if reduced_motion:
-		spr.frame = 0
-	else:
-		spr.play("default")
+	spr.z_index = 4
 	return spr
 
 # A soft radial light-falloff (white centre -> transparent edge) for the torch PointLight2D.
