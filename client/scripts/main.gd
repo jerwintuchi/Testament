@@ -198,7 +198,7 @@ func _ready() -> void:
 	# diffuse is plain, the normal + uniform torch lights live in the shader material.
 	_stone_bg.texture = load("res://assets/ui/wall_v1.png") as Texture2D
 	_stone_bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	_stone_bg.material = _surface_material("res://assets/ui/wall_v1_n.png", 0.48, 1.0)  # masonry: darkest surface, but visible (TD-050 partial walk-back of TD-048)
+	_stone_bg.material = _surface_material("res://assets/ui/wall_v1_n.png", 0.78, 1.0)  # masonry ambient lifted so the wall texture READS in the gutters, still dimmer than board/parch
 	_stone_bg.modulate = Color(1.0, 1.0, 1.0, 1.0)   # brightness now comes from the shader lighting
 	_stone_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stone_bg.visible = false
@@ -1092,21 +1092,21 @@ func _focus_reticle() -> Control:
 	r.draw.connect(func() -> void:
 		var s := r.size
 		var bright := Color(0.99, 0.87, 0.48)
-		var faint := Color(0.93, 0.80, 0.44, 0.32)
-		var arm := clampf(minf(s.x, s.y) * 0.26, 8.0, 20.0)
-		# Faint outline on all four edges.
+		var faint := Color(0.93, 0.80, 0.44, 0.26)
+		var arm := clampf(minf(s.x, s.y) * 0.24, 7.0, 18.0)
+		# Faint hairline on all four edges.
 		r.draw_rect(Rect2(Vector2.ZERO, s), faint, false, 1.0)
-		# Bright L-brackets at each corner (offset in a hair so the arms read as a frame).
+		# Bright L-brackets at each corner (thin, offset in a hair so the arms read as a frame).
 		var corners := [
-			[Vector2(1, 1), Vector2(1, 0), Vector2(0, 1)],
-			[Vector2(s.x - 1, 1), Vector2(-1, 0), Vector2(0, 1)],
-			[Vector2(1, s.y - 1), Vector2(1, 0), Vector2(0, -1)],
-			[Vector2(s.x - 1, s.y - 1), Vector2(-1, 0), Vector2(0, -1)],
+			[Vector2(0.5, 0.5), Vector2(1, 0), Vector2(0, 1)],
+			[Vector2(s.x - 0.5, 0.5), Vector2(-1, 0), Vector2(0, 1)],
+			[Vector2(0.5, s.y - 0.5), Vector2(1, 0), Vector2(0, -1)],
+			[Vector2(s.x - 0.5, s.y - 0.5), Vector2(-1, 0), Vector2(0, -1)],
 		]
 		for c in corners:
 			var o: Vector2 = c[0]
-			r.draw_line(o, o + (c[1] as Vector2) * arm, bright, 2.0)
-			r.draw_line(o, o + (c[2] as Vector2) * arm, bright, 2.0))
+			r.draw_line(o, o + (c[1] as Vector2) * arm, bright, 1.0)
+			r.draw_line(o, o + (c[2] as Vector2) * arm, bright, 1.0))
 	r.resized.connect(r.queue_redraw)
 	return r
 
@@ -1483,7 +1483,9 @@ func _make_live_notice(intel: Dictionary, idx: int) -> Control:
 	card.add_child(mark)
 	# Lift toward the viewer AND raise above neighbours, so an overlapped notice is
 	# never occluded while you read/click it (dense scatter can stack corners).
-	card.mouse_entered.connect(func(): card.move_to_front(); _hover_card(card, 1.05); bg.modulate = _floor_tone(tint.lightened(0.26)))
+	# Hover takes precedence over the Tab position: moving the mouse onto a writ grabs focus, so
+	# the reticle jumps straight to the hovered writ (and Tab keeps working from there). (T146.)
+	card.mouse_entered.connect(func(): card.grab_focus(); card.move_to_front(); _hover_card(card, 1.05); bg.modulate = _floor_tone(tint.lightened(0.26)))
 	card.mouse_exited.connect(func(): _hover_card(card, 1.03 if sel else 1.0); bg.modulate = _floor_tone(tint.lightened(0.16)))
 	var verb := str(intel.get("primaryVerb", ""))
 	var pad := MarginContainer.new()
