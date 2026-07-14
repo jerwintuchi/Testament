@@ -5,7 +5,9 @@
 // Hybrid: N·L relief (from the normal) + an ember rim/warmth. Render-only (I1/I2).
 shader_type canvas_item;
 
-uniform sampler2D normal_tex : hint_normal;
+uniform sampler2D normal_tex : hint_normal, repeat_enable;
+uniform vec2  tile_scale = vec2(1.0);   // repeats of the diffuse/normal across the rect (1 = stretch;
+                                        // >1 tiles a small seamless texture, e.g. the stone wall brick)
 uniform vec2  light_uv[3];      // torch positions in SCREEN_UV space (0..1)
 uniform vec4  light_col[3];     // rgb = light colour, a = energy
 uniform float light_rad[3];     // reach, in UV-height units
@@ -24,9 +26,10 @@ uniform vec3  ember : source_color = vec3(1.0, 0.62, 0.30);
 uniform float rim_strength = 0.35;  // subtle ember edge, only inside the tight per-sconce halo
 
 void fragment() {
-	vec4 tex = texture(TEXTURE, UV);
+	vec2 tuv = UV * tile_scale;                 // tiled sampling UV (== UV when tile_scale is 1)
+	vec4 tex = texture(TEXTURE, tuv);
 	tex.rgb *= diffuse_gain;
-	vec3 N = normalize(texture(normal_tex, UV).xyz * 2.0 - 1.0);
+	vec3 N = normalize(texture(normal_tex, tuv).xyz * 2.0 - 1.0);
 	vec3 lit = tex.rgb * ambient * ambient_tint;
 	for (int i = 0; i < light_count; i++) {
 		vec2 toL2 = (light_uv[i] - SCREEN_UV) * vec2(aspect, 1.0);   // frag -> light (screen space)

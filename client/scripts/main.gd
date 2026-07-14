@@ -187,16 +187,17 @@ func _ready() -> void:
 	# but stays recessed. Shown for the Contract Board only (set in _open_station).
 	_stone_bg = TextureRect.new()
 	_stone_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	# TILE the tileable brick (stone_tile.png, 48x32) at native size so the masonry READS as real
-	# courses — the old wall_v1 strip was a near-black slice stretched ~11x wide, smearing every
-	# brick into flat bands. The tile carries its own baked bevel/AO/mortar, so no shader is
-	# needed (board_surface.gdshader was written for the stretched strip and can't tile); the
-	# torch flame+glow sprites (BoardDecor.add_torches) still wash the wall warm near the flames.
+	# The Collegium wall: a seamless brick (stone_tile.png, 48x32) TILED a few times across the
+	# screen (large courses that scale with the board), lit by board_surface.gdshader — the
+	# diffuse/normal are sampled at UV*tile_scale so the shader tiles too. Ambient is LOW so the
+	# wall sits in the dark and is REVEALED warm only where a sconce's halo reaches (the target:
+	# masonry noticed in the dark, from the torchlight). Light2D can't reach Control nodes (TD-047).
 	_stone_bg.texture = load("res://assets/ui/stone_tile.png") as Texture2D
-	_stone_bg.stretch_mode = TextureRect.STRETCH_TILE
-	_stone_bg.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	_stone_bg.stretch_mode = TextureRect.STRETCH_SCALE          # UV 0..1; the shader does the tiling
+	_stone_bg.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED   # so UV*tile_scale wraps the brick
 	_stone_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp pixel brick, not blurred
-	_stone_bg.modulate = Color(0.72, 0.68, 0.60)   # dimmed masonry — texture reads, still below the board key
+	_stone_bg.material = _surface_material("res://assets/ui/stone_tile_n.png", 0.30, 1.0, Vector2(6.0, 5.0))
+	_stone_bg.modulate = Color(1.0, 1.0, 1.0)   # brightness comes from the shader (dark ambient + sconce)
 	_stone_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stone_bg.visible = false
 	_popup_dim.add_child(_stone_bg)
@@ -2117,12 +2118,13 @@ func _canvas_tex(diffuse: Texture2D, normal: Texture2D) -> CanvasTexture:
 # A ShaderMaterial that lights a board surface from the torch rig (TD-047). Light2D does
 # not reach these Control nodes, so board_surface.gdshader samples the normal map + the
 # uniform torch lights itself. One rig (BoardDecor.torch_rig) feeds every surface (P72).
-func _surface_material(normal_path: String, ambient: float = 0.42, diffuse_gain: float = 1.0) -> ShaderMaterial:
+func _surface_material(normal_path: String, ambient: float = 0.42, diffuse_gain: float = 1.0, tile: Vector2 = Vector2.ONE) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://assets/ui/board_surface.gdshader") as Shader
 	mat.set_shader_parameter("normal_tex", load(normal_path) as Texture2D)
 	mat.set_shader_parameter("ambient", ambient)
 	mat.set_shader_parameter("diffuse_gain", diffuse_gain)
+	mat.set_shader_parameter("tile_scale", tile)   # >1 tiles a small seamless texture (the stone brick)
 	var vp := get_viewport_rect().size
 	var rig := BoardDecor.torch_rig(vp)
 	var uvs := PackedVector2Array()

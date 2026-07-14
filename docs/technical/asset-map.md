@@ -45,6 +45,7 @@
 - **`seal_sin.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
 - **`spark.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
 - **`stone_tile.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
+- **`stone_tile_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`tack_nail.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`tack_pin.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`tack_ribbon.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
@@ -112,7 +113,7 @@
 - **`client/assets/ui/gen_banner.py`** → `banner_v1.png`
 - **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_belief.png`, `seal_relic.png`, `seal_sin.png`, `spark.png`, `torch_sconce.png`
 - **`client/assets/ui/gen_heraldry.py`** → `board_nameplate.png`, `crest_v1.png`
-- **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `frame_v1.png`, `frame_v1_n.png`, `wall_v1_n.png`
+- **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`, `wall_v1_n.png`
 
 
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
@@ -139,8 +140,8 @@
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
-- `client/scripts/main.gd:2123` — `load/preload normal_path`
-- `client/scripts/main.gd:2146` — `load/preload path`
-- `client/scripts/main.gd:2150` — `load/preload normal_path`
+- `client/scripts/main.gd:2124` — `load/preload normal_path`
+- `client/scripts/main.gd:2148` — `load/preload path`
+- `client/scripts/main.gd:2152` — `load/preload normal_path`
 - `client/scripts/ui/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/ui/wax_seal.gd:24` — `load/preload SEAL_TEX[_origin]`
