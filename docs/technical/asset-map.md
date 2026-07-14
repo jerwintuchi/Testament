@@ -44,6 +44,7 @@
 - **`seal_relic.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
 - **`seal_sin.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
 - **`spark.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
+- **`stone_tile.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`tack_nail.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`tack_pin.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`tack_ribbon.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
@@ -52,7 +53,6 @@
 - **`torch_glow.png`** — produced-by: — · consumed-by: `client/scripts/ui/board_decor.gd` (load)
 - **`torch_sconce.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
 - **`votive.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`wall_v1.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`wall_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 
 ### `client/scenes/`
@@ -79,7 +79,7 @@
 - **`client/scripts/catalog.gd`**
   - preloads: `protocol.gd`
 - **`client/scripts/main.gd`**
-  - loads: `backing_v1.png`, `board_nameplate.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `panel.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `wall_v1.png`, `player.tscn`
+  - loads: `backing_v1.png`, `board_nameplate.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `panel.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
   - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `threat_pips.gd`, `verb_badge.gd`, `wax_seal.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/player.gd`**
@@ -129,6 +129,7 @@
 - `client/assets/ui/parch_live_1.png`
 - `client/assets/ui/parch_live_1_l.png`
 - `client/assets/ui/parch_live_1_r.png`
+- `client/assets/ui/wall_v1.png`
 
 
 ## Dangling references (resolvable ref, file absent) — advisory
@@ -138,8 +139,8 @@
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
-- `client/scripts/main.gd:2126` — `load/preload normal_path`
-- `client/scripts/main.gd:2149` — `load/preload path`
-- `client/scripts/main.gd:2153` — `load/preload normal_path`
+- `client/scripts/main.gd:2123` — `load/preload normal_path`
+- `client/scripts/main.gd:2146` — `load/preload path`
+- `client/scripts/main.gd:2150` — `load/preload normal_path`
 - `client/scripts/ui/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/ui/wax_seal.gd:24` — `load/preload SEAL_TEX[_origin]`

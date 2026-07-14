@@ -187,19 +187,16 @@ func _ready() -> void:
 	# but stays recessed. Shown for the Contract Board only (set in _open_station).
 	_stone_bg = TextureRect.new()
 	_stone_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	# SCALE, not TILE: wall_v1 has a baked directional light, so tiling reset the gradient at
-	# every tile edge — the hard "sharp shadow" seams. One stretched copy has no seams and,
-	# unlike COVERED (which crops to a dark middle slice), shows the whole lit brick so the
-	# wall stays visible. The torch Light2Ds relight it near the flames (dynamic, TD-043).
-	_stone_bg.stretch_mode = TextureRect.STRETCH_SCALE
-	# Painterly brick sliced from the Prototype-v1 raster (TD-044): the actual painted wall.
-	# LINEAR filter keeps its soft raster look, not pixelated.
-	# Torch-lit via board_surface.gdshader (Light2D doesn't reach Control nodes — TD-047): the
-	# diffuse is plain, the normal + uniform torch lights live in the shader material.
-	_stone_bg.texture = load("res://assets/ui/wall_v1.png") as Texture2D
-	_stone_bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	_stone_bg.material = _surface_material("res://assets/ui/wall_v1_n.png", 0.78, 1.0)  # masonry ambient lifted so the wall texture READS in the gutters, still dimmer than board/parch
-	_stone_bg.modulate = Color(1.0, 1.0, 1.0, 1.0)   # brightness now comes from the shader lighting
+	# TILE the tileable brick (stone_tile.png, 48x32) at native size so the masonry READS as real
+	# courses — the old wall_v1 strip was a near-black slice stretched ~11x wide, smearing every
+	# brick into flat bands. The tile carries its own baked bevel/AO/mortar, so no shader is
+	# needed (board_surface.gdshader was written for the stretched strip and can't tile); the
+	# torch flame+glow sprites (BoardDecor.add_torches) still wash the wall warm near the flames.
+	_stone_bg.texture = load("res://assets/ui/stone_tile.png") as Texture2D
+	_stone_bg.stretch_mode = TextureRect.STRETCH_TILE
+	_stone_bg.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	_stone_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp pixel brick, not blurred
+	_stone_bg.modulate = Color(0.72, 0.68, 0.60)   # dimmed masonry — texture reads, still below the board key
 	_stone_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stone_bg.visible = false
 	_popup_dim.add_child(_stone_bg)
