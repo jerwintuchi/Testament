@@ -196,7 +196,7 @@ func _ready() -> void:
 	_stone_bg.stretch_mode = TextureRect.STRETCH_SCALE          # UV 0..1; the shader does the tiling
 	_stone_bg.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED   # so UV*tile_scale wraps the brick
 	_stone_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp pixel brick, not blurred
-	_stone_bg.material = _surface_material("res://assets/ui/stone_tile_n.png", 0.30, 1.0, Vector2(6.0, 5.0))
+	_stone_bg.material = _surface_material("res://assets/ui/stone_tile_n.png", 0.24, 1.0, Vector2(5.0, 4.2))
 	_stone_bg.modulate = Color(1.0, 1.0, 1.0)   # brightness comes from the shader (dark ambient + sconce)
 	_stone_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stone_bg.visible = false
