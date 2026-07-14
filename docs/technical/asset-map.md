@@ -32,8 +32,8 @@
 - **`board_nameplate.png`** — produced-by: `client/assets/ui/gen_heraldry.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`board_surface.gdshader`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`cobweb.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`collegium_logo.png`** — produced-by: `client/assets/ui/gen_logo.py` · consumed-by: —
-- **`crest_v1.png`** — produced-by: `client/assets/ui/gen_heraldry.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
+- **`collegium_logo.png`** — produced-by: `client/assets/ui/gen_logo.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
+- **`crest_v1.png`** — produced-by: `client/assets/ui/gen_heraldry.py` · consumed-by: —
 - **`frame_v1.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`panel.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
@@ -94,7 +94,7 @@
   - preloads: `board_geometry.gd`, `notice.gd`, `verb_badge.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/board_decor.gd`**
-  - loads: `banner_v1.png`, `crest_v1.png`, `spark.png`, `torch_flame.png`, `torch_glow.png`, `torch_sconce.png`
+  - loads: `banner_v1.png`, `collegium_logo.png`, `spark.png`, `torch_flame.png`, `torch_glow.png`, `torch_sconce.png`
   - preloads: `board_geometry.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/board_geometry.gd`**

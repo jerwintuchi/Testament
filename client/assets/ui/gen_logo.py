@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""gen_logo.py — the Collegium emblem (blade-and-laurel in a shield), authored 1:1 to the
-author's reference: an upright SWORD set in a LAUREL wreath inside a heater SHIELD, in aged
-gilded bronze on transparent ground. A single reusable logo — the board crest crowns with it
-and the banner carries it. Run FROM client/assets/ui. Imports ashember + gen_heraldry's bronze
-relief helpers. Stdlib only. Brand-new PNGs need `godot --headless --import`.
+"""gen_logo.py — the Collegium emblem (blade-and-laurel), authored to the author's reference:
+a point-DOWN SWORD (pommel + grip + crossguard crowning the top, blade dropping to a point)
+set within a LAUREL wreath and a faint broken ring, in aged gilded bronze on transparent
+ground. NO shield (not in the reference). A single reusable logo — the board crest crowns
+with it and the banner carries it. Run FROM client/assets/ui. Imports ashember + gen_heraldry's
+bronze relief helpers. Stdlib only. Brand-new PNGs need `godot --headless --import`.
 """
 import math
 import ashember as A
@@ -64,38 +65,6 @@ def _laurel():
 LEAVES, STEM = _laurel()
 
 
-def _shield_hw(y):
-    """Half-width of the heater shield at height y (design space), or -1 outside."""
-    TY, MY, BY = 14.0, 84.0, 144.0
-    MAXHW = 49.0
-    if y < TY or y > BY:
-        return -1.0
-    if y <= MY:                                  # upper body, rounded top corners
-        hw = MAXHW
-        if y < TY + 12.0:
-            c = (TY + 12.0 - y) / 12.0           # 0..1 toward the top edge
-            hw = MAXHW * math.sqrt(max(0.0, 1.0 - c * c))
-        return hw
-    t = (y - MY) / (BY - MY)                      # 0..1 down to the point
-    return MAXHW * (1.0 - t * t * t) ** 0.62      # bulge then converge to a point
-
-
-def _shield(fx, fy):
-    """Thin bronze shield outline: alpha, rgb (or None)."""
-    hw = _shield_hw(fy)
-    if hw < 0.0:
-        return None
-    ax = abs(fx - CX)
-    d = abs(ax - hw)                              # distance to the side boundary
-    # close the top edge (a flat-ish lintel between the rounded corners)
-    if fy < 20.0 and ax < hw:
-        d = min(d, abs(fy - 14.0))
-    if d < 2.4 and ax <= hw + 2.4:
-        lit = _cl(0.5 + (-(fx - CX) * LX - (fy - 78.0) * LY) / 80.0 * 0.5)
-        return (_cl((2.4 - d) / 1.5), metal(lit, rim=_cl((1.3 - d)) * 0.35))
-    return None
-
-
 def _leaf(fx, fy):
     best = None
     for (lx, ly, la, size, s) in LEAVES:
@@ -124,37 +93,51 @@ def _stem(fx, fy):
 
 
 def _sword(fx, fy):
+    # POINT-DOWN (reference): pommel + grip + crossguard crown the top, the blade drops to a point.
     ax = abs(fx - CX)
     out = []
-    # blade: tip y=22 → guard y=94, tapered, bright centre ridge
-    if 22.0 <= fy <= 94.0:
-        bhw = 2.0 + (fy - 22.0) / 72.0 * 5.4
+    # pommel disc at the top
+    pd = math.hypot(fx - CX, fy - 26.0)
+    if pd < 5.8:
+        lit = _cl(0.4 + (-(fx - CX) * LX - (fy - 26.0) * LY) / 5.8 * 0.6)
+        out.append((_cl((5.8 - pd) * 1.5), metal(lit, rim=_cl(0.9 - pd / 5.8) * 0.5)))
+    # grip
+    if 29.0 <= fy <= 45.0 and ax < 3.3:
+        out.append((1.0, metal(_cl(0.3 + (3.3 - ax) / 3.3 * 0.3) * 0.8)))
+    # crossguard: a near-straight wide bar at y≈48, far tips easing UP a hair
+    gy = 48.0 - 0.0032 * (fx - CX) ** 2
+    if abs(fy - gy) < 3.4 and ax < 27.0:
+        taper = 1.0 if ax < 22.0 else _cl((27.0 - ax) / 5.0)   # rounded tips
+        lit = _cl(0.42 + (48.0 - fy) * 0.13 + (CX - fx) * 0.004)
+        out.append((_cl((3.4 - abs(fy - gy)) * 1.4) * taper, metal(lit, rim=_cl((48.0 - fy)) * 0.4)))
+    # blade: guard y=51 → tip y=138, tapering DOWN to a point, bright centre ridge
+    if 51.0 <= fy <= 138.0:
+        bhw = 7.4 - (fy - 51.0) / 87.0 * 5.9
         if ax < bhw:
             ridge = 1.0 - ax / bhw
             lit = _cl(0.36 + ridge * 0.52 + (CX - fx) / max(bhw, 1.0) * 0.12)
             out.append((1.0, metal(lit, rim=_cl(ridge - 0.6))))
-    # crossguard: a near-straight wide bar at y≈97, only the far tips easing down a hair
-    gy = 97.0 + 0.0032 * (fx - CX) ** 2
-    if abs(fy - gy) < 3.4 and ax < 27.0:
-        taper = 1.0 if ax < 22.0 else _cl((27.0 - ax) / 5.0)   # rounded tips
-        lit = _cl(0.42 + (97.0 - fy) * 0.13 + (CX - fx) * 0.004)
-        out.append((_cl((3.4 - abs(fy - gy)) * 1.4) * taper, metal(lit, rim=_cl((97.0 - fy)) * 0.4)))
-    # grip
-    if 100.0 <= fy <= 115.0 and ax < 3.3:
-        out.append((1.0, metal(_cl(0.3 + (3.3 - ax) / 3.3 * 0.3) * 0.8)))
-    # pommel disc
-    pd = math.hypot(fx - CX, fy - 120.0)
-    if pd < 5.8:
-        lit = _cl(0.4 + (-(fx - CX) * LX - (fy - 120.0) * LY) / 5.8 * 0.6)
-        out.append((_cl((5.8 - pd) * 1.5), metal(lit, rim=_cl(0.9 - pd / 5.8) * 0.5)))
     return out
+
+
+def _ring(fx, fy):
+    """A faint broken ring behind the emblem — the reference's circular arcs (no shield)."""
+    dx, dy = fx - CX, fy - 84.0
+    RR, BAND = 44.0, 1.9
+    rr = math.hypot(dx, dy)
+    dband = abs(rr - RR)
+    top_gap = (fy < 84.0) and (abs(dx) < 8.0)     # open at top where the hilt crosses
+    if dband < BAND and not top_gap:
+        lit = _cl(0.42 + (-dx * LX - dy * LY) / RR * 0.5)
+        return (_cl((BAND - dband) / 1.3) * 0.85, metal(lit * 0.8, rim=_cl((BAND - dband) - 0.6) * 0.3))
+    return None
 
 
 def logo_px(fx, fy):
     layers = []
-    sh = _shield(fx, fy)
-    if sh:
-        layers.append(sh)
+    rg = _ring(fx, fy)
+    if rg:
+        layers.append(rg)
     st = _stem(fx, fy)
     if st:
         layers.append(st)

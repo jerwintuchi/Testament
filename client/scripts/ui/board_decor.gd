@@ -228,25 +228,27 @@ static func light_falloff() -> GradientTexture2D:
 	gt.height = 128
 	return gt
 
-# The Collegium crest medallion — the oval sliced from the Prototype-v1 raster (TD-044),
-# hung at the top-centre of the frame. LINEAR-filtered so the painted gilt stays soft.
-# Wrapped with a soft, offset cast shadow (the same oval silhouette in black) so the
-# medallion reads as MOUNTED PROUD of the board wood, not a dark cutout in it.
+# The Collegium emblem — the order's blade-and-laurel (point-down sword + laurel wreath +
+# faint ring), authored by gen_logo.py to the author's reference. One canonical mark, reused
+# as the crest here and on the banner. Hung at the top-centre of the frame, crowning the
+# nameplate. Wrapped with a soft, offset cast shadow (the same silhouette in black) so it
+# reads as MOUNTED PROUD of the board wood, not a dark cutout in it.
 static func board_crest() -> Control:
-	var tex := load("res://assets/ui/crest_v1.png") as Texture2D   # 80x70 heraldic emblem (TD-050: authored small)
+	var tex := load("res://assets/ui/collegium_logo.png") as Texture2D   # 92x113 emblem (gen_logo.py)
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Display 1:1 with the authored size (80×70) and filter NEAREST — crisp pixel edges, NO engine
-	# scaling at all (TD-050). Any mismatch here re-introduces a downscale mush; keep it == source.
-	# Smaller than the old 82×72 so it stops crowding the top notice row.
-	var cs := Vector2(80, 70)
+	# Displayed scaled-to-crown (native 92×113 → 74×91) so the tall blade-and-laurel crowns the
+	# nameplate without clipping the frame/viewport top. LINEAR filter: the emblem is smooth
+	# baked-AA bronze RELIEF (not crisp pixel art), so a downscale reads as soft gilt, not mush
+	# — the NEAREST-1:1 rule (TD-050) was for the pixel-authored crest_v1, which this supersedes.
+	var cs := Vector2(74, 91)
 	root.custom_minimum_size = cs
 	root.size = cs
 	# Drop shadow: the crest silhouette in translucent black, nudged down-right. NEAREST keeps it
 	# a crisp offset silhouette (matched to the face); the alpha is what softens it, not a blur.
 	var shadow := TextureRect.new()
 	shadow.texture = tex
-	shadow.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	shadow.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shadow.stretch_mode = TextureRect.STRETCH_SCALE
 	shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -256,7 +258,7 @@ static func board_crest() -> Control:
 	root.add_child(shadow)
 	var face := TextureRect.new()
 	face.texture = tex
-	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	face.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	face.stretch_mode = TextureRect.STRETCH_SCALE
 	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
