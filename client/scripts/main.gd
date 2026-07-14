@@ -75,6 +75,7 @@ var _active_station := ""         # kind of the station in range, or "" — a re
 var _menu_open := false           # a station popup is up: movement is locked
 var _popup_kind := ""             # the station kind the open popup was built for (for rebuilds)
 var _board_selection: Dictionary = {}  # the contract card being previewed, or {} = the grid view
+var _focus_cid: String = ""            # contractId of the keyboard-focused writ, kept across rebuilds
 var _wood_sb: StyleBox            # Contract Board panel skin — the carved 9-slice frame (board_frame.png)
 var _backing_tex: Texture2D       # plank backing 9-slice, behind the notices
 var _board_frame: NinePatchRect   # carved frame overlay, shader-lit; tracks the popup rect (TD-047)
@@ -346,16 +347,24 @@ func _board_preview() -> void:
 		_focus_first_notice.call_deferred()
 	_log("board preview: %d fixture contracts" % pv_board.size())
 
-# Focus the reading-first live notice (top-left) — the keyboard entry point (T146 / L6).
-# (Groups aren't ordered, so pick geometrically: top row, then left-most.)
+# Give keyboard nav a starting point on the board (T146 / L6): restore the writ that held
+# focus before a rebuild (by contractId), else focus the reading-first (top-left) writ, so
+# Tab immediately walks the grid and the corner reticle shows. (Groups aren't ordered, so
+# reading order is derived geometrically: top row, then left-most.)
 func _focus_first_notice() -> void:
 	var cards := get_tree().get_nodes_in_group("live_notice")
 	cards.sort_custom(func(a: Control, b: Control) -> bool:
 		if absf(a.position.y - b.position.y) > 8.0:
 			return a.position.y < b.position.y
 		return a.position.x < b.position.x)
-	if not cards.is_empty() and cards[0] is Control:
-		(cards[0] as Control).grab_focus()
+	if cards.is_empty():
+		return
+	if _focus_cid != "":
+		for c in cards:
+			if c is Control and str((c as Control).get_meta("cid", "")) == _focus_cid:
+				(c as Control).grab_focus()
+				return
+	(cards[0] as Control).grab_focus()
 
 # On a window/viewport resize, re-fit an open station: recompute the board's
 # scroll size and rebuild its body (the notice scatter is resolution-scaled), then
@@ -1065,6 +1074,36 @@ func _focus_ring() -> StyleBoxFlat:
 	sb.shadow_size = 5
 	return sb
 
+# A keyboard-focus reticle (T146 / L6): four BRIGHT corner brackets over a FAINT full-edge
+# outline — the selection read from the reference. Drawn via the `draw` signal so it needs no
+# separate script or asset; sits over its card, hidden until the card takes focus. Returns the
+# reticle Control (add as the card's last child; toggle its visibility on focus).
+func _focus_reticle() -> Control:
+	var r := Control.new()
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.set_anchors_preset(Control.PRESET_FULL_RECT)
+	r.visible = false
+	r.draw.connect(func() -> void:
+		var s := r.size
+		var bright := Color(0.99, 0.87, 0.48)
+		var faint := Color(0.93, 0.80, 0.44, 0.32)
+		var arm := clampf(minf(s.x, s.y) * 0.26, 8.0, 20.0)
+		# Faint outline on all four edges.
+		r.draw_rect(Rect2(Vector2.ZERO, s), faint, false, 1.0)
+		# Bright L-brackets at each corner (offset in a hair so the arms read as a frame).
+		var corners := [
+			[Vector2(1, 1), Vector2(1, 0), Vector2(0, 1)],
+			[Vector2(s.x - 1, 1), Vector2(-1, 0), Vector2(0, 1)],
+			[Vector2(1, s.y - 1), Vector2(1, 0), Vector2(0, -1)],
+			[Vector2(s.x - 1, s.y - 1), Vector2(-1, 0), Vector2(0, -1)],
+		]
+		for c in corners:
+			var o: Vector2 = c[0]
+			r.draw_line(o, o + (c[1] as Vector2) * arm, bright, 2.0)
+			r.draw_line(o, o + (c[2] as Vector2) * arm, bright, 2.0))
+	r.resized.connect(r.queue_redraw)
+	return r
+
 # Normalised inside BoardGeo.live_bounds(), not inside the whole canvas.
 # Flavor scraps fill the gaps and the edges. Drawn BEHIND the live notices, so they
 # may tuck under a contract (dense clutter) without ever stealing its click — they
@@ -1291,6 +1330,10 @@ func _build_contract_board() -> void:
 	# If a notice has been taken down, lay it on the reader over the dimmed board.
 	if not _board_selection.is_empty():
 		_show_notice_reader(canvas, _board_selection)
+	elif live > 0:
+		# Grid view: seed keyboard focus so Tab walks the writs and the corner reticle shows
+		# from the first frame (T146 / L6). Restores the prior writ across a rebuild.
+		_focus_first_notice.call_deferred()
 
 # The board's inner area (inside the wood frame): the popup scroll region, minus a
 # little breathing room. Absolute notice placement is normalised to this.
@@ -1359,12 +1402,12 @@ func _make_live_notice(intel: Dictionary, idx: int) -> Control:
 	card.flat = true
 	card.clip_contents = true   # a long target never spills its writ onto the wall below
 	# Keyboard reachable (T146 / L6): Tab traverses the writs in board (reading) order, Enter/
-	# Space takes one down — a Button gives that natively once it is focusable and shows a ring.
+	# Space takes one down. The focus mark is a corner-bracket reticle (added below), not a
+	# stylebox ring, so all four states stay flat.
 	card.focus_mode = Control.FOCUS_ALL
 	var empty := StyleBoxEmpty.new()
-	for st in ["normal", "hover", "pressed"]:
+	for st in ["normal", "hover", "pressed", "focus"]:
 		card.add_theme_stylebox_override(st, empty)
-	card.add_theme_stylebox_override("focus", _focus_ring())
 	if sel:
 		card.rotation_degrees = 0.0   # the one taken down hangs straight
 	card.pressed.connect(func(): _select_board_card(intel))
@@ -1465,6 +1508,17 @@ func _make_live_notice(intel: Dictionary, idx: int) -> Control:
 		rb.shadow_size = 6
 		ring.add_theme_stylebox_override("panel", rb)
 		card.add_child(ring)
+	# Keyboard-focus reticle (T146 / L6): the last child so its brackets draw over the writ.
+	# Focus is tracked by contractId so a board rebuild (a ready-toggle, a seal) restores it.
+	var cid := str(intel.get("contractId", ""))
+	card.set_meta("cid", cid)
+	var reticle := _focus_reticle()
+	card.add_child(reticle)
+	card.focus_entered.connect(func():
+		_focus_cid = cid
+		reticle.visible = true
+		reticle.queue_redraw())
+	card.focus_exited.connect(func(): reticle.visible = false)
 	return card
 
 # An inert flavor notice: aged parchment, a header + a few lines, never clickable.
@@ -1796,7 +1850,7 @@ func _build_keyhint() -> Control:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 26)
 	bar.add_child(row)
-	for pair in [["Click", "View Contract"], ["Esc", "Back"]]:
+	for pair in [["Tab", "Navigate"], ["Enter", "Take down"], ["Click", "View Contract"], ["Esc", "Back"]]:
 		var cell := HBoxContainer.new()
 		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cell.add_theme_constant_override("separation", 8)
