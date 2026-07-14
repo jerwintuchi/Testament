@@ -176,6 +176,12 @@ func _ready() -> void:
 	_popup_dim.color = Color(0.02, 0.015, 0.01, 0.74)   # deep, faintly warm — the crypt beyond the board
 	_popup_dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	_popup_dim.visible = false
+	# Click-off dismiss for a taken-down writ: a click anywhere OUTSIDE the board (on the
+	# surrounding wall) returns the writ to the wall. Clicks inside the board but outside the
+	# writ are caught by the reader's own dim; the writ parchment itself stays (STOP).
+	_popup_dim.gui_input.connect(func(e: InputEvent):
+		if e is InputEventMouseButton and e.pressed and _popup_kind == "CONTRACT_BOARD" and not _board_selection.is_empty():
+			_select_board_card({}))
 	layer.add_child(_popup_dim)
 	# Stone/mortar surround: tiled behind the popup, dim so the candlelit wall reads
 	# but stays recessed. Shown for the Contract Board only (set in _open_station).
@@ -1104,6 +1110,29 @@ func _focus_reticle() -> Control:
 	r.resized.connect(r.queue_redraw)
 	return r
 
+# Theme a ScrollContainer's vertical bar to the board's idiom: a sunk wood/parchment channel
+# with a slim brass grabber, in place of Godot's flat grey default. Reader + station scroll.
+func _style_scrollbar(sc: ScrollContainer) -> void:
+	var vsb := sc.get_v_scroll_bar()
+	vsb.custom_minimum_size = Vector2(9, 0)
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.09, 0.06, 0.035, 0.55)     # a channel sunk into the sheet
+	track.set_corner_radius_all(4)
+	track.content_margin_left = 3; track.content_margin_right = 3
+	var grab := StyleBoxFlat.new()
+	grab.bg_color = Color(0.52, 0.40, 0.19)             # brass grabber
+	grab.set_corner_radius_all(4)
+	grab.set_border_width_all(1)
+	grab.border_color = Color(0.70, 0.55, 0.29)
+	var grab_hi: StyleBoxFlat = grab.duplicate()
+	grab_hi.bg_color = Color(0.66, 0.51, 0.26)          # warmer under the pointer
+	var grab_pr: StyleBoxFlat = grab.duplicate()
+	grab_pr.bg_color = Color(0.42, 0.32, 0.15)          # pressed, sunk
+	vsb.add_theme_stylebox_override("scroll", track)
+	vsb.add_theme_stylebox_override("grabber", grab)
+	vsb.add_theme_stylebox_override("grabber_highlight", grab_hi)
+	vsb.add_theme_stylebox_override("grabber_pressed", grab_pr)
+
 # Normalised inside BoardGeo.live_bounds(), not inside the whole canvas.
 # Flavor scraps fill the gaps and the edges. Drawn BEHIND the live notices, so they
 # may tuck under a contract (dense clutter) without ever stealing its click — they
@@ -1626,6 +1655,7 @@ func _build_notice_reader(intel: Dictionary) -> Control:
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = false            # a focused footer control must not drag the writ down
+	_style_scrollbar(scroll)               # brass-on-wood bar, not Godot's grey default
 	reader.add_child(scroll)
 	var pad := MarginContainer.new()
 	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
