@@ -8,6 +8,12 @@ extends RefCounted
 
 const BoardGeo = preload("res://scripts/ui/board_geometry.gd")
 
+# The ONE gutter-centre x (as a screen fraction) for each flank — the midpoint of the ~13% stone
+# gutter beside the inset board (inner=0.74 ⇒ 0.13 flank ⇒ centre 0.065). Both `torch_rig` AND
+# `add_torches` read this, so the banner, the sconce, and the shader's torch uniforms never desync
+# (TD-052 P95). Widened banners centre here and may spill past the screen edge (viewport clips).
+const GUTTER_CX := [0.065, 0.935]
+
 # The ONE torch light rig (R133/P72): two flames on the gutter pillars. Every consumer —
 # the visual torch placement here AND the surround's `board_surface.gdshader` uniforms in
 # main — reads this, so the light never desyncs. Positions are in SCREEN_UV space (0..1).
@@ -15,7 +21,7 @@ static func torch_rig(vp: Vector2) -> Array:
 	var col := Color(1.0, 0.72, 0.42)          # warm ember cast
 	var out: Array = []
 	for at_right in [false, true]:
-		var cx: float = vp.x * (0.94 if at_right else 0.06)
+		var cx: float = vp.x * GUTTER_CX[1 if at_right else 0]
 		var cup_y := vp.y * 0.71               # sconce cup (banner foot), matches add_torches
 		var ly := cup_y - 12.0                 # flame centre
 		# Tight cup halo (TD-048 dungeon re-grade): the flame lifts only its immediate surround,
@@ -37,13 +43,15 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> vo
 	# and the lit torch sits INBOARD of it (between banner and frame) — two separate fixtures,
 	# never stacked (that stacking lit the cloth orange + smeared the frame edge).
 	for at_right in [false, true]:
-		var banner_cx: float = vp.x * (0.94 if at_right else 0.06)   # on the gutter "pillar", off the screen edge
-		var btex_h := 474.0
-		var btex_w := 74.0
-		var target_h := vp.y * 0.5            # TD-050: SHORT hang — foot ends above the sconce with a gap
-		var bs := target_h / btex_h
+		var banner_cx: float = vp.x * GUTTER_CX[1 if at_right else 0]   # gutter centre; the wide banner may spill off-screen
+		var btex_w := 180.0
+		var btex_h := 360.0
+		var banner_top := vp.y * 0.012
+		# Widen to fill the gutter (~0.15·vp), but CAP the scale by a height budget so the swallowtail
+		# foot ends above the sconce cup (vp.y*0.71) with a clear gap — cloth must not reach the fire.
+		var bs := minf(vp.x * 0.15 / btex_w, (vp.y * 0.60 - banner_top) / btex_h)
+		var target_h := btex_h * bs
 		var banner_w := btex_w * bs
-		var banner_top := vp.y * 0.010
 		var banner_pos := Vector2(banner_cx, banner_top + target_h * 0.5)
 		# Contact shadow: the banner cast onto the masonry, offset down-right (the board's ONE
 		# light convention), so the cloth reads as hung proud of the wall, not painted on it.
@@ -69,32 +77,9 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> vo
 		banner.modulate = Color(0.90, 0.86, 0.86)   # baked crimson shows; a touch dimmed for the dark key
 		banner.z_index = 0
 		stone_bg.add_child(banner)
-		# Iron mount rod the banner hangs from — a dark bar with two nail heads at the top edge,
-		# so the tapestry is physically fixed to the wall instead of floating.
-		var rod := Panel.new()
-		var rod_sb := StyleBoxFlat.new()
-		rod_sb.bg_color = Color(0.08, 0.07, 0.055)
-		rod_sb.set_corner_radius_all(2)
-		rod_sb.shadow_color = Color(0.0, 0.0, 0.0, 0.4)
-		rod_sb.shadow_size = 2
-		rod_sb.shadow_offset = Vector2(2, 3)
-		rod.add_theme_stylebox_override("panel", rod_sb)
-		rod.size = Vector2(banner_w * 1.16, 5.0)
-		rod.position = Vector2(banner_cx - rod.size.x * 0.5, banner_top - 2.0)
-		rod.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		rod.z_index = 1
-		stone_bg.add_child(rod)
-		for nx in [-0.42, 0.42]:
-			var nail := Panel.new()
-			var nsb := StyleBoxFlat.new()
-			nsb.bg_color = Color(0.20, 0.17, 0.12)         # lit iron nailhead (top-left key)
-			nsb.set_corner_radius_all(3)
-			nail.add_theme_stylebox_override("panel", nsb)
-			nail.size = Vector2(6, 6)
-			nail.position = Vector2(banner_cx + banner_w * nx - 3.0, banner_top - 1.0)
-			nail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			nail.z_index = 2
-			stone_bg.add_child(nail)
+		# (TD-052 R166) The separate iron rod + nail-head Panels are RETIRED — the banner's top hem
+		# (pole sleeve) is baked into gen_banner.py's cloth, so it hangs as a fixed standard with no
+		# floating hardware.
 		# The torch is mounted at the FOOT of the banner, directly beneath it (Prototype-v1
 		# read): an iron sconce whose top cup holds the flame. `cup_y` is where the flame base
 		# meets the sconce's top bar; the sconce stem hangs below, the flame rises above.
@@ -241,9 +226,9 @@ static func board_crest() -> Control:
 	# crowns the nameplate without clipping the frame/viewport top. LINEAR filter: the emblem is a
 	# soft, textured raster sigil (author art), so a downscale reads clean — the NEAREST-1:1 rule
 	# (TD-050) was for the pixel-authored crest_v1, which this supersedes. Keep cs aspect == 0.60.
-	# Base is pinned at the nameplate (main.gd), so height sets how far the pommel rises — 84 keeps
-	# it clear of the frame/viewport top (91 kissed the edge).
-	var cs := Vector2(51, 84)
+	# Base is pinned at the nameplate (main.gd), so height sets how far the pommel rises. Kept small
+	# (TD-052 R165: the 84px crest dominated the header) — 40×66 crowns without crowding the top row.
+	var cs := Vector2(40, 66)
 	root.custom_minimum_size = cs
 	root.size = cs
 	# Drop shadow: the crest silhouette in translucent black, nudged down-right. NEAREST keeps it

@@ -1466,3 +1466,30 @@ client-runtime change. CLAUDE.md + `.claude/rules/spec-workflow.md` point new wo
 - **git pre-commit** (`tools/git-hooks/pre-commit`, installed via `git config core.hooksPath
   tools/git-hooks`): blocks a commit whose map has drifted from source — the backstop for edits made
   outside a Claude session (human/IDE/merge). A CI `--check` step is the remaining natural follow-up.
+
+---
+
+## TD-052
+
+**Switched active spec from `dependency-map` (TD-051) to `board-banner`.** A Contract Board scene
+polish on the user's review of the emblem/heraldry work. Client render + generated art only — no
+server/shared/logic change (I1/I2); verified by `--board-preview` captures (client-spec convention).
+
+**Scope (user rulings, do not re-litigate):**
+- The board **crest is too big** → reduce it (R165).
+- The flanking **banners read as ragged greybox** with ugly mount hardware (iron rod + nails, the
+  "wooden stand/lock") → re-author as **proper hanging banners**: clean woven crimson, baked folds/AO,
+  a **swallowtail** hem, a baked top hem (retire the separate rod + nails) (R166).
+- **Imprint the Collegium emblem** on BOTH banners as a **pale bone-dye** printed device (a tonal
+  color change from the gilt, crimson showing through — baked into `banner_v1.png` so it drapes/lights
+  with the cloth) (R167).
+- **Two matching banners**, each **centered in its wall gutter** and **widened** (overflow past the
+  screen edge is allowed); the **torch light rig stays coherent** — one shared `GUTTER_CX` read by both
+  `torch_rig` and `add_torches` so the wall shader lighting never desyncs (R168, P95).
+- Re-cut the **"CONTRACT BOARD" placard** as **refined carved wood** (`gen_heraldry.nameplate_px`,
+  same 9-slice margins) (R169).
+
+`gen_banner.py` gains a PIL dependency (sanctioned for generators) to read + recolor
+`collegium_logo.png`; it still writes via `ashember.write_png` so the asset-map producer edge holds.
+The generator→emblem INPUT edge is invisible to the text-static scanner — recorded via a provenance
+header. Numbering: R165–R170, P95–P97, T178–T182.

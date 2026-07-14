@@ -178,9 +178,12 @@ NMX, NMY_T, NMY_B = 22, 15, 11     # 9-slice patch margins (keep the corner plat
 
 
 def _wood(fx, fy):
-    base = A.ramp_shade("wood", 0.45)
-    grain = math.sin(fy * 1.7) * 0.5 + A.noise(int(fx), int(fy), 3) * 0.4
-    return (base[0] + grain, base[1] + grain * 0.7, base[2] + grain * 0.5)
+    # Warmer plank with soft long grain streaks + a little fine tooth (TD-052 R169: less greybox).
+    base = A.ramp_shade("wood", 0.52)
+    grain = (math.sin(fy * 1.7) * 0.42
+             + math.sin(fx * 0.55 + fy * 0.18) * 0.30           # long diagonal grain streaks
+             + A.noise(int(fx), int(fy), 3) * 0.32)
+    return (base[0] + grain + 6.0, base[1] + grain * 0.7 + 2.0, base[2] + grain * 0.5)
 
 
 def nameplate_px(fx, fy):
@@ -205,23 +208,29 @@ def nameplate_px(fx, fy):
             if (cl - 6.5) > 0.8 and (ct - 6.5) > 0.8:          # bolt lower-right shadow
                 body = A.lerp_rgb(body, IRON_D, 0.4)
         return (A.clamp(body[0]), A.clamp(body[1]), A.clamp(body[2]), 255)
-    # ── bevel border: lit top chamfer, dark bottom ──
+    # ── crisper double bevel: a dark outer line, a lit top-left chamfer, a dark bottom-right ──
     if d == 0:
         return A.clamp_rgb(A.RAMP["wood"][0]) + (255,)
-    if d <= 2:
-        lit = (top <= left and top <= right)                    # top edge catches the key
-        tone = "wood"
-        v = 0.62 if lit else 0.22
-        c = A.ramp_shade(tone, v)
-        return A.clamp_rgb(c) + (255,)
-    # ── recessed title panel: an inset field (darker) with a thin lit upper lip ──
-    inset = (NMX - 4 < fx < NW - NMX + 4) and (12 < fy < NH - 8)
+    if d <= 3:
+        top_lit = (top <= left and top <= right)               # top-left catches the key
+        if d <= 1:                                             # crisp outer rim
+            v = 0.70 if top_lit else 0.18
+        else:                                                  # the chamfer face
+            v = 0.56 if top_lit else 0.26
+        return A.clamp_rgb(A.ramp_shade("wood", v)) + (255,)
+    # ── routed title field: a carved groove ringing an inset recess (deeper, warmer) ──
     c = _wood(fx, fy)
-    if inset:
-        if fy < 15:                                             # upper lip catches a little light
-            c = A.lerp_rgb(c, A.RAMP["wood"][4], 0.3)
-        else:
-            c = A.lerp_rgb(c, A.RAMP["wood"][0], 0.42)          # recessed → darker for gilt contrast
+    rx0, rx1, ry0, ry1 = NMX - 3.0, NW - NMX + 3.0, 10.0, NH - 7.0
+    if rx0 < fx < rx1 and ry0 < fy < ry1:
+        rd = min(fx - rx0, rx1 - fx, fy - ry0, ry1 - fy)       # dist into the recess
+        if rd < 2.0:                                           # the routed GROOVE (dark cut channel)
+            c = A.lerp_rgb(c, A.RAMP["wood"][0], 0.62)
+        else:                                                  # the recessed field
+            c = A.lerp_rgb(c, A.RAMP["wood"][0], 0.36)         # darker for gilt contrast
+            if fy < ry0 + 4.0:                                 # a firm lit lip along the recess top
+                c = A.lerp_rgb(c, A.RAMP["wood"][4], 0.34)
+            elif fy > ry1 - 2.5:                               # a shadow along the recess bottom
+                c = A.lerp_rgb(c, A.RAMP["wood"][0], 0.30)
     return A.clamp_rgb(c) + (255,)
 
 

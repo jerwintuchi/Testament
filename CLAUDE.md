@@ -94,7 +94,21 @@ parchment/frame); **one-register style pass** eased the flavor foxing + live-pap
 (`gen_detail.py`/`gen_parch_v1.py`) and cobweb opacity (0.5→0.34), leaving the carved **frame untouched**
 as the anchor. Server 362 + shared 65 suites green (untouched); headless parses clean.
 
-Active spec: **`specs/dependency-map/`** (TD-051) — DERIVE the script↔asset dependency graph instead of
+Active spec: **`specs/board-banner/`** (TD-052) — Contract Board scene polish (client render + generated
+art only) on the user's emblem/heraldry review: **shrink the crest** (R165); re-author the flanking
+**banners** as proper hanging standards (clean woven crimson, baked folds/AO, **swallowtail** hem, baked
+top hem — retire the ugly iron rod + nails) (R166); **imprint** the Collegium emblem on BOTH banners as a
+**pale bone-dye** printed device baked into `banner_v1.png` (R167); **two matching banners** centered in
+each wall gutter + **widened** (off-screen overflow OK), with the torch light rig kept coherent via one
+shared `GUTTER_CX` read by both `torch_rig` + `add_torches` (R168, P95); re-cut the **"CONTRACT BOARD"
+placard** as refined carved wood (`gen_heraldry.nameplate_px`) (R169). Verified by `--board-preview`
+captures. **IN PROGRESS (T178–T182).**
+
+@specs/board-banner/requirements.md
+@specs/board-banner/design.md
+@specs/board-banner/tasks.md
+
+Completed: **`specs/dependency-map/`** (TD-051) — DERIVE the script↔asset dependency graph instead of
 hand-maintaining it. **COMPLETE (T173–T177, `--selftest` + `--check` green, tooling/docs only):**
 `tools/asset_map.py` (stdlib) statically scans `client/` for the four edge kinds (gd `load`/`preload`,
 tscn `ext_resource`, py `write_png`) and emits `docs/technical/asset-map.md` — every asset's
@@ -108,10 +122,6 @@ infer); CLAUDE.md + spec-workflow.md point new work at "regenerate + `--check` o
 First map already surfaced real findings: `crest_v1.png` is written by TWO generators (`gen_emblems.py`
 legacy + `gen_heraldry.py` current — a latent conflict), and `parch_live_*` + `board_placard.png` are
 orphaned dead art. Stdlib-only; no server/shared/client-runtime change.
-
-@specs/dependency-map/requirements.md
-@specs/dependency-map/design.md
-@specs/dependency-map/tasks.md
 
 Paused: **`specs/notice-board/`** — the diegetic commission wall (server done T131–T132,
 T138–T139; client Pass-2 raster reskin T140–T144 + the TD-046 art-director polish done).
