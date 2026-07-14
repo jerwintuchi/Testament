@@ -234,14 +234,16 @@ static func light_falloff() -> GradientTexture2D:
 # nameplate. Wrapped with a soft, offset cast shadow (the same silhouette in black) so it
 # reads as MOUNTED PROUD of the board wood, not a dark cutout in it.
 static func board_crest() -> Control:
-	var tex := load("res://assets/ui/collegium_logo.png") as Texture2D   # 92x113 emblem (gen_logo.py)
+	var tex := load("res://assets/ui/collegium_logo.png") as Texture2D   # 132x220 emblem (gen_logo.py, author art)
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Displayed scaled-to-crown (native 92×113 → 74×91) so the tall blade-and-laurel crowns the
-	# nameplate without clipping the frame/viewport top. LINEAR filter: the emblem is smooth
-	# baked-AA bronze RELIEF (not crisp pixel art), so a downscale reads as soft gilt, not mush
-	# — the NEAREST-1:1 rule (TD-050) was for the pixel-authored crest_v1, which this supersedes.
-	var cs := Vector2(74, 91)
+	# Displayed scaled-to-crown (native 132×220, aspect 0.60 → 55×91) so the tall blade-and-laurel
+	# crowns the nameplate without clipping the frame/viewport top. LINEAR filter: the emblem is a
+	# soft, textured raster sigil (author art), so a downscale reads clean — the NEAREST-1:1 rule
+	# (TD-050) was for the pixel-authored crest_v1, which this supersedes. Keep cs aspect == 0.60.
+	# Base is pinned at the nameplate (main.gd), so height sets how far the pommel rises — 84 keeps
+	# it clear of the frame/viewport top (91 kissed the edge).
+	var cs := Vector2(51, 84)
 	root.custom_minimum_size = cs
 	root.size = cs
 	# Drop shadow: the crest silhouette in translucent black, nudged down-right. NEAREST keeps it
