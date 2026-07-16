@@ -21,9 +21,10 @@ const LIVE_SIZE_FRACS := [Vector2(0.185, 0.455), Vector2(0.160, 0.380), Vector2(
 const FLAVOR_SIZE_FRACS := [Vector2(0.120, 0.300), Vector2(0.105, 0.270), Vector2(0.145, 0.230),
 	Vector2(0.115, 0.310), Vector2(0.100, 0.250), Vector2(0.150, 0.260)]
 # Reserved bands: the hanging placard along the top, the flanking torch margin down each side.
-# TD-053: the header grew (a seal + two engraved lines, one cohesive object) from a one-line
-# nameplate, so the reserve grew with it — it must clear placard_rect's foot (0.02 + 0.264).
-const TOP_RESERVE_FRAC := 0.29
+# Must clear placard_rect's foot (0.014 + 0.226). Header height is ZERO-SUM against the two
+# rows of writs (live_bounds.h = 190 - y - h), so the header is kept to its floor: the
+# medallion's full height + the title band + the sign's bottom rail, and no more.
+const TOP_RESERVE_FRAC := 0.24
 const SIDE_RESERVE_FRAC := 0.03
 # Aged-parchment tints, seeded per notice — warm variety without encoding anything.
 const PARCH_TINTS := [
@@ -44,13 +45,13 @@ static func bar_height(inner: Vector2) -> float:
 
 # The header plaque's rect (TD-053): the carved walnut sign carrying the inset bronze seal
 # over the engraved two-line title. Sized so that at the canonical 640x360 internal resolution
-# (inner = 473.6x288) it lands on board_header.png's authored 248x76 EXACTLY — 1:1, NEAREST, no
+# (inner = 473.6x288) it lands on board_header.png's authored 204x46 sign EXACTLY — 1:1, NEAREST, no
 # downscale mush (TD-050). It also hangs higher than the old nameplate (0.09 -> 0.02): the crest
 # that used to crown it is gone, so the plaque itself may claim the top band.
 static func placard_rect(inner: Vector2) -> Rect2:
-	var w := clampf(inner.x * 0.524, 248.0, maxf(248.0, inner.x - 32.0))
-	var h := maxf(76.0, inner.y * 0.264)
-	return Rect2(((inner.x - w) * 0.5), inner.y * 0.02, w, h).abs()
+	var w := clampf(inner.x * 0.431, 204.0, maxf(204.0, inner.x - 32.0))
+	var h := maxf(65.0, inner.y * 0.226)
+	return Rect2(((inner.x - w) * 0.5), inner.y * 0.014, w, h).abs()
 
 # The live-notice bounds: below the placard, inside the side reserves, above the bar.
 static func live_bounds(inner: Vector2) -> Rect2:

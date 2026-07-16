@@ -1621,3 +1621,48 @@ reference is composition, form and type — which TD-054 delivered — not surfa
 declined on register grounds, not on cost or feasibility. Mixed registers (a smooth medallion
 beside blocky wood) read as a bug, so any future revisit is all-or-nothing across every UI
 surface, and amends TD-046 first.
+
+---
+
+## TD-056
+
+**The medallion's device is REDRAWN at its display size; the header shrinks and hangs higher.**
+Author's review of TD-054: the sigil is blurred, the placard is too large, and it should sit
+higher to give the contracts room.
+
+**The blur was not a filter problem — it was a resampling problem.** The medallion's device slot
+is ~**17×22 px**. We were LANCZOS-reducing the author's **132×220** emblem into it: a
+photographic reduction of a thin blade and fine laurel leaves into far fewer pixels than the
+detail needs. No filter setting recovers that, and TD-055 already ruled out the hi-res escape
+hatch. So the device is now **drawn** in `gen_header._device_px` — authored in a 160×210 design
+space with every stroke sized in OUTPUT px first and multiplied up, then supersampled (SS=4)
+down to the slot with baked AA. Same lesson as **TD-050** (the crest), which the retired
+`gen_heraldry.py` applied and which was lost when it went.
+
+**This is a redraw of the author's mark, not their raster** — it keeps the identity (point-DOWN
+blade, diamond pommel, double/patriarchal guard, laurel wreath) at a size the original cannot
+survive. The **banners still imprint the author's actual art** (~112 px wide, where it resolves
+fine). `gen_header.py` therefore no longer consumes `collegium_logo.png`.
+
+Two failures worth recording, both from drawing detail the slot cannot hold:
+- **Leaves became a ladder.** Individual laurel leaves at 15 design px land on ~1.6 output px
+  and merged with the branch into vertical rungs. Replaced by ONE elliptical band, notched by
+  angle (`_wreath`), which reads as foliage at 17×22.
+- **A closed wreath read as an ANCHOR.** The band's foot joining under the vertical blade forms
+  flukes. The wreath is now open at BOTH the top (the hilt stands clear) and the foot (the blade
+  passes through), leaving two arcs — which is what a laurel actually is.
+
+**Geometry.** The header has a hard floor: `H >= medallion_height + title_band + bottom_rail`
+(~29px), independent of how far the medallion overlaps — its full height always costs, whether
+above the sign or eating the sign's field. TD-054 spent 76 where the floor was 69. Now:
+medallion **40→36**, sign **248×44 → 204×46**, `placard_rect` **248×76 → 204×65** hung at
+`inner.y*0.014` (was 0.02), `TOP_RESERVE_FRAC` **0.29 → 0.24**. Live writs **93×48 → 93×54**
+(the original, pre-header board was 93×60), and every writ now shows its site line.
+
+**On AI/pixel-art tooling (asked, answered):** none is available or appropriate. No image-model
+runtime, API, or Aseprite exists in this environment, and adding one needs approval under
+CLAUDE.md's closed list. More to the point, **image generators cannot author to a 17×22 grid** —
+they emit ~1024² "pixel-art-styled" images with inconsistent grids, and downscaling their output
+reproduces exactly the mush this entry removes. At this size the correct tools are procedural
+drawing with supersampling (used here) or a human pixel artist in Aseprite (the sanctioned path
+for author art). Aseprite is NOT installed; author-drawn art remains welcome, never required.

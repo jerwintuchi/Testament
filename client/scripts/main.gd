@@ -1919,7 +1919,7 @@ func _board_header() -> Control:
 	# The medallion CROWNS the sign, overlapping its top rail — so the sign hangs in the lower
 	# part of the header rect and the two share one budget. (Header height is zero-sum against
 	# the writs: live_bounds.h = 184.24 - placard_h, split across two rows.)
-	var sign_top := 20.0
+	var sign_top := 19.0
 	var ptex := load("res://assets/ui/board_header.png") as Texture2D
 	if ptex != null:
 		# Authored at its exact on-screen size (248x44 — the internal resolution is a fixed
@@ -1962,12 +1962,12 @@ func _board_header() -> Control:
 	var stack := VBoxContainer.new()
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.set_anchors_preset(Control.PRESET_FULL_RECT)
-	stack.offset_top = sign_top + 20.0
-	stack.offset_bottom = -6.0
+	stack.offset_top = sign_top + 18.0
+	stack.offset_bottom = -5.0
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	stack.add_theme_constant_override("separation", 0)
 	root.add_child(stack)
-	stack.add_child(_engraved_line("THE COLLEGIUM", 14, Color(0.86, 0.72, 0.42), 700))
+	stack.add_child(_engraved_line("THE COLLEGIUM", 13, Color(0.86, 0.72, 0.42), 700))
 	stack.add_child(_header_gap(1))
 	stack.add_child(_engraved_line("Contract Board", 8, Color(0.62, 0.50, 0.31), 400))
 	# The ring medallion, crowning the sign. Added LAST so it draws over the top rail; its
@@ -1988,7 +1988,7 @@ func _board_header() -> Control:
 		root.add_child(seal)
 	return root
 
-# The sign's 9-slice margins (source 248x44, end straps inside 36/13).
+# The sign's 9-slice margins (source 204x46, end straps inside 36/13).
 func _patch_header(np: NinePatchRect) -> void:
 	np.patch_margin_left = 36
 	np.patch_margin_top = 13
@@ -2023,7 +2023,7 @@ func _engraved_line(text: String, size: int, face_color: Color, weight: int) -> 
 	var font := _cinzel(weight)
 	var row := Control.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.custom_minimum_size = Vector2(0, size + 3)
+	row.custom_minimum_size = Vector2(0, size + 1)
 	for pass_i in 2:
 		var is_cut := pass_i == 0
 		var l := _card_label(text, size, Color(0.05, 0.03, 0.01, 0.92) if is_cut else face_color, false, true)
