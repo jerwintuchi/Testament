@@ -1581,3 +1581,43 @@ writs (`live_bounds.h = 184.24 - placard_h`, split across two rows). Writs there
 Client render + generated art only. Remaining reference gaps (banner rods with brass finials,
 standing floor torches, wall corner brackets, the medallion's laurel, the reference's lowercase
 subtitle) are deferred pending the author's review; a spec follows if that work proceeds.
+
+---
+
+## TD-055
+
+**Hi-res painted UI considered and REJECTED; the pixel-art register is reaffirmed.** Asked
+whether the board's art could be antialiased to sit closer to the author's reference. The
+investigation corrected two standing misconceptions, both worth recording:
+
+1. **The UI already rasterizes at the window's NATIVE resolution.** `window/stretch/mode` is
+   **`canvas_items`** (not `viewport`), which scales the canvas *transform* rather than
+   upscaling a 640×360 framebuffer. Fonts and vector draws therefore come out at the full
+   device pixel count — which is why adopting Cinzel (TD-054) produced such a large jump.
+   Verified empirically, not from docs: in a 1280×720 capture, ~34% of horizontal colour
+   changes in the title land on ODD x. A 2× upscaled framebuffer can only change on even x.
+2. **Our generators already antialias** (SS=4 supersample → averaged downsample). Blockiness
+   is NOT missing AA. It is that textures are authored at 1× logical size and sampled
+   **NEAREST**, so the canvas transform doubles each texel into a 2×2 device block. The
+   medallion measured **0.5%** odd-x changes — pure 2×2 blocks — while stretched surfaces
+   (parchment ~50%, the sign's wood ~35%) already sample at native and are not clean pixel art.
+
+**Therefore "antialiased crisp pixel art" is a contradiction at a fixed resolution** — AA'ing
+at 1× and upscaling NEAREST yields blurry blocks, not painted art. The reference is not pixel
+art; it is a painted hi-res UI. The reachable equivalent is to author UI textures at **3×**
+their logical size and draw them **LINEAR** (texels then land ~1:1 on device pixels — exactly
+1:1 at 1080p). Prototyped on the ring medallion (120×120 master → a 40×40 rect): the ring
+stops stair-stepping, the sword resolves a crossguard, the laurel arms separate, the bosses
+turn round. Cost is negligible (a 120×120 texture; mobile included).
+
+**Ruling (author): stay pixel art.** The prototype is REVERTED — `board_seal.png` returns to a
+40×40 master drawn NEAREST. TD-046's single canonical register (hand-painted raster 2D pixel
+art) and TD-042's Nearest filtering **stand unamended**; the UI is NOT carved out of the
+register. The consequence is accepted deliberately: the reference's smooth painted metal is
+**out of reach**, and no amount of generator work closes it. The realistic ceiling against that
+reference is composition, form and type — which TD-054 delivered — not surface finish.
+
+**Do not re-propose hi-res/LINEAR UI art as a fidelity fix.** It was measured, prototyped, and
+declined on register grounds, not on cost or feasibility. Mixed registers (a smooth medallion
+beside blocky wood) read as a bug, so any future revisit is all-or-nothing across every UI
+surface, and amends TD-046 first.
