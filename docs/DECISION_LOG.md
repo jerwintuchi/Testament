@@ -1666,3 +1666,55 @@ they emit ~1024² "pixel-art-styled" images with inconsistent grids, and downsca
 reproduces exactly the mush this entry removes. At this size the correct tools are procedural
 drawing with supersampling (used here) or a human pixel artist in Aseprite (the sanctioned path
 for author art). Aseprite is NOT installed; author-drawn art remains welcome, never required.
+
+---
+
+## TD-057
+
+**Aseprite adopted for sprites; the Python generators keep the surfaces. Settled by experiment.**
+The author proposed installing an Aseprite MCP server (researched via Gemini) to author assets
+instead of generating them programmatically. Three findings, in order of importance:
+
+1. **Aseprite was already installed and already drivable — the premise was wrong.** It is at
+   `/mnt/d/Steam/steamapps/common/Aseprite` (Steam, 1.3.17.2). Verified end-to-end from WSL:
+   `Aseprite.exe -b --script foo.lua` runs the **full Lua API** in batch, draws, and saves a PNG
+   readable back in WSL. **No MCP is needed for access** — `run_lua_script` is the MCP's own
+   escape hatch and we have it natively. An MCP's marginal value is its 104 *curated* tools
+   (shading ramps, dithering, onion skin, tweening, 9-patch slices), not capability. Deferred:
+   revisit when sustained animation work starts (the Phase 5 Seeker rig), where its 24 animation
+   tools are real leverage over hand-rolled Lua.
+   - On the research itself: `diivi/aseprite-mcp` is **real** (308★, Python, active) and its
+     "104 tools / 17 categories" is verbatim from its README. `willibrandon/pixel-mcp` is real
+     (95★, Go). The claimed "Aseprite MCP Pro by y1uda" **does not exist** (404) — a reminder to
+     verify before installing.
+2. **The scope "Aseprite instead of programmatic" is wrong, and would make the board worse.**
+   Most board art is not sprites: wood grain, stone, parchment fibre, gradients, AO, bevels,
+   normal maps, and shader inputs. `gen_header._wood()` is eight lines of sine+noise; hand-placing
+   a 204x46 grained plank would be slower, worse, and would break the deterministic regeneration
+   that `tools/asset_map.py`'s producer edges depend on (TD-051).
+3. **Where a pixel is a design decision, hand-drawn wins decisively — measured.** The medallion's
+   device slot is ~17x22. Three approaches, same slot:
+   - LANCZOS-reducing the author's 132x220 emblem (TD-054) → **mush**.
+   - Shape functions drawn at slot size (TD-056) → better, still poor: the pommel blobbed, the
+     two crossguards merged, the laurel read as a smudge (and, closed, as an **anchor**).
+   - **Hand-placed pixels in Aseprite** → the diamond pommel, both crossguards, the tapered blade
+     with its lit ridge, and two laurel arcs with leaf notches ALL read.
+   A shape function samples a curve; it cannot decide *which single pixel* carries the crossguard.
+
+**Ruling: Aseprite owns sprites (sigils, icons, sprites, animation); Python owns surfaces.** This
+is what CLAUDE.md's toolchain table always specified — we had simply never used it, because the
+install was assumed absent. The repo had **zero** `.aseprite` files; it now has its first.
+
+**Implementation.** `art/src/collegium_device.aseprite` (+ its `.lua` source and exported `.png`)
+is the hand-drawn 17x22 device. `gen_header.py` reads the PNG as (alpha, luminance) and strikes
+it into the bronze field: **Aseprite owns the sprite, the generator owns the surface.** Two
+integration rules learned:
+- **Sample the sprite NEAREST, on whole-pixel origins.** `seal_px` is supersampled, so bilinear
+  sampling averages the artist's pixels into mud, and a half-pixel origin smears each drawn pixel
+  across two output ones — reintroducing the exact blur this removes.
+- **Trust the drawn values.** The derived relief (sampling the mask offset both ways for lit and
+  shadowed lips) existed for a mask with no values of its own. Applied to drawn art it fights the
+  artist and fragments 1px strokes. The sprite's luminance IS the relief; map it to the ramp.
+
+The **banners keep imprinting the author's real 132x220 art** (~112px wide, where it resolves).
+Only the tiny slot needed a redraw. The device is a redraw of the author's mark, not their raster.

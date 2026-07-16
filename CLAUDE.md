@@ -232,8 +232,21 @@ animation rig; per-frame weapon sockets; grayscale ADD-blend VFX.
 | Tool | Role |
 |---|---|
 | Godot 4.7 | Engine: scenes, TileMap autotiles, Light2D stack, particles, **UI** |
-| Aseprite | All hand-authored sprite sources (`art/src/*.aseprite`) |
-| Python/PIL generators | Programmatic sheets + JSON metadata (`gen_*.py`) |
+| Aseprite | All **sprite** sources (`art/src/*.aseprite`) — sigils, icons, sprites, animation |
+| Python/PIL generators | Programmatic **surfaces** + sheets + JSON metadata (`gen_*.py`) |
+
+**The split (TD-057), settled by measurement, not taste:**
+- **Aseprite owns sprites.** Anything where a pixel is a *design decision* — sigils, icons,
+  character sprites, animation frames. Claude drives it **in batch from WSL**, no MCP needed:
+  `'/mnt/d/Steam/steamapps/common/Aseprite/Aseprite.exe' -b --script 'C:\...\foo.lua'` gives the
+  full Aseprite Lua API. It is a **Windows** binary, so the script path and every path *inside*
+  it must be Windows-style (`C:/...`); stage via `/mnt/c/Users/jerwi/AppData/Local/Temp` and copy
+  the result back. Export a PNG beside the `.aseprite` so the generators/asset-map keep an edge.
+- **Python owns surfaces.** Wood grain, stone, parchment, gradients, AO, bevels, normal maps,
+  9-slice panels, and anything feeding a shader. Drawing these by hand would be slower and worse.
+- Proven at ~17x22 px (the medallion device): hand-placed pixels beat both a LANCZOS reduction of
+  author art (TD-054, mush) and shape functions drawn at slot size (TD-056, blobbed). A shape
+  function samples a curve; it cannot decide *which pixel* carries the crossguard.
 
 - UI is built **in Godot** (Control nodes, theme resources); UI sprites/icons are
   16x16-class pixel assets from Aseprite. No external UI tools.

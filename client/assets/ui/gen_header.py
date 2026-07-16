@@ -19,8 +19,7 @@ Emits two hand-painted raster PNGs (canonical register, TD-046), run FROM this d
                             matte — no glow, no specular hotspot.
 
 @produces board_header.png, board_seal.png
-@consumes nothing — the device is DRAWN here (see _device_px), not read from the emblem
-          raster: at a ~17x22 slot a LANCZOS reduction of collegium_logo.png is mush.
+@consumes art/src/collegium_device.png  (hand-drawn in Aseprite — see TD-057)
 @why      The generator->emblem edge is an INPUT, invisible to tools/asset_map.py (which
           only tracks `write_png` for .py producers), hence this header. Both PNGs are
           authored at their EXACT on-screen size: the client's internal resolution is a
@@ -32,6 +31,9 @@ Stdlib + PIL (sanctioned for generators); writes via ashember.write_png so the a
 producer edge holds. Brand-new PNGs need `godot --headless --import`.
 """
 import math
+import os
+
+from PIL import Image
 
 import ashember as A
 
@@ -183,127 +185,52 @@ R_IN = 11.4                    # where the ring meets the recessed field
 BOSS_R = 3.0                   # the scroll bosses at 3 and 9 o'clock
 
 
-# ── The device, DRAWN at its final size (TD-056) ───────────────────────────────
-# The device slot inside this medallion is ~17x22 px. LANCZOS-reducing the author's 132x220
-# emblem into that crushed the blade and laurel to mush — a photographic reduction of detail
-# that does not fit, which no filter setting rescues. So the mark is REDRAWN here: authored in
-# a 160x210 design space with strokes deliberately thickened, then supersampled down to the
-# slot. Same lesson as TD-050 (the crest), which the retired gen_heraldry.py applied.
-# NOTE: this is a redraw of the author's mark, not their raster — it keeps the identity
-# (point-DOWN blade, diamond pommel, double/patriarchal guard, laurel wreath) at a size the
-# original cannot survive. The banners still imprint the author's actual art (~112px wide,
-# where it resolves fine).
-DW, DH = 160, 210              # DESIGN space for the device
-DCX = 80.0
-DEV_H = 22                     # the slot, in output px
-DEV_W = int(round(DEV_H * DW / float(DH)))
+# ── The device: HAND-DRAWN pixel art (TD-057) ──────────────────────────────────
+# The slot is ~17x22 px. Two approaches were tried and measured:
+#   1. LANCZOS-reducing the author's 132x220 emblem into it (TD-054) — mush: a photographic
+#      reduction of detail that does not fit.
+#   2. Drawing it from shape functions at slot size (TD-056) — better, still poor: the pommel
+#      blobbed, the two crossguards merged, the laurel read as a smudge.
+# Both lose because at this size EVERY PIXEL IS A DESIGN DECISION, and a shape function cannot
+# make them — it can only sample a curve and hope. So the device is now authored by hand, pixel
+# by pixel, in Aseprite (art/src/collegium_device.aseprite, drawn via its Lua API in batch mode)
+# and read here. Aseprite owns the SPRITE; this generator owns the SURFACE it is struck into.
+# That split is what CLAUDE.md's toolchain always specified; we had simply never used it.
+DEV_SRC = os.path.join("..", "..", "..", "art", "src", "collegium_device.png")
 
 
-def _wreath(fx, fy):
-    """The laurel as ONE notched elliptical band, open at the top where the hilt rises.
-
-    Individual leaves cannot survive here: the design space is ~9x the slot, so a leaf drawn
-    at 15 design px lands on ~1.6 output px and the spray merges into a ladder beside the
-    blade. A single band, notched by angle, keeps the foliage READING as a wreath at 17x22.
-    """
-    nx = (fx - DCX) / 43.0
-    ny = (fy - 138.0) / 58.0
-    rr = math.hypot(nx, ny)
-    if rr < 0.001:
-        return 0.0
-    ang = math.atan2(ny, nx)
-    band = 0.105 + 0.065 * abs(math.sin(ang * 7.0))    # the notches that read as leaves
-    d = abs(rr - 1.0)
-    if d > band:
-        return 0.0
-    if ny < -0.30:                                     # OPEN at the top: two arcs, not a ring
-        return 0.0
-    if ny > 0.42 and abs(nx) < 0.62:                   # OPEN at the foot, where the blade passes.
-        return 0.0                                     # Closed, the arcs + blade read as an ANCHOR.
-    return _cl((band - d) / band * 2.4)
-
-
-def _device_px(fx, fy):
-    """Coverage+value of the device in DESIGN space. Returns (alpha, lum) — lum drives relief.
-
-    Every stroke is sized in OUTPUT px first, then multiplied up: the slot is ~17x22, so a
-    blade that reads at 2px is ~19 design px wide. Drawn to scale it would vanish.
-    """
-    ax = abs(fx - DCX)
-    a = 0.0
-    lum = 0.5
-
-    # Laurel, behind the blade.
-    wa = _wreath(fx, fy)
-    if wa > 0.0:
-        a = max(a, wa)
-        lum = 0.50 + wa * 0.30
-
-    # Pommel: the diamond of the author's mark.
-    pd = ax / 10.0 + abs(fy - 19.0) / 12.0
-    if pd < 1.0:
-        a = 1.0
-        lum = 0.56 + _cl(1.0 - pd) * 0.34
-    # Grip.
-    if 30.0 < fy < 48.0 and ax < 5.0:
-        a = 1.0
-        lum = 0.40 + (5.0 - ax) / 5.0 * 0.22
-    # Double (patriarchal) crossguard: a short bar above a long one.
-    if abs(fy - 54.0) < 3.4 and ax < 19.0:
-        a = 1.0
-        lum = 0.64
-    if abs(fy - 70.0) < 4.2 and ax < 30.0:
-        a = 1.0
-        lum = 0.68
-    # Blade: point DOWN, tapering to a tip, with a lit centre ridge.
-    if 73.0 < fy < 206.0:
-        hw = 8.4 * (1.0 - (fy - 73.0) / 133.0) + 1.3
-        if ax < hw:
-            a = 1.0
-            lum = 0.46 + (1.0 - ax / hw) * 0.50
-    return a, lum
-
-
-def _build_device():
-    """Supersample the design space down to the slot — baked AA at the size it is shown."""
-    sx, sy = DW / float(DEV_W), DH / float(DEV_H)
+def _load_device():
+    """The hand-drawn device as (alpha, luminance) per pixel. Luminance carries the relief the
+    artist drew (lit ridge vs lower flanks); alpha is the silhouette."""
+    im = Image.open(DEV_SRC).convert("RGBA")
+    px = im.load()
     grid = []
-    for oy in range(DEV_H):
+    for y in range(im.height):
         row = []
-        for ox in range(DEV_W):
-            aa = ll = 0.0
-            for j in range(SS):
-                for i in range(SS):
-                    a, lum = _device_px((ox + (i + 0.5) / SS) * sx, (oy + (j + 0.5) / SS) * sy)
-                    aa += a
-                    ll += lum * a
-            n = SS * SS
-            row.append((aa / n, (ll / aa) if aa > 0.001 else 0.0))
+        for x in range(im.width):
+            r, g, b, a = px[x, y]
+            row.append((a / 255.0, (0.299 * r + 0.587 * g + 0.114 * b) / 255.0))
         grid.append(row)
-    return grid
+    return grid, im.width, im.height
 
 
-DEV = _build_device()
-DEV_X, DEV_Y = SCX - DEV_W * 0.5, SCY - DEV_H * 0.5
+DEV, DEV_W, DEV_H = _load_device()
+# Seat the sprite on WHOLE pixels. Landing it on a half-pixel would smear hand-placed art across
+# two output pixels — the exact blur this replaces.
+DEV_X = math.floor(SCX - DEV_W * 0.5)
+DEV_Y = math.floor(SCY - DEV_H * 0.5)
 
 
 def _dev(fx, fy):
-    """Bilinear (alpha, luminance) of the device at medallion coords. Outside ⇒ (0, 0)."""
-    x, y = fx - DEV_X - 0.5, fy - DEV_Y - 0.5
-    if x < -1.0 or y < -1.0 or x > DEV_W or y > DEV_H:
-        return 0.0, 0.0
-    x0, y0 = math.floor(x), math.floor(y)
-    tx, ty = x - x0, y - y0
-    a = lum = 0.0
-    for j in (0, 1):
-        for i in (0, 1):
-            sx_, sy_ = x0 + i, y0 + j
-            if 0 <= sx_ < DEV_W and 0 <= sy_ < DEV_H:
-                pa, pl = DEV[sy_][sx_]
-                w = (tx if i else 1.0 - tx) * (ty if j else 1.0 - ty)
-                a += pa * w
-                lum += pl * pa * w
-    return a, (lum / a if a > 0.001 else 0.0)
+    """NEAREST (alpha, luminance) of the device. Nearest, not bilinear: seal_px is supersampled,
+    so bilinear would average the artist's pixels into mud. Sampling nearest means all SS*SS
+    subsamples of an output pixel resolve to the same source texel — the drawn pixel survives
+    the supersample exactly."""
+    sx = int(math.floor(fx - DEV_X))
+    sy = int(math.floor(fy - DEV_Y))
+    if 0 <= sx < DEV_W and 0 <= sy < DEV_H:
+        return DEV[sy][sx]
+    return 0.0, 0.0
 
 
 def _bronze(lit, rim=0.0):
@@ -350,22 +277,20 @@ def seal_px(fx, fy):
     if r > R_IN - 2.2:
         c = A.lerp_rgb(c, (0, 0, 0), (r - R_IN + 2.2) / 2.2 * 0.45)
 
-    # ── the device STRUCK IN RELIEF: a lit upper-left lip, a shadowed lower-right one ──
+    # ── the device STRUCK IN RELIEF ──
+    # The sprite is hand-drawn, so its luminance IS the relief the artist cut: a lit ridge down
+    # the blade, lower flanks either side. Map that straight onto the bronze ramp and trust it.
+    # (The earlier derived lighting — sampling the mask offset both ways for lit/shadow lips —
+    # was for a mask with no values of its own. Applied to drawn art it fights the artist and
+    # fragments 1px strokes, so it is gone.)
     a, lum = _dev(fx, fy)
     if a > 0.02:
-        aul, _ = _dev(fx - 1.0, fy - 1.0)
-        adr, _ = _dev(fx + 1.0, fy + 1.0)
-        g = adr - aul
-        face = A.lerp_rgb(BRONZE_MID, BRONZE_LT, 0.24 + lum * 0.50)
-        if g > 0.02:
-            face = A.lerp_rgb(face, BRONZE_LT, _cl(g * 1.8) * 0.95)
-        elif g < -0.02:
-            face = A.lerp_rgb(face, (6, 4, 2), _cl(-g * 1.5) * 0.72)
-        c = A.lerp_rgb(c, face, _cl(a * 1.25))
+        c = A.lerp_rgb(c, A.lerp_rgb(BRONZE_DK, BRONZE_LT, _cl(0.08 + lum * 0.92)), _cl(a * 1.25))
     else:
-        aul, _ = _dev(fx - 1.1, fy - 1.1)
+        # The device's own contact shadow, down-right — it sits ON the field, not in it.
+        aul, _ = _dev(fx - 1.0, fy - 1.0)
         if aul > 0.08:
-            c = A.lerp_rgb(c, (0, 0, 0), _cl(aul) * 0.42)
+            c = A.lerp_rgb(c, (0, 0, 0), _cl(aul) * 0.40)
     return A.clamp_rgb(c) + (255,)
 
 
