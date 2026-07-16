@@ -94,19 +94,34 @@ parchment/frame); **one-register style pass** eased the flavor foxing + live-pap
 (`gen_detail.py`/`gen_parch_v1.py`) and cobweb opacity (0.5→0.34), leaving the carved **frame untouched**
 as the anchor. Server 362 + shared 65 suites green (untouched); headless parses clean.
 
-Active spec: **`specs/board-banner/`** (TD-052) — Contract Board scene polish (client render + generated
-art only) on the user's emblem/heraldry review: **shrink the crest** (R165); re-author the flanking
-**banners** as proper hanging standards (clean woven crimson, baked folds/AO, **swallowtail** hem, baked
-top hem — retire the ugly iron rod + nails) (R166); **imprint** the Collegium emblem on BOTH banners as a
-**pale bone-dye** printed device baked into `banner_v1.png` (R167); **two matching banners** centered in
-each wall gutter + **widened** (off-screen overflow OK), with the torch light rig kept coherent via one
-shared `GUTTER_CX` read by both `torch_rig` + `add_torches` (R168, P95); re-cut the **"CONTRACT BOARD"
-placard** as refined carved wood (`gen_heraldry.nameplate_px`) (R169). Verified by `--board-preview`
-captures. **IN PROGRESS (T178–T182).**
+Completed: **`specs/board-banner/`** (TD-052) — Contract Board scene polish (client render + generated
+art only) on the user's emblem/heraldry review. **COMPLETE (T178–T182, commit d600a10):** the crest
+shrunk 51×84→40×66 (R165); the flanking **banners** re-authored as proper hanging standards in
+`gen_banner.py` (74×474 frayed strip → 180×360: clean woven crimson, baked folds/AO, a **swallowtail**
+hem, a baked top hem — the iron rod + nail `Panel`s retired) (R166); the Collegium emblem **imprinted**
+on BOTH banners as a **pale bone-dye** printed device baked into `banner_v1.png` (luminance→BONE ramp,
+alpha×0.86 so the weave reads through; PIL to read the emblem, still `ashember.write_png` for the
+producer edge) (R167); two matching banners centered in each gutter + widened to `vp.x·0.15` (off-screen
+overflow OK) with the light rig coherent via one shared `GUTTER_CX` read by both `torch_rig` +
+`add_torches` (R168, P95); the **"CONTRACT BOARD" placard** re-cut as refined carved wood
+(`gen_heraldry.nameplate_px` — routed groove + crisper double bevel, same 9-slice margins) (R169).
 
-@specs/board-banner/requirements.md
-@specs/board-banner/design.md
-@specs/board-banner/tasks.md
+Active spec: **`specs/board-header/`** (TD-053) — a Contract Board **header** redesign (client render +
+generated art only) on the user's brief: the header must read as a **handcrafted institutional object**
+inside the Collegium HQ, ecclesiastical grimdark, not a modern game UI. **Preserve the board composition**
+— only the header block changes (R174). A new `gen_header.py` emits a carved oak/walnut **plaque**
+(9-slice, forged iron corner straps + bronze bolts, routed field, worn rim — utilitarian, not luxurious)
+(R171) and an **inset bronze seal** (socket AO ring + iron rim + aged bronze disc + the emblem in raised
+relief) that **replaces the floating `_board_crest` overlay** and its `_process` chase (R172, P98).
+`_board_header()` stacks the seal over an **engraved** two-line hierarchy — **THE COLLEGIUM** primary
+over a subordinate **Contract Board** — as one centered object (R173). `TOP_RESERVE_FRAC`/`placard_rect`
+grow; the keep-out self-check guards the scatter (P99). Materials: aged wood/bronze/iron/brass only,
+candlelit, **no bloom/gloss** (R175). Retires the superseded `board_nameplate.png` + dead `crest_v1.png`.
+Verified by `--board-preview` captures. **IN PROGRESS (T183–T187).**
+
+@specs/board-header/requirements.md
+@specs/board-header/design.md
+@specs/board-header/tasks.md
 
 Completed: **`specs/dependency-map/`** (TD-051) — DERIVE the script↔asset dependency graph instead of
 hand-maintaining it. **COMPLETE (T173–T177, `--selftest` + `--check` green, tooling/docs only):**

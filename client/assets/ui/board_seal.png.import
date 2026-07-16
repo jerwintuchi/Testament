@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dpfyuo3os8nih"
-path="res://.godot/imported/crest_v1.png-8bbbf01bccb5b4b4e178cd445f6cd3b7.ctex"
+uid="uid://uub10d7gd5by"
+path="res://.godot/imported/board_seal.png-64e4889d20fcc09127a3c97c2ab0d62a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/crest_v1.png"
-dest_files=["res://.godot/imported/crest_v1.png-8bbbf01bccb5b4b4e178cd445f6cd3b7.ctex"]
+source_file="res://assets/ui/board_seal.png"
+dest_files=["res://.godot/imported/board_seal.png-64e4889d20fcc09127a3c97c2ab0d62a.ctex"]
 
 [params]
 

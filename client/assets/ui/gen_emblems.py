@@ -291,8 +291,9 @@ def main():
     print("wrote torch_sconce.png")
     A.write_png("spark.png", 8, 8, make_spark())
     print("wrote spark.png")
-    # crest_v1.png is authored by gen_heraldry.py (TD-049 blade-and-laurel crest) — the old
-    # radiant-star medallion (make_crest/_sig_star) was retired to end a double-producer (TD-051).
+    # No crest here: the board's emblem is the bronze seal struck by gen_header.py (TD-053).
+    # The old radiant-star medallion (make_crest/_sig_star) went when its double-producer with
+    # gen_heraldry.py surfaced (TD-051); gen_heraldry.py itself is retired with TD-053.
 
 
 if __name__ == "__main__":

@@ -235,11 +235,11 @@ def selftest():
             print("FAIL:", msg)
 
     # V1 — known edges
-    crest = "client/assets/ui/crest_v1.png"
-    check(any("gen_heraldry.py" in p for p in m["producers"].get(crest, [])),
-          "crest_v1.png should be produced by gen_heraldry.py")
-    check(any("board_decor.gd" in c for c, _ in m["consumers"].get(crest, set())),
-          "crest_v1.png should be consumed by board_decor.gd")
+    seal = "client/assets/ui/board_seal.png"
+    check(any("gen_header.py" in p for p in m["producers"].get(seal, [])),
+          "board_seal.png should be produced by gen_header.py")
+    check(any("main.gd" in c for c, _ in m["consumers"].get(seal, set())),
+          "board_seal.png should be consumed by main.gd")
     check(any("board_geometry.gd" in p for p in m["preloads"].get("client/scripts/ui/board_decor.gd", [])),
           "board_decor.gd should preload board_geometry.gd")
     check(any("main.tscn" in c for c, _ in m["loaded_by"].get("client/scripts/main.gd", set())),

@@ -1493,3 +1493,39 @@ server/shared/logic change (I1/I2); verified by `--board-preview` captures (clie
 `collegium_logo.png`; it still writes via `ashember.write_png` so the asset-map producer edge holds.
 The generator→emblem INPUT edge is invisible to the text-static scanner — recorded via a provenance
 header. Numbering: R165–R170, P95–P97, T178–T182.
+
+---
+
+## TD-053
+
+**Switched active spec from `board-banner` (TD-052) to `board-header`.** A Contract Board **header**
+redesign on the user's brief: the header should read as a **handcrafted institutional object** inside
+the Collegium HQ — an ancient expedition board maintained for generations — not a modern game UI.
+Register: **ecclesiastical grimdark** (Blasphemous, Darkest Dungeon, Diablo II, Castlevania; medieval
+church furnishings, illuminated manuscripts, carved cathedral woodwork). Client render + generated art
+only — no server/shared/logic change (I1/I2); verified by `--board-preview` captures.
+
+**Scope (user rulings, do not re-litigate):**
+- **Preserve the overall board composition + layout.** Only the header block is reworked — notices,
+  scatter, bottom bar, and the TD-052 flanking banners keep their composition (R174).
+- The flat title bar → a believable **handcrafted placard**: carved oak / aged dark walnut, reinforced
+  with forged iron or weathered bronze, worn from centuries of use, physically mounted onto the board.
+  **Utilitarian and institutional, not decorative or luxurious** (R171).
+- The Collegium emblem must **not appear pasted above the header**. It becomes an **inset bronze seal**
+  (user's pick among carved / branded / embossed medallion / forged brass / engraved relief) — a forged
+  bronze medallion set INTO the wood, emblem in raised relief, iron rim, socket shadow. **No glowing
+  logos, no floating icons** — the emblem becomes part of the physical board (R172).
+- **Text hierarchy: THE COLLEGIUM (primary) over Contract Board (secondary)** — the institution always
+  outranks the object. Lettering **engraved / carved cathedral signage**, slightly weathered, not
+  perfectly uniform. Increase vertical breathing room; the seal + both lines read as **one cohesive
+  centered object** (R173).
+- Materials: **aged wood, bronze, iron, aged brass, parchment only** — no polished modern surfaces.
+  Lighting: warm **candlelit** ambience, soft highlights, subtle edge wear — **no bloom, no gloss** (R175).
+
+**Consequences.** The crowning `_board_crest` overlay + its per-frame `_process` position chase are
+**retired** (P98) — that machinery existed only to escape the ScrollContainer clip (TD-049), which a
+seal set into the plaque no longer needs. `gen_heraldry.py`'s `nameplate_px`/`board_nameplate.png` is
+superseded by the new `gen_header.py`, and its already-dead `crest_px`/`crest_v1.png` goes with it —
+clearing the double-producer conflict (`gen_emblems.py` writes the same path) that TD-051's first
+dependency map surfaced. `TOP_RESERVE_FRAC` and `placard_rect` grow for the taller header; the keep-out
+self-check is the guard that the scatter survived (P99). Numbering: R171–R176, P98–P101, T183–T187.
