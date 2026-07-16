@@ -1916,20 +1916,22 @@ func _place_placard(canvas: Control) -> void:
 func _board_header() -> Control:
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The medallion CROWNS the sign, overlapping its top rail — so the sign hangs in the lower
+	# part of the header rect and the two share one budget. (Header height is zero-sum against
+	# the writs: live_bounds.h = 184.24 - placard_h, split across two rows.)
+	var sign_top := 20.0
 	var ptex := load("res://assets/ui/board_header.png") as Texture2D
 	if ptex != null:
-		# The plaque is authored at its exact on-screen size (248x76 — the internal resolution
-		# is a fixed 640x360, so placard_rect is deterministic), hence NEAREST + 1:1 with no
-		# downscale mush (TD-050). The 9-slice only matters off-base: the corner straps stay
-		# un-smeared in the fixed corners and the grain runs horizontally, so the centre
-		# stretches cleanly.
-		# A contact shadow, drawn here rather than baked, so it holds at any stretched width —
-		# this is what sits the plaque proud of the board's planks.
+		# Authored at its exact on-screen size (248x44 — the internal resolution is a fixed
+		# 640x360, so placard_rect is deterministic), hence NEAREST + 1:1, no downscale mush
+		# (TD-050). The 9-slice only matters off-base: it keeps the end straps un-smeared and
+		# the grain runs horizontally, so the centre stretches cleanly.
+		# The contact shadow is drawn here, not baked, so it holds at any stretched width.
 		var shadow := NinePatchRect.new()
 		shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		shadow.set_anchors_preset(Control.PRESET_FULL_RECT)
+		shadow.offset_top = sign_top + 3.0
 		shadow.offset_left = 2.0
-		shadow.offset_top = 3.0
 		shadow.offset_right = 3.0
 		shadow.offset_bottom = 4.0
 		shadow.texture = ptex
@@ -1937,55 +1939,61 @@ func _board_header() -> Control:
 		shadow.modulate = Color(0.0, 0.0, 0.0, 0.55)
 		_patch_header(shadow)
 		root.add_child(shadow)
-		var plaque := NinePatchRect.new()
-		plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		plaque.set_anchors_preset(Control.PRESET_FULL_RECT)
-		plaque.texture = ptex
-		plaque.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		_patch_header(plaque)
-		root.add_child(plaque)
+		var sign := NinePatchRect.new()
+		sign.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sign.set_anchors_preset(Control.PRESET_FULL_RECT)
+		sign.offset_top = sign_top
+		sign.texture = ptex
+		sign.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_patch_header(sign)
+		root.add_child(sign)
 	else:
 		var plaque := Panel.new()
 		plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		plaque.set_anchors_preset(Control.PRESET_FULL_RECT)
+		plaque.offset_top = sign_top
 		var psb := StyleBoxFlat.new()
 		psb.bg_color = Color(0.20, 0.15, 0.11)
 		psb.set_border_width_all(2)
 		psb.border_color = Color(0.09, 0.06, 0.04)
 		plaque.add_theme_stylebox_override("panel", psb)
 		root.add_child(plaque)
-	# The seal + both lines are ONE centered stack inside the routed field, with real vertical
-	# breathing room between them (R173).
+	# The engraved title, centred in the sign's plank field, below the medallion's overlap.
 	var stack := VBoxContainer.new()
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.set_anchors_preset(Control.PRESET_FULL_RECT)
-	stack.offset_top = 5.0
-	stack.offset_bottom = -5.0
+	stack.offset_top = sign_top + 20.0
+	stack.offset_bottom = -6.0
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	stack.add_theme_constant_override("separation", 0)
 	root.add_child(stack)
+	stack.add_child(_engraved_line("THE COLLEGIUM", 14, Color(0.86, 0.72, 0.42), 700))
+	stack.add_child(_header_gap(1))
+	stack.add_child(_engraved_line("Contract Board", 8, Color(0.62, 0.50, 0.31), 400))
+	# The ring medallion, crowning the sign. Added LAST so it draws over the top rail; its
+	# scroll bosses seat on the rail, so it reads as bolted hardware, not a floating icon.
 	var seal_tex := load("res://assets/ui/board_seal.png") as Texture2D
 	if seal_tex != null:
 		var seal := TextureRect.new()
 		seal.texture = seal_tex
 		seal.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		seal.set_anchors_preset(Control.PRESET_TOP_WIDE)
 		seal.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-		seal.custom_minimum_size = seal_tex.get_size()
-		seal.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		stack.add_child(seal)
-	stack.add_child(_header_gap(2))
-	stack.add_child(_engraved_line("THE COLLEGIUM", 14, Color(0.86, 0.72, 0.42), true))
-	stack.add_child(_header_gap(1))
-	stack.add_child(_engraved_line("Contract Board", 9, Color(0.60, 0.48, 0.29), false))
+		seal.custom_minimum_size = Vector2(0, seal_tex.get_height())
+		# The bosses sit at the medallion's mid-height, so top = sign_top - h/2 lands them ON
+		# the sign's top rail. A boss that meets bare wall reads as a floating icon.
+		seal.offset_top = sign_top - seal_tex.get_height() * 0.5
+		seal.offset_bottom = seal.offset_top + seal_tex.get_height()
+		root.add_child(seal)
 	return root
 
-# The plaque's 9-slice margins (source 248x76, straps inside 36/18).
+# The sign's 9-slice margins (source 248x44, end straps inside 36/13).
 func _patch_header(np: NinePatchRect) -> void:
 	np.patch_margin_left = 36
-	np.patch_margin_top = 18
+	np.patch_margin_top = 13
 	np.patch_margin_right = 36
-	np.patch_margin_bottom = 18
+	np.patch_margin_bottom = 13
 
 func _header_gap(h: int) -> Control:
 	var g := Control.new()
@@ -1993,25 +2001,34 @@ func _header_gap(h: int) -> Control:
 	g.custom_minimum_size = Vector2(0, h)
 	return g
 
+# Cinzel (SIL OFL, client/assets/fonts/) — a Roman inscriptional serif, the register carved
+# cathedral signage is actually cut in. It carries the header's authority; the default sans
+# could only imitate it by letter-spacing, which read as a game UI label, not stone-cut letters.
+# The face imports with its OWN antialiasing (see Cinzel.ttf.import) — the project default is
+# no-AA for crisp pixel text, which would shatter Cinzel's fine serifs at this size.
+# `wght` is a real variable axis on this file (Regular/Bold/Black).
+func _cinzel(weight: int) -> FontVariation:
+	var base := load("res://assets/fonts/Cinzel.ttf") as FontFile
+	if base == null:
+		return null
+	var fv := FontVariation.new()
+	fv.base_font = base
+	fv.variation_opentype = {"wght": weight}
+	return fv
+
 # One line of ENGRAVED lettering: a dark incised cut with a lit face riding a pixel below it,
 # so the glyphs read as chiselled into the plank rather than inked onto it (carved cathedral
 # signage). Both labels share the rect; only the face carries the soft down-right AO.
-func _engraved_line(text: String, size: int, face_color: Color, spaced: bool) -> Control:
-	# Letter-spaced: chisel work is loose and hand-set, never modern-tight. (Per-glyph jitter
-	# would need an authored font atlas — out of scope; the spacing carries the register.)
-	var shown := text
-	if spaced:
-		shown = ""
-		for i in text.length():
-			if i > 0:
-				shown += " "
-			shown += text[i]
+func _engraved_line(text: String, size: int, face_color: Color, weight: int) -> Control:
+	var font := _cinzel(weight)
 	var row := Control.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.custom_minimum_size = Vector2(0, size + 2)
+	row.custom_minimum_size = Vector2(0, size + 3)
 	for pass_i in 2:
 		var is_cut := pass_i == 0
-		var l := _card_label(shown, size, Color(0.05, 0.03, 0.01, 0.92) if is_cut else face_color, false, true)
+		var l := _card_label(text, size, Color(0.05, 0.03, 0.01, 0.92) if is_cut else face_color, false, true)
+		if font != null:
+			l.add_theme_font_override("font", font)
 		l.set_anchors_preset(Control.PRESET_FULL_RECT)
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		l.position.y = -1.0 if is_cut else 0.0

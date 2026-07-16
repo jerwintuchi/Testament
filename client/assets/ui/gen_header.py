@@ -4,15 +4,19 @@
 Emits two hand-painted raster PNGs (canonical register, TD-046), run FROM this dir
 (relative filenames):
 
-  board_header.png  248x76  a carved oak/walnut plaque, 9-slice-safe (margins 36/18/36/18):
-                            horizontal grain + age bands, a routed recessed field (groove +
-                            double bevel), forged IRON corner straps each carrying BRONZE
-                            bolts, and a worn/eroded rim. Utilitarian + institutional — dim,
-                            matte, no gloss. Godot draws the seal + engraved title over it.
-  board_seal.png     36x50  the inset bronze seal: a VESICA medallion (the medieval church
-                            seal shape) — outer socket AO ring, forged iron rim, aged bronze
-                            disc, and the Collegium emblem in RAISED RELIEF. Reads as set
-                            INTO the wood; no glow, no specular hotspot.
+  board_header.png  248x44  a carved sign STRAPPED to the wall (TD-054, to the author's
+                            reference): vertical iron strap-hinges at both ends carrying
+                            bronze bolts, an open plank field between them, a lit top rail
+                            and a routed bottom rail. 9-slice-safe (margins 36/13/36/13).
+                            SHORT by design: the medallion crowns it, overlapping its top
+                            rail, so sign + medallion share one 76px header budget (every px
+                            of header costs the two rows of writs ~0.5px each).
+                            Godot draws the medallion + engraved Cinzel title over it.
+  board_seal.png     40x40  the RING MEDALLION crowning the sign: a bronze annulus (bead-
+                            and-fillet profile) around a recessed field carrying the
+                            Collegium emblem in RAISED RELIEF, with scroll bosses at the
+                            3- and 9-o'clock seats where it bolts to the sign. Dim bronze,
+                            matte — no glow, no specular hotspot.
 
 @produces board_header.png, board_seal.png
 @consumes collegium_logo.png  (via PIL — the emblem struck in relief on the seal's disc)
@@ -42,7 +46,7 @@ IRON_H = (82, 72, 56)          # dim lit iron edge (NOT a light grey frame)
 # Aged bronze / brass. Matte: the seal reads by RELIEF, never by a specular hotspot (R175).
 BRONZE_DK = (40, 28, 15)
 BRONZE_MID = (104, 74, 38)
-BRONZE_LT = (198, 158, 92)
+BRONZE_LT = (214, 174, 104)
 PATINA = (58, 74, 56)          # verdigris creep in the recesses
 # Aged dark walnut. A.RAMP["wood"] alone is a saturated orange-brown that reads as polished
 # mahogany — luxurious, the exact note the brief rejects. Blend toward this neutral to age it.
@@ -54,11 +58,15 @@ def _cl(v, a=0.0, b=1.0):
 
 
 # ── The carved plaque (248x96, 9-slice) ────────────────────────────────────────
-HW, HH = 248, 76
-HMX, HMY = 36, 18              # 9-slice patch margins — the corner straps live inside these
+HW, HH = 248, 44
+HMX, HMY = 36, 13              # 9-slice patch margins — the end straps live inside these
 
-STRAP_X, STRAP_Y = 28.0, 16.0  # the L-strap's corner footprint (< the margins, so it never smears)
-STRAP_T = 8.0                  # arm thickness
+# The END STRAP: a vertical iron hinge-plate closing each end of the sign — a bar between two
+# bolted plates, the fitting the reference hangs the sign from. It must live inside the 9-slice
+# margin (HMX=36) so the centre stretch never smears it.
+STRAP_W = 26.0                 # how far in from each end the fitting reaches
+BAR_X0, BAR_X1 = 7.0, 17.0     # the vertical bar's span, measured in from the end
+PLATE_H = 10.0                 # the plate capping the bar top and bottom
 
 
 def _wood(fx, fy):
@@ -85,26 +93,38 @@ def _aged(v):
 WOOD_LIP = A.lerp_rgb(A.RAMP["wood"][4], WALNUT, 0.38)     # the recess's lit lip, desaturated
 
 
-def _strap(cl, ct):
-    """Forged iron L-strap wrapping a corner, with two bronze bolts. Returns rgb or None."""
-    if cl >= STRAP_X or ct >= STRAP_Y:
+def _strap(cl, fy):
+    """Forged iron end-strap at distance `cl` in from the nearest end. Returns rgb or None."""
+    if cl >= STRAP_W:
         return None
-    if cl >= STRAP_T and ct >= STRAP_T:                    # the L's open elbow — bare wood
+    ct = min(fy, HH - 1.0 - fy)
+    in_plate = ct < PLATE_H and cl < 21.0
+    in_bar = BAR_X0 <= cl <= BAR_X1
+    if not (in_plate or in_bar):
         return None
-    edge = min(cl, ct)
-    lit = 0.24 + (STRAP_T - min(STRAP_T, max(cl, ct) % STRAP_T)) / STRAP_T * 0.06
-    if edge <= 1.0:                                        # the outer rim catches the key
-        lit += 0.36
-    if cl >= STRAP_T - 1.4 or ct >= STRAP_Y - 1.4:         # inner edge shades down into the wood
-        lit -= 0.13
-    lit += A.noise(int(cl), int(ct), 11) * 0.006           # hammered, not milled
+    # Relief: the fitting is a raised plate, so its outer edges take the key. `edge` is the
+    # distance to whichever silhouette we are inside.
+    if in_plate:
+        edge = min(ct, cl, 21.0 - cl, PLATE_H - ct)
+        lit = 0.22 + _cl((PLATE_H - ct) / PLATE_H) * 0.06
+    else:
+        edge = min(cl - BAR_X0, BAR_X1 - cl)
+        lit = 0.20 + _cl((BAR_X1 - cl) / (BAR_X1 - BAR_X0)) * 0.08
+    if edge < 1.0:                                         # the outer rim catches the key
+        lit += 0.34
+    elif edge < 2.0:
+        lit += 0.12
+    if fy > HH * 0.5:                                      # the fitting's lower half sits in shade
+        lit -= 0.06
+    lit += A.noise(int(cl), int(fy), 11) * 0.006           # hammered, not milled
     body = A.lerp_rgb(IRON_D, IRON_H, _cl(lit))
-    for bx, by in ((4.2, 4.2), (20.0, 3.9)):               # bronze bolts: one at the elbow, one out the arm
-        bd = math.hypot(cl - bx, ct - by)
-        if bd < 2.8:
-            blit = _cl(0.32 + (-(cl - bx) * LX - (ct - by) * LY) / 2.8 * 0.55)
-            body = A.lerp_rgb(A.lerp_rgb(IRON_B, IRON_H, blit), BRONZE_MID, 0.44)
-            if (cl - bx) > 0.7 and (ct - by) > 0.7:        # hard down-right AO crescent
+    # Bronze bolts: one through each plate, on the bar's centreline.
+    if in_plate:
+        bd = math.hypot(cl - 12.0, ct - 5.0)
+        if bd < 2.9:
+            blit = _cl(0.32 + (-(cl - 12.0) * LX - (ct - 5.0) * LY) / 2.9 * 0.55)
+            body = A.lerp_rgb(A.lerp_rgb(IRON_B, IRON_H, blit), BRONZE_MID, 0.46)
+            if (cl - 12.0) > 0.7 and (ct - 5.0) > 0.7:     # hard down-right AO crescent
                 body = A.lerp_rgb(body, IRON_D, 0.45)
     return body
 
@@ -120,7 +140,7 @@ def header_px(fx, fy):
         return (0, 0, 0, 0)
 
     # ── iron corner straps (drawn over everything, incl. the bevel) ──
-    strap = _strap(min(left, right), min(top, bot))
+    strap = _strap(min(left, right), fy)
     if strap is not None:
         return A.clamp_rgb(strap) + (255,)
 
@@ -134,32 +154,38 @@ def header_px(fx, fy):
             v += 0.12
         return A.clamp_rgb(_aged(v)) + (255,)
 
-    # ── routed field: a carved groove ringing an inset recess (the seal + title sit here) ──
+    # ── the sign's plank field, closed by a lit top rail and a routed bottom rail ──
     c = _wood(fx, fy)
-    rx0, rx1, ry0, ry1 = 22.0, HW - 22.0, 7.0, HH - 7.0
-    if rx0 < fx < rx1 and ry0 < fy < ry1:
-        rd = min(fx - rx0, rx1 - fx, fy - ry0, ry1 - fy)
-        if rd < 2.2:                                       # the routed GROOVE (dark cut channel)
-            c = A.lerp_rgb(c, (10, 7, 5), 0.72)
-        else:                                              # the recessed field
-            c = A.lerp_rgb(c, (10, 7, 5), 0.46)            # deeply routed, for gilt contrast
-            if fy < ry0 + 3.5:                             # a firm lit lip along the recess top
-                c = A.lerp_rgb(c, WOOD_LIP, 0.44)
-            elif fy > ry1 - 3.0:                           # occlusion along the recess bottom
-                c = A.lerp_rgb(c, (10, 7, 5), 0.34)
+    if fy < 5.0:                                           # top rail: catches the key
+        c = A.lerp_rgb(c, WOOD_LIP, 0.30 * (1.0 - fy / 5.0) + 0.14)
+    elif fy > HH - 7.0:
+        # bottom rail: a routed channel above a lit lip — the reference's decorative under-rail.
+        # Kept slim: the sign's plank field has to seat two lines under the medallion's overlap.
+        rb = fy - (HH - 7.0)
+        if rb < 2.5:
+            c = A.lerp_rgb(c, (8, 6, 4), 0.62)             # the cut channel
+        elif rb < 4.5:
+            c = A.lerp_rgb(c, WOOD_LIP, 0.34)              # the lip below it
+        else:
+            c = A.lerp_rgb(c, (8, 6, 4), 0.30)
+    # A soft vertical falloff: the sign is lit from above, so its foot sits in its own shade.
+    c = A.lerp_rgb(c, (8, 6, 4), _cl((fy / HH - 0.35) * 0.34))
     return A.clamp_rgb(c) + (255,)
 
 
-# ── The inset bronze seal (36x50 vesica) ───────────────────────────────────────
-SW, SH = 24, 33
+# ── The ring medallion (44x44) ─────────────────────────────────────────────────
+# Crowns the sign, bolted to it at the 3- and 9-o'clock scroll bosses (TD-054, to the
+# author's reference). A bronze annulus with a bead-and-fillet profile around a recessed
+# field carrying the emblem in raised relief. NOT a floating icon: the bosses seat it on
+# the sign's top rail, so it reads as mounted hardware.
+SW, SH = 40, 40
 SCX, SCY = SW * 0.5, SH * 0.5
-SA, SB = 10.6, 15.2            # vesica semi-axes
-SP = 1.62                      # superellipse exponent < 2 ⇒ the pointed oval of a church seal
-RIM_E = 0.68                   # e above this is the iron rim (thick enough to read as forged)
-SOCK_E = 1.30                  # e above this is bare wood (the socket AO fades out by here)
+R_OUT = 18.0                   # the annulus's outer edge
+R_IN = 13.0                    # where the ring meets the recessed field
+BOSS_R = 3.4                   # the scroll bosses at 3 and 9 o'clock
 
 EMB_SRC = "collegium_logo.png"
-DEV_H = 26.0                   # the struck device's height, in output px
+DEV_H = 23.0                   # the struck device's height, in output px
 
 
 def _load_device():
@@ -172,7 +198,7 @@ def _load_device():
 
 
 DEV, DEV_W, DEV_H_PX = _load_device()
-DEV_X, DEV_Y = SCX - DEV_W * 0.5, SCY - DEV_H_PX * 0.5 - 0.5
+DEV_X, DEV_Y = SCX - DEV_W * 0.5, SCY - DEV_H_PX * 0.5
 
 
 def _dev(fx, fy):
@@ -195,59 +221,65 @@ def _dev(fx, fy):
     return a, (lum / a if a > 0.001 else 0.0)
 
 
+def _bronze(lit, rim=0.0):
+    c = A.lerp_rgb(BRONZE_DK, BRONZE_MID, _cl(lit))
+    if rim > 0.0:
+        c = A.lerp_rgb(c, BRONZE_LT, _cl(rim))
+    return c
+
+
 def seal_px(fx, fy):
     ox, oy = fx - SCX, fy - SCY
-    e = (abs(ox) / SA) ** SP + (abs(oy) / SB) ** SP
+    r = math.hypot(ox, oy)
+    # Surface normal toward the key, reused by every layer so the medallion is lit as ONE object.
+    nlit = _cl(0.42 + (-ox * LX - oy * LY) / R_OUT * 0.62)
 
-    if e >= SOCK_E:
-        return (0, 0, 0, 0)
-    if e >= 1.0:
-        # ── socket: the AO ring of the hole routed through the plank. This is what sells
-        # "set INTO the wood" wherever the seal is placed (R172) — no baking into the
-        # stretched 9-slice centre, which would smear it.
-        t = (e - 1.0) / (SOCK_E - 1.0)
-        a = (1.0 - t) ** 1.5 * 0.90
-        if oy < 0 and abs(ox) < SA * 0.9:        # the hole's upper lip occludes hardest
-            a = min(1.0, a * 1.25)
-        return (0, 0, 0, A.clamp(a * 255))
+    # ── scroll bosses: the seats where the medallion bolts to the sign ──
+    for s_ in (-1, 1):
+        bd = math.hypot(ox - s_ * (R_OUT - 1.0), oy)
+        if bd < BOSS_R:
+            blit = _cl(0.34 + (-(ox - s_ * (R_OUT - 1.0)) * LX - oy * LY) / BOSS_R * 0.6)
+            return A.clamp_rgb(_bronze(blit, rim=_cl(0.85 - bd / BOSS_R) * 0.45)) + (255,)
 
-    if e >= RIM_E:
-        # ── forged iron rim: a raised ring, so it takes the key on its OUTER upper-left face and
-        # occludes on the inner side. Hammered, cool — it must not read as more bronze.
-        t = (e - RIM_E) / (1.0 - RIM_E)                    # 0 inner .. 1 outer
-        nlit = _cl(0.30 + (-ox * LX - oy * LY) / SB * 0.70)
-        crown = 1.0 - abs(t - 0.5) * 1.6                   # the ring's rounded crown catches most
-        lit = _cl(nlit * (0.35 + crown * 0.65) + 0.04)
-        lit += A.noise(int(fx), int(fy), 23) * 0.014       # hammered, not milled
-        c = A.lerp_rgb(IRON_D, IRON_H, _cl(lit))
-        if t < 0.18:                                       # hard AO where the rim overhangs the disc
-            c = A.lerp_rgb(c, (0, 0, 0), (0.18 - t) / 0.18 * 0.55)
+    if r >= R_OUT:
+        # A tight contact shadow so the medallion sits ON the sign rather than over it.
+        t = (r - R_OUT) / 2.2
+        if t >= 1.0:
+            return (0, 0, 0, 0)
+        return (0, 0, 0, A.clamp((1.0 - t) ** 1.6 * 150))
+
+    if r >= R_IN:
+        # ── the annulus: a bead-and-fillet profile. `crown` rides the ring's rounded top, so
+        # the band reads as turned metal rather than a flat washer.
+        t = (r - R_IN) / (R_OUT - R_IN)
+        crown = 1.0 - abs(t - 0.45) * 2.0
+        lit = _cl(nlit * (0.34 + _cl(crown) * 0.92) + 0.10)
+        c = _bronze(lit, rim=_cl(crown - 0.40) * (0.9 if nlit > 0.5 else 0.28))
+        if t < 0.14:                                       # AO where the ring overhangs the field
+            c = A.lerp_rgb(c, (0, 0, 0), (0.14 - t) / 0.14 * 0.5)
+        if t > 0.9:                                        # the outer fillet turns away
+            c = A.lerp_rgb(c, BRONZE_DK, (t - 0.9) / 0.1 * 0.55)
         return A.clamp_rgb(c) + (255,)
 
-    # ── aged bronze disc: DIM + matte, patina-mottled, gentle radial falloff (no hotspot, R175) ──
-    base = _cl(0.40 - e * 0.16 + (-ox * LX - oy * LY) / SB * 0.12)
-    c = A.lerp_rgb(BRONZE_DK, BRONZE_MID, base)
-    mottle = A.noise(int(fx * 1.3), int(fy * 1.3), 29)
-    c = A.lerp_rgb(c, PATINA, _cl(mottle * 0.012 + 0.07))      # verdigris creep, faint
-    if e > RIM_E - 0.20:                                       # AO where the field meets the rim
-        c = A.lerp_rgb(c, (0, 0, 0), _cl((e - RIM_E + 0.20) / 0.20) * 0.50)
+    # ── the recessed field the device is struck on: dark, so the gilt relief reads ──
+    c = A.lerp_rgb(BRONZE_DK, BRONZE_MID, _cl(0.26 - r / R_IN * 0.12 + nlit * 0.10))
+    c = A.lerp_rgb(c, PATINA, _cl(A.noise(int(fx * 1.3), int(fy * 1.3), 29) * 0.012 + 0.07))
+    if r > R_IN - 2.5:                                     # the field's own shadow under the ring
+        c = A.lerp_rgb(c, (0, 0, 0), (r - R_IN + 2.5) / 2.5 * 0.45)
 
-    # ── the emblem STRUCK IN RELIEF ──
-    # The device is a raised plateau: its light-facing (upper-left) lip catches the candle, its
-    # lower-right lip shadows, and its plateau face sits mid-bronze. `rel` is signed coverage
-    # gradient — sampling the mask offset both ways gives BOTH lips, which is what separates a
-    # struck medal from lines painted on a disc.
+    # ── the emblem STRUCK IN RELIEF: a raised plateau with a lit upper-left lip and a
+    # shadowed lower-right one. Sampling the mask offset BOTH ways gives both lips, which is
+    # what separates a struck medal from lines painted on a disc.
     a, lum = _dev(fx, fy)
     if a > 0.02:
         aul, _ = _dev(fx - 1.1, fy - 1.1)
         adr, _ = _dev(fx + 1.1, fy + 1.1)
-        g = adr - aul                                          # +1 UL lip, -1 DR lip, 0 plateau
-        face = A.lerp_rgb(BRONZE_DK, BRONZE_MID, 0.52 + lum * 0.20)   # the plateau
+        g = adr - aul
+        face = A.lerp_rgb(BRONZE_MID, BRONZE_LT, 0.30 + lum * 0.34)
         if g > 0.02:
-            face = A.lerp_rgb(face, BRONZE_LT, _cl(g * 1.8) * 0.95)   # lit lip
+            face = A.lerp_rgb(face, BRONZE_LT, _cl(g * 1.8) * 0.95)
         elif g < -0.02:
-            face = A.lerp_rgb(face, (6, 4, 2), _cl(-g * 1.3) * 0.72)  # shadowed lip
-        # A contact shadow just outside the device's lower-right edge, so it sits ON the disc.
+            face = A.lerp_rgb(face, (6, 4, 2), _cl(-g * 1.5) * 0.72)
         c = A.lerp_rgb(c, face, _cl(a * 1.2))
     else:
         aul, _ = _dev(fx - 1.2, fy - 1.2)

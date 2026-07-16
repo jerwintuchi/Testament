@@ -1529,3 +1529,55 @@ superseded by the new `gen_header.py`, and its already-dead `crest_px`/`crest_v1
 clearing the double-producer conflict (`gen_emblems.py` writes the same path) that TD-051's first
 dependency map surfaced. `TOP_RESERVE_FRAC` and `placard_rect` grow for the taller header; the keep-out
 self-check is the guard that the scatter survived (P99). Numbering: R171–R176, P98–P101, T183–T187.
+
+---
+
+## TD-054
+
+**Contract Board header re-cut toward the author's reference; Cinzel adopted as the display
+face.** The author supplied a reference image of the Contract Board and asked how close we
+could get. Analysis first, three findings:
+
+1. **The reference is a repaint of our own board** — same eight fixture contracts, same
+   "— no charge sealed —", same bottom bar. So the *composition already matched*; the gap was
+   craft, not layout.
+2. **Resolution is NOT the blocker.** Pushing the reference through our own pipeline
+   (LANCZOS to the internal 640×360, integer-scale back) keeps its header legible: that block
+   is only **184×78 internal px** — smaller than the 248×76 header TD-053 shipped — and the
+   ring medallion, strap hinges and sword-and-laurel all survive. The register can hold it.
+3. **The typeface was the blocker.** The reference sets its title in a Roman inscriptional
+   serif; we were letter-spacing Godot's default sans to imitate gravitas. No amount of
+   generator work closes that gap.
+
+**Rulings (author, do not re-litigate):**
+- **Cinzel adopted as the display face** (SIL Open Font License 1.1, `client/assets/fonts/`,
+  OFL.txt shipped alongside per the licence). It IS the face in the reference. Display/titles
+  only; body text keeps the existing face. This is an **asset addition approved explicitly**
+  (CLAUDE.md requires approval before adding to the sanctioned toolchain). The face imports
+  with its **own** antialiasing — the project default is no-AA for crisp pixel text, which
+  shatters Cinzel's fine serifs at this size.
+- **The emblem returns to a ring medallion crowning the sign**, reversing TD-053's
+  "inset seal / not pasted above" ruling. It is not a floating icon: scroll bosses at 3 and
+  9 o'clock seat it ON the sign's top rail, so it reads as bolted hardware. The inset vesica
+  seal is retired.
+- **Scope: header first**, then review before touching banners, torches, or wall brackets.
+
+**Verdict on 1:1: not achievable, and the reason is register, not effort.** The reference is
+a painted, continuous-tone render; our art is generated from equations and rendered at a fixed
+640×360. Composition, form and type can match; brush-level irregularity and the reference's
+bloom cannot (2D glow via WorldEnvironment exists but would be a new rendering pillar, and the
+author has ruled "no bloom" for the header). Realistic ceiling ≈ **85% with the font**, ~65%
+without.
+
+**Form.** `board_header.png` becomes a **short strapped sign** (248×**44**, was a 248×76 slab):
+vertical iron end-straps (a bar between two bolted plates) inside the 9-slice margins, an open
+plank field, a lit top rail and a slim routed bottom rail. `board_seal.png` becomes the
+**40×40 ring medallion** (bronze annulus with a bead-and-fillet profile around a recessed field
+carrying the emblem in raised relief). The medallion **overlaps** the sign's top rail, so the
+two **share one 76px header budget** — critical, because header height is zero-sum against the
+writs (`live_bounds.h = 184.24 - placard_h`, split across two rows). Writs therefore hold at
+**93×48**; `placard_rect` and `TOP_RESERVE_FRAC` are unchanged from TD-053.
+
+Client render + generated art only. Remaining reference gaps (banner rods with brass finials,
+standing floor torches, wall corner brackets, the medallion's laurel, the reference's lowercase
+subtitle) are deferred pending the author's review; a spec follows if that work proceeds.
