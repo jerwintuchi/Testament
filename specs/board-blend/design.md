@@ -86,6 +86,27 @@ packing stays in one place — `main._surface_material`). The banner block chang
 `main.gd` builds `banner_mat` once and passes it: `BoardDecor.add_torches(_stone_bg, vp,
 _reduced_motion, _surface_material("res://assets/ui/banner_v1_n.png", …))`.
 
+## R183 — the placard joins the lighting model (TD-059d)
+
+The header sign was the last board object still rendered as a **flat baked `NinePatchRect`** on a
+shader-lit wall — hence it read as pasted-on/self-lit. It now takes the same `board_surface.gdshader`
+material as every other surface:
+
+- `gen_header.py` emits a companion **`board_header_n.png`** from an explicit **height field** `_hf`
+  that mirrors `header_px`'s carved form (raised iron straps + domed bolts, top rail, routed
+  bottom-rail channel, outer bevel stepping to the worn rim), Sobel → packed tangent-space normal
+  (gen_normals convention; flat + transparent at the worn-rim holes).
+- `main._board_header` gives the sign `_surface_material("…board_header_n.png", ambient≈0.86,
+  diffuse_gain 1.0, radius_scale 1.6)`. The **shadow copy stays a flat black silhouette** (no shader).
+- Because the header is top-centre and the sconces are bottom-corner (~1.0 uv away, unreachable by
+  any sane radius), the header sits in the shader's **cool ambient** (`ambient_tint ≈ 0.82,0.85,0.95`)
+  — which is exactly the cool-dark the top of the frame beside it already sits in. So "lit by the
+  scene" here means *rendered by the same ambient/falloff model as the wall*, not literally warmed by
+  a torch. A `--lights-off` capture is ~unchanged (ambient-dominated), which is the honest tell. The
+  normal is included for pipeline consistency (it rakes if light ever reaches; the ambient term is
+  flat). The **gilt title is a separate Godot Label**, so the wood can go as dim as the blend wants
+  without touching legibility (P105/P106).
+
 ## R181 — `gen_header.py` tone
 
 The header wood ramp is **darkened** (`WALNUT` + the wood lip/field values pulled down, blended
@@ -105,6 +126,9 @@ re-emitted; iron straps + bronze bolts keep their (already dim) values.
   asset data and emit nothing.
 - **P105 (header legible, R181):** the gilt title on the darkened wood stays clearly readable (the
   darker ground raises contrast).
+- **P106 (placard in the lighting model, R183):** the header is rendered by `_surface_material` (the
+  one rig, P102 heritage) with a real normal — no baked phantom highlight implying a light the scene
+  lacks; render-only, emits nothing.
 
 ## Files touched
 

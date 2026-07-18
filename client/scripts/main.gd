@@ -1948,6 +1948,13 @@ func _board_header() -> Control:
 		sign.offset_top = sign_top
 		sign.texture = ptex
 		sign.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		# TD-059d: light the sign through the SAME board_surface.gdshader as the wall/frame/banner so
+		# it belongs to the scene instead of reading as a flat, self-lit plaque on a torch-lit wall.
+		# The header sits at the top centre, far from the corner sconces, so it takes the scene's cool
+		# ambient (its carved relief in board_header_n) with only a whisper of torch reach — which is
+		# exactly the cool-dark the top of the frame beside it already sits in. The gilt title is a
+		# separate Godot Label drawn over this, so legibility is unaffected by how dim the wood goes.
+		sign.material = _surface_material("res://assets/ui/board_header_n.png", 0.86, 1.0, Vector2.ONE, 1.6)
 		_patch_header(sign)
 		root.add_child(sign)
 	else:

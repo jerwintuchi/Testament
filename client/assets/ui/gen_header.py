@@ -16,7 +16,7 @@ Emits one hand-painted raster PNG (canonical register, TD-046), run FROM this di
                             plus its rails, nothing else. Every px of header costs the two
                             rows of writs ~0.5px each (live_bounds.h = 190 - y - h).
 
-@produces board_header.png
+@produces board_header.png, board_header_n.png
 @consumes nothing — the sign is pure SURFACE (grain, rails, forged straps), which is exactly
           the half of the TD-057 split that stays procedural. Aseprite owns sprites; this
           generator owns surfaces.
@@ -169,6 +169,74 @@ def header_px(fx, fy):
     return A.clamp_rgb(c) + (255,)
 
 
+# ── Height field → normal map (TD-059d) ─────────────────────────────────────────
+# So the sign is lit by the SAME board_surface.gdshader as the wall/frame/banner instead of a flat
+# baked sprite that reads pasted-on. The relief lives in the NORMAL (the banner's lesson): an explicit
+# height field that mirrors header_px's carved form — raised iron straps + bolt domes, a top rail, a
+# routed bottom-rail channel, and the outer bevel stepping down to the worn rim.
+def _hf(fx, fy):
+    left, top = fx, fy
+    right, bot = HW - 1 - fx, HH - 1 - fy
+    d = min(left, top, right, bot)
+    cl = min(left, right)
+    ct = min(fy, HH - 1.0 - fy)
+    h = 0.5
+    # iron corner straps: a raised plateau, with a domed bolt through each plate
+    if cl < STRAP_W:
+        in_plate = ct < PLATE_H and cl < 21.0
+        in_bar = BAR_X0 <= cl <= BAR_X1
+        if in_plate or in_bar:
+            h = 0.76
+            if in_plate:
+                bd = math.hypot(cl - 12.0, ct - 5.0)
+                if bd < 2.9:
+                    h = 0.78 + (1.0 - bd / 2.9) * 0.16     # bolt dome
+            return _cl(h)
+    # outer double bevel: steps down toward the rim
+    if d <= 3:
+        return _cl(h - (3.0 - d) * 0.09)
+    # top rail raised; routed bottom rail = a cut channel above a raised lip
+    if fy < 4.0:
+        h += 0.16 * (1.0 - fy / 4.0)
+    elif fy > HH - 5.0:
+        rb = fy - (HH - 5.0)
+        if rb < 2.0:
+            h -= 0.24
+        elif rb < 3.5:
+            h += 0.12
+    return _cl(h)
+
+
+_HFG = [[_hf(x + 0.5, y + 0.5) for x in range(HW)] for y in range(HH)]
+NRM_STRENGTH = 2.6
+
+
+def _normal_px(diffuse):
+    """Sobel the height field into a packed tangent-space normal (gen_normals convention: flat =
+    128,128,255, FLIP_G=False). Flat + transparent where the diffuse is (the worn-rim holes) so the
+    torn edge doesn't rake light."""
+    def clampi(v):
+        return 0 if v < 0 else (HW - 1 if v >= HW else v)
+
+    def clampj(v):
+        return 0 if v < 0 else (HH - 1 if v >= HH else v)
+
+    def pixel(x, y):
+        if diffuse(x, y)[3] < 8:
+            return (128, 128, 255, 0)
+        dx = _HFG[y][clampi(x + 1)] - _HFG[y][clampi(x - 1)]
+        dy = _HFG[clampj(y + 1)][x] - _HFG[clampj(y - 1)][x]
+        nx = -dx * NRM_STRENGTH
+        ny = -dy * NRM_STRENGTH
+        nz = 1.0
+        inv = 1.0 / math.sqrt(nx * nx + ny * ny + nz * nz)
+        return (A.clamp((nx * inv * 0.5 + 0.5) * 255),
+                A.clamp((ny * inv * 0.5 + 0.5) * 255),
+                A.clamp((nz * inv * 0.5 + 0.5) * 255),
+                255)
+    return pixel
+
+
 # ── Supersample → averaged downsample ───────────────────────────────────────────
 def _supersample(W, H, sample):
     grid = {}
@@ -209,6 +277,8 @@ def main(ascii_only=False):
         return
     A.write_png("board_header.png", HW, HH, plaque)
     print("wrote board_header.png (%dx%d)" % (HW, HH))
+    A.write_png("board_header_n.png", HW, HH, _normal_px(plaque))
+    print("wrote board_header_n.png (%dx%d) — carved relief for board_surface.gdshader" % (HW, HH))
 
 
 if __name__ == "__main__":

@@ -59,6 +59,16 @@ while the **engraved gilt title stays readable**.
 - AC: the header wood value is pulled down (blends toward the near-black board) — "darker but not so
   much"; the gilt **THE COLLEGIUM** / **Contract Board** stays clearly legible against it.
 
+**R183** (generator/client, TD-059d): the **placard/header is lit by the scene's dynamic lighting**,
+not a flat baked sprite.
+- AC: the header sign renders through `board_surface.gdshader` (a generated `board_header_n.png`
+  normal + the torch rig) like the wall/frame/banner, so it takes the scene's **cool ambient tint** +
+  consistent falloff instead of reading as a self-lit plaque on a torch-lit wall.
+- AC: the header sits at the top-centre, far from the corner sconces, so it reads in the **same cool
+  ambient as the top of the frame** beside it — a `--lights-off` capture is ~unchanged (the header is
+  ambient-dominated, confirming only the torch term, never a baked phantom highlight, is what would
+  change). The gilt title (a separate Godot Label drawn over the sign) stays clearly legible.
+
 ## Cross-cutting
 
 **R182** (containment / register, standing I1/I2): client render + generated art only.

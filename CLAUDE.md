@@ -143,7 +143,11 @@ falls to flat dim cloth, proving the shader lights it) (R179); a **larger** bann
 width 0.15·vp→**0.095·vp**, `banner_top` 0.012→**0.06·vp.y** — the gutter is narrower than the banner,
 so pinning the inner edge clear of the frame while growing walks the centre out; the emblem stays
 on-screen, the outer edge spills off-screen, and the top no longer lines up with the board, author
-OK'd) (R180). `_surface_material` grows one optional
+OK'd) (R180). The **placard** now joins the same lighting model (TD-059d/R183): `gen_header.py` emits
+`board_header_n.png` and the sign takes a `board_surface.gdshader` material, so it sits in the scene's
+cool ambient (matching the frame top, far from the corner sconces) instead of reading as a flat
+self-lit plaque — `--lights-off` ~unchanged (ambient-dominated); the gilt title is a separate Label so
+legibility holds. `_surface_material` grows one optional
 **`radius_scale`** (default 1.0 — existing surfaces unchanged; the banner passes ≈2.4) so the tight
 0.24 torch halo still keeps the wall dark but its warmth **climbs the cloth** — same rig, a per-material
 reach, not a second light (P102). The **header wood is darkened** (`WALNUT` 50,39,30→38,29,22, blend

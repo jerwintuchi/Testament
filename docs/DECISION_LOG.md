@@ -1824,3 +1824,17 @@ lines up with the board's top edge. To grow WITHOUT re-touching the board, the c
 out (`GUTTER_CX` `0.036 → 0.028`): the inner edge stays pinned clear of the frame (~97px vs frame
 ~114px) while the extra width + the shift spill the outer edge further off-screen (viewport clips —
 "overlap outside the view, just not the board"), the emblem staying on-screen. Same coupling (P95).
+
+**TD-059d (placard joins the lighting model).** The header sign was the last board object still drawn
+as a flat baked `NinePatchRect` on a shader-lit wall, so it read as pasted-on/self-lit. It now takes
+the same `board_surface.gdshader` material as the wall/frame/backing/banner: `gen_header.py` emits a
+companion `board_header_n.png` from an explicit height field (raised straps + domed bolts, top rail,
+routed bottom-rail channel, outer bevel → Sobel normal), and the sign is given `_surface_material`
+(the shadow copy stays a flat black silhouette). The header is top-centre and the sconces are
+bottom-corner (~1.0 uv away — unreachable by any sane radius), so "lit by the scene" here means
+*rendered by the same cool-ambient/falloff model as the wall* (`ambient_tint ≈ 0.82,0.85,0.95`), which
+is exactly the cool-dark the top of the frame beside it already sits in — not literally warmed by a
+torch. `--lights-off` is ~unchanged (ambient-dominated), the honest tell that the placard is in the
+lighting pipeline rather than baking a phantom highlight. The gilt title is a separate Godot Label, so
+the wood tone is free to match the scene without touching legibility. R183/P106/T193; client render +
+generated art only.

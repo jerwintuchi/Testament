@@ -45,6 +45,17 @@
       Test: **V5** — a board capture shows the sign receded/darker while the gilt title stays clearly
       readable (capture-iterated for the balance).
 
+## The placard (TD-059d)
+
+- [x] T193 [R183 / P106 / V5] — **Light the placard through the scene shader.** `gen_header.py` emits
+      `board_header_n.png` from an explicit height field (`_hf`: raised straps + domed bolts, top rail,
+      routed bottom-rail channel, outer bevel), Sobel → tangent-space normal (flat + transparent at
+      the worn rim). `main._board_header` gives the sign `_surface_material(board_header_n.png, ambient
+      0.86, …)` (shadow copy stays flat). Import; regenerate asset-map.
+      Test: **V5** — a board capture shows the header taking the scene's cool ambient (matching the top
+      of the frame), its carved relief defined, the gilt title still legible; a `--lights-off` capture
+      is ~unchanged (ambient-dominated — the placard is in the lighting model, not baked-self-lit).
+
 ## Verify
 
 - [x] T192 [R177–R182 / P102–P105 / V6] — **Verification pass.** Regenerate `asset-map.md` + `--check`
