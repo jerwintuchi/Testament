@@ -8,11 +8,15 @@ extends RefCounted
 
 const BoardGeo = preload("res://scripts/ui/board_geometry.gd")
 
-# The ONE gutter-centre x (as a screen fraction) for each flank — the midpoint of the ~13% stone
-# gutter beside the inset board (inner=0.74 ⇒ 0.13 flank ⇒ centre 0.065). Both `torch_rig` AND
-# `add_torches` read this, so the banner, the sconce, and the shader's torch uniforms never desync
-# (TD-052 P95). Widened banners centre here and may spill past the screen edge (viewport clips).
-const GUTTER_CX := [0.065, 0.935]
+# The ONE gutter-centre x (as a screen fraction) for each flank. Both `torch_rig` AND `add_torches`
+# read this, so the banner, the sconce, and the shader's torch uniforms never desync (TD-052 P95).
+# TD-059b/c: pushed OUTWARD toward the outer edge of the masonry gutter so the whole assembly
+# (banner + its own light + sconce + flame + wall hotspot) clears the board frame — the gutter
+# (screen edge → carved frame ≈ 0.09·vp) is NARROWER than the banner, so a centred banner's inner
+# edge overlapped the board. Pinning the INNER edge clear of the frame while GROWING the banner
+# (TD-059c) walks the centre further out (0.036 → 0.028): the banner is larger, its outer edge spills
+# further off-screen (viewport clips, author OK'd), and its inner edge still keeps its gap to the board.
+const GUTTER_CX := [0.028, 0.972]
 
 # The ONE torch light rig (R133/P72): two flames on the gutter pillars. Every consumer —
 # the visual torch placement here AND the surround's `board_surface.gdshader` uniforms in
@@ -32,7 +36,7 @@ static func torch_rig(vp: Vector2) -> Array:
 # Flanking wall torches, drawn on the stone-wall layer (behind the centred board) in
 # VIEWPORT space so the banners hang on the masonry beside the inset board (Prototype v1).
 # Clears and rebuilds `stone_bg`'s children each call. Reduced motion pins the glow to peak.
-static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> void:
+static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool, banner_mat: ShaderMaterial = null) -> void:
 	if stone_bg == null:
 		return
 	for c in stone_bg.get_children():
@@ -43,38 +47,44 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool) -> vo
 	# and the lit torch sits INBOARD of it (between banner and frame) — two separate fixtures,
 	# never stacked (that stacking lit the cloth orange + smeared the frame edge).
 	for at_right in [false, true]:
-		var banner_cx: float = vp.x * GUTTER_CX[1 if at_right else 0]   # gutter centre; the wide banner may spill off-screen
-		var btex_w := 180.0
-		var btex_h := 360.0
-		var banner_top := vp.y * 0.012
-		# Widen to fill the gutter (~0.15·vp), but CAP the scale by a height budget so the swallowtail
-		# foot ends above the sconce cup (vp.y*0.71) with a clear gap — cloth must not reach the fire.
-		var bs := minf(vp.x * 0.15 / btex_w, (vp.y * 0.60 - banner_top) / btex_h)
+		var banner_cx: float = vp.x * GUTTER_CX[1 if at_right else 0]   # gutter centre (midpoint of the stone flank)
+		var btex_w := 64.0
+		var btex_h := 176.0
+		var banner_top := vp.y * 0.06         # TD-059c: lowered so the banner top no longer lines up with the board's top edge
+		# TD-059c: LARGER banner (0.095·vp.x) hung at the outer gutter (GUTTER_CX=0.028). Its INNER
+		# edge (center 0.028 + half 0.0475 ≈ 0.075·vp) still clears the carved board frame (~0.09·vp)
+		# with a gap while the emblem (centred, 0.60·W) stays on-screen; the outer edge spills further
+		# off-screen (viewport clips — author OK'd). Height budget lifted to 0.60·vp.y so the taller,
+		# lowered banner still ends its foot above the sconce cup (vp.y*0.71) with a clear gap.
+		var bs := minf(vp.x * 0.095 / btex_w, (vp.y * 0.60 - banner_top) / btex_h)
 		var target_h := btex_h * bs
-		var banner_w := btex_w * bs
 		var banner_pos := Vector2(banner_cx, banner_top + target_h * 0.5)
 		# Contact shadow: the banner cast onto the masonry, offset down-right (the board's ONE
 		# light convention), so the cloth reads as hung proud of the wall, not painted on it.
 		var bshadow := Sprite2D.new()
 		bshadow.texture = load("res://assets/ui/banner_v1.png") as Texture2D
-		bshadow.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		bshadow.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		bshadow.scale = Vector2(bs, bs)
 		bshadow.centered = true
 		bshadow.position = banner_pos + Vector2(3.0, 4.0)
 		bshadow.modulate = Color(0.0, 0.0, 0.0, 0.32)
 		bshadow.z_index = -1
 		stone_bg.add_child(bshadow)
-		# Frayed blood-crimson tapestry, freshly GENERATED (T157/gen_banner.py — replaces the
-		# proto slice + its stray-pixel corruption). The dim crimson + fold value + warm hem are
-		# BAKED into the diffuse (dungeon-dark, TD-048: the banner is a plain Sprite2D, read by
-		# its own value), so it renders near-as-authored — only a whisper of dim to sink it back.
+		# Dim, heavily-tattered crimson standard (TD-059/gen_banner.py). It is now a NORMAL-MAPPED
+		# surface LIT BY THE TORCH RIG via board_surface.gdshader (banner_mat) — warm where the foot
+		# sconce reaches, dark up top — not a flat baked sprite. Brightness comes from the shader, so
+		# modulate is white; NEAREST for crisp pixels. Falls back to a dim baked read if unlit.
 		var banner := Sprite2D.new()
 		banner.texture = load("res://assets/ui/banner_v1.png") as Texture2D
-		banner.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		banner.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		banner.scale = Vector2(bs, bs)
 		banner.centered = true
 		banner.position = banner_pos
-		banner.modulate = Color(0.90, 0.86, 0.86)   # baked crimson shows; a touch dimmed for the dark key
+		if banner_mat != null:
+			banner.material = banner_mat
+			banner.modulate = Color(1.0, 1.0, 1.0)   # brightness from the shader (as _stone_bg)
+		else:
+			banner.modulate = Color(0.82, 0.80, 0.80)   # unlit fallback: a touch dimmed
 		banner.z_index = 0
 		stone_bg.add_child(banner)
 		# (TD-052 R166) The separate iron rod + nail-head Panels are RETIRED — the banner's top hem

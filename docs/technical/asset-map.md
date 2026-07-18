@@ -33,8 +33,8 @@
 - **`badge_eliminate.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
 - **`badge_investigate.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
 - **`banner_v1.png`** — produced-by: `client/assets/ui/gen_banner.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
+- **`banner_v1_n.png`** — produced-by: `client/assets/ui/gen_banner.py`, `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`board_header.png`** — produced-by: `client/assets/ui/gen_header.py` · consumed-by: `client/scripts/main.gd` (load)
-- **`board_seal.png`** — produced-by: `client/assets/ui/gen_header.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`board_surface.gdshader`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`cobweb.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: `client/scripts/main.gd` (load)
@@ -84,7 +84,7 @@
 - **`client/scripts/catalog.gd`**
   - preloads: `protocol.gd`
 - **`client/scripts/main.gd`**
-  - loads: `Cinzel.ttf`, `backing_v1.png`, `board_header.png`, `board_seal.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `panel.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
+  - loads: `Cinzel.ttf`, `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `panel.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
   - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `threat_pips.gd`, `verb_badge.gd`, `wax_seal.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/player.gd`**
@@ -114,10 +114,10 @@
 
 ## Generators — writes
 
-- **`client/assets/ui/gen_banner.py`** → `banner_v1.png`
+- **`client/assets/ui/gen_banner.py`** → `banner_v1.png`, `banner_v1_n.png`
 - **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_belief.png`, `seal_relic.png`, `seal_sin.png`, `spark.png`, `torch_sconce.png`
-- **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_seal.png`
-- **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`, `wall_v1_n.png`
+- **`client/assets/ui/gen_header.py`** → `board_header.png`
+- **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`, `wall_v1_n.png`
 
 
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
@@ -145,8 +145,8 @@
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
-- `client/scripts/main.gd:2191` — `load/preload normal_path`
-- `client/scripts/main.gd:2215` — `load/preload path`
-- `client/scripts/main.gd:2219` — `load/preload normal_path`
+- `client/scripts/main.gd:2178` — `load/preload normal_path`
+- `client/scripts/main.gd:2205` — `load/preload path`
+- `client/scripts/main.gd:2209` — `load/preload normal_path`
 - `client/scripts/ui/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/ui/wax_seal.gd:24` — `load/preload SEAL_TEX[_origin]`

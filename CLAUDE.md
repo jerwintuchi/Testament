@@ -106,7 +106,7 @@ overflow OK) with the light rig coherent via one shared `GUTTER_CX` read by both
 `add_torches` (R168, P95); the **"CONTRACT BOARD" placard** re-cut as refined carved wood
 (`gen_heraldry.nameplate_px` — routed groove + crisper double bevel, same 9-slice margins) (R169).
 
-Active spec: **`specs/board-header/`** (TD-053) — a Contract Board **header** redesign (client render +
+Completed: **`specs/board-header/`** (TD-053) — a Contract Board **header** redesign (client render +
 generated art only) on the user's brief: the header must read as a **handcrafted institutional object**
 inside the Collegium HQ, ecclesiastical grimdark, not a modern game UI. **Preserve the board composition**
 — only the header block changes (R174). A new `gen_header.py` emits a carved oak/walnut **plaque**
@@ -117,11 +117,42 @@ relief) that **replaces the floating `_board_crest` overlay** and its `_process`
 over a subordinate **Contract Board** — as one centered object (R173). `TOP_RESERVE_FRAC`/`placard_rect`
 grow; the keep-out self-check guards the scatter (P99). Materials: aged wood/bronze/iron/brass only,
 candlelit, **no bloom/gloss** (R175). Retires the superseded `board_nameplate.png` + dead `crest_v1.png`.
-Verified by `--board-preview` captures. **IN PROGRESS (T183–T187).**
+Verified by `--board-preview` captures. **T183–T187 done.**
 
-@specs/board-header/requirements.md
-@specs/board-header/design.md
-@specs/board-header/tasks.md
+Superseded by **TD-058** (author review): after three passes fighting the 17x22 device slot (LANCZOS
+mush TD-054, blobbed shape functions TD-056, hand-drawn Aseprite TD-057), the crowning **bronze
+medallion is removed entirely** and the carved sign hung **flush at the top of the board**. The header
+is now just the sign (iron straps + bronze bolts + engraved two-line title); the emblem still rides the
+banners at ~112px, where it resolves. Header height is zero-sum against the writs, so dropping the seat
+grew the writs **93x54 → 93x67** (larger than the pre-header 93x60). `board_header.png` **204x46 →
+204x38**, `placard_rect` **204x65 → 204x38** (`sign_top` 19→0), `TOP_RESERVE_FRAC` **0.24 → 0.17**;
+`board_seal.png` + `gen_header.py`'s `seal_px`/device-reader/PIL are deleted (pure surface generator
+again). `keepout live=8 ok=true minhit=93x67`. Client render only; `art/src/collegium_device.*` kept as
+source art. Verified by `--board-preview` captures.
+
+Active spec: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
+generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't
+read as belonging in the torch-lit scene. **COMPLETE (T188–T192, V1–V6 green, client-only):** the
+banner is re-authored in `gen_banner.py` (180×360→**64×176**) as **crisp NEAREST pixel art** with a
+**heavily tattered** foot (ragged per-column hem + worn-through holes + loose threads, all alpha), a
+**dim/desaturated** crimson, and a **subdued** Collegium imprint (R177/R178); it is now a
+**normal-mapped surface lit by the torch rig** — `gen_banner.py` emits `banner_v1_n.png` from its own
+fold height field and the banner `Sprite2D` takes a `board_surface.gdshader` material (`--lights-off`
+falls to flat dim cloth, proving the shader lights it) (R179); a **larger** banner pushed to the
+**outer gutter, clear of the board frame** and **lowered** (TD-059b/c: `GUTTER_CX` 0.065→**0.028**,
+width 0.15·vp→**0.095·vp**, `banner_top` 0.012→**0.06·vp.y** — the gutter is narrower than the banner,
+so pinning the inner edge clear of the frame while growing walks the centre out; the emblem stays
+on-screen, the outer edge spills off-screen, and the top no longer lines up with the board, author
+OK'd) (R180). `_surface_material` grows one optional
+**`radius_scale`** (default 1.0 — existing surfaces unchanged; the banner passes ≈2.4) so the tight
+0.24 torch halo still keeps the wall dark but its warmth **climbs the cloth** — same rig, a per-material
+reach, not a second light (P102). The **header wood is darkened** (`WALNUT` 50,39,30→38,29,22, blend
+0.46→0.56) so the sign recedes while the gilt title only gains contrast (R181). Geometry/composition
+unchanged; `GUTTER_CX`/`torch_rig`/sconce untouched (P95). No `src/**` change.
+
+@specs/board-blend/requirements.md
+@specs/board-blend/design.md
+@specs/board-blend/tasks.md
 
 Completed: **`specs/dependency-map/`** (TD-051) — DERIVE the script↔asset dependency graph instead of
 hand-maintaining it. **COMPLETE (T173–T177, `--selftest` + `--check` green, tooling/docs only):**

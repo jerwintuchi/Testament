@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://uub10d7gd5by"
-path="res://.godot/imported/board_seal.png-64e4889d20fcc09127a3c97c2ab0d62a.ctex"
+uid="uid://dvwxaxudwfyb8"
+path="res://.godot/imported/banner_v1_n.png-be3311c0bfdfe85ba192a5275d5a4de1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/board_seal.png"
-dest_files=["res://.godot/imported/board_seal.png-64e4889d20fcc09127a3c97c2ab0d62a.ctex"]
+source_file="res://assets/ui/banner_v1_n.png"
+dest_files=["res://.godot/imported/banner_v1_n.png-be3311c0bfdfe85ba192a5275d5a4de1.ctex"]
 
 [params]
 

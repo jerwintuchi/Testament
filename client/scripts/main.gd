@@ -1195,7 +1195,10 @@ func _build_contract_board() -> void:
 	# Flanking torches now hang on the STONE WALL beside the inset board (Prototype v1),
 	# not inside the frame — banner + sconce + additive glow at each flank of the masonry
 	# margin. Rendered on the stone layer in viewport space. Reduced-motion (F9) freezes it.
-	BoardDecor.add_torches(_stone_bg, get_viewport_rect().size, _reduced_motion)
+	# TD-059: the banner is now a normal-mapped surface lit by the SAME torch rig as the wall —
+	# built here so the rig-uniform packing stays in `_surface_material` (P72/P102), passed in.
+	var banner_mat := _surface_material("res://assets/ui/banner_v1_n.png", 0.36, 1.05, Vector2.ONE, 2.4)
+	BoardDecor.add_torches(_stone_bg, get_viewport_rect().size, _reduced_motion, banner_mat)
 	# The papers live in their own layer beneath the placard and the reader. A hovered
 	# notice raises to front WITHIN this layer only, so dense overlap never lets a
 	# paper float above the hanging sign (or over an open reading).
@@ -1907,22 +1910,22 @@ func _place_placard(canvas: Control) -> void:
 
 # A radial warm-dark vignette (runtime, no PNG import): clear at the centre, near-black
 # at the corners — the torch-lit pool that gives the board its Prototype-v1 ambience.
-# The Contract Board's header (TD-053): a carved walnut plaque, reinforced with forged iron
-# straps + bronze bolts, carrying an INSET bronze seal over an engraved two-line title. One
-# cohesive object — the institution ("THE COLLEGIUM") outranks the thing ("Contract Board").
-# Supersedes the flat nameplate + the crest that floated above it: the emblem is now part of
-# the board, not an icon hovering over it, so there is no overlay and no per-frame chase.
-# Pure render; inert to input.
+# The Contract Board's header (TD-053; TD-058): a carved walnut sign, reinforced with forged
+# iron straps + bronze bolts, hung at the very top of the board and carrying an engraved two-line
+# title. The institution ("THE COLLEGIUM") outranks the thing ("Contract Board"). TD-058 dropped
+# the crowning bronze medallion (a repeated pain point at its 17x22 device slot — see TD-054/056/
+# 057) and reclaimed its height for the contracts: the sign is now the whole header, hung flush at
+# the top, with nothing floating above it. Pure render; inert to input.
 func _board_header() -> Control:
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# The medallion CROWNS the sign, overlapping its top rail — so the sign hangs in the lower
-	# part of the header rect and the two share one budget. (Header height is zero-sum against
-	# the writs: live_bounds.h = 184.24 - placard_h, split across two rows.)
-	var sign_top := 19.0
+	# No medallion (TD-058): the sign hangs flush at the top of the header rect, so the full rect
+	# is the sign itself. (Header height is zero-sum against the writs: live_bounds.h = 184.24 -
+	# placard_h, split across two rows — dropping the seat gave the contracts ~27px back.)
+	var sign_top := 0.0
 	var ptex := load("res://assets/ui/board_header.png") as Texture2D
 	if ptex != null:
-		# Authored at its exact on-screen size (248x44 — the internal resolution is a fixed
+		# Authored at its exact on-screen size (204x38 — the internal resolution is a fixed
 		# 640x360, so placard_rect is deterministic), hence NEAREST + 1:1, no downscale mush
 		# (TD-050). The 9-slice only matters off-base: it keeps the end straps un-smeared and
 		# the grain runs horizontally, so the centre stretches cleanly.
@@ -1958,11 +1961,11 @@ func _board_header() -> Control:
 		psb.border_color = Color(0.09, 0.06, 0.04)
 		plaque.add_theme_stylebox_override("panel", psb)
 		root.add_child(plaque)
-	# The engraved title, centred in the sign's plank field, below the medallion's overlap.
+	# The engraved title, centred in the sign's plank field between the top and bottom rails.
 	var stack := VBoxContainer.new()
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.set_anchors_preset(Control.PRESET_FULL_RECT)
-	stack.offset_top = sign_top + 18.0
+	stack.offset_top = sign_top + 4.0
 	stack.offset_bottom = -5.0
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	stack.add_theme_constant_override("separation", 0)
@@ -1970,30 +1973,14 @@ func _board_header() -> Control:
 	stack.add_child(_engraved_line("THE COLLEGIUM", 13, Color(0.86, 0.72, 0.42), 700))
 	stack.add_child(_header_gap(1))
 	stack.add_child(_engraved_line("Contract Board", 8, Color(0.62, 0.50, 0.31), 400))
-	# The ring medallion, crowning the sign. Added LAST so it draws over the top rail; its
-	# scroll bosses seat on the rail, so it reads as bolted hardware, not a floating icon.
-	var seal_tex := load("res://assets/ui/board_seal.png") as Texture2D
-	if seal_tex != null:
-		var seal := TextureRect.new()
-		seal.texture = seal_tex
-		seal.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		seal.set_anchors_preset(Control.PRESET_TOP_WIDE)
-		seal.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-		seal.custom_minimum_size = Vector2(0, seal_tex.get_height())
-		# The bosses sit at the medallion's mid-height, so top = sign_top - h/2 lands them ON
-		# the sign's top rail. A boss that meets bare wall reads as a floating icon.
-		seal.offset_top = sign_top - seal_tex.get_height() * 0.5
-		seal.offset_bottom = seal.offset_top + seal_tex.get_height()
-		root.add_child(seal)
 	return root
 
-# The sign's 9-slice margins (source 204x46, end straps inside 36/13).
+# The sign's 9-slice margins (source 204x38, end straps inside 36/11).
 func _patch_header(np: NinePatchRect) -> void:
 	np.patch_margin_left = 36
-	np.patch_margin_top = 13
+	np.patch_margin_top = 11
 	np.patch_margin_right = 36
-	np.patch_margin_bottom = 13
+	np.patch_margin_bottom = 11
 
 func _header_gap(h: int) -> Control:
 	var g := Control.new()
@@ -2185,7 +2172,7 @@ func _canvas_tex(diffuse: Texture2D, normal: Texture2D) -> CanvasTexture:
 # A ShaderMaterial that lights a board surface from the torch rig (TD-047). Light2D does
 # not reach these Control nodes, so board_surface.gdshader samples the normal map + the
 # uniform torch lights itself. One rig (BoardDecor.torch_rig) feeds every surface (P72).
-func _surface_material(normal_path: String, ambient: float = 0.42, diffuse_gain: float = 1.0, tile: Vector2 = Vector2.ONE) -> ShaderMaterial:
+func _surface_material(normal_path: String, ambient: float = 0.42, diffuse_gain: float = 1.0, tile: Vector2 = Vector2.ONE, radius_scale: float = 1.0) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://assets/ui/board_surface.gdshader") as Shader
 	mat.set_shader_parameter("normal_tex", load(normal_path) as Texture2D)
@@ -2201,7 +2188,10 @@ func _surface_material(normal_path: String, ambient: float = 0.42, diffuse_gain:
 		uvs.append(t["uv"])
 		var c: Color = t["color"]; c.a = 0.9             # energy in alpha (dimmed for the dungeon grade, TD-048)
 		cols.append(c)
-		rads.append(t["radius"])
+		# radius_scale widens ONE surface's reach without touching the shared torch_rig (P95/P102):
+		# the board's tight 0.24 halo keeps the wall dungeon-dark, but the banner (hung above its
+		# foot sconce) needs the throw to climb the cloth so its torch-lit gradient reads (TD-059).
+		rads.append(t["radius"] * radius_scale)
 	mat.set_shader_parameter("light_uv", uvs)
 	mat.set_shader_parameter("light_col", cols)
 	mat.set_shader_parameter("light_rad", rads)
