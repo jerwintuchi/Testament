@@ -21,10 +21,11 @@ const LIVE_SIZE_FRACS := [Vector2(0.185, 0.455), Vector2(0.160, 0.380), Vector2(
 const FLAVOR_SIZE_FRACS := [Vector2(0.120, 0.300), Vector2(0.105, 0.270), Vector2(0.145, 0.230),
 	Vector2(0.115, 0.310), Vector2(0.100, 0.250), Vector2(0.150, 0.260)]
 # Reserved bands: the hanging placard along the top, the flanking torch margin down each side.
-# Must clear placard_rect's foot (0.014 + 0.226). Header height is ZERO-SUM against the two
-# rows of writs (live_bounds.h = 190 - y - h), so the header is kept to its floor: the
-# medallion's full height + the title band + the sign's bottom rail, and no more.
-const TOP_RESERVE_FRAC := 0.24
+# Must clear placard_rect's foot (0.014 + 0.132). Header height is ZERO-SUM against the two
+# rows of writs (live_bounds.h = 190 - y - h), so the header is kept to its floor: the title
+# band plus the sign's top and bottom rails, and no more (TD-058 dropped the crowning medallion,
+# reclaiming its height for the contracts).
+const TOP_RESERVE_FRAC := 0.17
 const SIDE_RESERVE_FRAC := 0.03
 # Aged-parchment tints, seeded per notice — warm variety without encoding anything.
 const PARCH_TINTS := [
@@ -43,14 +44,14 @@ static func inner_size(vp: Vector2) -> Vector2:
 static func bar_height(inner: Vector2) -> float:
 	return maxf(74.0, inner.y * 0.25)
 
-# The header plaque's rect (TD-053): the carved walnut sign carrying the inset bronze seal
-# over the engraved two-line title. Sized so that at the canonical 640x360 internal resolution
-# (inner = 473.6x288) it lands on board_header.png's authored 204x46 sign EXACTLY — 1:1, NEAREST, no
-# downscale mush (TD-050). It also hangs higher than the old nameplate (0.09 -> 0.02): the crest
-# that used to crown it is gone, so the plaque itself may claim the top band.
+# The header plaque's rect (TD-053; TD-058): the carved walnut sign carrying the engraved
+# two-line title, hung at the very top of the board. Sized so that at the canonical 640x360
+# internal resolution (inner = 473.6x288) it lands on board_header.png's authored 204x38 sign
+# EXACTLY — 1:1, NEAREST, no downscale mush (TD-050). TD-058 dropped the crowning medallion, so
+# the rect is now just the sign itself (no top gap for a seat) and shrank 65 -> 38.
 static func placard_rect(inner: Vector2) -> Rect2:
 	var w := clampf(inner.x * 0.431, 204.0, maxf(204.0, inner.x - 32.0))
-	var h := maxf(65.0, inner.y * 0.226)
+	var h := maxf(38.0, inner.y * 0.132)
 	return Rect2(((inner.x - w) * 0.5), inner.y * 0.014, w, h).abs()
 
 # The live-notice bounds: below the placard, inside the side reserves, above the bar.

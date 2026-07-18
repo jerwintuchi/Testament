@@ -1718,3 +1718,123 @@ integration rules learned:
 
 The **banners keep imprinting the author's real 132x220 art** (~112px wide, where it resolves).
 Only the tiny slot needed a redraw. The device is a redraw of the author's mark, not their raster.
+
+---
+
+## TD-058
+
+**The crowning medallion is REMOVED; the sign hangs flush at the top of the board.** Author's
+review of TD-057: the emblem on the header still isn't earning its place, and the contracts want
+the room. So the decision, after three passes fighting the same 17x22 device slot (LANCZOS mush
+TD-054, blobbed shape functions TD-056, hand-drawn Aseprite TD-057), is to stop fighting it and
+**drop the medallion entirely**. The header is now just the carved sign — iron corner straps,
+bronze bolts, an open plank field, a lit top rail and a routed bottom rail — carrying the engraved
+two-line title (**THE COLLEGIUM** over **Contract Board**), hung at the very top of the board.
+
+**Why remove rather than keep iterating.** The device slot is the header's whole problem: at
+~17x22 px every pixel is a design decision, and even the hand-drawn sprite (the correct tool,
+TD-057) reads as a small dim smudge on a board where nothing else asks the eye to parse detail at
+that scale. The title already names the institution; the medallion was decorating a label, and
+the decoration cost real estate the board's actual job (showing eight legible writs) wanted more.
+The banners still carry the author's Collegium device at ~112 px, where it resolves — the emblem
+is present on the board, just not squeezed into a slot that can't hold it.
+
+**Header height is zero-sum against the writs** (`live_bounds.h = board - header - bar`, split
+across two rows), so removing the medallion's seat is a direct gift to the contracts: the writs
+grew **93x54 → 93x67** (the pre-header board was 93x60 — the writs are now *larger* than before the
+header existed). `board_header.png` **204x46 → 204x38** (title band + two rails, its floor);
+`placard_rect` **204x65 → 204x38** (no top gap for a seat), hung at `inner.y*0.014`; the sign
+`NinePatchRect` `sign_top` **19 → 0** (flush); 9-slice margins **36/13 → 36/11**;
+`TOP_RESERVE_FRAC` **0.24 → 0.17**. `keepout live=8 ok=true minhit=93x67 hit_ok=true`.
+
+**Retired.** `board_seal.png` (+ `.import`) is deleted; `gen_header.py` drops `seal_px`, the
+`_device`/`_load_device` reader, the PIL import, and its `@consumes` edge — it is once again a
+pure **surface** generator (grain, rails, forged straps), the half of the TD-057 split that always
+stayed procedural. `art/src/collegium_device.aseprite` (+ `.lua`/`.png`) is left in place as source
+art (outside `client/`, so not an asset-map orphan) — the hand-drawn device may be reused, and
+deleting freshly-authored source art on a composition change would be premature. Client render +
+generated art only (I1/I2 hold); no `src/**` change. Verified by `--board-preview` captures.
+
+---
+
+## TD-059
+
+**The header + flanking banners are re-graded to BELONG in the torch-lit scene.** Author's review of
+the TD-058 board: the sign is too light, and the banners are too bright, mis-placed (spilling off the
+screen edge), smooth (LINEAR, not pixel art), and — the real tell — a **flat baked sprite the
+torchlight never touches** while every other surface is normal-mapped and lit by the rig. Fixed on
+all axes; client render + generated art only, spec `specs/board-blend/` (R177–R182, T188–T192).
+
+**The banner (`gen_banner.py` rewrite, 180×360 → 64×176).**
+- **Crisp pixel art + heavily tattered (R177).** Authored at ~display size, shown **NEAREST 1:1**
+  (deterministic at the fixed 640×360 internal res — the TD-050 lesson). The clean geometric
+  swallowtail is replaced by a **heavily worn foot**: a ragged per-column hem, a few worn-through
+  **holes**, and sparse **loose threads** hanging past the hem — all alpha, so the torn cloth reads
+  against the dark wall.
+- **Dim + blended, subdued emblem (R178).** A darker, lower-contrast crimson ramp (the shader
+  supplies fold warmth now, so the diffuse no longer bakes bright crests); the Collegium imprint
+  pulled dim + desaturated at low alpha — a faint printed device in the banner's shadowed upper cloth,
+  never the bright white sigil it was.
+- **Lit by the torch rig (R179).** The banner is now a **normal-mapped surface**: `gen_banner.py`
+  emits a companion `banner_v1_n.png` from its OWN height field (fold + creases + hem bump, Sobel →
+  packed normal, flat where the cloth is transparent so torn gaps don't rake light), and the banner
+  `Sprite2D` gets a `board_surface.gdshader` material fed by the same `torch_rig`. `--lights-off`
+  falls to flat dim cloth — proof the brightness is the shader's, not baked.
+- **Fully in the gutter (R180).** Display width `0.15·vp.x → 0.10·vp.x`, centred at `GUTTER_CX`
+  (0.065) — the board frame's outer edge is at 0.13·vp.x and the gutter centre is its midpoint, so the
+  banner spans ~`[0.015, 0.115]·vp.x`, clear of the screen edge and the frame. Supersedes TD-052's
+  "off-screen overflow OK". `GUTTER_CX`, `torch_rig`, sconce + flame untouched (P95).
+
+**One reach knob, not a second light.** The board's torch halo is deliberately tight (radius 0.24,
+TD-048 dungeon re-grade) so the wall stays dark; the banner hangs *above* its foot sconce, so at 0.24
+the throw dies before it climbs the cloth and the "torch-lit banner" reads as flat. `_surface_material`
+grows one optional **`radius_scale`** (default 1.0 — every existing surface unchanged); the banner
+passes ≈2.4, widening only ITS per-torch reach so the ember warmth climbs into the tattered foot and
+fades to ambient dark up top. Same rig positions/colours/coupling — a per-material render choice, not
+a new light (P102).
+
+**The header (`gen_header.py` tone).** `WALNUT` deepened (50,39,30 → 38,29,22) and the wood→walnut
+blend raised (0.46 → 0.56), so the sign **recedes** into the near-black board — "darker but not so
+much". The gilt title is drawn in Godot; a darker ground only *raises* its contrast, so legibility
+improves (P105). Geometry (`placard_rect`, `TOP_RESERVE_FRAC`, the writs) is unchanged — a tone pass
+only.
+
+Containment: no `src/server`/`src/shared` change, no game logic (I1/I2). `asset-map.md` regenerated
+(new `banner_v1_n.png` producer edge; the gen_normals `%s_n.png` glob also matches it — a benign
+scanner false-positive, not a real double-write). Verified by `--board-preview` + `--lights-off`
+captures.
+
+**TD-059b (author review — banner placement).** The first cut placed the banner at the gutter
+midpoint (`GUTTER_CX` 0.065) at `0.10·vp` wide, on the assumption the frame's outer edge sat at
+0.13·vp. Measured from a capture, the carved frame texture extends ~52px proud of its inner content,
+so its real outer edge is at **≈0.09·vp** — the gutter is *narrower than the banner*, and the banner's
+inner edge butted right against the board (~6px). Fixed by pushing the whole assembly **outward**:
+`GUTTER_CX` **0.065 → 0.036** and banner width **0.10 → 0.078·vp**. The banner's inner edge now clears
+the frame with a visible gutter gap, the emblem stays fully on-screen, and the outer edge spills a few
+px off-screen (viewport clips — author OK'd "overlap outside the view, just not the board"). Moving
+`GUTTER_CX` slides banner + sconce + flame + the banner's own light + the wall hotspot together (what
+it couples, P95) to the *outer* gutter — which matches the standing "banner at the OUTER edge of the
+masonry gutter" note. Mirrored on both flanks. Measured post-fix: left banner right edge ~93px vs
+frame ~114px (gap ~21px); right symmetric.
+
+**TD-059c (author review — larger + lowered).** The banner is grown (width `0.078 → 0.095·vp`, and
+proportionally taller; the height budget lifted `0.52 → 0.60·vp.y` so the taller cloth still ends its
+foot above the sconce cup) and its top lowered (`banner_top` `0.012 → 0.06·vp.y`) so it no longer
+lines up with the board's top edge. To grow WITHOUT re-touching the board, the centre walks further
+out (`GUTTER_CX` `0.036 → 0.028`): the inner edge stays pinned clear of the frame (~97px vs frame
+~114px) while the extra width + the shift spill the outer edge further off-screen (viewport clips —
+"overlap outside the view, just not the board"), the emblem staying on-screen. Same coupling (P95).
+
+**TD-059d (placard joins the lighting model).** The header sign was the last board object still drawn
+as a flat baked `NinePatchRect` on a shader-lit wall, so it read as pasted-on/self-lit. It now takes
+the same `board_surface.gdshader` material as the wall/frame/backing/banner: `gen_header.py` emits a
+companion `board_header_n.png` from an explicit height field (raised straps + domed bolts, top rail,
+routed bottom-rail channel, outer bevel → Sobel normal), and the sign is given `_surface_material`
+(the shadow copy stays a flat black silhouette). The header is top-centre and the sconces are
+bottom-corner (~1.0 uv away — unreachable by any sane radius), so "lit by the scene" here means
+*rendered by the same cool-ambient/falloff model as the wall* (`ambient_tint ≈ 0.82,0.85,0.95`), which
+is exactly the cool-dark the top of the frame beside it already sits in — not literally warmed by a
+torch. `--lights-off` is ~unchanged (ambient-dominated), the honest tell that the placard is in the
+lighting pipeline rather than baking a phantom highlight. The gilt title is a separate Godot Label, so
+the wood tone is free to match the scene without touching legibility. R183/P106/T193; client render +
+generated art only.

@@ -1,39 +1,34 @@
 #!/usr/bin/env python3
 """gen_header.py — the Contract Board's institutional header (TD-053 / board-header).
 
-Emits two hand-painted raster PNGs (canonical register, TD-046), run FROM this dir
+Emits one hand-painted raster PNG (canonical register, TD-046), run FROM this dir
 (relative filenames):
 
-  board_header.png  204x46  a carved sign STRAPPED to the wall (TD-054, to the author's
-                            reference): vertical iron strap-hinges at both ends carrying
-                            bronze bolts, an open plank field between them, a lit top rail
-                            and a routed bottom rail. 9-slice-safe (margins 36/13/36/13).
-                            SHORT by design: the medallion crowns it, overlapping its top
-                            rail, so sign + medallion share one 76px header budget (every px
-                            of header costs the two rows of writs ~0.5px each).
-                            Godot draws the medallion + engraved Cinzel title over it.
-  board_seal.png     36x36  the RING MEDALLION crowning the sign: a bronze annulus (bead-
-                            and-fillet profile) around a recessed field carrying the
-                            Collegium emblem in RAISED RELIEF, with scroll bosses at the
-                            3- and 9-o'clock seats where it bolts to the sign. Dim bronze,
-                            matte — no glow, no specular hotspot.
+  board_header.png  204x38  the Contract Board's carved sign, STRAPPED to the wall: vertical
+                            iron strap-hinges at both ends carrying bronze bolts, an open
+                            plank field between them, a lit top rail and a routed bottom
+                            rail. 9-slice-safe (margins 36/11/36/11). Godot draws the
+                            engraved Cinzel title over it.
 
-@produces board_header.png, board_seal.png
-@consumes art/src/collegium_device.png  (hand-drawn in Aseprite — see TD-057)
-@why      The generator->emblem edge is an INPUT, invisible to tools/asset_map.py (which
-          only tracks `write_png` for .py producers), hence this header. Both PNGs are
-          authored at their EXACT on-screen size: the client's internal resolution is a
-          fixed 640x360 (PixelScale integer-scales to fill), so BoardGeo.placard_rect is
-          deterministic — authoring 1:1 and showing NEAREST avoids the LINEAR-downscale
-          mush TD-050 diagnosed. Supersede: board_nameplate.png + crest_v1.png.
+                            This is the WHOLE header — no crowning medallion (TD-058: the
+                            sigil was removed and the sign hung at the very top of the board
+                            to give the contracts room). Kept to its floor: the title band
+                            plus its rails, nothing else. Every px of header costs the two
+                            rows of writs ~0.5px each (live_bounds.h = 190 - y - h).
 
-Stdlib + PIL (sanctioned for generators); writes via ashember.write_png so the asset-map
-producer edge holds. Brand-new PNGs need `godot --headless --import`.
+@produces board_header.png, board_header_n.png
+@consumes nothing — the sign is pure SURFACE (grain, rails, forged straps), which is exactly
+          the half of the TD-057 split that stays procedural. Aseprite owns sprites; this
+          generator owns surfaces.
+@why      The PNG is authored at its EXACT on-screen size: the client's internal resolution
+          is a fixed 640x360 (PixelScale integer-scales to fill), so BoardGeo.placard_rect is
+          deterministic — authoring 1:1 and showing NEAREST avoids the LINEAR-downscale mush
+          TD-050 diagnosed. Supersedes board_nameplate.png + crest_v1.png.
+
+Stdlib only (imports ashember); writes via ashember.write_png so the asset-map producer
+edge holds. Brand-new PNGs need `godot --headless --import`.
 """
 import math
-import os
-
-from PIL import Image
 
 import ashember as A
 
@@ -47,11 +42,11 @@ IRON_H = (82, 72, 56)          # dim lit iron edge (NOT a light grey frame)
 # Aged bronze / brass. Matte: the seal reads by RELIEF, never by a specular hotspot (R175).
 BRONZE_DK = (40, 28, 15)
 BRONZE_MID = (104, 74, 38)
-BRONZE_LT = (214, 174, 104)
-PATINA = (58, 74, 56)          # verdigris creep in the recesses
 # Aged dark walnut. A.RAMP["wood"] alone is a saturated orange-brown that reads as polished
 # mahogany — luxurious, the exact note the brief rejects. Blend toward this neutral to age it.
-WALNUT = (50, 39, 30)
+# TD-059: pulled darker so the sign RECEDES into the near-black board (the gilt title, drawn in
+# Godot, only gains contrast against it) — "darker but not so much", still warm walnut, not black.
+WALNUT = (38, 29, 22)
 
 
 def _cl(v, a=0.0, b=1.0):
@@ -59,15 +54,15 @@ def _cl(v, a=0.0, b=1.0):
 
 
 # ── The carved plaque (248x96, 9-slice) ────────────────────────────────────────
-HW, HH = 204, 46
-HMX, HMY = 36, 13              # 9-slice patch margins — the end straps live inside these
+HW, HH = 204, 38
+HMX, HMY = 36, 11              # 9-slice patch margins — the end straps live inside these
 
 # The END STRAP: a vertical iron hinge-plate closing each end of the sign — a bar between two
 # bolted plates, the fitting the reference hangs the sign from. It must live inside the 9-slice
 # margin (HMX=36) so the centre stretch never smears it.
 STRAP_W = 26.0                 # how far in from each end the fitting reaches
 BAR_X0, BAR_X1 = 7.0, 17.0     # the vertical bar's span, measured in from the end
-PLATE_H = 10.0                 # the plate capping the bar top and bottom
+PLATE_H = 9.0                  # the plate capping the bar top and bottom
 
 
 def _wood(fx, fy):
@@ -83,15 +78,15 @@ def _wood(fx, fy):
     band = math.sin(fy * 0.42 + 1.1)                       # a few darker age bands
     c = (base[0] + grain, base[1] + grain * 0.72, base[2] + grain * 0.5)
     c = A.lerp_rgb(c, A.RAMP["wood"][0], _cl(band * 0.20 + 0.10))
-    return A.lerp_rgb(c, WALNUT, 0.46)                     # age it out of the mahogany register
+    return A.lerp_rgb(c, WALNUT, 0.56)                     # age it out of the mahogany register + recede (TD-059)
 
 
 def _aged(v):
     """A wood-ramp value, aged out of the saturated orange register (see WALNUT)."""
-    return A.lerp_rgb(A.ramp_shade("wood", v), WALNUT, 0.46)
+    return A.lerp_rgb(A.ramp_shade("wood", v), WALNUT, 0.56)
 
 
-WOOD_LIP = A.lerp_rgb(A.RAMP["wood"][4], WALNUT, 0.38)     # the recess's lit lip, desaturated
+WOOD_LIP = A.lerp_rgb(A.RAMP["wood"][4], WALNUT, 0.46)     # the recess's lit lip, desaturated
 
 
 def _strap(cl, fy):
@@ -159,13 +154,13 @@ def header_px(fx, fy):
     c = _wood(fx, fy)
     if fy < 4.0:                                           # top rail: catches the key
         c = A.lerp_rgb(c, WOOD_LIP, 0.30 * (1.0 - fy / 4.0) + 0.14)
-    elif fy > HH - 6.0:
+    elif fy > HH - 5.0:
         # bottom rail: a routed channel above a lit lip — the reference's decorative under-rail.
         # Kept slim: the sign's plank field has to seat two lines under the medallion's overlap.
-        rb = fy - (HH - 6.0)
-        if rb < 2.5:
+        rb = fy - (HH - 5.0)
+        if rb < 2.0:
             c = A.lerp_rgb(c, (8, 6, 4), 0.62)             # the cut channel
-        elif rb < 4.5:
+        elif rb < 3.5:
             c = A.lerp_rgb(c, WOOD_LIP, 0.34)              # the lip below it
         else:
             c = A.lerp_rgb(c, (8, 6, 4), 0.30)
@@ -174,124 +169,72 @@ def header_px(fx, fy):
     return A.clamp_rgb(c) + (255,)
 
 
-# ── The ring medallion (36x36) ─────────────────────────────────────────────────
-# Crowns the sign, bolted to it at the 3- and 9-o'clock scroll bosses (TD-054). A bronze
-# annulus with a bead-and-fillet profile around a recessed field carrying the Collegium's
-# device in raised relief. NOT a floating icon: the bosses seat it on the sign's top rail.
-SW, SH = 36, 36
-SCX, SCY = SW * 0.5, SH * 0.5
-R_OUT = 16.2                   # the annulus's outer edge
-R_IN = 11.4                    # where the ring meets the recessed field
-BOSS_R = 3.0                   # the scroll bosses at 3 and 9 o'clock
+# ── Height field → normal map (TD-059d) ─────────────────────────────────────────
+# So the sign is lit by the SAME board_surface.gdshader as the wall/frame/banner instead of a flat
+# baked sprite that reads pasted-on. The relief lives in the NORMAL (the banner's lesson): an explicit
+# height field that mirrors header_px's carved form — raised iron straps + bolt domes, a top rail, a
+# routed bottom-rail channel, and the outer bevel stepping down to the worn rim.
+def _hf(fx, fy):
+    left, top = fx, fy
+    right, bot = HW - 1 - fx, HH - 1 - fy
+    d = min(left, top, right, bot)
+    cl = min(left, right)
+    ct = min(fy, HH - 1.0 - fy)
+    h = 0.5
+    # iron corner straps: a raised plateau, with a domed bolt through each plate
+    if cl < STRAP_W:
+        in_plate = ct < PLATE_H and cl < 21.0
+        in_bar = BAR_X0 <= cl <= BAR_X1
+        if in_plate or in_bar:
+            h = 0.76
+            if in_plate:
+                bd = math.hypot(cl - 12.0, ct - 5.0)
+                if bd < 2.9:
+                    h = 0.78 + (1.0 - bd / 2.9) * 0.16     # bolt dome
+            return _cl(h)
+    # outer double bevel: steps down toward the rim
+    if d <= 3:
+        return _cl(h - (3.0 - d) * 0.09)
+    # top rail raised; routed bottom rail = a cut channel above a raised lip
+    if fy < 4.0:
+        h += 0.16 * (1.0 - fy / 4.0)
+    elif fy > HH - 5.0:
+        rb = fy - (HH - 5.0)
+        if rb < 2.0:
+            h -= 0.24
+        elif rb < 3.5:
+            h += 0.12
+    return _cl(h)
 
 
-# ── The device: HAND-DRAWN pixel art (TD-057) ──────────────────────────────────
-# The slot is ~17x22 px. Two approaches were tried and measured:
-#   1. LANCZOS-reducing the author's 132x220 emblem into it (TD-054) — mush: a photographic
-#      reduction of detail that does not fit.
-#   2. Drawing it from shape functions at slot size (TD-056) — better, still poor: the pommel
-#      blobbed, the two crossguards merged, the laurel read as a smudge.
-# Both lose because at this size EVERY PIXEL IS A DESIGN DECISION, and a shape function cannot
-# make them — it can only sample a curve and hope. So the device is now authored by hand, pixel
-# by pixel, in Aseprite (art/src/collegium_device.aseprite, drawn via its Lua API in batch mode)
-# and read here. Aseprite owns the SPRITE; this generator owns the SURFACE it is struck into.
-# That split is what CLAUDE.md's toolchain always specified; we had simply never used it.
-DEV_SRC = os.path.join("..", "..", "..", "art", "src", "collegium_device.png")
+_HFG = [[_hf(x + 0.5, y + 0.5) for x in range(HW)] for y in range(HH)]
+NRM_STRENGTH = 2.6
 
 
-def _load_device():
-    """The hand-drawn device as (alpha, luminance) per pixel. Luminance carries the relief the
-    artist drew (lit ridge vs lower flanks); alpha is the silhouette."""
-    im = Image.open(DEV_SRC).convert("RGBA")
-    px = im.load()
-    grid = []
-    for y in range(im.height):
-        row = []
-        for x in range(im.width):
-            r, g, b, a = px[x, y]
-            row.append((a / 255.0, (0.299 * r + 0.587 * g + 0.114 * b) / 255.0))
-        grid.append(row)
-    return grid, im.width, im.height
+def _normal_px(diffuse):
+    """Sobel the height field into a packed tangent-space normal (gen_normals convention: flat =
+    128,128,255, FLIP_G=False). Flat + transparent where the diffuse is (the worn-rim holes) so the
+    torn edge doesn't rake light."""
+    def clampi(v):
+        return 0 if v < 0 else (HW - 1 if v >= HW else v)
 
+    def clampj(v):
+        return 0 if v < 0 else (HH - 1 if v >= HH else v)
 
-DEV, DEV_W, DEV_H = _load_device()
-# Seat the sprite on WHOLE pixels. Landing it on a half-pixel would smear hand-placed art across
-# two output pixels — the exact blur this replaces.
-DEV_X = math.floor(SCX - DEV_W * 0.5)
-DEV_Y = math.floor(SCY - DEV_H * 0.5)
-
-
-def _dev(fx, fy):
-    """NEAREST (alpha, luminance) of the device. Nearest, not bilinear: seal_px is supersampled,
-    so bilinear would average the artist's pixels into mud. Sampling nearest means all SS*SS
-    subsamples of an output pixel resolve to the same source texel — the drawn pixel survives
-    the supersample exactly."""
-    sx = int(math.floor(fx - DEV_X))
-    sy = int(math.floor(fy - DEV_Y))
-    if 0 <= sx < DEV_W and 0 <= sy < DEV_H:
-        return DEV[sy][sx]
-    return 0.0, 0.0
-
-
-def _bronze(lit, rim=0.0):
-    c = A.lerp_rgb(BRONZE_DK, BRONZE_MID, _cl(lit))
-    if rim > 0.0:
-        c = A.lerp_rgb(c, BRONZE_LT, _cl(rim))
-    return c
-
-
-def seal_px(fx, fy):
-    ox, oy = fx - SCX, fy - SCY
-    r = math.hypot(ox, oy)
-    # One surface normal toward the key, reused by every layer, so the medallion lights as ONE object.
-    nlit = _cl(0.42 + (-ox * LX - oy * LY) / R_OUT * 0.62)
-
-    # ── scroll bosses: the seats where the medallion bolts to the sign ──
-    for s_ in (-1, 1):
-        bd = math.hypot(ox - s_ * (R_OUT - 1.0), oy)
-        if bd < BOSS_R:
-            blit = _cl(0.34 + (-(ox - s_ * (R_OUT - 1.0)) * LX - oy * LY) / BOSS_R * 0.6)
-            return A.clamp_rgb(_bronze(blit, rim=_cl(0.85 - bd / BOSS_R) * 0.45)) + (255,)
-
-    if r >= R_OUT:
-        t = (r - R_OUT) / 2.0                          # a tight contact shadow onto the sign
-        if t >= 1.0:
-            return (0, 0, 0, 0)
-        return (0, 0, 0, A.clamp((1.0 - t) ** 1.6 * 150))
-
-    if r >= R_IN:
-        # ── the annulus: a bead-and-fillet profile, so it reads as turned metal ──
-        t = (r - R_IN) / (R_OUT - R_IN)
-        crown = 1.0 - abs(t - 0.45) * 2.0
-        lit = _cl(nlit * (0.34 + _cl(crown) * 0.92) + 0.10)
-        c = _bronze(lit, rim=_cl(crown - 0.40) * (0.9 if nlit > 0.5 else 0.28))
-        if t < 0.16:                                   # AO where the ring overhangs the field
-            c = A.lerp_rgb(c, (0, 0, 0), (0.16 - t) / 0.16 * 0.5)
-        if t > 0.9:
-            c = A.lerp_rgb(c, BRONZE_DK, (t - 0.9) / 0.1 * 0.55)
-        return A.clamp_rgb(c) + (255,)
-
-    # ── the recessed field the device is struck on: dark, so the relief reads ──
-    c = A.lerp_rgb(BRONZE_DK, BRONZE_MID, _cl(0.24 - r / R_IN * 0.12 + nlit * 0.10))
-    c = A.lerp_rgb(c, PATINA, _cl(A.noise(int(fx * 1.3), int(fy * 1.3), 29) * 0.012 + 0.07))
-    if r > R_IN - 2.2:
-        c = A.lerp_rgb(c, (0, 0, 0), (r - R_IN + 2.2) / 2.2 * 0.45)
-
-    # ── the device STRUCK IN RELIEF ──
-    # The sprite is hand-drawn, so its luminance IS the relief the artist cut: a lit ridge down
-    # the blade, lower flanks either side. Map that straight onto the bronze ramp and trust it.
-    # (The earlier derived lighting — sampling the mask offset both ways for lit/shadow lips —
-    # was for a mask with no values of its own. Applied to drawn art it fights the artist and
-    # fragments 1px strokes, so it is gone.)
-    a, lum = _dev(fx, fy)
-    if a > 0.02:
-        c = A.lerp_rgb(c, A.lerp_rgb(BRONZE_DK, BRONZE_LT, _cl(0.08 + lum * 0.92)), _cl(a * 1.25))
-    else:
-        # The device's own contact shadow, down-right — it sits ON the field, not in it.
-        aul, _ = _dev(fx - 1.0, fy - 1.0)
-        if aul > 0.08:
-            c = A.lerp_rgb(c, (0, 0, 0), _cl(aul) * 0.40)
-    return A.clamp_rgb(c) + (255,)
+    def pixel(x, y):
+        if diffuse(x, y)[3] < 8:
+            return (128, 128, 255, 0)
+        dx = _HFG[y][clampi(x + 1)] - _HFG[y][clampi(x - 1)]
+        dy = _HFG[clampj(y + 1)][x] - _HFG[clampj(y - 1)][x]
+        nx = -dx * NRM_STRENGTH
+        ny = -dy * NRM_STRENGTH
+        nz = 1.0
+        inv = 1.0 / math.sqrt(nx * nx + ny * ny + nz * nz)
+        return (A.clamp((nx * inv * 0.5 + 0.5) * 255),
+                A.clamp((ny * inv * 0.5 + 0.5) * 255),
+                A.clamp((nz * inv * 0.5 + 0.5) * 255),
+                255)
+    return pixel
 
 
 # ── Supersample → averaged downsample ───────────────────────────────────────────
@@ -329,15 +272,13 @@ def _ascii(W, H, pixel):
 
 def main(ascii_only=False):
     plaque = _supersample(HW, HH, header_px)
-    seal = _supersample(SW, SH, seal_px)
     if ascii_only:
         print("=== board_header ===\n" + _ascii(HW, HH, plaque))
-        print("\n=== board_seal ===\n" + _ascii(SW, SH, seal))
         return
     A.write_png("board_header.png", HW, HH, plaque)
     print("wrote board_header.png (%dx%d)" % (HW, HH))
-    A.write_png("board_seal.png", SW, SH, seal)
-    print("wrote board_seal.png (%dx%d)" % (SW, SH))
+    A.write_png("board_header_n.png", HW, HH, _normal_px(plaque))
+    print("wrote board_header_n.png (%dx%d) — carved relief for board_surface.gdshader" % (HW, HH))
 
 
 if __name__ == "__main__":
