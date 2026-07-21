@@ -301,28 +301,28 @@ func _ready() -> void:
 # the exact shape the server's `toContractIntel` puts on the wire (contractId, tier, origin,
 # requester, targetName, siteName, primaryVerb). No trait axis — same containment as the wire.
 const _PREVIEW_BOARD := [
-	{"contractId": "c-alpha", "tier": "APPRENTICE", "origin": "BELIEF", "targetName": "The Hollow Hamlet",
+	{"contractId": "c-alpha", "tier": "APPRENTICE", "origin": "BELIEF", "targetName": "The Hollow Vicar",
 	 "siteName": "Ashen Hollow", "primaryVerb": "INVESTIGATE",
 	 "requester": {"name": "Maret Ives", "role": "almoner", "place": "Greymarsh"}},
-	{"contractId": "c-beta", "tier": "APPRENTICE", "origin": "SIN", "targetName": "The Drowned Chapel",
+	{"contractId": "c-beta", "tier": "APPRENTICE", "origin": "SIN", "targetName": "The Drowned Choir",
 	 "siteName": "Watcher's Lake", "primaryVerb": "BANISH",
 	 "requester": {"name": "", "role": "reeve", "place": "The Old Mill"}},
-	{"contractId": "c-gamma", "tier": "APPRENTICE", "origin": "RELIC", "targetName": "Pilgrim's Rest",
+	{"contractId": "c-gamma", "tier": "APPRENTICE", "origin": "RELIC", "targetName": "The Unquiet Pilgrim",
 	 "siteName": "Broken Pass", "primaryVerb": "ELIMINATE",
 	 "requester": {"name": "Kestrel Vaun", "role": "lamplighter", "place": "Pilgrim's Rest"}},
-	{"contractId": "c-delta", "tier": "APPRENTICE", "origin": "BELIEF", "targetName": "Greymarsh",
+	{"contractId": "c-delta", "tier": "APPRENTICE", "origin": "BELIEF", "targetName": "The Grey Congregant",
 	 "siteName": "The Old Mill", "primaryVerb": "CAPTURE",
 	 "requester": {"name": "Vidal Orr", "role": "chandler", "place": "Ashen Hollow"}},
-	{"contractId": "c-eps", "tier": "APPRENTICE", "origin": "RELIC", "targetName": "The Sunken Nave",
+	{"contractId": "c-eps", "tier": "APPRENTICE", "origin": "RELIC", "targetName": "The Sunken Congregation",
 	 "siteName": "Hollowmere", "primaryVerb": "INVESTIGATE",
 	 "requester": {"name": "Brother Ames", "role": "sexton", "place": "Hollowmere"}},
-	{"contractId": "c-zeta", "tier": "APPRENTICE", "origin": "SIN", "targetName": "Gallowmoor",
+	{"contractId": "c-zeta", "tier": "APPRENTICE", "origin": "SIN", "targetName": "The Gallows Shepherd",
 	 "siteName": "Low Fen", "primaryVerb": "ELIMINATE",
 	 "requester": {"name": "", "role": "pilgrim", "place": "Low Fen"}},
-	{"contractId": "c-eta", "tier": "APPRENTICE", "origin": "BELIEF", "targetName": "The Ember Cloister",
+	{"contractId": "c-eta", "tier": "APPRENTICE", "origin": "BELIEF", "targetName": "The Ember Cantor",
 	 "siteName": "Gall", "primaryVerb": "BANISH",
 	 "requester": {"name": "Sister Wren", "role": "archivist", "place": "the Sunken Nave"}},
-	{"contractId": "c-theta", "tier": "APPRENTICE", "origin": "RELIC", "targetName": "The Weeping Vault",
+	{"contractId": "c-theta", "tier": "APPRENTICE", "origin": "RELIC", "targetName": "The Weeping Reliquary",
 	 "siteName": "Ashfen", "primaryVerb": "CAPTURE",
 	 "requester": {"name": "Hald", "role": "warden", "place": "Ashfen"}},
 ]
@@ -330,7 +330,10 @@ const _PREVIEW_BOARD := [
 func _board_preview() -> void:
 	# `-- --board-empty` previews the empty wall (L8); default is the 8-contract fixture.
 	var pv_board: Array = [] if OS.get_cmdline_user_args().has("--board-empty") else _PREVIEW_BOARD
-	_snapshot = {"phase": Protocol.PHASE_WAITING, "board": pv_board, "players": [], "contract": null}
+	# `-- --sealed` previews the taken-up state: the second fixture is the snapshot's
+	# contract, so the reader's Collegium seal renders FIRM (V3-class capture checks).
+	var pv_contract: Variant = _PREVIEW_BOARD[1] if OS.get_cmdline_user_args().has("--sealed") else null
+	_snapshot = {"phase": Protocol.PHASE_WAITING, "board": pv_board, "players": [], "contract": pv_contract}
 	_world.visible = false
 	_open_station("CONTRACT_BOARD")
 	# `-- --reader` takes the second fixture down to read (threat pips + enlarged seal).
@@ -1503,11 +1506,11 @@ func _make_live_notice(intel: Dictionary, idx: int) -> Control:
 	gap_bot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(gap_bot)
 	# Corner furniture (own children, above the text): the PRIMARY-VERB badge stamped in
-	# the upper-left (its legend is the bottom-left key), and the asserted-Origin wax seal
-	# pressed at the upper-right — the reference's two-corner read.
+	# the upper-left (its legend is the bottom-left key). The asserted-Origin wax seal is
+	# RETIRED from the writ (TD-060): the petition-type badge is the only corner mark —
+	# a sealed assertion of genus implied a certainty the Collegium doesn't have.
 	card.add_child(_notice_tack(str(intel.get("contractId", ""))))
 	card.add_child(_verb_corner_badge(verb))
-	card.add_child(_wax_seal(str(intel.get("origin", "SIN")), true))
 	if sel:
 		var ring := Panel.new()
 		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1580,9 +1583,14 @@ func _show_notice_reader(canvas: Control, intel: Dictionary) -> void:
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	dim.z_index = 10   # above the placard (z 5) so a taken-down writ covers the sign too
-	dim.gui_input.connect(func(e: InputEvent):
-		if e is InputEventMouseButton and e.pressed:
-			_select_board_card({}))
+	# Capture hardening: under `-- --reader` (unattended `--board-preview` captures) the
+	# click-off dismiss is suppressed — the Godot window pops under the OS cursor and stray
+	# physical clicks kept toggling the taken-down writ closed mid-capture (known gotcha).
+	# Debug-preview only; the Return button still dismisses.
+	if not (OS.is_debug_build() and OS.get_cmdline_user_args().has("--reader")):
+		dim.gui_input.connect(func(e: InputEvent):
+			if e is InputEventMouseButton and e.pressed:
+				_select_board_card({}))
 	canvas.add_child(dim)
 	var cc := CenterContainer.new()
 	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1599,14 +1607,17 @@ func _show_notice_reader(canvas: Control, intel: Dictionary) -> void:
 # Pin a freshly-opened reader to the top. The one-shot reset lost a race with a late
 # reflow/focus pass (the enlarged writ overflows its sheet, so it scrolls); hold the top
 # across several frames so nothing can drag it to the foot before it settles.
+# Debug: `-- --reader-foot` pins to the FOOT instead, so an unattended capture can verify
+# the seal block (V3-class checks) without input injection.
 func _reset_reader_scroll(rdr: Control) -> void:
+	var foot := OS.is_debug_build() and OS.get_cmdline_user_args().has("--reader-foot")
 	for _i in 8:
 		if not is_instance_valid(rdr):
 			return
 		var sc := rdr.find_child("ReaderScroll", true, false) as ScrollContainer
 		if sc != null:
 			get_viewport().gui_release_focus()   # no focused footer control to follow
-			sc.scroll_vertical = 0
+			sc.scroll_vertical = 100000 if foot else 0
 		await get_tree().process_frame
 
 func _build_notice_reader(intel: Dictionary) -> Control:
@@ -1668,17 +1679,13 @@ func _build_notice_reader(intel: Dictionary) -> Control:
 	var site := _card_label("at %s" % intel.get("siteName", "?"), 12, ink_soft, true, true)
 	site.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(site)
-	# Asserted genus (seal + gloss) and threat, on one centred row each.
+	# Asserted genus (text-only gloss — the Origin wax seal is retired, TD-060: the
+	# assertion is a falsifiable claim and reads as prose, never pressed in wax) and
+	# threat, on one centred row each.
 	var org := str(intel.get("origin", "SIN"))
-	var org_row := HBoxContainer.new()
-	org_row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	org_row.add_theme_constant_override("separation", 6)
-	var oseal := WaxSeal.new()
-	oseal.set_origin(org)
-	oseal.custom_minimum_size = Vector2(18, 18)
-	org_row.add_child(oseal)
-	org_row.add_child(_card_label("Asserted %s: %s" % [_origin_word(org), ORIGIN_GLOSS.get(org, "")], 12, ink_soft, false))
-	col.add_child(org_row)
+	var org_lbl := _card_label("Asserted %s: %s" % [_origin_word(org), ORIGIN_GLOSS.get(org, "")], 12, ink_soft, true, true)
+	org_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(org_lbl)
 	var threat := HBoxContainer.new()
 	threat.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	threat.add_theme_constant_override("separation", 4)
@@ -1723,7 +1730,6 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	var sel_c: Variant = _snapshot.get("contract")
 	var selected := sel_c != null and str(sel_c.get("contractId", "")) == cid
 	var leader := _is_leader()
-	var origin := str(intel.get("origin", "SIN"))
 
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1764,9 +1770,9 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	row.add_theme_constant_override("separation", 12)
 	stamp.add_child(row)
 
-	# The wax seal: a faint imprint waiting to be pressed, or a firm seal once stamped.
+	# The wax seal: a faint imprint waiting to be pressed, or a firm seal once stamped —
+	# the generic COLLEGIUM seal (TD-060): the leader stamps the order's device, not a genus.
 	var seal := WaxSeal.new()
-	seal.set_origin(origin)
 	seal.custom_minimum_size = Vector2(46, 46)
 	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	seal.set_faint(not selected)                       # fill fades but the ring stays firm
@@ -2042,8 +2048,6 @@ func _hover_card(card: Control, s: float) -> void:
 	var t := card.create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	t.tween_property(card, "scale", Vector2(s, s), 0.09)
 
-# An origin-keyed wax seal, positioned straddling the top edge of a card. The
-# WaxSeal control draws the wax + a per-Origin sigil (Belief/Sin/Relic).
 # The primary-verb type badge, anchored in a notice's upper-left corner (Prototype v1).
 func _verb_corner_badge(verb: String) -> Control:
 	var badge := VerbBadge.new()
@@ -2054,26 +2058,6 @@ func _verb_corner_badge(verb: String) -> Control:
 	badge.offset_left = 5.0; badge.offset_right = 20.0
 	badge.offset_top = 4.0; badge.offset_bottom = 19.0
 	return badge
-
-func _wax_seal(origin: String, corner: bool = false) -> Control:
-	var seal := WaxSeal.new()
-	seal.set_origin(origin)
-	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if corner:
-		# A wax blob pressed at the upper-right, resting fully ON the paper body — inset from
-		# both the top and right edges so the painted raster seal never pokes into the gutter
-		# above the card (it used to straddle/overhang the top edge).
-		seal.anchor_left = 1.0; seal.anchor_right = 1.0
-		seal.anchor_top = 0.0; seal.anchor_bottom = 0.0
-		seal.offset_left = -23.0; seal.offset_right = -5.0
-		seal.offset_top = 7.0; seal.offset_bottom = 25.0
-	else:
-		# straddling the top edge (reader / default)
-		seal.anchor_left = 0.5; seal.anchor_right = 0.5
-		seal.anchor_top = 0.0; seal.anchor_bottom = 0.0
-		seal.offset_left = -9.0; seal.offset_right = 9.0
-		seal.offset_top = -7.0; seal.offset_bottom = 11.0
-	return seal
 
 # A tack pinning a notice's top edge — nail · wax · pin · ribbon, chosen by the
 # contractId so a given notice always wears the same tack (deterministic). Static decor.

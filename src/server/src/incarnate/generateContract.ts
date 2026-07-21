@@ -8,6 +8,12 @@ const TARGET_NAMES: readonly string[] = [
   'The Weeping Mire',
   'The Frost Penitent',
   'The Rot-Bloom',
+  'The Hollow Vicar',
+  'The Drowned Choir',
+  'The Unquiet Pilgrim',
+  'The Gallows Shepherd',
+  'The Ember Cantor',
+  'The Grey Congregant',
 ];
 
 const SITE_NAMES: readonly string[] = [
@@ -15,6 +21,12 @@ const SITE_NAMES: readonly string[] = [
   'The Salt Marsh',
   'The Ember Reach',
   'The Sunken Nave',
+  'Ashfen Priory',
+  'The Broken Cloister',
+  'Hollowmere Crossing',
+  'The Gall Road Ossuary',
+  'Low Fen',
+  "The Watcher's Weir",
 ];
 
 const PRIMARY_VERBS: readonly PrimaryVerb[] = ['INVESTIGATE', 'ELIMINATE', 'CAPTURE', 'BANISH'];

@@ -130,7 +130,23 @@ grew the writs **93x54 → 93x67** (larger than the pre-header 93x60). `board_he
 again). `keepout live=8 ok=true minhit=93x67`. Client render only; `art/src/collegium_device.*` kept as
 source art. Verified by `--board-preview` captures.
 
-Active spec: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
+Active spec: **`specs/writ-format/`** (TD-060) — the writ reads **Incarnate at Site** and the wax
+seal becomes the Collegium's. **COMPLETE (T195–T199):** the `--board-preview` fixture's place-name
+targets (the "location at location" read) re-authored as Incarnate epithets; the server's authored
+`TARGET_NAMES`/`SITE_NAMES` pools grew 4→10 each (content tables only, mirrors updated, 362 green)
+so the 8-writ board isn't forced into duplicates; the **asserted-Origin wax seal is retired** from
+writ + reader (corner = tack + petition-type badge; Origin row = text-only gloss — a falsifiable
+claim reads as prose, never wax), painter + PNGs archived at `art/archive/`; the leader's stamp is
+the ONE generic **Collegium seal** (`seal_collegium.png` — oxblood wax, the order's device debossed,
+PIL-read from `collegium_logo.png`; `wax_seal.gd` de-Origin-keyed, R124 faint/firm mechanic
+untouched). Debug capture flags: `--reader` suppresses click-off dismiss (stray-click gotcha),
+`--reader-foot`, `--sealed`.
+
+@specs/writ-format/requirements.md
+@specs/writ-format/design.md
+@specs/writ-format/tasks.md
+
+Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't
 read as belonging in the torch-lit scene. **COMPLETE (T188–T192, V1–V6 green, client-only):** the
 banner is re-authored in `gen_banner.py` (180×360→**64×176**) as **crisp NEAREST pixel art** with a
@@ -158,9 +174,6 @@ new **`TORCH_CX`** (inboard between banner and frame; TD-059f centred it in the 
 visibly lights the frame; fixture + shader light still share one constant (P95 re-homed).
 Geometry/composition otherwise unchanged. No `src/**` change.
 
-@specs/board-blend/requirements.md
-@specs/board-blend/design.md
-@specs/board-blend/tasks.md
 
 Completed: **`specs/dependency-map/`** (TD-051) — DERIVE the script↔asset dependency graph instead of
 hand-maintaining it. **COMPLETE (T173–T177, `--selftest` + `--check` green, tooling/docs only):**

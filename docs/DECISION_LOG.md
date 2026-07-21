@@ -1860,3 +1860,36 @@ moves to the wall gutter's centre (screen edge → frame ≈ 0.09·vp ⇒ **0.04
 TD-059e (banner placement stays `GUTTER_CX`; sconce + flame + `torch_rig` all read `TORCH_CX`, P95
 re-homed); the glow still reaches the frame edge and the banner foot. Capture-verified. Client render
 only; one constant.
+
+## 2026-07-21 — TD-060: the writ reads creature-at-place; the Origin wax seal is archived; the leader stamps the Collegium's seal
+
+**Context (author playtest review).** The board's compact writ read "location at <location>" ("The
+Hollow Hamlet / at Ashen Hollow") — because the `--board-preview` fixture's `targetName`s were
+PLACES, misrepresenting the real wire format (the server's pool is Incarnate epithets: "The Ashen
+Warden at The Salt Marsh"). And the asserted-Origin wax seal earned no keep on the contract: the
+petition-type badge already carries the glanceable read, and wax pressed over "Sin" asserted a
+certainty the Collegium doesn't have — the Origin is a falsifiable claim, prose, not a stamp.
+
+**Decision (`specs/writ-format/`, R184–R188, T195–T199).**
+- **Format:** the canonical writ is **Incarnate at Site**. The fixture's eight targets re-authored
+  as epithets; the server's authored `TARGET_NAMES`/`SITE_NAMES` pools grew 4 → 10 each so the
+  8-writ board isn't forced into duplicates (content tables only; `rng.pick` unchanged, I3 holds;
+  test mirrors updated — server 362 green).
+- **Origin seal retired:** the writ's corner seal and the reader's seal are gone (writ corner =
+  tack + petition-type badge; reader Origin row = text-only "Asserted <Origin>: <gloss>"). The
+  painter + PNGs are **archived** at `art/archive/` (gen_origin_seals.py + seal_belief/sin/relic
+  .png); `gen_emblems.py` no longer emits them.
+- **The leader's stamp is generic:** `wax_seal.gd` is now the ONE Collegium seal — oxblood wax,
+  the order's device debossed (`seal_collegium.png`, PIL-read from `collegium_logo.png`, the
+  gen_banner producer-edge pattern). The R124/TD-041 mechanic is untouched: faint until stamped,
+  firm once sealed, leader-only, `SELECT_CONTRACT`/`DESELECT_CONTRACT`, affordance ≠ authority.
+- **Capture hardening (debug-only):** `--reader` suppresses the reader's click-off dismiss (the
+  stray-click gotcha kept toggling it closed mid-capture), `--reader-foot` pins the reader scroll
+  to the foot, `--sealed` sets the fixture contract — so unattended captures can verify the seal
+  block in both states without input injection.
+
+Verified by captures: 8 writs each "<epithet> / at <place>", no Origin seal anywhere; reader shows
+the faint Collegium seal ("Awaiting the leader's seal.") and firm under `--sealed` ("Sealed. The
+charge is taken up."). Diff scope: client/art/specs/docs/CLAUDE.md + the two server content tables
+(+mirrors). Server 362 + shared 65 green; asset-map regenerated (`seal_collegium.png` edge in, the
+three retired edges out).

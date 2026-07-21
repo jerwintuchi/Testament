@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://lg54jii55g6n"
-path="res://.godot/imported/seal_relic.png-2a810b60e6090dbc9003ec4394027d51.ctex"
+uid="uid://ds8inbxws7pm"
+path="res://.godot/imported/seal_collegium.png-1f1bddd7312446cf473c8a0d49f18ba4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/seal_relic.png"
-dest_files=["res://.godot/imported/seal_relic.png-2a810b60e6090dbc9003ec4394027d51.ctex"]
+source_file="res://assets/ui/seal_collegium.png"
+dest_files=["res://.godot/imported/seal_collegium.png-1f1bddd7312446cf473c8a0d49f18ba4.ctex"]
 
 [params]
 

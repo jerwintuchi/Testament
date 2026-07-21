@@ -1,27 +1,21 @@
 extends Control
-## Origin-keyed wax seal — a hand-painted RASTER emblem (TD-046; was runtime-drawn).
-## The wax colour and pressed sigil encode the contract's ASSERTED Origin
-## (Belief / Sin / Relic), a claim the contract makes — falsifiable, never the hidden
-## trait roll (I3) — so a player reads the board at a glance without spoiling anything.
-## Pure display. Preloaded as `WaxSeal`, not a global class_name, so it resolves in a
-## headless run (TD-029/30). Textures are authored by `assets/ui/gen_emblems.py`.
+## The Collegium's wax seal — the ONE generic seal (TD-060; was Origin-keyed, archived).
+## Oxblood wax with the order's device debossed: the leader stamps it on an open charge
+## (reversible SELECT_CONTRACT, R124/TD-041). It asserts the COLLEGIUM's taking-up, never
+## a genus — the asserted Origin is prose in the reader, not wax. Pure display. Preloaded
+## as `WaxSeal`, not a global class_name, so it resolves headless (TD-029/30). Texture is
+## authored by `assets/ui/gen_emblems.py` (@consumes collegium_logo.png).
 
-const SEAL_TEX := {
-	"BELIEF": "res://assets/ui/seal_belief.png",
-	"SIN":    "res://assets/ui/seal_sin.png",
-	"RELIC":  "res://assets/ui/seal_relic.png",
-}
+const SEAL_TEX := "res://assets/ui/seal_collegium.png"
 # A firm dark edge held over a FAINT (unsealed) seal, so a pending charge never washes
 # to bare parchment — the fill fades but the ring stays (DESIGN heritage).
 const RIM := Color(0x12 / 255.0, 0x10 / 255.0, 0x0C / 255.0, 0.85)
 
-var _origin := "SIN"
 var _tex: Texture2D
 var _faint := false
 
-func set_origin(o: String) -> void:
-	_origin = o if SEAL_TEX.has(o) else "SIN"
-	_tex = load(SEAL_TEX[_origin]) as Texture2D
+func _ready() -> void:
+	_tex = load(SEAL_TEX) as Texture2D
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # painted emblem scales smoothly
 	if custom_minimum_size == Vector2.ZERO:
 		custom_minimum_size = Vector2(20, 20)

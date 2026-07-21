@@ -11,22 +11,25 @@ lit top-left, shadowed bottom-right, with a contact drop-shadow down-right — s
 props agree on one light. The torches remain a warm additive FILL (no hard shadow).
 
 Emits:
-  seal_belief.png, seal_sin.png, seal_relic.png   48x48  painted wax + debossed sigil
+  seal_collegium.png                               48x48  the ONE generic wax seal — oxblood
+                                                          wax, the Collegium device debossed
+                                                          (@consumes collegium_logo.png). The
+                                                          leader's stamp (TD-060); Origin seals
+                                                          are RETIRED → art/archive/.
   badge_investigate/eliminate/capture/banish.png   24x24  pale sigil on transparent
                                                           (tinted ink/gilt at runtime)
 """
 import math
+from PIL import Image
 import ashember as A
 
 SS = 3  # supersample factor for painterly (anti-aliased) edges
 
-# Per-Origin wax palette (deep shadow, base, highlight, rim). Distinct hues so the three
-# read apart at a glance; the debossed SIGIL SHAPE is the primary Origin cue regardless.
-WAX = {
-    "belief": {"deep": (30, 34, 68),  "base": (58, 64, 116), "hi": (120, 128, 188), "rim": (18, 20, 44)},
-    "sin":    {"deep": (74, 20, 18),  "base": (150, 40, 38), "hi": (208, 96, 84),  "rim": (44, 10, 10)},
-    "relic":  {"deep": (60, 46, 18),  "base": (122, 96, 40), "hi": (188, 156, 84), "rim": (36, 27, 10)},
-}
+# The Collegium's wax (deep shadow, base, highlight, rim): OXBLOOD — the order's colour,
+# deliberately not any Origin hue (those seals are archived, TD-060). The debossed device
+# is the canonical Collegium emblem, read from collegium_logo.png (gen_logo.py output).
+COLLEGIUM_WAX = {"deep": (52, 18, 16), "base": (104, 38, 32), "hi": (172, 102, 84), "rim": (30, 11, 10)}
+EMB_SRC = "collegium_logo.png"
 
 LX, LY = -0.66, -0.66   # key-light direction (points toward the light: upper-left)
 
@@ -35,38 +38,33 @@ def _clampf(v, a=0.0, b=1.0):
     return max(a, min(b, v))
 
 
-# ── Origin sigil masks (unit space, cx/cy at 0, radius ~1) ───────────────────────
-def _sig_belief(nx, ny):
-    # An open eye — corrupted thought, watched.
-    r = math.hypot(nx, ny)
-    on_lens = abs(r - 0.62) < 0.12 and abs(ny) < 0.5      # almond arcs
-    pupil = math.hypot(nx, ny) < 0.20
-    return on_lens or pupil
+# The Origin sigil masks + make_seal(origin) that painted seal_belief/sin/relic.png are
+# ARCHIVED at art/archive/gen_origin_seals.py (TD-060), beside the PNGs they emitted.
 
 
-def _sig_sin(nx, ny):
-    # An INVERTED cross — corrupted deed (crossbar LOW on the shaft, ny+ is down).
-    shaft = abs(nx) < 0.14 and -0.75 < ny < 0.75
-    bar = abs(ny - 0.30) < 0.14 and abs(nx) < 0.44
-    return shaft or bar
-
-
-def _sig_relic(nx, ny):
-    # A diamond reliquary — corrupted matter.
-    d = abs(nx) / 0.66 + abs(ny) / 0.78
-    return 0.72 < d < 1.04
-
-
-SIGILS = {"belief": _sig_belief, "sin": _sig_sin, "relic": _sig_relic}
-
-
-def make_seal(origin):
+def make_collegium_seal():
+    # The ONE generic seal: oxblood wax, the Collegium device pressed into it. The device
+    # mask is the canonical emblem's alpha (PIL to READ, ashember to EMIT — the gen_banner
+    # producer-edge pattern), pre-scaled so the deboss keeps the blade/laurel legible at 48px.
     W = H = 48
-    pal = WAX[origin]
-    sig = SIGILS[origin]
+    pal = COLLEGIUM_WAX
     cx, cy = 23.0, 22.0     # seal centre (a little high; drop-shadow lives at the base)
     R = 18.5
     scx, scy = cx + 2.2, cy + 3.0   # drop-shadow centre (down-right, one light)
+
+    # Emblem mask, supersampled: fit the (portrait) device inside ~72% of the seal face.
+    im = Image.open(EMB_SRC).convert("RGBA")
+    eh = int(R * 2 * 0.84 * SS)
+    ew = max(1, int(im.width * eh / im.height))
+    emb = im.resize((ew, eh), Image.LANCZOS).getchannel("A").load()
+
+    def device(dx, dy):
+        # dx/dy in px from the seal centre → emblem-alpha lookup (supersampled grid).
+        ex = int(dx * SS + ew / 2)
+        ey = int(dy * SS + eh / 2)
+        if 0 <= ex < ew and 0 <= ey < eh:
+            return emb[ex, ey] > 110
+        return False
 
     def sample(fx, fy):
         dx, dy = fx - cx, fy - cy
@@ -89,13 +87,11 @@ def make_seal(origin):
         # outer rim (the wax edge) — darkens the last ~1.5px, holds contrast on parchment.
         if d > R - 1.6:
             body = A.lerp_rgb(body, pal["rim"], _clampf((d - (R - 1.6)) / 1.6))
-        # debossed sigil: recessed (toward deep), with a lit rim on the lower-right lip.
-        sr = d / R
-        snx, sny = dx / (R * 0.82), dy / (R * 0.82)
-        if sr < 0.92 and sig(snx, sny):
-            body = A.lerp_rgb(body, pal["deep"], 0.72)          # cut into the wax
-            # a thin highlight where the recess catches the key on its far (lower-right) wall
-            if sig(snx - 0.06, sny - 0.06) and not sig(snx + 0.05, sny + 0.05):
+        # debossed device: recessed (toward deep), a lit lip where the recess catches the
+        # key on its far (lower-right) wall — same relief language as the carved surfaces.
+        if d < R * 0.94 and device(dx, dy):
+            body = A.lerp_rgb(body, pal["deep"], 0.82)          # cut into the wax
+            if device(dx - 0.7, dy - 0.7) and not device(dx + 0.6, dy + 0.6):
                 body = A.lerp_rgb(body, pal["hi"], 0.55)
         return (A.clamp(body[0]), A.clamp(body[1]), A.clamp(body[2]), 255)
 
@@ -281,9 +277,8 @@ def _supersample(W, H, sample):
 
 
 def main():
-    for o in ("belief", "sin", "relic"):
-        A.write_png("seal_%s.png" % o, 48, 48, make_seal(o))
-        print("wrote seal_%s.png" % o)
+    A.write_png("seal_collegium.png", 48, 48, make_collegium_seal())
+    print("wrote seal_collegium.png")
     for v in ("investigate", "eliminate", "capture", "banish"):
         A.write_png("badge_%s.png" % v, 24, 24, make_badge(v))
         print("wrote badge_%s.png" % v)

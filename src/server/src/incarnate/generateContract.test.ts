@@ -7,8 +7,16 @@ import { createRng, hashSeed } from '../rng/seeded.js';
 
 const PRIMARY_VERBS = ['INVESTIGATE', 'ELIMINATE', 'CAPTURE', 'BANISH'] as const;
 const ORIGINS       = ['BELIEF', 'SIN', 'RELIC'] as const;
-const TARGET_NAMES  = ['The Ashen Warden', 'The Weeping Mire', 'The Frost Penitent', 'The Rot-Bloom'];
-const SITE_NAMES    = ['The Collapsed Chancel', 'The Salt Marsh', 'The Ember Reach', 'The Sunken Nave'];
+const TARGET_NAMES  = [
+  'The Ashen Warden', 'The Weeping Mire', 'The Frost Penitent', 'The Rot-Bloom',
+  'The Hollow Vicar', 'The Drowned Choir', 'The Unquiet Pilgrim', 'The Gallows Shepherd',
+  'The Ember Cantor', 'The Grey Congregant',
+];
+const SITE_NAMES    = [
+  'The Collapsed Chancel', 'The Salt Marsh', 'The Ember Reach', 'The Sunken Nave',
+  'Ashfen Priory', 'The Broken Cloister', 'Hollowmere Crossing', 'The Gall Road Ossuary',
+  'Low Fen', "The Watcher's Weir",
+];
 
 describe('generateContract', () => {
   it('determinism: same seed → same output (P18/R44)', () => {
@@ -18,14 +26,14 @@ describe('generateContract', () => {
     expect(a).toEqual(b);
   });
 
-  it('targetName falls within the 4-entry pool', () => {
+  it('targetName falls within the authored pool', () => {
     for (let i = 0; i < 20; i++) {
       const { targetName } = generateContract(createRng(hashSeed(`t-${i}`)), 'APPRENTICE', `c-${i}`, `s-${i}`);
       expect(TARGET_NAMES).toContain(targetName);
     }
   });
 
-  it('siteName falls within the 4-entry pool', () => {
+  it('siteName falls within the authored pool', () => {
     for (let i = 0; i < 20; i++) {
       const { siteName } = generateContract(createRng(hashSeed(`s-${i}`)), 'APPRENTICE', `c-${i}`, `s-${i}`);
       expect(SITE_NAMES).toContain(siteName);

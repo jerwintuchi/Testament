@@ -45,9 +45,7 @@
 - **`parch_flavor_1.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`parch_v1_0.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`parch_v1_1.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`seal_belief.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
-- **`seal_relic.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
-- **`seal_sin.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
+- **`seal_collegium.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
 - **`spark.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
 - **`stone_tile.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`stone_tile_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
@@ -116,7 +114,7 @@
 ## Generators — writes
 
 - **`client/assets/ui/gen_banner.py`** → `banner_v1.png`, `banner_v1_n.png`
-- **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_belief.png`, `seal_relic.png`, `seal_sin.png`, `spark.png`, `torch_sconce.png`
+- **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_collegium.png`, `spark.png`, `torch_sconce.png`
 - **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_header_n.png`
 - **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`, `wall_v1_n.png`
 
@@ -146,8 +144,8 @@
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
-- `client/scripts/main.gd:2185` — `load/preload normal_path`
-- `client/scripts/main.gd:2212` — `load/preload path`
-- `client/scripts/main.gd:2216` — `load/preload normal_path`
+- `client/scripts/main.gd:2169` — `load/preload normal_path`
+- `client/scripts/main.gd:2196` — `load/preload path`
+- `client/scripts/main.gd:2200` — `load/preload normal_path`
 - `client/scripts/ui/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
-- `client/scripts/ui/wax_seal.gd:24` — `load/preload SEAL_TEX[_origin]`
+- `client/scripts/ui/wax_seal.gd:18` — `load/preload SEAL_TEX`
