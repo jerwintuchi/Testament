@@ -40,3 +40,14 @@
   is behavior under test elsewhere and does not change here — this is a skin + content pass.
 - The Origin stays **intel**: the reader still says "Asserted <Origin>: <gloss>" in text. Only the
   wax assertion is retired.
+
+## Review fixes (author playtest)
+
+- [x] T200 [R189] — **Contain the reader text; survive over-scroll.** Inset the reader's
+      `ScrollContainer` (the clip boundary) to the parchment's intact centre with explicit
+      `clip_contents`, moving the bulk of the old pad margins onto the scroll offsets (at-rest
+      position unchanged); guard BOTH click-off dismiss handlers (`_popup_dim` + the reader dim)
+      to `MOUSE_BUTTON_LEFT` so wheel ticks scroll instead of dismissing.
+      Test: foot-pinned `--reader-foot` capture shows the title clipped cleanly inside the sheet
+      (nothing past the torn edge); live wheel input during capture scrolls the writ without
+      closing it.

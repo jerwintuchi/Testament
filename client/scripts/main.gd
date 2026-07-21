@@ -174,11 +174,14 @@ func _ready() -> void:
 	_popup_dim.color = Color(0.02, 0.015, 0.01, 0.74)   # deep, faintly warm — the crypt beyond the board
 	_popup_dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	_popup_dim.visible = false
-	# Click-off dismiss for a taken-down writ: a click anywhere OUTSIDE the board (on the
+	# Click-off dismiss for a taken-down writ: a LEFT-click anywhere OUTSIDE the board (on the
 	# surrounding wall) returns the writ to the wall. Clicks inside the board but outside the
 	# writ are caught by the reader's own dim; the writ parchment itself stays (STOP).
+	# Left-button only: wheel ticks are ALSO InputEventMouseButton (WHEEL_UP/DOWN, pressed),
+	# so an unguarded check made over-scrolling the writ dismiss it (TD-060 review).
 	_popup_dim.gui_input.connect(func(e: InputEvent):
-		if e is InputEventMouseButton and e.pressed and _popup_kind == "CONTRACT_BOARD" and not _board_selection.is_empty():
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT \
+				and _popup_kind == "CONTRACT_BOARD" and not _board_selection.is_empty():
 			_select_board_card({}))
 	layer.add_child(_popup_dim)
 	# Stone/mortar surround: tiled behind the popup, dim so the candlelit wall reads
@@ -1588,8 +1591,10 @@ func _show_notice_reader(canvas: Control, intel: Dictionary) -> void:
 	# physical clicks kept toggling the taken-down writ closed mid-capture (known gotcha).
 	# Debug-preview only; the Return button still dismisses.
 	if not (OS.is_debug_build() and OS.get_cmdline_user_args().has("--reader")):
+		# Left-button only — wheel ticks are ALSO InputEventMouseButton (WHEEL_UP/DOWN,
+		# pressed), so an unguarded check made over-scrolling the writ dismiss it.
 		dim.gui_input.connect(func(e: InputEvent):
-			if e is InputEventMouseButton and e.pressed:
+			if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 				_select_board_card({}))
 	canvas.add_child(dim)
 	var cc := CenterContainer.new()
@@ -1646,17 +1651,28 @@ func _build_notice_reader(intel: Dictionary) -> Control:
 		reader.add_child(bg)
 	var scroll := ScrollContainer.new()   # a long writ scrolls within the sheet
 	scroll.name = "ReaderScroll"          # found by _reset_reader_scroll to pin it to the top
+	# The scroll (= the CLIP boundary) is inset to the parchment's intact centre, not the
+	# reader's full rect: with a full-rect scroll the pad margins live INSIDE the scrolled
+	# content, so once scrolled the text rode up over the torn edge and past the sheet
+	# (TD-060 review). Clipping is forced explicitly so no glyph ever escapes the sheet.
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.offset_left = 34.0
+	scroll.offset_right = -34.0
+	scroll.offset_top = 30.0
+	scroll.offset_bottom = -30.0
+	scroll.clip_contents = true
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = false            # a focused footer control must not drag the writ down
 	_style_scrollbar(scroll)               # brass-on-wood bar, not Godot's grey default
 	reader.add_child(scroll)
+	# The pad keeps only the small remainder of the old 46/40 inset (the bulk moved to the
+	# scroll offsets above), so the at-rest reading position is unchanged.
 	var pad := MarginContainer.new()
 	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad.add_theme_constant_override("margin_left", 46)
-	pad.add_theme_constant_override("margin_right", 46)
-	pad.add_theme_constant_override("margin_top", 40)
-	pad.add_theme_constant_override("margin_bottom", 40)
+	pad.add_theme_constant_override("margin_left", 12)
+	pad.add_theme_constant_override("margin_right", 12)
+	pad.add_theme_constant_override("margin_top", 10)
+	pad.add_theme_constant_override("margin_bottom", 10)
 	scroll.add_child(pad)
 	var col := VBoxContainer.new()
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -1893,3 +1893,14 @@ the faint Collegium seal ("Awaiting the leader's seal.") and firm under `--seale
 charge is taken up."). Diff scope: client/art/specs/docs/CLAUDE.md + the two server content tables
 (+mirrors). Server 362 + shared 65 green; asset-map regenerated (`seal_collegium.png` edge in, the
 three retired edges out).
+
+**TD-060a (author playtest — reader containment + over-scroll dismiss).** Two reader defects from
+live play: (1) scrolled writ text rode up over the torn parchment edge and past the sheet — the
+`ScrollContainer` spanned the reader's full rect with the padding INSIDE the scrolled content, so
+the clip boundary was the sheet's outermost edge; the scroll is now inset to the intact parchment
+centre (offsets 34/30, explicit `clip_contents`, pad reduced so the at-rest position is unchanged).
+(2) Scrolling at/past the scroll limit closed the reader — wheel ticks are `InputEventMouseButton`
+(WHEEL_UP/DOWN, pressed), and both click-off dismiss handlers (`_popup_dim` + the reader's dim)
+fired on ANY pressed mouse-button event; both now require `MOUSE_BUTTON_LEFT`. R189/T200;
+capture-verified (foot-pinned title clips cleanly inside the sheet; live wheel during capture
+scrolled the writ without closing it). Client render only.

@@ -76,3 +76,14 @@ Client (R184, R186, R187): `--board-preview` captures (client-spec convention) �
   charge, firm when the snapshot's contract matches (capture with `--reader`).
 - **V4 (R188):** `git diff --name-only` touches only `client/ art/ specs/ docs/ CLAUDE.md
   src/server/` (tables + tests); asset-map `--check` passes.
+
+## Post-verification review fixes (author playtest, 2026-07-21)
+
+**R189** (client): the taken-down writ contains its text and survives over-scroll.
+- AC: scrolled reader text never renders past the parchment sheet — the scroll clip boundary sits
+  inside the solid parchment (no glyph rides the torn edge or escapes the writ), with the at-rest
+  reading position unchanged.
+- AC: mouse-wheel input never dismisses the reader: the click-off dismiss (both the outer wall dim
+  and the reader's inner dim) fires on LEFT-click only — wheel ticks are also
+  `InputEventMouseButton` (WHEEL_UP/DOWN, pressed), so an unguarded pressed-check closed the writ
+  when scrolling at (or past) the scroll limits.
