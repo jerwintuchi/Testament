@@ -130,7 +130,20 @@ grew the writs **93x54 → 93x67** (larger than the pre-header 93x60). `board_he
 again). `keepout live=8 ok=true minhit=93x67`. Client render only; `art/src/collegium_device.*` kept as
 source art. Verified by `--board-preview` captures.
 
-Active spec: **`specs/seal-rite/`** (TD-062) — the seal rite, on the author's TD-061 playtest.
+Active spec: **`specs/seal-ceremony/`** (TD-063) — the seal ceremony, on the author's TD-062
+playtest. **COMPLETE (T213–T217, client + generated art only):** the stamped wax re-authored as
+**pressed pixel wax** (`make_collegium_seal` at SS=1: pressure-deformed rim from seeded squeeze
+lobes + jitter, raised bulge band over a flattened field, debossed device with lit lip, 4-band
+posterized shading, centred disc); the unsealed state is an **empty dashed socket** (12 low-opacity
+arcs — ghost wax + solid ring retired, which also killed the off-centre ring); the press is
+**slow + heavy** (hover → 0.30s cubic fall → squash → BACK settle, ≈0.82s) and **displaces
+nothing** — the flash lives under the seal's own subtree (the old row-childed flash shoved the
+caption sideways) and the sheet-thump is gone (P116); a stamp raises the party-wide souls-like
+**CONTRACT SEALED** banner (`_show_rite_banner`: dark band + gilt letter-spaced Cinzel + target
+subline, fade/hold/fade, reduced-motion static), REPLACING the stamp toast — lift keeps the quiet
+toast (P117, author rulings). Debug: `--rite-banner`.
+
+Completed: **`specs/seal-rite/`** (TD-062) — the seal rite, on the author's TD-061 playtest.
 **COMPLETE (T207–T212, client-only):** the writ fit's missing metric found — Labels insert the
 theme `line_spacing` (3px) BETWEEN wrapped lines, which `get_multiline_string_size` doesn't count,
 so two 2-line blocks under-measured ~6px (the clipped "Ossuary") — `_fit_writ` now adds it per
@@ -171,9 +184,9 @@ PIL-read from `collegium_logo.png`; `wax_seal.gd` de-Origin-keyed, R124 faint/fi
 untouched). Debug capture flags: `--reader` suppresses click-off dismiss (stray-click gotcha),
 `--reader-foot`, `--sealed`.
 
-@specs/seal-rite/requirements.md
-@specs/seal-rite/design.md
-@specs/seal-rite/tasks.md
+@specs/seal-ceremony/requirements.md
+@specs/seal-ceremony/design.md
+@specs/seal-ceremony/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

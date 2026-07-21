@@ -7,9 +7,12 @@ extends Control
 ## authored by `assets/ui/gen_emblems.py` (@consumes collegium_logo.png).
 
 const SEAL_TEX := "res://assets/ui/seal_collegium.png"
-# A firm dark edge held over a FAINT (unsealed) seal, so a pending charge never washes
-# to bare parchment — the fill fades but the ring stays (DESIGN heritage).
-const RIM := Color(0x12 / 255.0, 0x10 / 255.0, 0x0C / 255.0, 0.85)
+# The EMPTY SOCKET (TD-063/R203): unsealed, the control draws only a low-opacity dashed
+# circle marking where the wax will land — the old ghost-wax texture + solid ring are gone
+# (author ruling: broken lines, lower opacity, no faint seal).
+const RIM := Color(0x12 / 255.0, 0x10 / 255.0, 0x0C / 255.0, 0.30)
+const DASHES := 12          # arcs around the socket
+const DASH_FRAC := 0.55     # portion of each slot that is ink (the rest is gap)
 
 var _tex: Texture2D
 var _faint := false
@@ -32,9 +35,12 @@ func _draw() -> void:
 	# A centred SQUARE, whatever rect the container hands us (TD-062/R197): filling the
 	# whole rect stretched the wax into an oval whenever the control ran taller than wide.
 	var s := minf(size.x, size.y)
-	var rect := Rect2((size - Vector2(s, s)) * 0.5, Vector2(s, s))
 	if _faint:
-		draw_texture_rect(_tex, rect, false, Color(1, 1, 1, 0.5))
-		draw_arc(size * 0.5, s * 0.5 - 1.5, 0.0, TAU, 40, RIM, 1.5)
+		# The empty socket: a centred dashed circle, nothing else (R203).
+		var c := size * 0.5
+		var r := s * 0.5 - 2.0
+		var slot := TAU / DASHES
+		for i in DASHES:
+			draw_arc(c, r, i * slot, i * slot + slot * DASH_FRAC, 6, RIM, 1.5)
 	else:
-		draw_texture_rect(_tex, rect, false)
+		draw_texture_rect(_tex, Rect2((size - Vector2(s, s)) * 0.5, Vector2(s, s)), false)

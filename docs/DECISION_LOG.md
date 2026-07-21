@@ -1972,3 +1972,38 @@ flash** animation.
 Client render only; suites untouched-green; capture-verified (long sites whole at
 `keepout ok=true minhit=80x53`; round seal both states; oath unsealed/sealed); scroll + animation
 verified by author playtest.
+
+## 2026-07-21 — TD-063: the seal ceremony — pressed pixel wax, the empty socket, the slow press, CONTRACT SEALED
+
+**Context (author playtest review of TD-062).** The press was too fast; the animation displaced the
+caption (the wax flash was childed to the HBOX ROW, so layout shoved the seal + caption sideways —
+and the sheet-thump moved the prose vertically); the faint ring sat off-centre (the disc was
+off-centre in its texture), too opaque, and wanted broken lines with the ghost wax gone; the
+stamped wax wanted pressure-deformed edges and crisper pixels; and the stamp wanted a souls-like
+banner. Author rulings: dashed-socket-only unsealed state; deformed pixel wax; banner reads
+**CONTRACT SEALED** + target subline, **party-wide**, **replacing** the stamp toast (lift keeps the
+quiet toast).
+
+**Decision (`specs/seal-ceremony/`, R202–R206, T213–T217).**
+- **Pressed pixel wax (R202):** `make_collegium_seal` re-authored at SS=1 (hard pixels): an
+  irregular rim from 3 seeded squeeze-out lobes + per-angle jitter + a pressed-ellipse bias (a
+  stamp never leaves a perfect circle), a raised bulge band of displaced wax around a flattened
+  pressed field, the device debossed with a lit lip, 4-band POSTERIZED shading, a hard-stepped
+  contact shadow; disc centred so overlays align.
+- **The empty socket (R203):** `wax_seal.gd` faint = a centred dashed circle (12 arcs, alpha 0.30)
+  and nothing else — ghost wax + solid ring retired; firm = the full texture. The off-centre-ring
+  bug died with the ghost.
+- **The slow heavy press (R204/P116):** hover 0.10s → cubic fall 0.30s → squash (1.22, 0.80) →
+  BACK settle 0.28s (~0.82s total; lift 0.28s). The flash now lives under the SEAL's own subtree
+  (`show_behind_parent`) and the sheet-thump is REMOVED — nothing outside the seal moves; captions
+  render at identical geometry in both end states (capture-checked).
+- **CONTRACT SEALED (R205/P117):** `_show_rite_banner` — a wide dark gradient band at 0.38·vp,
+  gilt letter-spaced Cinzel "CONTRACT SEALED" (outlined) over the target subline; fade 0.30 / hold
+  1.30 / fade 0.60, freeing itself; reduced-motion shows it statically. `CONTRACT_SELECTION
+  accepted=true` now raises the banner for every room member from the one broadcast and the stamp
+  toast is gone; `accepted=false` keeps the lift toast; errors untouched. Debug `--rite-banner`
+  previews it for captures.
+
+Client render + generated art only; suites untouched-green; capture-verified (pressed wax, dashed
+socket, identical caption geometry, banner at hold); press weight + party-wide banner for author
+playtest.

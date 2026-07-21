@@ -345,6 +345,9 @@ func _board_preview() -> void:
 	_self_id = "pv-self"
 	var pv_players := [{"playerId": "pv-self", "displayName": "Aldric", "isLeader": true, "readyState": false, "connected": true}]
 	_snapshot = {"phase": Protocol.PHASE_WAITING, "board": pv_board, "players": pv_players, "contract": pv_contract}
+	# `-- --rite-banner` raises the CONTRACT SEALED ceremony once, for captures (V4).
+	if OS.get_cmdline_user_args().has("--rite-banner"):
+		_show_rite_banner.call_deferred("CONTRACT SEALED", "The Drowned Choir")
 	_world.visible = false
 	_open_station("CONTRACT_BOARD")
 	# `-- --reader` takes the second fixture down to read (threat pips + enlarged seal).
@@ -403,6 +406,86 @@ func _show_toast(text: String) -> void:
 	_toast_tween.tween_interval(2.4)
 	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.5)
 
+# The rite banner (TD-063/R205): the souls-like centre-screen ceremony — a wide dark
+# band with big gilt letter-spaced CONTRACT SEALED over the target's name. Fired for
+# EVERY room member from the one CONTRACT_SELECTION broadcast (the ceremony is shared —
+# cooperation is the pillar); replaces the stamp toast. Pure display: ignores the mouse,
+# renders only broadcast payload fields, frees itself, emits nothing (P117). Reduced
+# motion shows it statically — the information is load-bearing, the motion is not.
+func _show_rite_banner(title: String, sub: String) -> void:
+	var lay := CanvasLayer.new()
+	lay.layer = 90
+	add_child(lay)
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lay.add_child(root)
+	var band := TextureRect.new()
+	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	band.stretch_mode = TextureRect.STRETCH_SCALE
+	band.texture = _rite_band_gradient()
+	band.anchor_left = 0.0; band.anchor_right = 1.0
+	band.anchor_top = 0.38; band.anchor_bottom = 0.38
+	band.offset_top = -36.0; band.offset_bottom = 36.0
+	root.add_child(band)
+	var v := VBoxContainer.new()
+	v.set_anchors_preset(Control.PRESET_FULL_RECT)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_theme_constant_override("separation", 2)
+	band.add_child(v)
+	var tf := _cinzel(700)
+	if tf != null:
+		tf.set("spacing_glyph", 5)     # the souls-register letterspacing
+	var tl := Label.new()
+	tl.text = title
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if tf != null:
+		tl.add_theme_font_override("font", tf)
+	tl.add_theme_font_size_override("font_size", 26)
+	tl.add_theme_color_override("font_color", Color(0.90, 0.76, 0.42))
+	tl.add_theme_color_override("font_outline_color", Color(0.05, 0.035, 0.02, 0.9))
+	tl.add_theme_constant_override("outline_size", 5)
+	v.add_child(tl)
+	var sl := Label.new()
+	sl.text = sub
+	sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sl.add_theme_font_size_override("font_size", 13)
+	sl.add_theme_color_override("font_color", Color(0.85, 0.79, 0.65))
+	sl.add_theme_color_override("font_outline_color", Color(0.05, 0.035, 0.02, 0.85))
+	sl.add_theme_constant_override("outline_size", 4)
+	v.add_child(sl)
+	if _reduced_motion:
+		get_tree().create_timer(1.8).timeout.connect(lay.queue_free)
+		return
+	root.modulate.a = 0.0
+	await get_tree().process_frame          # band sized → pivot for the settle drift
+	if not is_instance_valid(band):
+		return
+	band.pivot_offset = band.size * 0.5
+	band.scale = Vector2(1.05, 1.05)
+	var tw := root.create_tween()
+	tw.tween_property(root, "modulate:a", 1.0, 0.30)
+	tw.parallel().tween_property(band, "scale", Vector2.ONE, 0.34).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(1.30)
+	tw.tween_property(root, "modulate:a", 0.0, 0.60)
+	tw.tween_callback(lay.queue_free)
+
+# The banner's dark band: transparent → near-black → transparent, horizontally.
+func _rite_band_gradient() -> GradientTexture2D:
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.18, 0.5, 0.82, 1.0])
+	g.colors = PackedColorArray([
+		Color(0, 0, 0, 0), Color(0.02, 0.015, 0.01, 0.80), Color(0.02, 0.015, 0.01, 0.88),
+		Color(0.02, 0.015, 0.01, 0.80), Color(0, 0, 0, 0)])
+	var t := GradientTexture2D.new()
+	t.gradient = g
+	t.width = 256
+	t.height = 8
+	t.fill_from = Vector2(0.0, 0.0)
+	t.fill_to = Vector2(1.0, 0.0)
+	return t
+
 # ── Inbound messages (the only source of state) ──────────────────────────────
 
 func _on_message(type: String, payload: Variant) -> void:
@@ -435,12 +518,15 @@ func _on_message(type: String, payload: Variant) -> void:
 					if _screen == Screen.DEPLOYING:
 						_show_deploying()  # party bags updated
 		Protocol.CONTRACT_SELECTION:
-			# Transient notice for the whole room: the leader sealed/withdrew a charge.
-			# Authoritative selection arrives on the LOBBY_UPDATED snapshot (contract).
+			# The leader sealed/withdrew a charge. Authoritative selection arrives on the
+			# LOBBY_UPDATED snapshot (contract). A STAMP is the party's shared ceremony
+			# (TD-063/R205, author ruling): the souls-like CONTRACT SEALED banner fires for
+			# every room member from this one broadcast, REPLACING the stamp toast. A lift
+			# stays a quiet toast; errors stay on the toast.
 			var who := str(payload.get("actorName", "The leader"))
 			var tgt := str(payload.get("targetName", "a contract"))
 			if payload.get("accepted", false):
-				_show_toast("%s sealed the charge: %s" % [who, tgt])
+				_show_rite_banner("CONTRACT SEALED", tgt)
 			else:
 				_show_toast("%s lifted the seal on %s" % [who, tgt])
 		Protocol.ROOM_DEPLOYING:
@@ -1838,8 +1924,9 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	var seal := WaxSeal.new()
 	seal.custom_minimum_size = Vector2(46, 46)
 	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	seal.set_faint(not selected)                       # fill fades but the ring stays firm
-	seal.modulate.a = 1.0 if selected else (0.85 if leader else 0.62)
+	# Unsealed = the empty dashed socket (TD-063/R203 — the dash carries its own low
+	# opacity, so the control's modulate stays 1.0 for every role).
+	seal.set_faint(not selected)
 	row.add_child(seal)
 
 	# The OATH (TD-062/R198, author ruling: named-target form): the leader speaks in the
@@ -1872,69 +1959,61 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	box.add_child(stamp)
 	return box
 
-# The stamp/lift theatre (R200, author ruling: press + wax flash). Runs on the freshly
-# rebuilt seal after one frame (so the container has sized it); if another rebuild lands
-# mid-tween the nodes are freed and the tweens die with them — safe.
+# The stamp/lift theatre (R200; reworked TD-063/R204: SLOWER and HEAVIER, and it may
+# displace NOTHING — the flash lives under the SEAL's own subtree, never the HBox row
+# (whose layout shoved the caption sideways), and the sheet-thump is gone (it moved the
+# prose under the reader's eyes). Runs on the freshly rebuilt seal after one frame (so
+# the container has sized it); if another rebuild lands mid-tween the nodes are freed
+# and the tweens die with them — safe. (P116)
 func _animate_seal(seal: Control, sealed: bool) -> void:
 	await get_tree().process_frame
 	if not is_instance_valid(seal):
 		return
 	seal.pivot_offset = seal.size * 0.5
 	if sealed:
-		# The press: dropped from above, squash on impact, a warm additive wax flash
-		# blooming behind, and the sheet thumping 2px under the fist.
+		# The press: a hovering wind-up, an accelerating drop, a deep squash on impact
+		# with the wax flash blooming, and a heavy wobbling settle (~0.82s total).
 		var flash := TextureRect.new()
 		flash.texture = BoardGeo.backlight_gradient()
 		flash.material = BoardGeo.additive_material()
 		flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		flash.stretch_mode = TextureRect.STRETCH_SCALE
+		flash.show_behind_parent = true              # under the wax, inside ITS subtree
 		var fsz := seal.size * 2.6
 		flash.size = fsz
-		flash.position = seal.position + seal.size * 0.5 - fsz * 0.5
+		flash.position = (seal.size - fsz) * 0.5     # centred in the seal's local space
 		flash.pivot_offset = fsz * 0.5
 		flash.scale = Vector2(0.6, 0.6)
 		flash.modulate = Color(1.0, 0.82, 0.5, 0.0)
-		var par := seal.get_parent()
-		par.add_child(flash)
-		par.move_child(flash, 0)                     # behind the wax
-		seal.scale = Vector2(1.8, 1.8)
-		seal.modulate.a = 0.4
+		seal.add_child(flash)
+		seal.scale = Vector2(2.2, 2.2)
+		seal.modulate.a = 0.0
 		var t := seal.create_tween()
-		t.tween_property(seal, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		t.parallel().tween_property(seal, "modulate:a", 1.0, 0.12)
-		t.tween_property(seal, "scale", Vector2(1.18, 0.85), 0.05)
-		t.tween_property(seal, "scale", Vector2.ONE, 0.10).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		t.tween_property(seal, "modulate:a", 0.85, 0.10)                                   # hover in
+		t.parallel().tween_property(seal, "scale", Vector2(2.05, 2.05), 0.10)
+		t.tween_property(seal, "scale", Vector2.ONE, 0.30).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)  # the fall
+		t.parallel().tween_property(seal, "modulate:a", 1.0, 0.30)
+		t.tween_property(seal, "scale", Vector2(1.22, 0.80), 0.09)                          # impact squash
+		t.tween_property(seal, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)  # heavy settle
 		var ft := flash.create_tween()
-		ft.tween_interval(0.11)                      # bloom on IMPACT, not on wind-up
-		ft.tween_property(flash, "modulate:a", 0.9, 0.03)
-		ft.parallel().tween_property(flash, "scale", Vector2(1.8, 1.8), 0.28)
-		ft.tween_property(flash, "modulate:a", 0.0, 0.20)
+		ft.tween_interval(0.40)                      # bloom on IMPACT (hover + fall), not wind-up
+		ft.tween_property(flash, "modulate:a", 0.85, 0.04)
+		ft.parallel().tween_property(flash, "scale", Vector2(1.9, 1.9), 0.42)
+		ft.tween_property(flash, "modulate:a", 0.0, 0.30)
 		ft.tween_callback(flash.queue_free)
-		# The desk thump: the parchment sheet (the ReaderScroll's parent) nudges and settles.
-		var n: Node = seal
-		while n != null and n.name != "ReaderScroll":
-			n = n.get_parent()
-		var sheet := (n.get_parent() as Control) if n != null else null
-		if sheet != null:
-			var oy := sheet.position.y
-			var rt := sheet.create_tween()
-			rt.tween_interval(0.11)
-			rt.tween_property(sheet, "position:y", oy + 2.0, 0.04)
-			rt.tween_property(sheet, "position:y", oy, 0.07)
 	else:
-		# The peel: the wax lifts off firm, rises and fades, then settles as the faint
-		# imprint the block actually renders.
-		var rest_a := seal.modulate.a
+		# The peel: the firm wax lifts, rises and fades, then the empty dashed socket
+		# remains (the block's true unsealed render).
 		seal.set_faint(false)
 		seal.modulate.a = 1.0
 		var t := seal.create_tween()
-		t.tween_property(seal, "scale", Vector2(1.5, 1.5), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		t.parallel().tween_property(seal, "modulate:a", 0.15, 0.16)
+		t.tween_property(seal, "scale", Vector2(1.55, 1.55), 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		t.parallel().tween_property(seal, "modulate:a", 0.0, 0.28)
 		t.tween_callback(func():
 			if is_instance_valid(seal):
 				seal.set_faint(true)
 				seal.scale = Vector2.ONE
-				seal.modulate.a = rest_a)
+				seal.modulate.a = 1.0)
 
 # A seeded position jitter (fractions of the inner board) so notices don't sit on a
 # grid — organic like a real wall. Deterministic per seed string (same board twice

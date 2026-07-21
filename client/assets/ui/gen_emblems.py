@@ -43,59 +43,85 @@ def _clampf(v, a=0.0, b=1.0):
 
 
 def make_collegium_seal():
-    # The ONE generic seal: oxblood wax, the Collegium device pressed into it. The device
-    # mask is the canonical emblem's alpha (PIL to READ, ashember to EMIT — the gen_banner
-    # producer-edge pattern), pre-scaled so the deboss keeps the blade/laurel legible at 48px.
-    W = H = 48
+    # The ONE generic seal, re-authored as PRESSED WAX IN PIXELS (TD-063/R202): hard pixel
+    # edges (no supersample blur), an irregular pressure-deformed rim (seeded squeeze-out
+    # lobes + per-angle jitter — a stamp never leaves a perfect circle), a raised bulge
+    # band of displaced wax around a flat pressed field, the Collegium device debossed
+    # with a lit lip, and 4-band POSTERIZED shading (pixel-art bands, not gradients).
+    # Device mask: PIL to READ the canonical emblem, ashember to EMIT (gen_banner pattern).
     pal = COLLEGIUM_WAX
-    cx, cy = 23.0, 22.0     # seal centre (a little high; drop-shadow lives at the base)
-    R = 18.5
-    scx, scy = cx + 2.2, cy + 3.0   # drop-shadow centre (down-right, one light)
+    cx = cy = 23.5          # centred disc, so runtime overlays (the dashed socket) align
+    base_r = 16.5
 
-    # Emblem mask, supersampled: fit the (portrait) device inside ~72% of the seal face.
+    # Squeeze-out lobes: (angle, amplitude px, angular width) — where the press displaced
+    # wax past the matrix. Fixed values = deterministic art.
+    lobes = [(0.7, 2.3, 0.45), (2.9, 1.7, 0.38), (4.7, 2.0, 0.52)]
+
+    def rim_r(theta):
+        r = base_r + 0.5 * math.cos(2.0 * (theta - 0.9))     # slight pressed-ellipse bias
+        for a, amp, wdt in lobes:
+            d = math.atan2(math.sin(theta - a), math.cos(theta - a))
+            r += amp * math.exp(-(d * d) / (2.0 * wdt * wdt))
+        b = int(((theta + math.pi) / (2.0 * math.pi)) * 36.0)   # chunky per-angle jitter
+        r += A.noise(b, 11, 29) / 8.0 * 0.7
+        return r
+
+    # Emblem mask fit inside the pressed field.
     im = Image.open(EMB_SRC).convert("RGBA")
-    eh = int(R * 2 * 0.84 * SS)
+    eh = int(base_r * 2 * 0.78)
     ew = max(1, int(im.width * eh / im.height))
     emb = im.resize((ew, eh), Image.LANCZOS).getchannel("A").load()
 
     def device(dx, dy):
-        # dx/dy in px from the seal centre → emblem-alpha lookup (supersampled grid).
-        ex = int(dx * SS + ew / 2)
-        ey = int(dy * SS + eh / 2)
+        ex = int(dx + ew / 2.0)
+        ey = int(dy + eh / 2.0)
         if 0 <= ex < ew and 0 <= ey < eh:
             return emb[ex, ey] > 110
         return False
 
-    def sample(fx, fy):
-        dx, dy = fx - cx, fy - cy
+    # 4-band posterized wax ramp (deep / base / warm mid / hi).
+    mid = A.lerp_rgb(pal["base"], pal["hi"], 0.45)
+
+    def band_colour(v):
+        if v < 0.30:
+            return pal["deep"]
+        if v < 0.55:
+            return pal["base"]
+        if v < 0.78:
+            return mid
+        return pal["hi"]
+
+    def pixel(x, y):
+        dx, dy = x + 0.5 - cx, y + 0.5 - cy
         d = math.hypot(dx, dy)
-        # contact drop-shadow (under the wax, down-right) — soft, translucent black.
-        sd = math.hypot(fx - scx, fy - scy)
-        shadow_a = _clampf((R + 3.0 - sd) / 6.0) * 0.5 if sd < R + 3.0 else 0.0
-        if d > R + 1.2:
-            if shadow_a > 0.0:
-                return (10, 8, 6, int(shadow_a * 255))
+        th = math.atan2(dy, dx)
+        rr = rim_r(th)
+        if d > rr:
+            # Hard-stepped contact shadow (pixel-art, not gaussian): the disc's own
+            # silhouette offset down-right.
+            sdx, sdy = x + 0.5 - 2.0 - cx, y + 0.5 - 3.0 - cy
+            if math.hypot(sdx, sdy) <= rim_r(math.atan2(sdy, sdx)):
+                return (10, 8, 6, 150)
             return (0, 0, 0, 0)
-        # domed wax: lambert-ish term from the upper-left key.
-        nx, ny = dx / R, dy / R
-        lit = _clampf(0.5 + 0.5 * (nx * LX + ny * LY) + (1.0 - d / R) * 0.18)
-        body = A.lerp_rgb(pal["deep"], pal["hi"], lit)
-        body = A.lerp_rgb(body, pal["base"], 0.35)     # keep it reading as the base hue
-        # grain
-        g = A.noise(int(fx), int(fy), 7) * 0.5
-        body = (body[0] + g, body[1] + g, body[2] + g)
-        # outer rim (the wax edge) — darkens the last ~1.5px, holds contrast on parchment.
-        if d > R - 1.6:
-            body = A.lerp_rgb(body, pal["rim"], _clampf((d - (R - 1.6)) / 1.6))
-        # debossed device: recessed (toward deep), a lit lip where the recess catches the
-        # key on its far (lower-right) wall — same relief language as the carved surfaces.
-        if d < R * 0.94 and device(dx, dy):
-            body = A.lerp_rgb(body, pal["deep"], 0.82)          # cut into the wax
-            if device(dx - 0.7, dy - 0.7) and not device(dx + 0.6, dy + 0.6):
-                body = A.lerp_rgb(body, pal["hi"], 0.55)
+        t = d / rr
+        lit = _clampf(0.5 + 0.5 * (dx / rr * LX + dy / rr * LY))
+        if t > 0.80:
+            # The bulge band: displaced wax standing proud — stronger light contrast.
+            v = _clampf(0.5 + (lit - 0.5) * 1.6 + 0.10)
+        else:
+            # The pressed field: flattened — compressed contrast, a half-tone darker.
+            v = _clampf(0.52 + (lit - 0.5) * 0.65)
+        v += A.noise(x, y, 7) / 8.0 * 0.06                     # quantized grain speckle
+        body = band_colour(_clampf(v))
+        if d > rr - 1.4:
+            body = pal["rim"]                                  # the hard wax edge
+        elif t < 0.80 and device(dx, dy):
+            body = pal["deep"]                                 # the deboss, cut hard
+            if device(dx - 1.0, dy - 1.0) and not device(dx + 1.0, dy + 1.0):
+                body = pal["hi"]                              # the lit lower-right lip
         return (A.clamp(body[0]), A.clamp(body[1]), A.clamp(body[2]), 255)
 
-    return _supersample(W, H, sample)
+    return pixel
 
 
 def _badge_stroke(nx, ny, verb):
