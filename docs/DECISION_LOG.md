@@ -2007,3 +2007,33 @@ quiet toast).
 Client render + generated art only; suites untouched-green; capture-verified (pressed wax, dashed
 socket, identical caption geometry, banner at hold); press weight + party-wide banner for author
 playtest.
+
+## 2026-07-21 — TD-064: seal polish — unclipped flash, hitch-free rebuild, stamp cooldown
+
+**Context (author playtest review of TD-063).** Three defects: (1) the wax flash was clipped to the
+sheet — it was a child of the seal, which lives inside the reader's `ScrollContainer`
+(`clip_contents`), so its radius was trapped and it read as an awkward glow pinned to the writ's
+lower-left; (2) a brief stutter on stamp/lift — the whole popup rebuilt and regenerated its board
+textures synchronously as the animation began; (3) stamping/lifting could be spam-clicked.
+
+**Decision (`specs/seal-polish/`, R207–R210, T218–T221).**
+- **Flash on an overlay (R207):** `_spawn_seal_flash` draws the impact bloom on a dedicated
+  `CanvasLayer` (layer 95, above the popup/reader), centred on the seal's on-screen position via
+  `get_global_transform_with_canvas() * (seal.size*0.5)` (correct in the `canvas_items`/PixelScale
+  logical space). It is independent of the seal's lifecycle (a rebuild that frees the seal leaves
+  the bloom to finish and free its own layer). The core is overdriven warm (>1) so the additive
+  burst reads even over the bright parchment, sized to bloom past the sheet edge without flooding.
+  The seal's own drop/squash/settle is unchanged (P116 preserved). Debug `--flash-preview`.
+- **Hitch-free rebuild (R208/P118):** `BoardGeo`'s five deterministic generators
+  (`wood_grain_texture` — a 96×96 GDScript pixel loop — plus `vignette`/`curl`/`backlight`
+  gradients and `additive_material`) are memoized in static caches, built once per process and
+  reused by reference. Immutable, render-only, identical to the freshly-built result; the
+  per-rebuild regeneration that caused the hitch is gone.
+- **Stamp cooldown (R209/P119):** `SEAL_COOLDOWN_MS = 900` (≈ the 0.82 s press). On stamp/lift the
+  seal is disabled and `_seal_cooldown_until` is set; a block rebuilt during the window stays
+  disabled and schedules its own re-enable timer. Affordance only — the server still authorises; a
+  raced `NOT_*`/`WRONG_PHASE` still surfaces; non-leaders unaffected.
+
+Client render only; no `src/**` change; suites untouched-green; capture-verified (unclipped
+contained flash, board visually identical under the cache); press-smoothness + cooldown for author
+playtest.

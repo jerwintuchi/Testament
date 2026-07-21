@@ -130,7 +130,18 @@ grew the writs **93x54 → 93x67** (larger than the pre-header 93x60). `board_he
 again). `keepout live=8 ok=true minhit=93x67`. Client render only; `art/src/collegium_device.*` kept as
 source art. Verified by `--board-preview` captures.
 
-Active spec: **`specs/seal-ceremony/`** (TD-063) — the seal ceremony, on the author's TD-062
+Active spec: **`specs/seal-polish/`** (TD-064) — seal polish, on the author's TD-063 playtest.
+**COMPLETE (T218–T221, client render only):** the wax **flash renders unclipped above the board**
+(`_spawn_seal_flash` on a dedicated `CanvasLayer` 95, centred on the seal via
+`get_global_transform_with_canvas()`, independent of the seal's lifecycle, overdriven-warm core so
+the additive burst reads over parchment) — the old child-flash was trapped by the reader
+`ScrollContainer`'s clip; the stamp/lift **no longer hitches** — `BoardGeo`'s five deterministic
+generators (the 96×96 `wood_grain` loop + gradients + additive material) are **memoized** so a popup
+rebuild reuses them (P118); and the stamp has an **interaction lockout** (`SEAL_COOLDOWN_MS = 900` ≈
+the press length) so it can't be spam-clicked — affordance only, the server still authorises (P119).
+Debug: `--flash-preview`.
+
+Completed: **`specs/seal-ceremony/`** (TD-063) — the seal ceremony, on the author's TD-062
 playtest. **COMPLETE (T213–T217, client + generated art only):** the stamped wax re-authored as
 **pressed pixel wax** (`make_collegium_seal` at SS=1: pressure-deformed rim from seeded squeeze
 lobes + jitter, raised bulge band over a flattened field, debossed device with lit lip, 4-band
@@ -184,9 +195,9 @@ PIL-read from `collegium_logo.png`; `wax_seal.gd` de-Origin-keyed, R124 faint/fi
 untouched). Debug capture flags: `--reader` suppresses click-off dismiss (stray-click gotcha),
 `--reader-foot`, `--sealed`.
 
-@specs/seal-ceremony/requirements.md
-@specs/seal-ceremony/design.md
-@specs/seal-ceremony/tasks.md
+@specs/seal-polish/requirements.md
+@specs/seal-polish/design.md
+@specs/seal-polish/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

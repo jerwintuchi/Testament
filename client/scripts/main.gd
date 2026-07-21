@@ -78,6 +78,8 @@ var _board_selection: Dictionary = {}  # the contract card being previewed, or {
 var _reader_open_cid := ""             # which notice the reader currently shows (R199 scroll continuity)
 var _reader_scroll_mem := 0            # its last scroll offset, restored on a same-notice rebuild
 var _seal_prev: Dictionary = {}        # cid -> sealed? at last build — detects stamp/lift for the ceremony (R200)
+const SEAL_COOLDOWN_MS := 900          # stamp/lift interaction lockout ≈ the press length (R209)
+var _seal_cooldown_until := 0          # Time.get_ticks_msec() until which the stamp is locked
 var _focus_cid: String = ""            # contractId of the keyboard-focused writ, kept across rebuilds
 var _wood_sb: StyleBox            # Contract Board panel skin — the carved 9-slice frame (board_frame.png)
 var _backing_tex: Texture2D       # plank backing 9-slice, behind the notices
@@ -357,7 +359,18 @@ func _board_preview() -> void:
 	# verify the gilt focus ring (L6) without injecting a Tab key.
 	if OS.get_cmdline_user_args().has("--focus-first"):
 		_focus_first_notice.call_deferred()
+	# `-- --flash-preview` (implies --reader --sealed) spawns one impact flash on the reader
+	# seal so a capture can show it blooming past the sheet edge, unclipped (TD-064/V1).
+	if OS.get_cmdline_user_args().has("--flash-preview"):
+		_flash_preview.call_deferred()
 	_log("board preview: %d fixture contracts" % pv_board.size())
+
+func _flash_preview() -> void:
+	for _i in 6:
+		await get_tree().process_frame          # let the deferred reader build + settle
+	var seal := get_tree().root.find_child("ReaderSeal", true, false) as Control
+	if seal != null:
+		_spawn_seal_flash(seal, 0.0)            # bloom immediately; capture catches it mid-bloom
 
 # Give keyboard nav a starting point on the board (T146 / L6): restore the writ that held
 # focus before a rebuild (by contractId), else focus the reading-first (top-left) writ, so
@@ -1889,7 +1902,16 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	var stamp := Button.new()
 	stamp.flat = true
 	stamp.clip_contents = false
-	stamp.disabled = not leader
+	# Interaction lockout (TD-064/R209): the stamp is disabled for a short window after a
+	# stamp/lift so the ceremony can't be interrupted or spam-fired. If this block is rebuilt
+	# WHILE cooling (the snapshot lands fast), it stays disabled and re-enables itself when the
+	# window elapses. Affordance only — the server still authorises (P119).
+	var cool_left := _seal_cooldown_until - Time.get_ticks_msec()
+	stamp.disabled = (not leader) or cool_left > 0
+	if leader and cool_left > 0:
+		get_tree().create_timer(cool_left / 1000.0).timeout.connect(func():
+			if is_instance_valid(stamp) and Time.get_ticks_msec() >= _seal_cooldown_until:
+				stamp.disabled = false)
 	# Keyboard reachable for the leader only (T146 / L6): a non-leader's seal is read-only, so it
 	# takes no focus. The gilt ring marks it when Tabbed to; Enter/Space stamps.
 	stamp.focus_mode = Control.FOCUS_ALL if leader else Control.FOCUS_NONE
@@ -1904,7 +1926,9 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 		stamp.pressed.connect(func():
 			# In-flight (T146): one stamp per round-trip. Disable until the LOBBY_UPDATED
 			# snapshot rebuilds the block, so a double-tap can't fire two SELECT/DESELECTs.
+			# Plus the TD-064 cooldown window so a fast clicker can't spam stamp/lift.
 			stamp.disabled = true
+			_seal_cooldown_until = Time.get_ticks_msec() + SEAL_COOLDOWN_MS
 			if selected:
 				_log("seal %s accepted=false" % cid)
 				_net.send_message(Protocol.DESELECT_CONTRACT, {})
@@ -1922,6 +1946,7 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	# The wax seal: a faint imprint waiting to be pressed, or a firm seal once stamped —
 	# the generic COLLEGIUM seal (TD-060): the leader stamps the order's device, not a genus.
 	var seal := WaxSeal.new()
+	seal.name = "ReaderSeal"                            # found by --flash-preview (V1 capture)
 	seal.custom_minimum_size = Vector2(46, 46)
 	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Unsealed = the empty dashed socket (TD-063/R203 — the dash carries its own low
@@ -1972,20 +1997,11 @@ func _animate_seal(seal: Control, sealed: bool) -> void:
 	seal.pivot_offset = seal.size * 0.5
 	if sealed:
 		# The press: a hovering wind-up, an accelerating drop, a deep squash on impact
-		# with the wax flash blooming, and a heavy wobbling settle (~0.82s total).
-		var flash := TextureRect.new()
-		flash.texture = BoardGeo.backlight_gradient()
-		flash.material = BoardGeo.additive_material()
-		flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		flash.stretch_mode = TextureRect.STRETCH_SCALE
-		flash.show_behind_parent = true              # under the wax, inside ITS subtree
-		var fsz := seal.size * 2.6
-		flash.size = fsz
-		flash.position = (seal.size - fsz) * 0.5     # centred in the seal's local space
-		flash.pivot_offset = fsz * 0.5
-		flash.scale = Vector2(0.6, 0.6)
-		flash.modulate = Color(1.0, 0.82, 0.5, 0.0)
-		seal.add_child(flash)
+		# with the wax flash blooming, and a heavy wobbling settle (~0.82s total). The
+		# flash lives on its OWN overlay above the board (TD-064/R207), not under the seal:
+		# the seal sits inside the reader's clipped ScrollContainer, which trapped the
+		# flash's radius at the sheet edge. Spawn it timed to the impact (~0.40s in).
+		_spawn_seal_flash(seal, 0.40)
 		seal.scale = Vector2(2.2, 2.2)
 		seal.modulate.a = 0.0
 		var t := seal.create_tween()
@@ -1995,12 +2011,6 @@ func _animate_seal(seal: Control, sealed: bool) -> void:
 		t.parallel().tween_property(seal, "modulate:a", 1.0, 0.30)
 		t.tween_property(seal, "scale", Vector2(1.22, 0.80), 0.09)                          # impact squash
 		t.tween_property(seal, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)  # heavy settle
-		var ft := flash.create_tween()
-		ft.tween_interval(0.40)                      # bloom on IMPACT (hover + fall), not wind-up
-		ft.tween_property(flash, "modulate:a", 0.85, 0.04)
-		ft.parallel().tween_property(flash, "scale", Vector2(1.9, 1.9), 0.42)
-		ft.tween_property(flash, "modulate:a", 0.0, 0.30)
-		ft.tween_callback(flash.queue_free)
 	else:
 		# The peel: the firm wax lifts, rises and fades, then the empty dashed socket
 		# remains (the block's true unsealed render).
@@ -2014,6 +2024,39 @@ func _animate_seal(seal: Control, sealed: bool) -> void:
 				seal.set_faint(true)
 				seal.scale = Vector2.ONE
 				seal.modulate.a = 1.0)
+
+# The impact flash on its OWN overlay (TD-064/R207): a warm additive bloom centred on the
+# seal's on-screen position, drawn ABOVE the board so its full radius shows (the seal lives
+# inside the reader's clipped ScrollContainer, which trapped a child flash at the sheet
+# edge). The seal's centre stays fixed (it only scales about its pivot), so we capture it
+# once. The overlay is independent of the seal's lifecycle — a snapshot rebuild that frees
+# the seal leaves the bloom to finish and free its own layer (no leak, no orphan).
+func _spawn_seal_flash(seal: Control, delay: float) -> void:
+	var gt := seal.get_global_transform_with_canvas()
+	var centre := gt * (seal.size * 0.5)         # seal centre in logical (canvas) space
+	var fsz := seal.size * 2.3 * gt.get_scale()
+	var lay := CanvasLayer.new()
+	lay.layer = 95                               # above the popup dim/reader and the rite banner (90)
+	add_child(lay)
+	var flash := TextureRect.new()
+	flash.texture = BoardGeo.backlight_gradient()
+	flash.material = BoardGeo.additive_material()
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.stretch_mode = TextureRect.STRETCH_SCALE
+	flash.size = fsz
+	flash.pivot_offset = fsz * 0.5
+	flash.position = centre - fsz * 0.5
+	flash.scale = Vector2(0.6, 0.6)
+	# Overdriven warm core (>1) so the additive burst reads even over the bright parchment
+	# (additive on a light surface saturates); still candlelit/in-register, no bloom shader.
+	flash.modulate = Color(1.3, 1.0, 0.58, 0.0)
+	lay.add_child(flash)
+	var ft := flash.create_tween()
+	ft.tween_interval(delay)                     # bloom on IMPACT, not on the wind-up
+	ft.tween_property(flash, "modulate:a", 0.92, 0.04)
+	ft.parallel().tween_property(flash, "scale", Vector2(1.8, 1.8), 0.42)
+	ft.tween_property(flash, "modulate:a", 0.0, 0.30)
+	ft.tween_callback(lay.queue_free)
 
 # A seeded position jitter (fractions of the inner board) so notices don't sit on a
 # grid — organic like a real wall. Deterministic per seed string (same board twice

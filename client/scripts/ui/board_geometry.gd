@@ -145,14 +145,27 @@ static func parch_tint(seed_str: String) -> Color:
 	return PARCH_TINTS[absi((seed_str + "|tint").hash()) % PARCH_TINTS.size()]
 
 # ── Runtime render resources (no PNG import) ─────────────────────────────────────
+# TD-064: these five generators are DETERMINISTIC and immutable, but were rebuilt on every
+# popup rebuild — the 96x96 GDScript `wood_grain` loop in particular hitched the frame right as
+# the seal stamp/lift animation began. They are now MEMOIZED (built once per process, reused by
+# reference). Render-only, hold no game state, identical to the freshly-built result (P118).
+static var _additive_mat: CanvasItemMaterial
+static var _curl_tex: GradientTexture2D
+static var _wood_grain: ImageTexture
+static var _vignette_tex: GradientTexture2D
+static var _backlight_tex: GradientTexture2D
+
 static func additive_material() -> CanvasItemMaterial:
-	var m := CanvasItemMaterial.new()
-	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	return m
+	if _additive_mat == null:
+		_additive_mat = CanvasItemMaterial.new()
+		_additive_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	return _additive_mat
 
 # Paper curl: a soft inner shadow that fades UP from the sheet's bottom edge — the foot
 # of the paper lifts off the wall and shades itself, so a notice never reads dead-flat.
 static func curl_gradient() -> GradientTexture2D:
+	if _curl_tex != null:
+		return _curl_tex
 	var g := Gradient.new()
 	g.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
 	g.colors = PackedColorArray([
@@ -166,12 +179,15 @@ static func curl_gradient() -> GradientTexture2D:
 	gt.fill_to = Vector2(0.5, 1.0)
 	gt.width = 8
 	gt.height = 16
+	_curl_tex = gt
 	return gt
 
 # Wood-age grain: a small tiling dark-speckle/streak overlay so the plank backing reads as
 # aged and used, not a flat stretched slab. Runtime ImageTexture (no PNG import); laid over
 # the backing at low alpha, tiled. Horizontal streaks follow the plank grain.
 static func wood_grain_texture() -> ImageTexture:
+	if _wood_grain != null:
+		return _wood_grain
 	var W := 96
 	var H := 96
 	var img := Image.create(W, H, false, Image.FORMAT_RGBA8)
@@ -185,7 +201,8 @@ static func wood_grain_texture() -> ImageTexture:
 				a = 0.16 * (n - 0.90) / 0.10
 			a += 0.055 * row * clampf((n - 0.3) / 0.6, 0.0, 1.0)   # faint lengthwise streaking
 			img.set_pixel(x, y, Color(0.03, 0.018, 0.010, minf(a, 0.20)))
-	return ImageTexture.create_from_image(img)
+	_wood_grain = ImageTexture.create_from_image(img)
+	return _wood_grain
 
 # A rect is "clear" when no live footprint intersects it — decay may only sit in space
 # no petition claims (DESIGN binds cobweb/votive to empty corners).
@@ -198,6 +215,8 @@ static func decay_clear(rect: Rect2, footprints: Array) -> bool:
 # A radial warm-dark vignette: clear at the centre, dark at the corners — the torch-lit
 # pool that gives the board its Prototype-v1 ambience.
 static func vignette_gradient() -> GradientTexture2D:
+	if _vignette_tex != null:
+		return _vignette_tex
 	var grad := Gradient.new()
 	# Eased (T156): the dark ring is pushed outward + lightened so the outer notices are
 	# not sunk below the legibility floor — the vignette shapes the corners, never the writs.
@@ -213,6 +232,7 @@ static func vignette_gradient() -> GradientTexture2D:
 	gt.fill_to = Vector2(1.0, 1.0)
 	gt.width = 320
 	gt.height = 200
+	_vignette_tex = gt
 	return gt
 
 # Per-notice backlight (T145 / L3): a warm radial pool laid BEHIND each live writ so its
@@ -220,6 +240,8 @@ static func vignette_gradient() -> GradientTexture2D:
 # frozen (reduced-motion) or in a dim gutter. Additive (BoardGeo.additive_material), so it
 # lifts the wood around the paper into a lit halo without washing the paper's own tone.
 static func backlight_gradient() -> GradientTexture2D:
+	if _backlight_tex != null:
+		return _backlight_tex
 	var g := Gradient.new()
 	g.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
 	g.colors = PackedColorArray([
@@ -233,4 +255,5 @@ static func backlight_gradient() -> GradientTexture2D:
 	gt.fill_to = Vector2(1.0, 0.5)
 	gt.width = 96
 	gt.height = 120
+	_backlight_tex = gt
 	return gt
