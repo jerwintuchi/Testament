@@ -130,7 +130,20 @@ grew the writs **93x54 → 93x67** (larger than the pre-header 93x60). `board_he
 again). `keepout live=8 ok=true minhit=93x67`. Client render only; `art/src/collegium_device.*` kept as
 source art. Verified by `--board-preview` captures.
 
-Active spec: **`specs/writ-format/`** (TD-060) — the writ reads **Incarnate at Site** and the wax
+Active spec: **`specs/contract-reader/`** (TD-061) — the contract read, post-playtest. **COMPLETE
+(T201–T206, client-only):** the **threat pips are retired** (`threat_pips.gd` deleted — "no
+knowledge as a number" applies to the Collegium's paperwork too); danger reads as the
+**petitioner's dread** — `Notice.plea(intel)`, one seeded tier-banded sentence in the requester's
+voice (routine → frightened), never a meter (P110). Writs are **content-fitted and non-uniform**
+(author ruling): the grid cell is only the disjoint ceiling; each writ takes a seeded width + a
+height measured with the same font/wrap the labels render (`_fit_writ`, P111 measure==render),
+fonts stepping down 9/7→8/6 if a cell can't fit — long sites ("at Hollowmere Crossing") always fit;
+`keepout ok=true`. The reader **consumes the sheet** (insets 34/30→26/22, internal scrollbar
+retired) and scroll position is the **quill-line ornament** (`ornament_scrollbar.gd`: thin brass
+line, dot finials, chevroned diamond thumb — the author's reference), riding OUTSIDE the parchment,
+interactive with both-ways sync, auto-hidden when the writ fits (P112).
+
+Completed: **`specs/writ-format/`** (TD-060) — the writ reads **Incarnate at Site** and the wax
 seal becomes the Collegium's. **COMPLETE (T195–T199):** the `--board-preview` fixture's place-name
 targets (the "location at location" read) re-authored as Incarnate epithets; the server's authored
 `TARGET_NAMES`/`SITE_NAMES` pools grew 4→10 each (content tables only, mirrors updated, 362 green)
@@ -142,9 +155,9 @@ PIL-read from `collegium_logo.png`; `wax_seal.gd` de-Origin-keyed, R124 faint/fi
 untouched). Debug capture flags: `--reader` suppresses click-off dismiss (stray-click gotcha),
 `--reader-foot`, `--sealed`.
 
-@specs/writ-format/requirements.md
-@specs/writ-format/design.md
-@specs/writ-format/tasks.md
+@specs/contract-reader/requirements.md
+@specs/contract-reader/design.md
+@specs/contract-reader/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

@@ -11,8 +11,8 @@ enum Screen { MENU, LOBBY, DEPLOYING, FIELD, TESTAMENT, RECONNECTING }
 # server references the same names, so message types, error codes, phases, and the
 # gear catalog never drift (TD-029/TD-030: preload, not a global class_name).
 const Protocol = preload("res://protocol/protocol.gd")
-const ThreatPips = preload("res://scripts/ui/threat_pips.gd")
 const WaxSeal = preload("res://scripts/ui/wax_seal.gd")
+const OrnamentScrollbar = preload("res://scripts/ui/ornament_scrollbar.gd")
 const VerbBadge = preload("res://scripts/ui/verb_badge.gd")
 const Notice = preload("res://scripts/ui/notice.gd")
 const BoardGeo = preload("res://scripts/ui/board_geometry.gd")  # pure board layout/keep-out/seed math
@@ -1096,27 +1096,6 @@ func _focus_reticle() -> Control:
 
 # Theme a ScrollContainer's vertical bar to the board's idiom: a sunk wood/parchment channel
 # with a slim brass grabber, in place of Godot's flat grey default. Reader + station scroll.
-func _style_scrollbar(sc: ScrollContainer) -> void:
-	var vsb := sc.get_v_scroll_bar()
-	vsb.custom_minimum_size = Vector2(9, 0)
-	var track := StyleBoxFlat.new()
-	track.bg_color = Color(0.09, 0.06, 0.035, 0.55)     # a channel sunk into the sheet
-	track.set_corner_radius_all(4)
-	track.content_margin_left = 3; track.content_margin_right = 3
-	var grab := StyleBoxFlat.new()
-	grab.bg_color = Color(0.52, 0.40, 0.19)             # brass grabber
-	grab.set_corner_radius_all(4)
-	grab.set_border_width_all(1)
-	grab.border_color = Color(0.70, 0.55, 0.29)
-	var grab_hi: StyleBoxFlat = grab.duplicate()
-	grab_hi.bg_color = Color(0.66, 0.51, 0.26)          # warmer under the pointer
-	var grab_pr: StyleBoxFlat = grab.duplicate()
-	grab_pr.bg_color = Color(0.42, 0.32, 0.15)          # pressed, sunk
-	vsb.add_theme_stylebox_override("scroll", track)
-	vsb.add_theme_stylebox_override("grabber", grab)
-	vsb.add_theme_stylebox_override("grabber_highlight", grab_hi)
-	vsb.add_theme_stylebox_override("grabber_pressed", grab_pr)
-
 # Normalised inside BoardGeo.live_bounds(), not inside the whole canvas.
 # Flavor scraps fill the gaps and the edges. Drawn BEHIND the live notices, so they
 # may tuck under a contract (dense clutter) without ever stealing its click — they
@@ -1233,7 +1212,11 @@ func _build_contract_board() -> void:
 	for idx in placed.size():
 		var intel: Dictionary = board[idx]
 		var cid := str(intel.get("contractId", ""))
-		var size: Vector2 = placed[idx]["size"]
+		# TD-061 (R192): the grid cell is the disjoint CEILING, not the writ. Each writ takes
+		# its own content-fitted, seeded size inside the cell — non-uniform on purpose ("the
+		# variability and uniqueness of each contract"), and long site names always fit.
+		var fit := _fit_writ(intel, placed[idx]["size"])
+		var size: Vector2 = fit["size"]
 		var centre: Vector2 = placed[idx]["centre"]
 		# A subtle hand-pinned lean (±~2.7°) so the writs read as tacked paper, not a printed
 		# grid — small enough that the keep-out solver's cell gaps stay disjoint (self-checked).
@@ -1274,7 +1257,7 @@ func _build_contract_board() -> void:
 		shadow.position = pos + Vector2(3.0, 5.0)
 		shadow.z_index = LIVE_Z
 		notes.add_child(shadow)
-		var node := _make_live_notice(intel, idx)
+		var node := _make_live_notice(intel, idx, fit["tfs"], fit["sfs"])
 		node.custom_minimum_size = hit_size
 		node.size = size
 		node.pivot_offset = size * 0.5
@@ -1412,7 +1395,36 @@ func _notice_sig(req: Variant) -> String:
 # A live contract notice: a clickable landscape parchment — sacred headline, target,
 # site, requester signature, and an Origin wax seal as a corner badge. No prose here
 # (glanceable); the full writ is read only when taken down.
-func _make_live_notice(intel: Dictionary, idx: int) -> Control:
+# Fit one writ inside its grid cell (TD-061 / R192, P111): a seeded width, then the text
+# measured with the SAME font/sizes/wrap the labels render with (ThemeDB.fallback_font is
+# the default theme font — no custom default is set), plus the card's furniture headroom
+# (pad 13 top / 4 bottom / 7 sides, VBox separation 1 — mirrors _make_live_notice). If the
+# cell can't hold the block at 9/7, the fonts step down once to 8/6 — the guarantee that a
+# long site ("at Hollowmere Crossing") never clips at the sheet edge.
+func _fit_writ(intel: Dictionary, cell: Vector2) -> Dictionary:
+	var cid := str(intel.get("contractId", ""))
+	var u_w := float(absi((cid + "|w").hash()) % 1000) / 999.0
+	var u_h := float(absi((cid + "|h").hash()) % 1000) / 999.0
+	var w := clampf(floorf(cell.x * (0.84 + 0.16 * u_w)), HIT_MIN.x, cell.x)
+	var font := ThemeDB.fallback_font
+	var target := str(intel.get("targetName", "?"))
+	var site := "at %s" % intel.get("siteName", "?")
+	var text_w := w - 14.0                    # pad margins 7+7
+	var chosen := [8, 6]                      # fallback if even stepping down can't fit
+	var need := 0.0
+	for fs in [[9, 7], [8, 6]]:
+		var th := font.get_multiline_string_size(target, HORIZONTAL_ALIGNMENT_CENTER, text_w, fs[0]).y
+		var sh := font.get_multiline_string_size(site, HORIZONTAL_ALIGNMENT_CENTER, text_w, fs[1]).y
+		need = 13.0 + 4.0 + th + 1.0 + sh     # headroom + text block (measure == render)
+		if need <= cell.y:
+			chosen = fs
+			break
+	# Seeded slack: even a short writ varies, growing part of the way into its remaining
+	# cell room — but the content floor (and the 44px hit floor) always wins.
+	var h := clampf(ceilf(need + u_h * maxf(0.0, cell.y - need) * 0.6), HIT_MIN.y, cell.y)
+	return {"size": Vector2(w, floorf(h)), "tfs": chosen[0], "sfs": chosen[1]}
+
+func _make_live_notice(intel: Dictionary, idx: int, tfs: int = 9, sfs: int = 7) -> Control:
 	var sel := not _board_selection.is_empty() and str(_board_selection.get("contractId", "")) == str(intel.get("contractId", ""))
 	var card := Button.new()
 	card.flat = true
@@ -1498,8 +1510,8 @@ func _make_live_notice(intel: Dictionary, idx: int) -> Control:
 	gap_top.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	gap_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(gap_top)
-	v.add_child(_card_label(str(intel.get("targetName", "?")), 9, INK, true, true))
-	v.add_child(_card_label("at %s" % intel.get("siteName", "?"), 7, INK_SOFT, true, true))
+	v.add_child(_card_label(str(intel.get("targetName", "?")), tfs, INK, true, true))
+	v.add_child(_card_label("at %s" % intel.get("siteName", "?"), sfs, INK_SOFT, true, true))
 	# Threat/reward are deliberately NOT shown on the wall (trait-free board; knowledge is
 	# not a number) — you learn threat only by taking the notice down to read. The
 	# requester's signature is shown in the reader, not on the glanceable card, so a
@@ -1602,8 +1614,19 @@ func _show_notice_reader(canvas: Control, intel: Dictionary) -> void:
 	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cc.z_index = 10
 	canvas.add_child(cc)
+	# Reader + the quill-line scrollbar side by side (TD-061 / R194): the ornament rides
+	# OUTSIDE the sheet, on the dimmed board, mirroring the reader's scroll both ways.
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 10)
+	cc.add_child(row)
 	var rdr := _build_notice_reader(intel)
-	cc.add_child(rdr)
+	row.add_child(rdr)
+	var orn := OrnamentScrollbar.new()
+	orn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	orn.custom_minimum_size = Vector2(18, rdr.custom_minimum_size.y * 0.82)
+	row.add_child(orn)
+	orn.attach(rdr.find_child("ReaderScroll", true, false) as ScrollContainer)
 	# A taken-down writ always opens at its HEADLINE. The modal's first-frame focus grab
 	# scrolls the sheet to a footer control (seal/return); pin it back to the top once
 	# layout + that focus pass have settled (two frames), so it can't win the race.
@@ -1656,27 +1679,29 @@ func _build_notice_reader(intel: Dictionary) -> Control:
 	# content, so once scrolled the text rode up over the torn edge and past the sheet
 	# (TD-060 review). Clipping is forced explicitly so no glyph ever escapes the sheet.
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-	scroll.offset_left = 34.0
-	scroll.offset_right = -34.0
-	scroll.offset_top = 30.0
-	scroll.offset_bottom = -30.0
+	# TD-061 (R193): the text consumes the sheet — insets tightened (34/30 → 26/22) and the
+	# internal scrollbar retired (SHOW_NEVER: wheel scrolling lives on, the bar is the
+	# external ornament, R194), so its width goes to text too. The clip boundary still sits
+	# inside the solid parchment (R189: no glyph ever rides the torn edge).
+	scroll.offset_left = 26.0
+	scroll.offset_right = -26.0
+	scroll.offset_top = 22.0
+	scroll.offset_bottom = -22.0
 	scroll.clip_contents = true
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	scroll.follow_focus = false            # a focused footer control must not drag the writ down
-	_style_scrollbar(scroll)               # brass-on-wood bar, not Godot's grey default
 	reader.add_child(scroll)
-	# The pad keeps only the small remainder of the old 46/40 inset (the bulk moved to the
-	# scroll offsets above), so the at-rest reading position is unchanged.
 	var pad := MarginContainer.new()
 	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad.add_theme_constant_override("margin_left", 12)
-	pad.add_theme_constant_override("margin_right", 12)
-	pad.add_theme_constant_override("margin_top", 10)
-	pad.add_theme_constant_override("margin_bottom", 10)
+	pad.add_theme_constant_override("margin_left", 8)
+	pad.add_theme_constant_override("margin_right", 8)
+	pad.add_theme_constant_override("margin_top", 8)
+	pad.add_theme_constant_override("margin_bottom", 8)
 	scroll.add_child(pad)
 	var col := VBoxContainer.new()
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.custom_minimum_size = Vector2(min(394.0, inner.x - 132.0), 0)
+	col.custom_minimum_size = Vector2(min(418.0, inner.x - 108.0), 0)   # sheet width minus the R193 insets
 	col.add_theme_constant_override("separation", 6)
 	pad.add_child(col)
 	var ink := Color(0.20, 0.11, 0.04)
@@ -1696,24 +1721,20 @@ func _build_notice_reader(intel: Dictionary) -> Control:
 	site.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(site)
 	# Asserted genus (text-only gloss — the Origin wax seal is retired, TD-060: the
-	# assertion is a falsifiable claim and reads as prose, never pressed in wax) and
-	# threat, on one centred row each.
+	# assertion is a falsifiable claim and reads as prose, never pressed in wax).
 	var org := str(intel.get("origin", "SIN"))
 	var org_lbl := _card_label("Asserted %s: %s" % [_origin_word(org), ORIGIN_GLOSS.get(org, "")], 12, ink_soft, true, true)
 	org_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(org_lbl)
-	var threat := HBoxContainer.new()
-	threat.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	threat.add_theme_constant_override("separation", 4)
-	threat.add_child(_card_label("Threat", 12, Color(0.55, 0.16, 0.14), false))
-	var pips := ThreatPips.new()
-	pips.set_tier(str(intel.get("tier", "APPRENTICE")))
-	threat.add_child(pips)
-	col.add_child(threat)
-	# Preamble + the charge (procedural, verb-faithful).
+	# Preamble + the petitioner's plea + the charge (procedural, verb-faithful). The plea
+	# replaces the retired threat pips (TD-061): danger reads as the DREAD in the
+	# petitioner's own words, banded by tier — words from a person, never a meter (P110).
 	var pre := _card_label(Notice.preamble(intel), 12, ink_soft, true, true)
 	pre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(pre)
+	var plea := _card_label(Notice.plea(intel), 12, ink_soft, true, true)
+	plea.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(plea)
 	var charge := _card_label(Notice.charge(intel), 14, ink, true, true)
 	charge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(charge)

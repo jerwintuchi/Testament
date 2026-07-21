@@ -84,7 +84,7 @@
   - preloads: `protocol.gd`
 - **`client/scripts/main.gd`**
   - loads: `Cinzel.ttf`, `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `panel.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
-  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `threat_pips.gd`, `verb_badge.gd`, `wax_seal.gd`
+  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/player.gd`**
   - loads: `Unarmed_Idle_with_shadow.png`, `Unarmed_Run_with_shadow.png`, `Unarmed_Walk_with_shadow.png`
@@ -103,7 +103,7 @@
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/board_bar.gd` (preload), `client/scripts/ui/board_decor.gd` (preload)
 - **`client/scripts/ui/notice.gd`**
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/board_bar.gd` (preload)
-- **`client/scripts/ui/threat_pips.gd`**
+- **`client/scripts/ui/ornament_scrollbar.gd`**
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/verb_badge.gd`**
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/board_bar.gd` (preload)
@@ -144,8 +144,8 @@
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
-- `client/scripts/main.gd:2185` — `load/preload normal_path`
-- `client/scripts/main.gd:2212` — `load/preload path`
-- `client/scripts/main.gd:2216` — `load/preload normal_path`
+- `client/scripts/main.gd:2206` — `load/preload normal_path`
+- `client/scripts/main.gd:2233` — `load/preload path`
+- `client/scripts/main.gd:2237` — `load/preload normal_path`
 - `client/scripts/ui/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/ui/wax_seal.gd:18` — `load/preload SEAL_TEX`

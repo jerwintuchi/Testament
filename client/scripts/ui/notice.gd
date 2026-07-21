@@ -48,6 +48,36 @@ static func preamble(intel: Dictionary) -> String:
 	var h := absi((str(intel.get("contractId", "")) + "|pre").hash())
 	return str(frames[h % frames.size()])
 
+# The petitioner's PLEA (R191/TD-061): danger as dread in the petitioner's own voice,
+# banded by tier — the threat pips are retired ("no knowledge as a number"), so a low
+# charge reads routine and a high one reads frightened; the player weighs the fear,
+# never a meter. Slots from intel only; seeded off contractId (deterministic, P110).
+const PLEA := {
+	"APPRENTICE": [
+		"A small unquiet thing; we would know its name.",
+		"It has done no great harm yet. We would keep it so.",
+		"The signs are faint, but they do not fade.",
+		"An oddness only — but oddness, unattended, festers.",
+	],
+	"JOURNEYMAN": [
+		"The parish keeps indoors past vespers now. This is beyond us.",
+		"It grows bolder by the week. We cannot say what stays it.",
+		"Livestock first. Then the sexton's boy. We fear what is next.",
+		"Our own rites have failed twice. We will not try a third.",
+	],
+	"MASTER": [
+		"Two wardens went to look. Neither returned. We beg haste.",
+		"We have sealed the road and pray it holds. Come armed and shriven.",
+		"Whole households gone silent. None will speak its name aloud.",
+		"If the Collegium will not come, we abandon the place to it.",
+	],
+}
+
+static func plea(intel: Dictionary) -> String:
+	var frames: Array = PLEA.get(str(intel.get("tier", "APPRENTICE")), PLEA["APPRENTICE"])
+	var h := absi((str(intel.get("contractId", "")) + "|plea").hash())
+	return str(frames[h % frames.size()])
+
 # The charge itself: <Verb-synonym> the <target>, <locale(site)>. <qualifier>.
 static func charge(intel: Dictionary) -> String:
 	var verb := str(intel.get("primaryVerb", ""))

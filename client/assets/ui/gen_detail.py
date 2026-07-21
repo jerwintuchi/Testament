@@ -8,7 +8,7 @@ foxing/aging overlay. Board art is quantized to the locked palette; the cobweb i
 a grayscale-additive VFX source (white+alpha), tinted to the flame ramp in Godot.
 
 The wax seal's Origin sigils and the threat pips' outline are Godot-drawn widgets
-(wax_seal.gd / threat_pips.gd), refined alongside this generator — not PNGs.
+(wax_seal.gd; threat_pips.gd until its TD-061 retirement), refined alongside this generator — not PNGs.
 
 Runnable: `python3 gen_detail.py` → writes the PNGs beside this file and asserts
 each is on-palette (VFX sources under allow_vfx). Aseprite finishing after.

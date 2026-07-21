@@ -1904,3 +1904,37 @@ centre (offsets 34/30, explicit `clip_contents`, pad reduced so the at-rest posi
 fired on ANY pressed mouse-button event; both now require `MOUSE_BUTTON_LEFT`. R189/T200;
 capture-verified (foot-pinned title clips cleanly inside the sheet; live wheel during capture
 scrolled the writ without closing it). Client render only.
+
+## 2026-07-21 — TD-061: pips retired for the petitioner's dread; fitted non-uniform writs; the quill-line scrollbar
+
+**Context (author playtest review).** Three asks: the threat pips contradicted "no knowledge as a
+number" on the Collegium's own paperwork; long site names ("at Hollowmere Crossing") overflowed the
+compact writ; and the reader wanted its text to consume the sheet, with the scrollbar moved OUTSIDE
+the parchment and restyled to the author's ornament reference (thin line, dot finials, diamond
+thumb). Author rulings: threat survives only as prose; the ornament is interactive; writs are
+deliberately NON-uniform ("the variability and uniqueness of each contract"), spacing still solved.
+
+**Decision (`specs/contract-reader/`, R190–R195, T201–T206).**
+- **Pips out, dread in:** `threat_pips.gd` deleted (git history is the archive); the reader's
+  threat row is replaced by `Notice.plea(intel)` — one seeded sentence in the petitioner's voice,
+  banded by tier (APPRENTICE routine → MASTER frightened). Chosen for immersion: the player weighs
+  the fear in a person's words, never a meter; high charges need no label because the dread does
+  the work (P110). `tier` stays wire intel for generation only.
+- **Content-fitted writs (P111 — measure == render):** the grid cell is now only the disjoint
+  CEILING; each writ takes a seeded width and a height measured from its own text with the same
+  font/sizes/wrap the labels render (`ThemeDB.fallback_font` — no custom default font), plus
+  furniture headroom and seeded slack; fonts step down one size (9/7 → 8/6) if a cell can't hold
+  the block. Non-uniform on purpose; `keepout ok=true minhit=80x51 hit_ok=true`.
+- **The sheet consumed + the quill-line scrollbar:** reader insets 34/30 → 26/22 (pad 8), internal
+  scrollbar retired (`SHOW_NEVER`; `_style_scrollbar` deleted), prose column widened 394 → 418. New
+  `ornament_scrollbar.gd` — the author's reference drawn in aged brass/gilt: a thin line with dot
+  finials and a chevroned diamond lozenge thumb, riding OUTSIDE the sheet in an HBox beside the
+  reader; interactive (drag + track-jump), both-ways sync via the scroll's VScrollBar signals,
+  auto-hidden when the writ fits (P112). Gotcha for posterity: `attach()` first assigned
+  `custom_minimum_size` whole, clobbering the caller's height and collapsing the line to zero span
+  — set only the width floor in a control the caller sizes.
+
+Client render only; no `src/**` change (server 362 + shared 65 green untouched this session).
+Capture-verified: varied writs all fitting, plea in place of pips, wider reader text cleanly
+clipped (R189 holds), ornament tracking top/foot — live wheel input during captures mirrored into
+the ornament, confirming the sync from the author's own hand.
