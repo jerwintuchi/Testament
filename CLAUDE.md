@@ -153,10 +153,10 @@ legibility holds. `_surface_material` grows one optional
 reach, not a second light (P102). The **header wood is darkened** (`WALNUT` 50,39,30→38,29,22, blend
 0.46→0.56) so the sign recedes while the gilt title only gains contrast (R181). **TD-059e** (author
 review) splits the coupling constant: `GUTTER_CX` (0.028/0.972) is **banner placement only**, and a
-new **`TORCH_CX`** (0.072/0.928, inboard between banner and frame) is what the sconce + flame +
-`torch_rig` read — the flame sits beside the carved frame and visibly lights it; fixture + shader
-light still share one constant (P95 re-homed). Geometry/composition otherwise unchanged. No `src/**`
-change.
+new **`TORCH_CX`** (inboard between banner and frame; TD-059f centred it in the wall gutter,
+0.072→**0.045**/0.955) is what the sconce + flame + `torch_rig` read — the flame hangs mid-wall and
+visibly lights the frame; fixture + shader light still share one constant (P95 re-homed).
+Geometry/composition otherwise unchanged. No `src/**` change.
 
 @specs/board-blend/requirements.md
 @specs/board-blend/design.md

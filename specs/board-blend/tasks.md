@@ -61,9 +61,10 @@
 - [x] T194 [R179, R180 / P102 / V3, V4] — **Decouple the torch from the banner.** TD-059b/c walked
       `GUTTER_CX` outboard for banner placement and dragged the sconce/flame/light rig with it, so
       the carved frame read as lit by a disconnected mid-side glow. Split the constant in
-      `board_decor.gd`: `GUTTER_CX` = banner placement only; new `TORCH_CX` (0.072/0.928, inboard
-      between banner and frame) read by the sconce, the flame, AND `torch_rig` — fixture + shader
-      light still share one constant (P95 re-homed).
+      `board_decor.gd`: `GUTTER_CX` = banner placement only; new `TORCH_CX` (inboard, between banner
+      and frame) read by the sconce, the flame, AND `torch_rig` — fixture + shader light still share
+      one constant (P95 re-homed). TD-059f (author review): `TORCH_CX` 0.072 → **0.045/0.955** —
+      centred in the wall gutter (screen edge → frame ≈ 0.09·vp), not leaning on the frame.
       Test: a `--board-preview` capture shows the flame beside the carved frame edge, visibly
       lighting it, banners still symmetric + lit by the same rig; `--lights-off` drops the warmth to
       flat dim cloth.

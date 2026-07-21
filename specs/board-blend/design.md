@@ -85,10 +85,11 @@ packing stays in one place — `main._surface_material`). The banner block chang
 - **Torch decoupled (TD-059e, author review):** dragging the torch out with the banner left the
   carved frame lit by a disconnected mid-side glow (~74px off the frame) with the visible flame
   nowhere near it. The constant is split: `GUTTER_CX` (0.028/0.972) is **banner placement only**; a
-  new **`TORCH_CX`** (0.072/0.928, inboard between banner and frame) is what the sconce, the flame,
-  AND `torch_rig` read — so the flame sits beside the frame and visibly lights it, while fixture +
-  shader light still share one constant (P95's real invariant, re-homed). The banner still catches
-  the same rig's climb (radius_scale 2.4).
+  new **`TORCH_CX`** is what the sconce, the flame, AND `torch_rig` read — so the flame hangs on
+  the wall beside the frame and visibly lights it, while fixture + shader light still share one
+  constant (P95's real invariant, re-homed). The banner still catches the same rig's climb
+  (radius_scale 2.4). First cut 0.072 leaned against the frame; **TD-059f** (author review) centres
+  the fixture in the wall gutter (screen edge → frame ≈ 0.09·vp): `TORCH_CX` **0.072 → 0.045**.
 
 `main.gd` builds `banner_mat` once and passes it: `BoardDecor.add_torches(_stone_bg, vp,
 _reduced_motion, _surface_material("res://assets/ui/banner_v1_n.png", …))`.

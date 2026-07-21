@@ -24,7 +24,9 @@ const GUTTER_CX := [0.028, 0.972]
 # glow instead of from the flame. Restoring the torch inboard (the standing "torch inboard of the
 # banner" intent) puts the light back beside the frame. The sconce + flame + rig never desync — they
 # all read TORCH_CX (P95, re-homed from GUTTER_CX to this).
-const TORCH_CX := [0.072, 0.928]
+# TD-059f (author review): CENTRED in the wall gutter (screen edge → frame outer edge ≈ 0.09·vp,
+# so centre ≈ 0.045) — 0.072 leaned against the frame; the fixture should hang mid-wall.
+const TORCH_CX := [0.045, 0.955]
 
 # The ONE torch light rig (R133/P72): two flames on the gutter pillars. Every consumer —
 # the visual torch placement here AND the surround's `board_surface.gdshader` uniforms in

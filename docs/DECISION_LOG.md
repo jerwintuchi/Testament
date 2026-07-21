@@ -1852,3 +1852,11 @@ of that coupling. The flame now sits beside the carved frame and visibly lights 
 catches the climb of the same rig (radius_scale 2.4, measured symmetric L/R). Verified by
 `--board-preview` + `--lights-off` captures (lights-off drops the wall/banner warmth to flat dim —
 the rig, not baked art, is the light). Client render only; one file (`board_decor.gd`).
+
+**TD-059f (author review — sconce centred in the wall gutter).** TD-059e's first inboard value
+(`TORCH_CX` 0.072) parked the fixture against the carved frame's outer edge (≈0.09·vp). The author
+wants the sconce hanging in the middle of the visible wall, not leaning on the board — so `TORCH_CX`
+moves to the wall gutter's centre (screen edge → frame ≈ 0.09·vp ⇒ **0.045/0.955**). Same split as
+TD-059e (banner placement stays `GUTTER_CX`; sconce + flame + `torch_rig` all read `TORCH_CX`, P95
+re-homed); the glow still reaches the frame edge and the banner foot. Capture-verified. Client render
+only; one constant.
