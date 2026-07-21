@@ -1838,3 +1838,17 @@ torch. `--lights-off` is ~unchanged (ambient-dominated), the honest tell that th
 lighting pipeline rather than baking a phantom highlight. The gilt title is a separate Godot Label, so
 the wood tone is free to match the scene without touching legibility. R183/P106/T193; client render +
 generated art only.
+
+**TD-059e (author review — torch decoupled from the banner).** TD-059b/c walked `GUTTER_CX` to the
+outer gutter for *banner placement* — but `GUTTER_CX` was also the torch coupling, so the sconce,
+flame, and the one shader light rode out with it (~74px off the frame). The carved frame edge then
+read as lit by a disconnected mid-side glow with the visible flame nowhere near it — the light and
+its diegetic source had come apart. Fixed by splitting the constant: **`GUTTER_CX`** (0.028/0.972)
+is now *banner placement only*, and a new **`TORCH_CX`** (0.072/0.928) — inboard, in the gap between
+banner and frame — is what the sconce, flame, AND `torch_rig` (hence every `board_surface.gdshader`
+consumer) read. P95's real invariant survives re-homed: the visible fixture and the shader light
+still share ONE constant and can never desync; what changed is that the *banner* is no longer part
+of that coupling. The flame now sits beside the carved frame and visibly lights it; the banner still
+catches the climb of the same rig (radius_scale 2.4, measured symmetric L/R). Verified by
+`--board-preview` + `--lights-off` captures (lights-off drops the wall/banner warmth to flat dim —
+the rig, not baked art, is the light). Client render only; one file (`board_decor.gd`).

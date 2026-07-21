@@ -8,15 +8,23 @@ extends RefCounted
 
 const BoardGeo = preload("res://scripts/ui/board_geometry.gd")
 
-# The ONE gutter-centre x (as a screen fraction) for each flank. Both `torch_rig` AND `add_torches`
-# read this, so the banner, the sconce, and the shader's torch uniforms never desync (TD-052 P95).
-# TD-059b/c: pushed OUTWARD toward the outer edge of the masonry gutter so the whole assembly
-# (banner + its own light + sconce + flame + wall hotspot) clears the board frame — the gutter
-# (screen edge → carved frame ≈ 0.09·vp) is NARROWER than the banner, so a centred banner's inner
-# edge overlapped the board. Pinning the INNER edge clear of the frame while GROWING the banner
-# (TD-059c) walks the centre further out (0.036 → 0.028): the banner is larger, its outer edge spills
-# further off-screen (viewport clips, author OK'd), and its inner edge still keeps its gap to the board.
+# Banner-centre x (screen fraction) per flank — BANNER PLACEMENT ONLY.
+# TD-059b/c: pushed OUTWARD toward the outer edge of the masonry gutter so the larger banner clears
+# the board frame — the gutter (screen edge → carved frame ≈ 0.09·vp) is NARROWER than the banner, so
+# a centred banner's inner edge overlapped the board. Pinning the INNER edge clear of the frame while
+# growing the banner walks the centre further out (to 0.028): larger banner, outer edge spilling
+# off-screen (author OK'd), inner edge keeping its gap to the board.
 const GUTTER_CX := [0.028, 0.972]
+
+# Torch/light-rig centre x (screen fraction) per flank — the SCONCE, FLAME, and the ONE
+# `board_surface.gdshader` light rig read THIS, kept INBOARD of the banner (between banner and frame)
+# so the flame sits beside the board and actually lights the carved frame edge. TD-059e DECOUPLED this
+# from GUTTER_CX: when the banner moved to the outer gutter for placement, a shared position dragged
+# the flame out with it (~74px off the frame), so the frame read as lit from a disconnected mid-side
+# glow instead of from the flame. Restoring the torch inboard (the standing "torch inboard of the
+# banner" intent) puts the light back beside the frame. The sconce + flame + rig never desync — they
+# all read TORCH_CX (P95, re-homed from GUTTER_CX to this).
+const TORCH_CX := [0.072, 0.928]
 
 # The ONE torch light rig (R133/P72): two flames on the gutter pillars. Every consumer —
 # the visual torch placement here AND the surround's `board_surface.gdshader` uniforms in
@@ -25,7 +33,7 @@ static func torch_rig(vp: Vector2) -> Array:
 	var col := Color(1.0, 0.72, 0.42)          # warm ember cast
 	var out: Array = []
 	for at_right in [false, true]:
-		var cx: float = vp.x * GUTTER_CX[1 if at_right else 0]
+		var cx: float = vp.x * TORCH_CX[1 if at_right else 0]
 		var cup_y := vp.y * 0.71               # sconce cup (banner foot), matches add_torches
 		var ly := cup_y - 12.0                 # flame centre
 		# Tight cup halo (TD-048 dungeon re-grade): the flame lifts only its immediate surround,
@@ -94,10 +102,12 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool, banne
 		# read): an iron sconce whose top cup holds the flame. `cup_y` is where the flame base
 		# meets the sconce's top bar; the sconce stem hangs below, the flame rises above.
 		var banner_bottom := banner_top + target_h
-		var torch_x := banner_cx                       # under the banner, not beside it
-		# TD-050: the sconce is DECOUPLED from the (now short) banner foot — it stays at its own
-		# gutter position (vp.y*0.71, matching torch_rig's light), leaving a clear gap between the
-		# banner hem (banner_bottom ≈ 0.51) and the cup so cloth + fixture read as two things.
+		# TD-059e: the torch sits at TORCH_CX (inboard, beside the frame), NOT under the banner —
+		# so its flame actually lights the carved frame edge (matching torch_rig, which now reads
+		# TORCH_CX). The banner hangs outboard at GUTTER_CX; the flame is in the gap between them.
+		var torch_x: float = vp.x * TORCH_CX[1 if at_right else 0]
+		# The sconce stays at its own height (vp.y*0.71, matching torch_rig's light), a clear gap
+		# below the banner hem (banner_bottom) so cloth + fixture read as two things.
 		var cup_y := vp.y * 0.71
 		# The broad GUTTER WASH (a board-wide additive pool @ ~3.4x) is DROPPED in the dungeon
 		# re-grade (TD-048): it was the orange bloom that washed out the mood and stole the show.

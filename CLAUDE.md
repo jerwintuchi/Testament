@@ -151,8 +151,12 @@ legibility holds. `_surface_material` grows one optional
 **`radius_scale`** (default 1.0 — existing surfaces unchanged; the banner passes ≈2.4) so the tight
 0.24 torch halo still keeps the wall dark but its warmth **climbs the cloth** — same rig, a per-material
 reach, not a second light (P102). The **header wood is darkened** (`WALNUT` 50,39,30→38,29,22, blend
-0.46→0.56) so the sign recedes while the gilt title only gains contrast (R181). Geometry/composition
-unchanged; `GUTTER_CX`/`torch_rig`/sconce untouched (P95). No `src/**` change.
+0.46→0.56) so the sign recedes while the gilt title only gains contrast (R181). **TD-059e** (author
+review) splits the coupling constant: `GUTTER_CX` (0.028/0.972) is **banner placement only**, and a
+new **`TORCH_CX`** (0.072/0.928, inboard between banner and frame) is what the sconce + flame +
+`torch_rig` read — the flame sits beside the carved frame and visibly lights it; fixture + shader
+light still share one constant (P95 re-homed). Geometry/composition otherwise unchanged. No `src/**`
+change.
 
 @specs/board-blend/requirements.md
 @specs/board-blend/design.md

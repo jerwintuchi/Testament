@@ -56,6 +56,18 @@
       of the frame), its carved relief defined, the gilt title still legible; a `--lights-off` capture
       is ~unchanged (ambient-dominated — the placard is in the lighting model, not baked-self-lit).
 
+## The torch (TD-059e)
+
+- [x] T194 [R179, R180 / P102 / V3, V4] — **Decouple the torch from the banner.** TD-059b/c walked
+      `GUTTER_CX` outboard for banner placement and dragged the sconce/flame/light rig with it, so
+      the carved frame read as lit by a disconnected mid-side glow. Split the constant in
+      `board_decor.gd`: `GUTTER_CX` = banner placement only; new `TORCH_CX` (0.072/0.928, inboard
+      between banner and frame) read by the sconce, the flame, AND `torch_rig` — fixture + shader
+      light still share one constant (P95 re-homed).
+      Test: a `--board-preview` capture shows the flame beside the carved frame edge, visibly
+      lighting it, banners still symmetric + lit by the same rig; `--lights-off` drops the warmth to
+      flat dim cloth.
+
 ## Verify
 
 - [x] T192 [R177–R182 / P102–P105 / V6] — **Verification pass.** Regenerate `asset-map.md` + `--check`

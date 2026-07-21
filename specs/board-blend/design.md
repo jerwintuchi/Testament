@@ -82,6 +82,13 @@ packing stays in one place — `main._surface_material`). The banner block chang
   **together** (that is what `GUTTER_CX` couples — P95 preserved, just re-valued to the outer gutter,
   which matches the original "banner at the OUTER edge of the masonry gutter" intent). Height budget
   still caps `bs` above the sconce cup.
+- **Torch decoupled (TD-059e, author review):** dragging the torch out with the banner left the
+  carved frame lit by a disconnected mid-side glow (~74px off the frame) with the visible flame
+  nowhere near it. The constant is split: `GUTTER_CX` (0.028/0.972) is **banner placement only**; a
+  new **`TORCH_CX`** (0.072/0.928, inboard between banner and frame) is what the sconce, the flame,
+  AND `torch_rig` read — so the flame sits beside the frame and visibly lights it, while fixture +
+  shader light still share one constant (P95's real invariant, re-homed). The banner still catches
+  the same rig's climb (radius_scale 2.4).
 
 `main.gd` builds `banner_mat` once and passes it: `BoardDecor.add_torches(_stone_bg, vp,
 _reduced_motion, _surface_material("res://assets/ui/banner_v1_n.png", …))`.
@@ -118,7 +125,9 @@ re-emitted; iron straps + bronze bolts keep their (already dim) values.
 ## Correctness Properties
 
 - **P102 (one rig, R179):** the banner reads `BoardDecor.torch_rig` through `_surface_material`; no
-  second light, and `GUTTER_CX` stays the single banner/sconce/shader coupling (P95 heritage).
+  second light. **TD-059e re-homes the P95 coupling:** `GUTTER_CX` is banner placement only; a new
+  `TORCH_CX` (inboard, between banner and frame) is the ONE constant the sconce, flame, and
+  `torch_rig` (hence every shader consumer) read — fixture + light still can never desync.
 - **P103 (blend / register, R178):** every generated banner pixel sits **below the parchment/frame
   key**; no additive/VFX layer on the cloth; the emblem never out-glows the weave. `--lights-off`
   shows dim flat cloth (proof the brightness is the shader's, not baked).
