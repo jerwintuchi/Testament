@@ -18,6 +18,9 @@ const Notice = preload("res://scripts/ui/notice.gd")
 const BoardGeo = preload("res://scripts/ui/board_geometry.gd")  # pure board layout/keep-out/seed math
 const BoardDecor = preload("res://scripts/ui/board_decor.gd")   # torches + crest render factories
 const BoardBar = preload("res://scripts/ui/board_bar.gd")       # bottom legend/assignment/status bar
+const Fonts = preload("res://scripts/ui/fonts.gd")              # shared font builders (Cinzel)
+const PopupTheme = preload("res://scripts/ui/popup_theme.gd")   # the station popup's gothic Theme
+const RiteBanner = preload("res://scripts/ui/rite_banner.gd")   # the CONTRACT SEALED ceremony overlay
 
 const SERVER_URL := "ws://localhost:3001"
 # The reconnect token survives a client relaunch (R75). It is an opaque server
@@ -216,7 +219,7 @@ func _ready() -> void:
 	pcenter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_popup_dim.add_child(pcenter)
 	_popup = PanelContainer.new()
-	_popup.theme = _build_popup_theme()  # 9-slice gothic panel + gold-on-charcoal controls
+	_popup.theme = PopupTheme.build()  # 9-slice gothic panel + gold-on-charcoal controls
 	_popup.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # soft painterly frame (v1 raster)
 	# Skins swapped in per station: the Contract Board is a wooden board, its cards
 	# pinned parchment. Built once; a missing texture falls back to a flat box.
@@ -350,7 +353,7 @@ func _board_preview() -> void:
 	_snapshot = {"phase": Protocol.PHASE_WAITING, "board": pv_board, "players": pv_players, "contract": pv_contract}
 	# `-- --rite-banner` raises the CONTRACT SEALED ceremony once, for captures (V4).
 	if OS.get_cmdline_user_args().has("--rite-banner"):
-		_show_rite_banner.call_deferred("CONTRACT SEALED", "The Drowned Choir")
+		RiteBanner.show.call_deferred(self, "CONTRACT SEALED", "The Drowned Choir", _reduced_motion)
 	_world.visible = false
 	_open_station("CONTRACT_BOARD")
 	# `-- --reader` takes the second fixture down to read (threat pips + enlarged seal).
@@ -420,85 +423,6 @@ func _show_toast(text: String) -> void:
 	_toast_tween.tween_interval(2.4)
 	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.5)
 
-# The rite banner (TD-063/R205): the souls-like centre-screen ceremony — a wide dark
-# band with big gilt letter-spaced CONTRACT SEALED over the target's name. Fired for
-# EVERY room member from the one CONTRACT_SELECTION broadcast (the ceremony is shared —
-# cooperation is the pillar); replaces the stamp toast. Pure display: ignores the mouse,
-# renders only broadcast payload fields, frees itself, emits nothing (P117). Reduced
-# motion shows it statically — the information is load-bearing, the motion is not.
-func _show_rite_banner(title: String, sub: String) -> void:
-	var lay := CanvasLayer.new()
-	lay.layer = 90
-	add_child(lay)
-	var root := Control.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lay.add_child(root)
-	var band := TextureRect.new()
-	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	band.stretch_mode = TextureRect.STRETCH_SCALE
-	band.texture = _rite_band_gradient()
-	band.anchor_left = 0.0; band.anchor_right = 1.0
-	band.anchor_top = 0.38; band.anchor_bottom = 0.38
-	band.offset_top = -36.0; band.offset_bottom = 36.0
-	root.add_child(band)
-	var v := VBoxContainer.new()
-	v.set_anchors_preset(Control.PRESET_FULL_RECT)
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_theme_constant_override("separation", 2)
-	band.add_child(v)
-	var tf := _cinzel(700)
-	if tf != null:
-		tf.set("spacing_glyph", 5)     # the souls-register letterspacing
-	var tl := Label.new()
-	tl.text = title
-	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	if tf != null:
-		tl.add_theme_font_override("font", tf)
-	tl.add_theme_font_size_override("font_size", 26)
-	tl.add_theme_color_override("font_color", Color(0.90, 0.76, 0.42))
-	tl.add_theme_color_override("font_outline_color", Color(0.05, 0.035, 0.02, 0.9))
-	tl.add_theme_constant_override("outline_size", 5)
-	v.add_child(tl)
-	var sl := Label.new()
-	sl.text = sub
-	sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sl.add_theme_font_size_override("font_size", 13)
-	sl.add_theme_color_override("font_color", Color(0.85, 0.79, 0.65))
-	sl.add_theme_color_override("font_outline_color", Color(0.05, 0.035, 0.02, 0.85))
-	sl.add_theme_constant_override("outline_size", 4)
-	v.add_child(sl)
-	if _reduced_motion:
-		get_tree().create_timer(1.8).timeout.connect(lay.queue_free)
-		return
-	root.modulate.a = 0.0
-	await get_tree().process_frame          # band sized → pivot for the settle drift
-	if not is_instance_valid(band):
-		return
-	band.pivot_offset = band.size * 0.5
-	band.scale = Vector2(1.05, 1.05)
-	var tw := root.create_tween()
-	tw.tween_property(root, "modulate:a", 1.0, 0.30)
-	tw.parallel().tween_property(band, "scale", Vector2.ONE, 0.34).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_interval(1.30)
-	tw.tween_property(root, "modulate:a", 0.0, 0.60)
-	tw.tween_callback(lay.queue_free)
-
-# The banner's dark band: transparent → near-black → transparent, horizontally.
-func _rite_band_gradient() -> GradientTexture2D:
-	var g := Gradient.new()
-	g.offsets = PackedFloat32Array([0.0, 0.18, 0.5, 0.82, 1.0])
-	g.colors = PackedColorArray([
-		Color(0, 0, 0, 0), Color(0.02, 0.015, 0.01, 0.80), Color(0.02, 0.015, 0.01, 0.88),
-		Color(0.02, 0.015, 0.01, 0.80), Color(0, 0, 0, 0)])
-	var t := GradientTexture2D.new()
-	t.gradient = g
-	t.width = 256
-	t.height = 8
-	t.fill_from = Vector2(0.0, 0.0)
-	t.fill_to = Vector2(1.0, 0.0)
-	return t
 
 # ── Inbound messages (the only source of state) ──────────────────────────────
 
@@ -544,7 +468,7 @@ func _on_message(type: String, payload: Variant) -> void:
 			var who := str(payload.get("actorName", "The leader"))
 			var tgt := str(payload.get("targetName", "a contract"))
 			if payload.get("accepted", false):
-				_show_rite_banner("CONTRACT SEALED", tgt)
+				RiteBanner.show(self, "CONTRACT SEALED", tgt, _reduced_motion)
 			else:
 				_show_toast("%s lifted the seal on %s" % [who, tgt])
 		Protocol.ROOM_DEPLOYING:
@@ -2303,26 +2227,11 @@ func _header_gap(h: int) -> Control:
 	g.custom_minimum_size = Vector2(0, h)
 	return g
 
-# Cinzel (SIL OFL, client/assets/fonts/) — a Roman inscriptional serif, the register carved
-# cathedral signage is actually cut in. It carries the header's authority; the default sans
-# could only imitate it by letter-spacing, which read as a game UI label, not stone-cut letters.
-# The face imports with its OWN antialiasing (see Cinzel.ttf.import) — the project default is
-# no-AA for crisp pixel text, which would shatter Cinzel's fine serifs at this size.
-# `wght` is a real variable axis on this file (Regular/Bold/Black).
-func _cinzel(weight: int) -> FontVariation:
-	var base := load("res://assets/fonts/Cinzel.ttf") as FontFile
-	if base == null:
-		return null
-	var fv := FontVariation.new()
-	fv.base_font = base
-	fv.variation_opentype = {"wght": weight}
-	return fv
-
 # One line of ENGRAVED lettering: a dark incised cut with a lit face riding a pixel below it,
 # so the glyphs read as chiselled into the plank rather than inked onto it (carved cathedral
 # signage). Both labels share the rect; only the face carries the soft down-right AO.
 func _engraved_line(text: String, size: int, face_color: Color, weight: int) -> Control:
-	var font := _cinzel(weight)
+	var font := Fonts.cinzel(weight)
 	var row := Control.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.custom_minimum_size = Vector2(0, size + 1)
@@ -2410,61 +2319,6 @@ func _all_ready() -> bool:
 		if p.get("connected", true) and not p.get("readyState", false):
 			return false
 	return true
-
-# The station popup's look: a gothic Theme applied to `_popup` that cascades to
-# every child (buttons, labels, checkboxes). The panel itself is a 9-slice
-# StyleBoxTexture built from assets/ui/panel.png (dark stone + aged-gold frame),
-# with a StyleBoxFlat fallback so a missing/late texture import never crashes the
-# popup. Palette-locked to the game's charcoal-and-gold register (art direction).
-func _build_popup_theme() -> Theme:
-	var th := Theme.new()
-	var panel_sb: StyleBox
-	var tex := load("res://assets/ui/panel.png") as Texture2D
-	if tex != null:
-		var sbt := StyleBoxTexture.new()
-		sbt.texture = tex
-		sbt.set_texture_margin_all(12.0)   # 9-slice: matches gen_panel.py MARGIN
-		sbt.set_content_margin_all(12.0)   # inset children off the frame
-		panel_sb = sbt
-	else:
-		var flat := StyleBoxFlat.new()
-		flat.bg_color = Color(0.10, 0.086, 0.15)
-		flat.set_border_width_all(2)
-		flat.border_color = Color(0.72, 0.57, 0.18)
-		flat.set_content_margin_all(14.0)
-		panel_sb = flat
-	th.set_stylebox("panel", "PanelContainer", panel_sb)
-	# Buttons: dark stone with a gold border, brighter on hover, sunk when pressed.
-	th.set_stylebox("normal", "Button", _btn_box(Color(0.145, 0.10, 0.055), Color(0.46, 0.34, 0.15)))
-	th.set_stylebox("hover", "Button", _btn_box(Color(0.20, 0.14, 0.08), Color(0.79, 0.64, 0.29)))
-	th.set_stylebox("pressed", "Button", _btn_box(Color(0.10, 0.07, 0.04), Color(0.54, 0.42, 0.17)))
-	th.set_color("font_color", "Button", Color(0.86, 0.78, 0.56))
-	th.set_color("font_hover_color", "Button", Color(0.97, 0.88, 0.64))
-	th.set_color("font_color", "Label", Color(0.87, 0.83, 0.73))
-	th.set_color("font_color", "CheckBox", Color(0.86, 0.81, 0.69))
-	# Tooltips in the scene's register (TD-062/R198): a near-black warm panel with a brass
-	# hairline + parchment-tone text — never Godot's default grey bubble.
-	var tip := StyleBoxFlat.new()
-	tip.bg_color = Color(0.085, 0.065, 0.045, 0.96)
-	tip.set_border_width_all(1)
-	tip.border_color = Color(0.52, 0.40, 0.19)
-	tip.content_margin_left = 8.0; tip.content_margin_right = 8.0
-	tip.content_margin_top = 4.0; tip.content_margin_bottom = 4.0
-	th.set_stylebox("panel", "TooltipPanel", tip)
-	th.set_color("font_color", "TooltipLabel", Color(0.87, 0.80, 0.62))
-	th.set_font_size("font_size", "TooltipLabel", 12)
-	return th
-
-func _btn_box(bg: Color, border: Color) -> StyleBoxFlat:
-	var b := StyleBoxFlat.new()
-	b.bg_color = bg
-	b.set_border_width_all(1)
-	b.border_color = border
-	b.content_margin_left = 10.0
-	b.content_margin_right = 10.0
-	b.content_margin_top = 5.0
-	b.content_margin_bottom = 5.0
-	return b
 
 # A 9-slice StyleBox from a texture, with a flat fallback if the texture is missing
 # or not yet imported (so the popup never breaks on a cold asset).

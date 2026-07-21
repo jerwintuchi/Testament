@@ -2089,3 +2089,27 @@ its own spec + commit + capture, behavior-preserving). Explicitly recorded hones
 structure is not a performance lever** (S6) — performance is architecture (the smallest-subtree-update
 lesson of TD-065, the memoization of TD-064); and **security is the layer boundary**, reinforced by
 keeping it a directory boundary. Wired into CLAUDE.md's rule includes. Docs/rules only; no code change.
+
+## 2026-07-21 — TD-067: main.gd decomposition, tranche 1 (shared UI builders + rite banner)
+
+The first extraction under the code-structure canon (TD-066). `client/scripts/main.gd` (2,684-line
+god-object) begins paydown toward the S5 target (a thin router + feature files), incrementally, each
+tranche behavior-preserving (a refactor, not a redesign — I1/I2 hold).
+
+**Tranche 1 (`specs/main-decompose/`, R214–R220, T225–T228):** three stateless/transient builders
+left `main.gd` for `client/scripts/ui/`, moved verbatim, call sites rewired, following the canon's
+GDScript rules (preloaded `RefCounted` namespaces, never a global `class_name`, TD-029/30):
+- `fonts.gd` — `Fonts.cinzel(weight)` (was `_cinzel`; consumers: `_engraved_line`, the banner).
+- `popup_theme.gd` — `PopupTheme.build()` (was `_build_popup_theme` + private `_btn_box`).
+- `rite_banner.gd` — `RiteBanner.show(host, title, sub, reduced_motion)` + `_band_gradient` (was
+  `_show_rite_banner`/`_rite_band_gradient`); it owns a transient CanvasLayer overlay, so it follows
+  the `BoardDecor.add_torches(host, …)` builds-on-a-passed-host idiom, not a persistent scene.
+
+`main.gd` 2,684 → 2,538 lines (−146). Verified: headless parse clean; a `--board-preview` capture is
+identical to the pre-change baseline by eye (Cinzel header, gothic popup frame + gold controls, scene
+tooltip); a `--rite-banner` capture shows CONTRACT SEALED unchanged. (A pixel-diff is not a valid
+equivalence test here — the board's live torch CPUParticles + glow flicker differ frame to frame
+regardless of code; eyeball is the client-spec convention.) Asset-map regenerated (new `preload`
+edges); diff scoped `client/ docs/ specs/`; server + shared suites untouched-green. Queued tranches
+(their own commits): `ui/widgets.gd` (R217), `board/notice_reader.gd` (R218), `board/contract_board.gd`
+(R219). Client render only; no `src/**` change.

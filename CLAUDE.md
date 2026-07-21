@@ -130,7 +130,19 @@ grew the writs **93x54 → 93x67** (larger than the pre-header 93x60). `board_he
 again). `keepout live=8 ok=true minhit=93x67`. Client render only; `art/src/collegium_device.*` kept as
 source art. Verified by `--board-preview` captures.
 
-Active spec: **`specs/seal-refresh/`** (TD-065) — targeted reader update + robust cooldown, on the
+Active spec: **`specs/main-decompose/`** (TD-067) — `main.gd` decomposition under the code-structure
+canon (TD-066). `main.gd` is a 2,684-line god-object (67% of client GDScript); the paydown is
+**incremental**, each tranche behavior-preserving (a refactor, not a redesign; I1/I2 hold), toward the
+S5 target (thin router + `core/world/board/stations/ui` feature files). **Tranche 1 COMPLETE
+(T225–T228):** three stateless/transient builders extracted to `client/scripts/ui/` (preloaded
+`RefCounted`, never global `class_name`) — `fonts.gd` (`Fonts.cinzel`), `popup_theme.gd`
+(`PopupTheme.build`), `rite_banner.gd` (`RiteBanner.show(host,…)`, the `add_torches` builds-on-a-host
+idiom); `main.gd` 2,684→2,538 (−146); board + `--rite-banner` captures identical by eye. **Queued
+tranches** (their own commits): `ui/widgets.gd` (`_card_label`×20 + `_h1`/`_hrule`/`_focus_ring`),
+`board/notice_reader.gd` (reader+seal+animation+cooldown), `board/contract_board.gd` (the board shell;
+leaves `main.gd` a thin router).
+
+Completed: **`specs/seal-refresh/`** (TD-065) — targeted reader update + robust cooldown, on the
 author's TD-064 playtest. **COMPLETE (T222–T224, client render only):** two survivors fixed —
 (1) the seal **couldn't be re-stamped until reopen** because the cooldown's re-enable timer fired a
 few ms before `_seal_cooldown_until` and the strict `>=` recheck then never retried; the spam guard
@@ -208,9 +220,9 @@ PIL-read from `collegium_logo.png`; `wax_seal.gd` de-Origin-keyed, R124 faint/fi
 untouched). Debug capture flags: `--reader` suppresses click-off dismiss (stray-click gotcha),
 `--reader-foot`, `--sealed`.
 
-@specs/seal-refresh/requirements.md
-@specs/seal-refresh/design.md
-@specs/seal-refresh/tasks.md
+@specs/main-decompose/requirements.md
+@specs/main-decompose/design.md
+@specs/main-decompose/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

@@ -18,7 +18,7 @@
 
 ### `client/assets/fonts/`
 
-- **`Cinzel.ttf`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
+- **`Cinzel.ttf`** — produced-by: — · consumed-by: `client/scripts/ui/fonts.gd` (load)
 
 ### `client/assets/tiles/`
 
@@ -40,7 +40,7 @@
 - **`cobweb.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
-- **`panel.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
+- **`panel.png`** — produced-by: — · consumed-by: `client/scripts/ui/popup_theme.gd` (load)
 - **`parch_flavor_0.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`parch_flavor_1.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`parch_v1_0.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
@@ -83,8 +83,8 @@
 - **`client/scripts/catalog.gd`**
   - preloads: `protocol.gd`
 - **`client/scripts/main.gd`**
-  - loads: `Cinzel.ttf`, `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `panel.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
-  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`
+  - loads: `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
+  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `fonts.gd`, `notice.gd`, `ornament_scrollbar.gd`, `popup_theme.gd`, `rite_banner.gd`, `verb_badge.gd`, `wax_seal.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/player.gd`**
   - loads: `Unarmed_Idle_with_shadow.png`, `Unarmed_Run_with_shadow.png`, `Unarmed_Walk_with_shadow.png`
@@ -101,9 +101,18 @@
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/board_geometry.gd`**
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/board_bar.gd` (preload), `client/scripts/ui/board_decor.gd` (preload)
+- **`client/scripts/ui/fonts.gd`**
+  - loads: `Cinzel.ttf`
+  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload)
 - **`client/scripts/ui/notice.gd`**
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/board_bar.gd` (preload)
 - **`client/scripts/ui/ornament_scrollbar.gd`**
+  - loaded-by: `client/scripts/main.gd` (preload)
+- **`client/scripts/ui/popup_theme.gd`**
+  - loads: `panel.png`
+  - loaded-by: `client/scripts/main.gd` (preload)
+- **`client/scripts/ui/rite_banner.gd`**
+  - preloads: `fonts.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/verb_badge.gd`**
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/board_bar.gd` (preload)
@@ -144,8 +153,8 @@
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
-- `client/scripts/main.gd:2486` — `load/preload normal_path`
-- `client/scripts/main.gd:2513` — `load/preload path`
-- `client/scripts/main.gd:2517` — `load/preload normal_path`
+- `client/scripts/main.gd:2340` — `load/preload normal_path`
+- `client/scripts/main.gd:2367` — `load/preload path`
+- `client/scripts/main.gd:2371` — `load/preload normal_path`
 - `client/scripts/ui/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/ui/wax_seal.gd:21` — `load/preload SEAL_TEX`
