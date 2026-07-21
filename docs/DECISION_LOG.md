@@ -2037,3 +2037,33 @@ textures synchronously as the animation began; (3) stamping/lifting could be spa
 Client render only; no `src/**` change; suites untouched-green; capture-verified (unclipped
 contained flash, board visually identical under the cache); press-smoothness + cooldown for author
 playtest.
+
+## 2026-07-21 — TD-065: seal refresh — targeted reader update + robust cooldown
+
+**Context (author playtest of TD-064).** Two defects survived: the seal couldn't be re-stamped/lifted
+after the first stamp until the contract was closed and reopened, and the stutter persisted.
+
+**Root causes (verified in code).**
+- *Stuck cooldown:* the re-enable timer ran for `cool_left/1000 s` measured AFTER the ~round-trip, so
+  it fired a few ms BEFORE `_seal_cooldown_until`; the strict `now >= _seal_cooldown_until` recheck
+  then failed and never retried — disabled until a fresh open.
+- *Stutter:* every stamp/lift ran a full `_build_contract_board` — which calls `BoardDecor.add_torches`
+  (frees + recreates 2 sconces, 2 CPUParticles flames, 2 glows, 2 banner sprites) and rebuilds all 8
+  notices + the reader. The TD-064 texture memoization didn't touch that node churn.
+
+**Decision (`specs/seal-refresh/`, R211–R213, T222–T224).**
+- **Targeted reader refresh (R211/P120):** the reader's dim + row are wrapped in one named
+  `ReaderOverlay`; `_build_contract_board` remembers `_board_canvas`. On `LOBBY_UPDATED` while a notice
+  is OPEN (the only state a stamp happens in), `_refresh_open_reader()` frees just the overlay and
+  re-shows the reader — the board notices, backing, decay, and **torches are untouched** (`add_torches`
+  is never called), so there is no hitch. Seal state, the stamp/lift animation, the CONTRACT SEALED
+  banner, and scroll continuity all ride the refresh. Grid view (a ready-toggle/join) keeps the full
+  rebuild.
+- **Robust cooldown (R212/P121):** the real spam guard is a hard time-check in the click handler
+  (`if now < _seal_cooldown_until: return`) — independent of the button's disabled state, so it can
+  neither be defeated nor stick. The visual disable in `_seal_block` now always re-enables via an
+  unconditional buffered timer (`cool_left/1000 + 0.08 s`, `is_instance_valid` only — the strict
+  deadline recheck that missed by a frame is gone). The server remains the authority (P66).
+
+Client render only; no `src/**` change; suites untouched-green; both reader states render correctly
+through the wrapper; smoothness + re-stampability by author playtest.

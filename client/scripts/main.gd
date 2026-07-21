@@ -75,6 +75,7 @@ var _active_station := ""         # kind of the station in range, or "" — a re
 var _menu_open := false           # a station popup is up: movement is locked
 var _popup_kind := ""             # the station kind the open popup was built for (for rebuilds)
 var _board_selection: Dictionary = {}  # the contract card being previewed, or {} = the grid view
+var _board_canvas: Control = null      # the current board canvas — for the targeted reader refresh (TD-065)
 var _reader_open_cid := ""             # which notice the reader currently shows (R199 scroll continuity)
 var _reader_scroll_mem := 0            # its last scroll offset, restored on a same-notice rebuild
 var _seal_prev: Dictionary = {}        # cid -> sealed? at last build — detects stamp/lift for the ceremony (R200)
@@ -521,10 +522,14 @@ func _on_message(type: String, payload: Variant) -> void:
 					# A joiner's first LOBBY_UPDATED precedes its RECONNECT_TOKEN;
 					# without _self_id the lobby can't mark "you" yet, so wait.
 					if _menu_open and _popup_kind == "CONTRACT_BOARD":
-						# A ready-toggle only changes the open notice's ledger. Refresh
-						# just the popup (fast) — not the whole lobby + space behind the
-						# dim, which is what made sealing lag and lifting look dead.
-						_rebuild_popup_body()
+						# A stamp/lift happens only with a notice OPEN — refresh JUST the
+						# reader (TD-065/P120), not the whole board (whose torch + 8-notice
+						# churn was the stutter). Grid view (a ready-toggle/join, no
+						# animation) keeps the full popup rebuild.
+						if not _board_selection.is_empty():
+							_refresh_open_reader()
+						else:
+							_rebuild_popup_body()
 					elif _screen == Screen.LOBBY or (_pending_join and _self_id != ""):
 						_show_lobby()
 				Protocol.PHASE_DEPLOYING:
@@ -1250,6 +1255,7 @@ func _build_contract_board() -> void:
 	# re-assert LINEAR on themselves, so only the fonts change.
 	canvas.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_popup_body.add_child(canvas)
+	_board_canvas = canvas             # remembered so a stamp can refresh only the reader (TD-065)
 	# Plank backing fills behind the notices (Batch 1). Backmost layer; the carved
 	# frame is the popup panel skin, the stone surround shows around it.
 	if _backing_tex != null:
@@ -1705,7 +1711,31 @@ func _hrule(color: Color) -> Control:
 
 # Take-down-to-read (R123): a dim over the board + the enlarged writ centred on it.
 # Clicking the dim (off the writ) returns it to the wall. Pure view state.
+# Refresh ONLY the open reader on a stamp/lift (TD-065/R211/P120): free the ReaderOverlay
+# and re-show it from the fresh snapshot — the seal state, animation (via the _seal_prev
+# flip), the CONTRACT SEALED banner, and scroll continuity (R199) all ride this. The board
+# notices, backing, decay, and TORCHES are untouched (add_torches is never called), so there
+# is no frame hitch — the seal never exists outside the open reader, so a stamp never needs
+# the board rebuilt.
+func _refresh_open_reader() -> void:
+	if not is_instance_valid(_board_canvas) or _board_selection.is_empty():
+		_rebuild_popup_body()          # reader gone — fall back to the full rebuild
+		return
+	var overlay := _board_canvas.find_child("ReaderOverlay", false, false)
+	if overlay != null:
+		overlay.free()                 # immediate (not queue_free): no one-frame double overlay
+	_show_notice_reader(_board_canvas, _board_selection)
+
 func _show_notice_reader(canvas: Control, intel: Dictionary) -> void:
+	# The whole reader (dim + centred reader row) lives under ONE named container so a
+	# stamp/lift can refresh JUST the reader in place (TD-065/R211) — free this and re-show,
+	# without rebuilding the board notices/torches (the stutter). Pass-through mouse so the
+	# dim still catches click-off and the reader still reads.
+	var overlay := Control.new()
+	overlay.name = "ReaderOverlay"
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(overlay)
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.58)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1721,12 +1751,12 @@ func _show_notice_reader(canvas: Control, intel: Dictionary) -> void:
 		dim.gui_input.connect(func(e: InputEvent):
 			if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 				_select_board_card({}))
-	canvas.add_child(dim)
+	overlay.add_child(dim)
 	var cc := CenterContainer.new()
 	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
 	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cc.z_index = 10
-	canvas.add_child(cc)
+	overlay.add_child(cc)
 	# Reader + the quill-line scrollbar side by side (TD-061 / R194): the ornament rides
 	# OUTSIDE the sheet, on the dimmed board, mirroring the reader's scroll both ways.
 	var row := HBoxContainer.new()
@@ -1902,15 +1932,18 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	var stamp := Button.new()
 	stamp.flat = true
 	stamp.clip_contents = false
-	# Interaction lockout (TD-064/R209): the stamp is disabled for a short window after a
-	# stamp/lift so the ceremony can't be interrupted or spam-fired. If this block is rebuilt
-	# WHILE cooling (the snapshot lands fast), it stays disabled and re-enables itself when the
-	# window elapses. Affordance only — the server still authorises (P119).
+	# Interaction lockout (TD-064/R209, made robust TD-065/R212): the stamp is disabled for a
+	# short window after a stamp/lift so the ceremony can't be interrupted or spam-fired. The
+	# REAL spam guard is a time-check in the click handler below (independent of this disabled
+	# state, so it can neither be defeated nor stick); this disable is visual feedback only and
+	# ALWAYS re-enables — an unconditional buffered timer (no strict deadline recheck, which
+	# used to miss by a frame and leave the button stuck until reopen). Affordance ≠ authority
+	# (P119): the server still validates.
 	var cool_left := _seal_cooldown_until - Time.get_ticks_msec()
 	stamp.disabled = (not leader) or cool_left > 0
 	if leader and cool_left > 0:
-		get_tree().create_timer(cool_left / 1000.0).timeout.connect(func():
-			if is_instance_valid(stamp) and Time.get_ticks_msec() >= _seal_cooldown_until:
+		get_tree().create_timer(cool_left / 1000.0 + 0.08).timeout.connect(func():
+			if is_instance_valid(stamp):
 				stamp.disabled = false)
 	# Keyboard reachable for the leader only (T146 / L6): a non-leader's seal is read-only, so it
 	# takes no focus. The gilt ring marks it when Tabbed to; Enter/Space stamps.
@@ -1924,11 +1957,15 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	stamp.add_theme_stylebox_override("focus", _focus_ring() if leader else empty)
 	if leader:
 		stamp.pressed.connect(func():
-			# In-flight (T146): one stamp per round-trip. Disable until the LOBBY_UPDATED
-			# snapshot rebuilds the block, so a double-tap can't fire two SELECT/DESELECTs.
-			# Plus the TD-064 cooldown window so a fast clicker can't spam stamp/lift.
+			# The spam guard (TD-065/R212): a hard time-check, independent of the button's
+			# disabled state, so the lockout can neither be defeated (a queued click firing
+			# after re-enable) nor stick. A click inside the window sends nothing.
+			var now := Time.get_ticks_msec()
+			if now < _seal_cooldown_until:
+				return
+			# One stamp per window: open the lockout, disable for feedback, send the intent.
+			_seal_cooldown_until = now + SEAL_COOLDOWN_MS
 			stamp.disabled = true
-			_seal_cooldown_until = Time.get_ticks_msec() + SEAL_COOLDOWN_MS
 			if selected:
 				_log("seal %s accepted=false" % cid)
 				_net.send_message(Protocol.DESELECT_CONTRACT, {})

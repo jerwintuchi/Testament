@@ -130,7 +130,20 @@ grew the writs **93x54 → 93x67** (larger than the pre-header 93x60). `board_he
 again). `keepout live=8 ok=true minhit=93x67`. Client render only; `art/src/collegium_device.*` kept as
 source art. Verified by `--board-preview` captures.
 
-Active spec: **`specs/seal-polish/`** (TD-064) — seal polish, on the author's TD-063 playtest.
+Active spec: **`specs/seal-refresh/`** (TD-065) — targeted reader update + robust cooldown, on the
+author's TD-064 playtest. **COMPLETE (T222–T224, client render only):** two survivors fixed —
+(1) the seal **couldn't be re-stamped until reopen** because the cooldown's re-enable timer fired a
+few ms before `_seal_cooldown_until` and the strict `>=` recheck then never retried; the spam guard
+is now a **hard time-check in the click handler** (can't stick or be defeated) and the visual
+disable **always re-enables** via an unconditional buffered timer (P121). (2) The **stutter
+persisted** because every stamp ran a full `_build_contract_board` (which re-churns `add_torches`'
+CPUParticles + all 8 notices); since the seal only lives in the open reader, a stamp now refreshes
+**only the reader** — the dim+row wrapped in a named `ReaderOverlay`, `_refresh_open_reader()` frees
+just that and re-shows it from the fresh snapshot (seal state, animation, banner, scroll all
+preserved), leaving the board decor + torches untouched — no hitch (P120). Grid-view updates keep
+the full rebuild.
+
+Completed: **`specs/seal-polish/`** (TD-064) — seal polish, on the author's TD-063 playtest.
 **COMPLETE (T218–T221, client render only):** the wax **flash renders unclipped above the board**
 (`_spawn_seal_flash` on a dedicated `CanvasLayer` 95, centred on the seal via
 `get_global_transform_with_canvas()`, independent of the seal's lifecycle, overdriven-warm core so
@@ -195,9 +208,9 @@ PIL-read from `collegium_logo.png`; `wax_seal.gd` de-Origin-keyed, R124 faint/fi
 untouched). Debug capture flags: `--reader` suppresses click-off dismiss (stray-click gotcha),
 `--reader-foot`, `--sealed`.
 
-@specs/seal-polish/requirements.md
-@specs/seal-polish/design.md
-@specs/seal-polish/tasks.md
+@specs/seal-refresh/requirements.md
+@specs/seal-refresh/design.md
+@specs/seal-refresh/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't
