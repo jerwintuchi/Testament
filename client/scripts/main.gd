@@ -75,6 +75,9 @@ var _active_station := ""         # kind of the station in range, or "" — a re
 var _menu_open := false           # a station popup is up: movement is locked
 var _popup_kind := ""             # the station kind the open popup was built for (for rebuilds)
 var _board_selection: Dictionary = {}  # the contract card being previewed, or {} = the grid view
+var _reader_open_cid := ""             # which notice the reader currently shows (R199 scroll continuity)
+var _reader_scroll_mem := 0            # its last scroll offset, restored on a same-notice rebuild
+var _seal_prev: Dictionary = {}        # cid -> sealed? at last build — detects stamp/lift for the ceremony (R200)
 var _focus_cid: String = ""            # contractId of the keyboard-focused writ, kept across rebuilds
 var _wood_sb: StyleBox            # Contract Board panel skin — the carved 9-slice frame (board_frame.png)
 var _backing_tex: Texture2D       # plank backing 9-slice, behind the notices
@@ -305,16 +308,16 @@ func _ready() -> void:
 # requester, targetName, siteName, primaryVerb). No trait axis — same containment as the wire.
 const _PREVIEW_BOARD := [
 	{"contractId": "c-alpha", "tier": "APPRENTICE", "origin": "BELIEF", "targetName": "The Hollow Vicar",
-	 "siteName": "Ashen Hollow", "primaryVerb": "INVESTIGATE",
+	 "siteName": "The Gall Road Ossuary", "primaryVerb": "INVESTIGATE",
 	 "requester": {"name": "Maret Ives", "role": "almoner", "place": "Greymarsh"}},
 	{"contractId": "c-beta", "tier": "APPRENTICE", "origin": "SIN", "targetName": "The Drowned Choir",
-	 "siteName": "Watcher's Lake", "primaryVerb": "BANISH",
+	 "siteName": "Hollowmere Crossing", "primaryVerb": "BANISH",
 	 "requester": {"name": "", "role": "reeve", "place": "The Old Mill"}},
 	{"contractId": "c-gamma", "tier": "APPRENTICE", "origin": "RELIC", "targetName": "The Unquiet Pilgrim",
-	 "siteName": "Broken Pass", "primaryVerb": "ELIMINATE",
+	 "siteName": "The Broken Cloister", "primaryVerb": "ELIMINATE",
 	 "requester": {"name": "Kestrel Vaun", "role": "lamplighter", "place": "Pilgrim's Rest"}},
 	{"contractId": "c-delta", "tier": "APPRENTICE", "origin": "BELIEF", "targetName": "The Grey Congregant",
-	 "siteName": "The Old Mill", "primaryVerb": "CAPTURE",
+	 "siteName": "The Collapsed Chancel", "primaryVerb": "CAPTURE",
 	 "requester": {"name": "Vidal Orr", "role": "chandler", "place": "Ashen Hollow"}},
 	{"contractId": "c-eps", "tier": "APPRENTICE", "origin": "RELIC", "targetName": "The Sunken Congregation",
 	 "siteName": "Hollowmere", "primaryVerb": "INVESTIGATE",
@@ -336,7 +339,12 @@ func _board_preview() -> void:
 	# `-- --sealed` previews the taken-up state: the second fixture is the snapshot's
 	# contract, so the reader's Collegium seal renders FIRM (V3-class capture checks).
 	var pv_contract: Variant = _PREVIEW_BOARD[1] if OS.get_cmdline_user_args().has("--sealed") else null
-	_snapshot = {"phase": Protocol.PHASE_WAITING, "board": pv_board, "players": [], "contract": pv_contract}
+	# A fixture LEADER identity, so the reader previews the leader's oath/seal affordance
+	# (TD-062/V3) — with an empty players list _is_leader() is false and only the party
+	# forms would ever be capturable.
+	_self_id = "pv-self"
+	var pv_players := [{"playerId": "pv-self", "displayName": "Aldric", "isLeader": true, "readyState": false, "connected": true}]
+	_snapshot = {"phase": Protocol.PHASE_WAITING, "board": pv_board, "players": pv_players, "contract": pv_contract}
 	_world.visible = false
 	_open_station("CONTRACT_BOARD")
 	# `-- --reader` takes the second fixture down to read (threat pips + enlarged seal).
@@ -1410,12 +1418,18 @@ func _fit_writ(intel: Dictionary, cell: Vector2) -> Dictionary:
 	var target := str(intel.get("targetName", "?"))
 	var site := "at %s" % intel.get("siteName", "?")
 	var text_w := w - 14.0                    # pad margins 7+7
+	# Labels insert the theme's `line_spacing` (default 3) BETWEEN wrapped lines, which
+	# get_multiline_string_size does not count — the TD-061 fit was ~6px short on two
+	# 2-line blocks, clipping "Ossuary" at the sheet edge (TD-062/R196, P113).
+	var ls := float(ThemeDB.get_default_theme().get_constant("line_spacing", "Label"))
 	var chosen := [8, 6]                      # fallback if even stepping down can't fit
 	var need := 0.0
 	for fs in [[9, 7], [8, 6]]:
 		var th := font.get_multiline_string_size(target, HORIZONTAL_ALIGNMENT_CENTER, text_w, fs[0]).y
+		th += ls * maxf(0.0, roundf(th / font.get_height(fs[0])) - 1.0)
 		var sh := font.get_multiline_string_size(site, HORIZONTAL_ALIGNMENT_CENTER, text_w, fs[1]).y
-		need = 13.0 + 4.0 + th + 1.0 + sh     # headroom + text block (measure == render)
+		sh += ls * maxf(0.0, roundf(sh / font.get_height(fs[1])) - 1.0)
+		need = 13.0 + 4.0 + th + 1.0 + sh + 2.0   # headroom + text block + safety (measure == render)
 		if need <= cell.y:
 			chosen = fs
 			break
@@ -1627,26 +1641,38 @@ func _show_notice_reader(canvas: Control, intel: Dictionary) -> void:
 	orn.custom_minimum_size = Vector2(18, rdr.custom_minimum_size.y * 0.82)
 	row.add_child(orn)
 	orn.attach(rdr.find_child("ReaderScroll", true, false) as ScrollContainer)
-	# A taken-down writ always opens at its HEADLINE. The modal's first-frame focus grab
-	# scrolls the sheet to a footer control (seal/return); pin it back to the top once
-	# layout + that focus pass have settled (two frames), so it can't win the race.
-	_reset_reader_scroll.call_deferred(rdr)
+	# Scroll continuity (TD-062/R199, P114): a snapshot rebuild of the SAME open notice
+	# (stamping/unstamping the seal) restores the prior offset — the pin-to-top belongs to
+	# a FRESH open only. `--reader-foot` (debug capture) rides the same path.
+	var cid := str(intel.get("contractId", ""))
+	var target := 0
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--reader-foot"):
+		target = 100000
+	elif cid == _reader_open_cid:
+		target = _reader_scroll_mem
+	_reader_open_cid = cid
+	_reset_reader_scroll.call_deferred(rdr, target)
 
-# Pin a freshly-opened reader to the top. The one-shot reset lost a race with a late
-# reflow/focus pass (the enlarged writ overflows its sheet, so it scrolls); hold the top
-# across several frames so nothing can drag it to the foot before it settles.
-# Debug: `-- --reader-foot` pins to the FOOT instead, so an unattended capture can verify
-# the seal block (V3-class checks) without input injection.
-func _reset_reader_scroll(rdr: Control) -> void:
-	var foot := OS.is_debug_build() and OS.get_cmdline_user_args().has("--reader-foot")
+# Settle a freshly-(re)built reader at `target` (0 = the headline; a remembered offset on
+# a same-notice rebuild, R199; 100000 = the debug foot pin). The one-shot set lost a race
+# with a late reflow/focus pass, so the value is held across several frames; afterwards
+# the scrollbar feeds `_reader_scroll_mem` so the NEXT rebuild can restore the reader.
+func _reset_reader_scroll(rdr: Control, target: int) -> void:
+	var sc: ScrollContainer = null
 	for _i in 8:
 		if not is_instance_valid(rdr):
 			return
-		var sc := rdr.find_child("ReaderScroll", true, false) as ScrollContainer
+		sc = rdr.find_child("ReaderScroll", true, false) as ScrollContainer
 		if sc != null:
 			get_viewport().gui_release_focus()   # no focused footer control to follow
-			sc.scroll_vertical = 100000 if foot else 0
+			sc.scroll_vertical = target
 		await get_tree().process_frame
+	if sc != null:
+		_reader_scroll_mem = int(sc.scroll_vertical)
+		var track := sc
+		sc.get_v_scroll_bar().value_changed.connect(func(_v):
+			if is_instance_valid(track):
+				_reader_scroll_mem = int(track.scroll_vertical))
 
 func _build_notice_reader(intel: Dictionary) -> Control:
 	# The enlarged parchment poster. A solid parchment-tinted FILL sits behind the
@@ -1816,19 +1842,99 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	seal.modulate.a = 1.0 if selected else (0.85 if leader else 0.62)
 	row.add_child(seal)
 
+	# The OATH (TD-062/R198, author ruling: named-target form): the leader speaks in the
+	# first person; the how-to lives in the hover tooltip, never on the sheet. Non-leaders
+	# read the party form. `<name>` = the local Seeker's lobby name ("Seeker" in preview).
+	var target := str(intel.get("targetName", "the charge"))
+	var seeker := _display_name_plain(_self_id)
+	if seeker.is_empty() or seeker == _self_id:   # unresolved id (e.g. preview) → the generic
+		seeker = "Seeker"
 	var caption: String
 	if selected:
-		caption = "Sealed. The charge is taken up." + ("\n(click the seal to lift it)" if leader else "")
+		caption = "It is witnessed. %s is ours to answer." % target
 	elif leader:
-		caption = "Stamp your seal to take up this charge."
+		caption = "I, %s, take up the charge against %s. Let it be witnessed." % [seeker, target]
 	else:
 		caption = "Awaiting the leader's seal."
+	if leader:
+		stamp.tooltip_text = "Click the seal to lift it" if selected else "Click the seal to stamp it"
 	var cap := _card_label(caption, 12, ink if selected else ink_soft, true, false)
 	cap.custom_minimum_size = Vector2(220, 0)
 	row.add_child(cap)
 
+	# The ceremony (TD-062/R200): if this rebuild FLIPPED the seal's state, the new seal
+	# plays the press (stamp) or the peel (lift). Pure theatre: no state, no message; a
+	# reduced-motion client renders the end state only (P115).
+	var prev: Variant = _seal_prev.get(cid)
+	_seal_prev[cid] = selected
+	if prev != null and bool(prev) != selected and not _reduced_motion:
+		_animate_seal(seal, selected)
 	box.add_child(stamp)
 	return box
+
+# The stamp/lift theatre (R200, author ruling: press + wax flash). Runs on the freshly
+# rebuilt seal after one frame (so the container has sized it); if another rebuild lands
+# mid-tween the nodes are freed and the tweens die with them — safe.
+func _animate_seal(seal: Control, sealed: bool) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(seal):
+		return
+	seal.pivot_offset = seal.size * 0.5
+	if sealed:
+		# The press: dropped from above, squash on impact, a warm additive wax flash
+		# blooming behind, and the sheet thumping 2px under the fist.
+		var flash := TextureRect.new()
+		flash.texture = BoardGeo.backlight_gradient()
+		flash.material = BoardGeo.additive_material()
+		flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		flash.stretch_mode = TextureRect.STRETCH_SCALE
+		var fsz := seal.size * 2.6
+		flash.size = fsz
+		flash.position = seal.position + seal.size * 0.5 - fsz * 0.5
+		flash.pivot_offset = fsz * 0.5
+		flash.scale = Vector2(0.6, 0.6)
+		flash.modulate = Color(1.0, 0.82, 0.5, 0.0)
+		var par := seal.get_parent()
+		par.add_child(flash)
+		par.move_child(flash, 0)                     # behind the wax
+		seal.scale = Vector2(1.8, 1.8)
+		seal.modulate.a = 0.4
+		var t := seal.create_tween()
+		t.tween_property(seal, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		t.parallel().tween_property(seal, "modulate:a", 1.0, 0.12)
+		t.tween_property(seal, "scale", Vector2(1.18, 0.85), 0.05)
+		t.tween_property(seal, "scale", Vector2.ONE, 0.10).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		var ft := flash.create_tween()
+		ft.tween_interval(0.11)                      # bloom on IMPACT, not on wind-up
+		ft.tween_property(flash, "modulate:a", 0.9, 0.03)
+		ft.parallel().tween_property(flash, "scale", Vector2(1.8, 1.8), 0.28)
+		ft.tween_property(flash, "modulate:a", 0.0, 0.20)
+		ft.tween_callback(flash.queue_free)
+		# The desk thump: the parchment sheet (the ReaderScroll's parent) nudges and settles.
+		var n: Node = seal
+		while n != null and n.name != "ReaderScroll":
+			n = n.get_parent()
+		var sheet := (n.get_parent() as Control) if n != null else null
+		if sheet != null:
+			var oy := sheet.position.y
+			var rt := sheet.create_tween()
+			rt.tween_interval(0.11)
+			rt.tween_property(sheet, "position:y", oy + 2.0, 0.04)
+			rt.tween_property(sheet, "position:y", oy, 0.07)
+	else:
+		# The peel: the wax lifts off firm, rises and fades, then settles as the faint
+		# imprint the block actually renders.
+		var rest_a := seal.modulate.a
+		seal.set_faint(false)
+		seal.modulate.a = 1.0
+		var t := seal.create_tween()
+		t.tween_property(seal, "scale", Vector2(1.5, 1.5), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		t.parallel().tween_property(seal, "modulate:a", 0.15, 0.16)
+		t.tween_callback(func():
+			if is_instance_valid(seal):
+				seal.set_faint(true)
+				seal.scale = Vector2.ONE
+				seal.modulate.a = rest_a)
 
 # A seeded position jitter (fractions of the inner board) so notices don't sit on a
 # grid — organic like a real wall. Deterministic per seed string (same board twice
@@ -2124,7 +2230,11 @@ func _card_label(text: String, size: int, color: Color, do_wrap: bool, center: b
 
 func _select_board_card(c: Dictionary) -> void:
 	_board_selection = c
-	if not c.is_empty():
+	if c.is_empty():
+		_reader_open_cid = ""            # closing forgets the scroll (R199) …
+		_reader_scroll_mem = 0
+		_seal_prev.clear()               # … and the seal transition memory (R200)
+	else:
 		_log("select %s" % c.get("contractId", ""))
 	# Cross-fade: fade the current view out, then rebuild (which fades the new in).
 	var t := _popup_body.create_tween().set_ease(Tween.EASE_IN)
@@ -2173,6 +2283,17 @@ func _build_popup_theme() -> Theme:
 	th.set_color("font_hover_color", "Button", Color(0.97, 0.88, 0.64))
 	th.set_color("font_color", "Label", Color(0.87, 0.83, 0.73))
 	th.set_color("font_color", "CheckBox", Color(0.86, 0.81, 0.69))
+	# Tooltips in the scene's register (TD-062/R198): a near-black warm panel with a brass
+	# hairline + parchment-tone text — never Godot's default grey bubble.
+	var tip := StyleBoxFlat.new()
+	tip.bg_color = Color(0.085, 0.065, 0.045, 0.96)
+	tip.set_border_width_all(1)
+	tip.border_color = Color(0.52, 0.40, 0.19)
+	tip.content_margin_left = 8.0; tip.content_margin_right = 8.0
+	tip.content_margin_top = 4.0; tip.content_margin_bottom = 4.0
+	th.set_stylebox("panel", "TooltipPanel", tip)
+	th.set_color("font_color", "TooltipLabel", Color(0.87, 0.80, 0.62))
+	th.set_font_size("font_size", "TooltipLabel", 12)
 	return th
 
 func _btn_box(bg: Color, border: Color) -> StyleBoxFlat:

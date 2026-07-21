@@ -130,7 +130,23 @@ grew the writs **93x54 → 93x67** (larger than the pre-header 93x60). `board_he
 again). `keepout live=8 ok=true minhit=93x67`. Client render only; `art/src/collegium_device.*` kept as
 source art. Verified by `--board-preview` captures.
 
-Active spec: **`specs/contract-reader/`** (TD-061) — the contract read, post-playtest. **COMPLETE
+Active spec: **`specs/seal-rite/`** (TD-062) — the seal rite, on the author's TD-061 playtest.
+**COMPLETE (T207–T212, client-only):** the writ fit's missing metric found — Labels insert the
+theme `line_spacing` (3px) BETWEEN wrapped lines, which `get_multiline_string_size` doesn't count,
+so two 2-line blocks under-measured ~6px (the clipped "Ossuary") — `_fit_writ` now adds it per
+wrapped line +2 safety, and the preview fixture adopts the longest authored server sites (P113).
+The wax seal draws a centred **square** (min dimension) so it's always **round** (R197). The seal
+captions are the leader's **named-target oath** (author ruling): "I, \<name\>, take up the charge
+against \<target\>. Let it be witnessed." / "It is witnessed. \<target\> is ours to answer.";
+how-to demoted to themed **tooltips**; `_board_preview` seeds a fixture leader ("Aldric") so the
+oath is capturable (R198). Stamping **preserves the reader scroll** (`_reader_open_cid`/
+`_reader_scroll_mem`; pin-to-top = fresh open only; `_reset_reader_scroll(rdr, target)`, P114).
+The stamp is a **ceremony** (author ruling: press + wax flash): `_seal_prev` detects the
+faint↔firm flip; `_animate_seal` drops/squashes the wax with an additive flash + a 2px sheet
+thump, or peels it on lift; reduced-motion renders end states only (P115 — pure theatre, no state,
+no message).
+
+Completed: **`specs/contract-reader/`** (TD-061) — the contract read, post-playtest. **COMPLETE
 (T201–T206, client-only):** the **threat pips are retired** (`threat_pips.gd` deleted — "no
 knowledge as a number" applies to the Collegium's paperwork too); danger reads as the
 **petitioner's dread** — `Notice.plea(intel)`, one seeded tier-banded sentence in the requester's
@@ -155,9 +171,9 @@ PIL-read from `collegium_logo.png`; `wax_seal.gd` de-Origin-keyed, R124 faint/fi
 untouched). Debug capture flags: `--reader` suppresses click-off dismiss (stray-click gotcha),
 `--reader-foot`, `--sealed`.
 
-@specs/contract-reader/requirements.md
-@specs/contract-reader/design.md
-@specs/contract-reader/tasks.md
+@specs/seal-rite/requirements.md
+@specs/seal-rite/design.md
+@specs/seal-rite/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

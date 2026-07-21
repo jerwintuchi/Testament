@@ -1938,3 +1938,37 @@ Client render only; no `src/**` change (server 362 + shared 65 green untouched t
 Capture-verified: varied writs all fitting, plea in place of pips, wider reader text cleanly
 clipped (R189 holds), ornament tracking top/foot — live wheel input during captures mirrored into
 the ornament, confirming the sync from the author's own hand.
+
+## 2026-07-21 — TD-062: the seal rite — exact writ fit, the round seal, the leader's oath, the stamp ceremony
+
+**Context (author playtest review of TD-061).** Long texts STILL clipped the writ foot ("at The
+Gall Road Ossuary" lost "Ossuary"); the wax seal stretched into an oval; the seal captions were dry
+UI instructions; stamping reset the reader's scroll to the top; and the stamp deserved ceremony.
+Author rulings: the **named-target oath**; instructions demoted to hover tooltips; **press + wax
+flash** animation.
+
+**Decision (`specs/seal-rite/`, R196–R201, T207–T212).**
+- **The missing 3px (P113):** Godot Labels insert the theme `line_spacing` (3px) BETWEEN wrapped
+  lines; `Font.get_multiline_string_size` doesn't count it, so two 2-line blocks under-measured by
+  ~6px — exactly the clipped "Ossuary". `_fit_writ` now adds it per wrapped line (+2 safety), and
+  the preview fixture adopts the longest authored server sites so the failure stays capturable.
+- **Round seal (R197):** `wax_seal.gd` draws a centred SQUARE (min dimension) whatever rect the
+  container hands it — the oval came from filling a taller-than-wide control.
+- **The oath (R198):** leader unsealed — "I, <name>, take up the charge against <target>. Let it
+  be witnessed."; sealed — "It is witnessed. <target> is ours to answer."; non-leaders keep the
+  party forms. How-to lives in `tooltip_text` (themed TooltipPanel/TooltipLabel — near-black warm
+  panel, brass hairline, parchment text). `_board_preview` seeds a fixture leader ("Aldric",
+  `_self_id = "pv-self"`) so the oath is capturable.
+- **Scroll continuity (R199/P114):** `_reader_open_cid` + `_reader_scroll_mem`; a same-notice
+  snapshot rebuild (stamp/lift) restores the offset, a fresh open pins the headline, close clears;
+  `_reset_reader_scroll` generalised to a target (the `--reader-foot` debug pin rides it); the
+  scrollbar feeds the memory only after the settle frames.
+- **The ceremony (R200/P115):** `_seal_prev` detects the faint↔firm flip across rebuilds;
+  `_animate_seal` plays the press (drop 1.8→1.0 ease-in, squash 1.18/0.85, an additive
+  `backlight_gradient` flash blooming on impact, the sheet thumping 2px) or the peel (firm wax
+  rises + fades, settles faint). Reduced-motion renders end states only. Pure theatre: no state,
+  no message (P66 untouched).
+
+Client render only; suites untouched-green; capture-verified (long sites whole at
+`keepout ok=true minhit=80x53`; round seal both states; oath unsealed/sealed); scroll + animation
+verified by author playtest.

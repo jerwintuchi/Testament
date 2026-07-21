@@ -29,10 +29,12 @@ func set_faint(faint: bool) -> void:
 func _draw() -> void:
 	if _tex == null:
 		return
-	var rect := Rect2(Vector2.ZERO, size)
+	# A centred SQUARE, whatever rect the container hands us (TD-062/R197): filling the
+	# whole rect stretched the wax into an oval whenever the control ran taller than wide.
+	var s := minf(size.x, size.y)
+	var rect := Rect2((size - Vector2(s, s)) * 0.5, Vector2(s, s))
 	if _faint:
 		draw_texture_rect(_tex, rect, false, Color(1, 1, 1, 0.5))
-		var c := size * 0.5
-		draw_arc(c, minf(size.x, size.y) * 0.5 - 1.5, 0.0, TAU, 40, RIM, 1.5)
+		draw_arc(size * 0.5, s * 0.5 - 1.5, 0.0, TAU, 40, RIM, 1.5)
 	else:
 		draw_texture_rect(_tex, rect, false)
