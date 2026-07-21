@@ -281,6 +281,7 @@ Completed Phase 4 specs:
 
 @.claude/rules/spec-workflow.md
 @.claude/rules/netcode-invariants.md
+@.claude/rules/code-structure.md
 
 ## Local Tooling (Godot, screenshots, server)
 

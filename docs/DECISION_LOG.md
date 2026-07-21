@@ -2067,3 +2067,25 @@ after the first stamp until the contract was closed and reopened, and the stutte
 
 Client render only; no `src/**` change; suites untouched-green; both reader states render correctly
 through the wrapper; smoothness + re-stampability by author playtest.
+
+## 2026-07-21 — TD-066: code-structure canon (`.claude/rules/code-structure.md`)
+
+Established a structure canon so the project stays readable, maintainable, and scalable as it grows.
+Author rulings (this session): write the **canon doc only** now (decompose incrementally later),
+target the **full** `main.gd` decomposition (a thin router + feature files), and prefer
+**scene-per-feature** on the client (a module that owns a node subtree becomes its own `.tscn`+`.gd`,
+instanced + driven via methods, decoupled upward via signals; pure logic stays a preloaded
+`RefCounted` namespace; cross-cutting services are autoloads; never a global `class_name`, TD-029/30).
+
+Grounding (surveyed, not assumed): `src/server/` (49 files, one responsibility each, 51 colocated
+test files) and `src/shared/` (13 files, types-only, honoring I4) are already exemplary and are named
+as THE reference — do not restructure them. The one real violation is `client/scripts/main.gd`
+(**2,684 lines, 98 funcs, 78 vars — 67% of all client GDScript**), a god-object spanning networking,
+all six screens, the Contract Board, the reader, the seal, animations, theme, and helpers. The canon
+codifies the proven patterns (S1 layers = the trust boundary; S2 one-responsibility-per-file, group
+by domain; S3 scene-per-feature GDScript; S4 within-file order; S7 spec-workflow tie-in) and sets the
+`main.gd` target + paydown rules (S5: new client features never enter `main.gd`; each extraction is
+its own spec + commit + capture, behavior-preserving). Explicitly recorded honest framing: **file
+structure is not a performance lever** (S6) — performance is architecture (the smallest-subtree-update
+lesson of TD-065, the memoization of TD-064); and **security is the layer boundary**, reinforced by
+keeping it a directory boundary. Wired into CLAUDE.md's rule includes. Docs/rules only; no code change.
