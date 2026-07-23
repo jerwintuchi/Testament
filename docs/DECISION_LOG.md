@@ -2181,3 +2181,58 @@ Left alone on purpose: the inert `if sel: rotation_degrees = 0.0`. Making the st
 work is a *visible* change, not this spec's business — flagged for a deliberate decision. When
 `board/notice_reader.gd` is extracted (T230/R218) it must inherit this fast path, not re-introduce
 the rebuild. Client render only; no `src/**` change; server 362 + shared 65 green (untouched).
+
+## 2026-07-23 — TD-069: client scripts and assets grouped by feature
+
+Author request: make the client tree scalable — a Contract Board should own a folder, not scatter
+across a flat pile, "for other features as well." This is the code-structure canon's S2.2
+("group by feature/domain, not by mechanical type") applied to the two places that still read as
+type-piles. Pure relocation: no behavior change, no code logic touched.
+
+**Scripts** — to the S5 target tree. `scripts/` was flat, and `scripts/ui/` had quietly become
+"everything the board needs":
+
+```
+scripts/core/    pixel_scale.gd, debug_capture.gd (autoloads), catalog.gd
+scripts/world/   player.gd, space_view.gd
+scripts/board/   board_bar, board_decor, board_geometry, notice, ornament_scrollbar,
+                 verb_badge, wax_seal
+scripts/ui/      fonts, popup_theme, rite_banner, widgets   ← genuinely shared, now honestly so
+scripts/         main.gd, net.gd
+```
+
+File names kept as-is (`board/board_geometry.gd`, not `board/geometry.gd`): S5 lists them that way,
+and renaming while moving would double the diff for no gain.
+
+**Assets** — `client/assets/ui/` was 58 files deep in one directory:
+
+```
+assets/ui/board/    all Contract Board art (frame, backing, banner, header, parchment,
+                    tacks, badges, torches, seal, decay, board_surface.gdshader)
+assets/ui/shared/   panel.png (the popup 9-slice every station wears)
+assets/ui/_src/     reference/source art (_proto_board, _frame_v1_src, _slices/)
+assets/ui/          the generators only — ashember.py, pngio.py, gen_*.py
+```
+
+Generators keep **literal** relative output paths (`A.write_png("board/banner_v1.png", …)`) rather
+than a computed root, because `tools/asset_map.py` derives producer edges from those literals — a
+clever path helper would have silently deleted half the map's edges. Where a generator already
+centralised its output (`_out(name)`, `os.path.join(HERE, name)`, `OUT`), only that one line moved.
+
+Two gotchas worth remembering, both now in `dev-environment.md` §7:
+- Moving a `class_name` script invalidates `.godot/global_script_class_cache.cfg` (keyed by path):
+  first `Class "Player" hides a global script class`, then after a naive cache delete,
+  `Identifier "Catalog" not declared`. Delete the cache and run `--import` (twice, for autoloads).
+- Moved PNGs need their `.import` regenerated; `dest_files` embeds a path hash.
+
+**Found along the way:** `tools/asset_map.py --selftest` had been **red since TD-058** — it still
+asserted `board_seal.png` is produced/consumed, an asset TD-058 deleted. The named test of TD-051
+was failing and nothing caught it. Re-pinned to current wiring (`board/board_header.png`) and the
+moved paths; green now. This is the argument for running `--selftest`, not just `--check`, since
+`--check` only compares the map to itself.
+
+Verified: headless parse clean; `--board-preview` renders the board identically across `--reader`,
+`--reader-cycle`, `--sealed`, `--rite-banner`, `--board-empty` with **no errors or warnings**
+(case-insensitively grepped this time) and `board live=` once per run, so TD-068 still holds; five
+generators re-run and reproduced **byte-identical** art from the new paths; `--selftest` and
+`--check` green; no dangling references. Client only; no `src/**` change.

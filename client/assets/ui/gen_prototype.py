@@ -514,7 +514,7 @@ def emit(c):
     ow, oh = W * SCALE, H * SCALE
     def up(x, y):
         d = c.get(x // SCALE, y // SCALE); return (d[0], d[1], d[2], 255)
-    out = os.path.join(HERE, "_proto_board.png")
+    out = os.path.join(HERE, "_src", "_proto_board.png")
     write_png(out, ow, oh, up)
     print("wrote", out, "%dx%d" % (ow, oh))
 

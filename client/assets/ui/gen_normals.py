@@ -96,19 +96,19 @@ def _restore_frame_pixel(px):
 
 def main():
     # Frame: preserve the painted original as the source, derive normal + neutral from it.
-    if not os.path.exists("_frame_v1_src.png"):
-        shutil.copyfile("frame_v1.png", "_frame_v1_src.png")
+    if not os.path.exists("_src/_frame_v1_src.png"):
+        shutil.copyfile("board/frame_v1.png", "_src/_frame_v1_src.png")
         print("kept painted source -> _frame_v1_src.png")
-    fw, fh, flum, fpx = _load_luma("_frame_v1_src.png")
-    A.write_png("frame_v1_n.png", fw, fh, _normal_pixel(fw, fh, flum, 8.0))
+    fw, fh, flum, fpx = _load_luma("_src/_frame_v1_src.png")
+    A.write_png("board/frame_v1_n.png", fw, fh, _normal_pixel(fw, fh, flum, 8.0))
     print("wrote frame_v1_n.png (%dx%d)" % (fw, fh))
-    A.write_png("frame_v1.png", fw, fh, _restore_frame_pixel(fpx))
+    A.write_png("board/frame_v1.png", fw, fh, _restore_frame_pixel(fpx))
     print("re-authored frame_v1.png carved warm wood (TD-048/T160)")
 
     # Backing + wall: diffuse UNCHANGED, gentle luminance-bump normals only.
     for name, strength in (("backing_v1", 4.0), ("wall_v1", 4.0)):
-        w, h, lum, _px = _load_luma("%s.png" % name)
-        A.write_png("%s_n.png" % name, w, h, _normal_pixel(w, h, lum, strength))
+        w, h, lum, _px = _load_luma("board/%s.png" % name)
+        A.write_png("board/%s_n.png" % name, w, h, _normal_pixel(w, h, lum, strength))
         print("wrote %s_n.png (%dx%d)" % (name, w, h))
 
 

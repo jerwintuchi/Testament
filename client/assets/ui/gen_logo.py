@@ -24,7 +24,7 @@ from PIL import Image
 import ashember as A
 
 SRC = os.path.join(os.path.dirname(__file__), "..", "..", "..", "art", "src", "collegium_logo_src.png")
-OUT = "collegium_logo.png"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "board", "collegium_logo.png")
 TOL = 12            # neighbour-relative flood step (sum of |dR|+|dG|+|dB|)
 MASTER_H = 220      # emblem is tall+narrow; height drives the master, width follows aspect
 

@@ -10,7 +10,7 @@ extends RefCounted
 static func build() -> Theme:
 	var th := Theme.new()
 	var panel_sb: StyleBox
-	var tex := load("res://assets/ui/panel.png") as Texture2D
+	var tex := load("res://assets/ui/shared/panel.png") as Texture2D
 	if tex != null:
 		var sbt := StyleBoxTexture.new()
 		sbt.texture = tex

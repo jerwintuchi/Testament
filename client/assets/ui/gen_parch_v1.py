@@ -11,7 +11,7 @@ from pngio import read_png
 from ashember import write_png, noise, smooth
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PBW, PBH, PB = read_png(os.path.join(HERE, "_slices/paper_band1.png"))
+PBW, PBH, PB = read_png(os.path.join(HERE, "_src", "_slices", "paper_band1.png"))
 W, H = 200, 168
 # Live-tone lift (T156/R136): the raw v1 painted paper is a dim amber (~lum 0.09), so
 # against the TD-048 dungeon-dark board the notices sat BELOW the legibility floor
@@ -84,6 +84,6 @@ def card(seed):
 if __name__ == "__main__":
     for seed, tag in ((101, "0"), (203, "1")):
         name = "parch_v1_%s.png" % tag
-        write_png(os.path.join(HERE, name), W, H, card(seed))
+        write_png(os.path.join(HERE, "board", name), W, H, card(seed))
         print("wrote", name, W, "x", H)
     print("gen_parch_v1 OK — deckled cards on v1 painted paper.")

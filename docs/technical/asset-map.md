@@ -24,7 +24,7 @@
 
 - **`tiles.tres`** — produced-by: — · consumed-by: `client/scenes/space_view.tscn` (ext_resource)
 
-### `client/assets/ui/`
+### `client/assets/ui/board/`
 
 - **`backing_v1.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`backing_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
@@ -40,7 +40,6 @@
 - **`cobweb.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
-- **`panel.png`** — produced-by: — · consumed-by: `client/scripts/ui/popup_theme.gd` (load)
 - **`parch_flavor_0.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`parch_flavor_1.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`parch_v1_0.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
@@ -58,6 +57,10 @@
 - **`torch_sconce.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/board/board_decor.gd` (load)
 - **`votive.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`wall_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
+
+### `client/assets/ui/shared/`
+
+- **`panel.png`** — produced-by: — · consumed-by: `client/scripts/ui/popup_theme.gd` (load)
 
 ### `client/scenes/`
 
@@ -134,19 +137,19 @@
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
 
 - `client/assets/tiles/tiles.png`
-- `client/assets/ui/_frame_v1_src.png`
-- `client/assets/ui/_proto_board.png`
-- `client/assets/ui/_slices/paper_band1.png`
-- `client/assets/ui/board_placard.png`
-- `client/assets/ui/collegium_logo.png`
-- `client/assets/ui/foxing.png`
-- `client/assets/ui/parch_live_0.png`
-- `client/assets/ui/parch_live_0_l.png`
-- `client/assets/ui/parch_live_0_r.png`
-- `client/assets/ui/parch_live_1.png`
-- `client/assets/ui/parch_live_1_l.png`
-- `client/assets/ui/parch_live_1_r.png`
-- `client/assets/ui/wall_v1.png`
+- `client/assets/ui/_src/_frame_v1_src.png`
+- `client/assets/ui/_src/_proto_board.png`
+- `client/assets/ui/_src/_slices/paper_band1.png`
+- `client/assets/ui/board/board_placard.png`
+- `client/assets/ui/board/collegium_logo.png`
+- `client/assets/ui/board/foxing.png`
+- `client/assets/ui/board/parch_live_0.png`
+- `client/assets/ui/board/parch_live_0_l.png`
+- `client/assets/ui/board/parch_live_0_r.png`
+- `client/assets/ui/board/parch_live_1.png`
+- `client/assets/ui/board/parch_live_1_l.png`
+- `client/assets/ui/board/parch_live_1_r.png`
+- `client/assets/ui/board/wall_v1.png`
 
 
 ## Dangling references (resolvable ref, file absent) — advisory
@@ -158,6 +161,6 @@
 
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
-- `client/scripts/main.gd:2378` — `load/preload normal_path`
-- `client/scripts/main.gd:2405` — `load/preload path`
-- `client/scripts/main.gd:2409` — `load/preload normal_path`
+- `client/scripts/main.gd:2382` — `load/preload normal_path`
+- `client/scripts/main.gd:2409` — `load/preload path`
+- `client/scripts/main.gd:2413` — `load/preload normal_path`

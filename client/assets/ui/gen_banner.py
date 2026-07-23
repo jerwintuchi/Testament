@@ -48,7 +48,7 @@ C_HI   = (124, 44, 36)
 BONE_DK = (86, 80, 68)
 BONE_LT = (150, 142, 122)
 IMPRINT_A = 0.46
-EMB_SRC = "collegium_logo.png"
+EMB_SRC = "board/collegium_logo.png"
 
 HEM = 0.055            # top hem (pole sleeve) fraction
 SOLID = 0.80           # cloth is full down to here; the ragged/holed/threaded tatter lives below
@@ -225,9 +225,9 @@ def normal_px(x, y):
 
 
 def main():
-    A.write_png("banner_v1.png", W, H, banner_px)
+    A.write_png("board/banner_v1.png", W, H, banner_px)
     print("wrote banner_v1.png (%dx%d) — dim tattered crimson standard, subdued imprint" % (W, H))
-    A.write_png("banner_v1_n.png", W, H, normal_px)
+    A.write_png("board/banner_v1_n.png", W, H, normal_px)
     print("wrote banner_v1_n.png (%dx%d) — fold-relief normal for board_surface.gdshader" % (W, H))
 
 

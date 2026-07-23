@@ -9,10 +9,10 @@ extends Control
 const SZ := 16.0
 
 const BADGE_TEX := {
-	"INVESTIGATE": "res://assets/ui/badge_investigate.png",
-	"ELIMINATE":   "res://assets/ui/badge_eliminate.png",
-	"CAPTURE":     "res://assets/ui/badge_capture.png",
-	"BANISH":      "res://assets/ui/badge_banish.png",
+	"INVESTIGATE": "res://assets/ui/board/badge_investigate.png",
+	"ELIMINATE":   "res://assets/ui/board/badge_eliminate.png",
+	"CAPTURE":     "res://assets/ui/board/badge_capture.png",
+	"BANISH":      "res://assets/ui/board/badge_banish.png",
 }
 const INK := Color(0x2A / 255.0, 0x21 / 255.0, 0x15 / 255.0)   # #2A2115 — brown-black ink
 

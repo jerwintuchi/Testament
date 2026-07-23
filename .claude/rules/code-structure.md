@@ -90,20 +90,48 @@ toward a **thin shell**: boot, autoload wiring, and the `_on_message` router tha
 client/scripts/
   main.gd            — boot + the _on_message router (delegates only)
   net.gd             — socket service (autoload-style)
-  core/              — screen_manager.gd (Screen enum + _show_*), session_state.gd (render copy)
-  world/             — walkable_world.gd, player.gd, space_view.gd
-  board/             — contract_board.(tscn+gd), notice_reader.gd, seal_block.gd,
-                       + the existing board_geometry/board_decor/board_bar/notice/
-                         wax_seal/verb_badge/ornament_scrollbar
+  core/              — pixel_scale.gd, debug_capture.gd, catalog.gd            [DONE TD-069]
+                       + screen_manager.gd (Screen enum + _show_*), session_state.gd
+  world/             — player.gd, space_view.gd                               [DONE TD-069]
+                       + walkable_world.gd
+  board/             — board_geometry/board_decor/board_bar/notice/            [DONE TD-069]
+                       wax_seal/verb_badge/ornament_scrollbar
+                       + contract_board.(tscn+gd), notice_reader.gd, seal_block.gd
   stations/          — station_popup.gd, quartermaster.gd
-  ui/                — theme.gd, widgets.gd (_card_label/_hrule/focus ring/…)
+  ui/                — fonts.gd, popup_theme.gd, rite_banner.gd, widgets.gd    [DONE TD-067/069]
 ```
+
+The **folders** are done (TD-069); what remains is pulling the still-in-`main.gd` features out into
+the files marked `+` above (TD-067's queued tranches).
 
 Rules while the debt is paid down:
 - **New client features do NOT enter `main.gd`.** They start as their own file/scene.
 - Each extraction is its **own spec (R#→T#→test) + commit**, verified by a
   `--board-preview`/screen capture, `git diff` scoped to `client/ specs/ docs/`.
 - Behavior is unchanged by an extraction (I1/I2 hold); a refactor is not a redesign.
+
+## S5b — Assets are grouped by feature too (TD-069)
+
+The same rule as S2.2, applied to art. `client/assets/ui/` was one 58-file directory; a feature
+now owns a folder, so adding the Quartermaster's art does not deepen the Contract Board's pile.
+
+```
+client/assets/ui/board/    the Contract Board's art (+ its .gdshader)
+client/assets/ui/shared/   art worn by every station (panel.png, the popup 9-slice)
+client/assets/ui/_src/     reference/source art — never loaded at runtime
+client/assets/ui/          the generators only (ashember.py, pngio.py, gen_*.py)
+```
+
+Rules:
+- A new feature's art starts in **its own folder**, mirroring its `scripts/<feature>/`.
+- Generators keep **literal** relative output paths (`A.write_png("board/foo.png", …)`). Do NOT
+  route them through a computed root: `tools/asset_map.py` derives producer edges from those
+  literals, and a path helper silently deletes them from the map.
+- Moving art means regenerating `.import` (its `dest_files` embeds a path hash) and, if a moved
+  script declares `class_name`, the global class cache. See `dev-environment.md` §7.
+- After any move, `python3 tools/asset_map.py --selftest && --check`. **`--check` alone is not
+  enough** — it only compares the map against itself, so it stays green while the real edge
+  assertions rot. The selftest sat red from TD-058 to TD-069 for exactly that reason.
 
 ## S6 — Performance is architecture, not file layout
 

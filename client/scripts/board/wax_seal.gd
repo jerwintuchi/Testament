@@ -6,7 +6,7 @@ extends Control
 ## as `WaxSeal`, not a global class_name, so it resolves headless (TD-029/30). Texture is
 ## authored by `assets/ui/gen_emblems.py` (@consumes collegium_logo.png).
 
-const SEAL_TEX := "res://assets/ui/seal_collegium.png"
+const SEAL_TEX := "res://assets/ui/board/seal_collegium.png"
 # The EMPTY SOCKET (TD-063/R203): unsealed, the control draws only a low-opacity dashed
 # circle marking where the wax will land — the old ghost-wax texture + solid ring are gone
 # (author ruling: broken lines, lower opacity, no faint seal).

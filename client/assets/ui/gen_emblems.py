@@ -29,7 +29,7 @@ SS = 3  # supersample factor for painterly (anti-aliased) edges
 # deliberately not any Origin hue (those seals are archived, TD-060). The debossed device
 # is the canonical Collegium emblem, read from collegium_logo.png (gen_logo.py output).
 COLLEGIUM_WAX = {"deep": (52, 18, 16), "base": (104, 38, 32), "hi": (172, 102, 84), "rim": (30, 11, 10)}
-EMB_SRC = "collegium_logo.png"
+EMB_SRC = "board/collegium_logo.png"
 
 LX, LY = -0.66, -0.66   # key-light direction (points toward the light: upper-left)
 
@@ -303,14 +303,14 @@ def _supersample(W, H, sample):
 
 
 def main():
-    A.write_png("seal_collegium.png", 48, 48, make_collegium_seal())
+    A.write_png("board/seal_collegium.png", 48, 48, make_collegium_seal())
     print("wrote seal_collegium.png")
     for v in ("investigate", "eliminate", "capture", "banish"):
-        A.write_png("badge_%s.png" % v, 24, 24, make_badge(v))
+        A.write_png("board/badge_%s.png" % v, 24, 24, make_badge(v))
         print("wrote badge_%s.png" % v)
-    A.write_png("torch_sconce.png", 12, 20, make_sconce())
+    A.write_png("board/torch_sconce.png", 12, 20, make_sconce())
     print("wrote torch_sconce.png")
-    A.write_png("spark.png", 8, 8, make_spark())
+    A.write_png("board/spark.png", 8, 8, make_spark())
     print("wrote spark.png")
     # No crest here: the board's emblem is the bronze seal struck by gen_header.py (TD-053).
     # The old radiant-star medallion (make_crest/_sig_star) went when its double-producer with

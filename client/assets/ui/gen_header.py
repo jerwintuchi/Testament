@@ -275,9 +275,9 @@ def main(ascii_only=False):
     if ascii_only:
         print("=== board_header ===\n" + _ascii(HW, HH, plaque))
         return
-    A.write_png("board_header.png", HW, HH, plaque)
+    A.write_png("board/board_header.png", HW, HH, plaque)
     print("wrote board_header.png (%dx%d)" % (HW, HH))
-    A.write_png("board_header_n.png", HW, HH, _normal_px(plaque))
+    A.write_png("board/board_header_n.png", HW, HH, _normal_px(plaque))
     print("wrote board_header_n.png (%dx%d) — carved relief for board_surface.gdshader" % (HW, HH))
 
 

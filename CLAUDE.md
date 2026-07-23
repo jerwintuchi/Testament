@@ -146,6 +146,23 @@ holds hover-focus — are nondeterministic run-to-run, proven by a same-build co
 tranches** (their own commits): `board/notice_reader.gd` (reader+seal+animation+cooldown),
 `board/contract_board.gd` (the board shell; leaves `main.gd` a thin router).
 
+Completed: **TD-069** — client **scripts + assets grouped by feature** (canon S2.2/S5/S5b), on the
+author's request for a scalable tree. Pure relocation, no logic touched. Scripts to the S5 target:
+`scripts/core/` (pixel_scale, debug_capture, catalog), `scripts/world/` (player, space_view),
+`scripts/board/` (board_geometry/decor/bar, notice, wax_seal, verb_badge, ornament_scrollbar),
+`scripts/ui/` now *genuinely* shared (fonts, popup_theme, rite_banner, widgets), `main.gd`+`net.gd`
+at root. Assets out of one 58-file directory into `assets/ui/board/`, `assets/ui/shared/`
+(panel.png), `assets/ui/_src/` (reference art), leaving `assets/ui/` holding only the generators.
+Generators keep **literal** output paths (`write_png("board/x.png")`) — `asset_map.py` derives
+producer edges from those literals, so a computed root would silently delete half the map. Gotchas
+now in `dev-environment.md` §7: moving a `class_name` script invalidates
+`.godot/global_script_class_cache.cfg` (delete + `--import` twice), and moved PNGs need `.import`
+regenerated. **Found:** `asset_map.py --selftest` had been **red since TD-058** (it still asserted
+the deleted `board_seal.png`) — TD-051's named test was failing unnoticed because `--check` only
+compares the map to itself. Re-pinned + green. Verified: parse clean; board identical across
+`--reader`/`--reader-cycle`/`--sealed`/`--rite-banner`/`--board-empty` with no errors and
+`board live=` once per run; five generators reproduced **byte-identical** art from the new paths.
+
 Completed: **`specs/reader-swap/`** (TD-068) — taking a writ down / putting it back no longer
 rebuilds the board, on the author's playtest. **COMPLETE (T232–T235, client render only):**
 `_select_board_card` cross-faded into a full `_rebuild_popup_body`, so every open AND close re-ran

@@ -88,6 +88,6 @@ def write_png(path, w, h):
 
 if __name__ == "__main__":
     import os
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "panel.png")
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shared", "panel.png")
     write_png(out, W, H)
     print("wrote", out, f"({W}x{H}, 9-slice margin {MARGIN})")

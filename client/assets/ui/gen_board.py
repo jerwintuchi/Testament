@@ -131,7 +131,7 @@ def torn_card(seed):
 if __name__ == "__main__":
     import os
     here = os.path.dirname(os.path.abspath(__file__))
-    write_png(os.path.join(here, "board_wood.png"), WOOD_W, WOOD_H, wood_pixel)
+    write_png(os.path.join(here, "board", "board_wood.png"), WOOD_W, WOOD_H, wood_pixel)
     for i in range(4):
-        write_png(os.path.join(here, "parch_card_%d.png" % i), CARD_W, CARD_H, torn_card(i * 101 + 7))
+        write_png(os.path.join(here, "board", "parch_card_%d.png" % i), CARD_W, CARD_H, torn_card(i * 101 + 7))
     print("wrote board_wood.png (64x64, m16) + parch_card_0..3.png (182x118, torn)")

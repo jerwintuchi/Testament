@@ -234,20 +234,22 @@ def selftest():
             ok = False
             print("FAIL:", msg)
 
-    # V1 — known edges
-    seal = "client/assets/ui/board_seal.png"
-    check(any("gen_header.py" in p for p in m["producers"].get(seal, [])),
-          "board_seal.png should be produced by gen_header.py")
-    check(any("main.gd" in c for c, _ in m["consumers"].get(seal, set())),
-          "board_seal.png should be consumed by main.gd")
-    check(any("board_geometry.gd" in p for p in m["preloads"].get("client/scripts/ui/board_decor.gd", [])),
-          "board_decor.gd should preload board_geometry.gd")
+    # V1 — known edges. These are pinned to real, current wiring: a rename or a move must
+    # update them, and a deleted asset must be dropped (the board_seal.png pair outlived
+    # TD-058, which removed that asset, and sat red until the TD-069 reorg noticed).
+    hdr = "client/assets/ui/board/board_header.png"
+    check(any("gen_header.py" in p for p in m["producers"].get(hdr, [])),
+          "board/board_header.png should be produced by gen_header.py")
+    check(any("main.gd" in c for c, _ in m["consumers"].get(hdr, set())),
+          "board/board_header.png should be consumed by main.gd")
+    check(any("board_geometry.gd" in p for p in m["preloads"].get("client/scripts/board/board_decor.gd", [])),
+          "board/board_decor.gd should preload board/board_geometry.gd")
     check(any("main.tscn" in c for c, _ in m["loaded_by"].get("client/scripts/main.gd", set())),
           "main.gd should be loaded-by main.tscn (ext_resource)")
     # V3 — templating resolved
-    check("client/assets/ui/parch_v1_0.png" in m["producers"] or
-          "client/assets/ui/parch_v1_0.png" in m["consumers"],
-          "parch_v1_%d.png should expand to parch_v1_0.png")
+    check("client/assets/ui/board/parch_v1_0.png" in m["producers"] or
+          "client/assets/ui/board/parch_v1_0.png" in m["consumers"],
+          "board/parch_v1_%d.png should expand to board/parch_v1_0.png")
     # V2 — determinism
     check(txt == generate(), "generation should be deterministic (byte-identical)")
     print("selftest:", "OK" if ok else "FAILED")

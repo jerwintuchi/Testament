@@ -72,7 +72,7 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool, banne
 		# Contact shadow: the banner cast onto the masonry, offset down-right (the board's ONE
 		# light convention), so the cloth reads as hung proud of the wall, not painted on it.
 		var bshadow := Sprite2D.new()
-		bshadow.texture = load("res://assets/ui/banner_v1.png") as Texture2D
+		bshadow.texture = load("res://assets/ui/board/banner_v1.png") as Texture2D
 		bshadow.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		bshadow.scale = Vector2(bs, bs)
 		bshadow.centered = true
@@ -85,7 +85,7 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool, banne
 		# sconce reaches, dark up top — not a flat baked sprite. Brightness comes from the shader, so
 		# modulate is white; NEAREST for crisp pixels. Falls back to a dim baked read if unlit.
 		var banner := Sprite2D.new()
-		banner.texture = load("res://assets/ui/banner_v1.png") as Texture2D
+		banner.texture = load("res://assets/ui/board/banner_v1.png") as Texture2D
 		banner.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		banner.scale = Vector2(bs, bs)
 		banner.centered = true
@@ -117,7 +117,7 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool, banne
 		# Iron sconce (T-bracket): its top bar is the cup. Centered sprite (12x20 @1.4 -> 28h),
 		# so top ≈ position.y-14; place position.y = cup_y+12 to seat the cup bar around cup_y.
 		var sconce := Sprite2D.new()
-		sconce.texture = load("res://assets/ui/torch_sconce.png") as Texture2D
+		sconce.texture = load("res://assets/ui/board/torch_sconce.png") as Texture2D
 		sconce.scale = Vector2(1.4, 1.4)
 		sconce.position = Vector2(torch_x, cup_y + 12.0)
 		sconce.z_index = 3
@@ -125,7 +125,7 @@ static func add_torches(stone_bg: Node, vp: Vector2, reduced_motion: bool, banne
 		# Glow: a SMALL, DIM additive halo hugging the flame (TD-048 dungeon re-grade — was a
 		# 1.35x candle-pool at a=0.52; now a tight cup halo with near-zero throw onto the board).
 		var glow := Sprite2D.new()
-		glow.texture = load("res://assets/ui/torch_glow.png") as Texture2D
+		glow.texture = load("res://assets/ui/board/torch_glow.png") as Texture2D
 		glow.scale = Vector2(0.7, 0.78)
 		glow.position = Vector2(torch_x, cup_y - 8.0)
 		glow.material = BoardGeo.additive_material()
@@ -157,7 +157,7 @@ static func torch_flame(base: Vector2, ember: Color, reduced_motion: bool) -> No
 	var fire := CPUParticles2D.new()
 	fire.position = base
 	fire.z_index = 4                       # a wall fixture; the paper hangs in front
-	fire.texture = load("res://assets/ui/spark.png") as Texture2D
+	fire.texture = load("res://assets/ui/board/spark.png") as Texture2D
 	fire.material = BoardGeo.additive_material()
 	fire.local_coords = false              # particles trail in world space as the flame licks
 	fire.amount = 20
@@ -206,7 +206,7 @@ static func _flame_ramp() -> Gradient:
 # sits at the cup lip (`base`). Additive, ember-tinted, matching the live flame's footprint.
 static func _static_flame(base: Vector2, ember: Color) -> Sprite2D:
 	var spr := Sprite2D.new()
-	var sheet := load("res://assets/ui/torch_flame.png") as Texture2D
+	var sheet := load("res://assets/ui/board/torch_flame.png") as Texture2D
 	if sheet != null:
 		var at := AtlasTexture.new()
 		at.atlas = sheet

@@ -291,7 +291,7 @@ def sconce_px(x, y):
 
 # ── Emit + verify ────────────────────────────────────────────────────────────
 def _out(name):
-    return os.path.join(HERE, name)
+    return os.path.join(HERE, "board", name)
 
 
 if __name__ == "__main__":
