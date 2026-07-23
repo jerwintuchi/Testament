@@ -78,3 +78,38 @@
   (canon S5). It should be built to survive TD-067's remaining tranches unchanged.
 - The full painted title plate (a carved TESTAMENT sign via `gen_header`'s idiom) is deliberately
   **out of scope** — it needs a generator task and belongs to its own spec.
+
+## Phase D — The title screen (own commit)
+
+- [x] T244 [R231 / V6] — **`gen_nave.py` → `assets/ui/title/nave.png`.** The empty nave, generated
+      at 640×360: a real one-point corridor projection (every pixel ray-cast to floor / vault /
+      arcade / far wall with a depth `t`), an arcade of arched bays, worn flags, one leaning daylight
+      shaft, one candle. No figure of any kind.
+      Test: **V6** — `assert_on_palette` passes; the plate was iterated against captures. Two
+      rejected drafts are worth recording: a *vertical* shaft read as a flame or a laser rather than
+      light, and flat vertical piers read as a fence — the corridor projection is what made the bays
+      converge. Ordered 4×4 dithering was needed because a 5-step stone ramp turns a smooth falloff
+      into visible contour rings.
+
+- [x] T245 [R232 / P126 / V6, V7] — **`_show_title`.** `Screen.TITLE` added and booted into; gilt
+      Cinzel options with no button chrome; **no** name field, code field, or status line. `Return to
+      your expedition` is listed first and **only** when a token exists.
+      Test: **V7** — `--title-preview` shows four options, `--title-preview --no-token` shows three.
+      `--no-token` clears a real saved token, not just the seeded one (the first version showed
+      Return anyway because a live `reconnect-token.txt` was on disk).
+
+- [x] T246 [R231 / V6] — **Integer-scale the plate.** `_fit_nave()` sizes it to the largest integer
+      multiple that fits and centres it, with `_nave_bg` filling the remainder in the plate's own
+      black; re-fit on viewport resize.
+      Test: **V6** — at 1920×1080 (logical 952×520) the plate draws at 1× centred with crisp pixels.
+      The first version used `STRETCH_KEEP_ASPECT_CENTERED`, which scaled 1.44× and softened the
+      pixel grid the whole project is built on.
+
+- [x] T247 [R233 / V7] — **Room setup, one screen deeper.** `_show_room_setup(mode)`: **New
+      Expedition** asks for a name only, **Join Expedition** for name + Room code; both reuse the
+      Phase B plate and lit masonry, both offer **Back**. Debug: `--setup-create`, `--setup-join`.
+      Test: **V7** — both plates captured; the R225 empty-name/empty-code guards still hold.
+
+- [x] T248 [R234 / V8] — **Hall of Petitions** enters `docs/GLOSSARY.md` with a DECISION_LOG note.
+      Test: **V8** — the entry is present. (Using the name *in game* lands with Phase C, which
+      rebuilds the lobby body.)

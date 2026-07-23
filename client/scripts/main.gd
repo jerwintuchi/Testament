@@ -5,7 +5,7 @@ extends Node2D
 ## server event; user input only ever *sends* an intention. All session state
 ## below is a render copy of what the server said, never locally derived.
 
-enum Screen { MENU, LOBBY, DEPLOYING, FIELD, TESTAMENT, RECONNECTING }
+enum Screen { TITLE, MENU, LOBBY, DEPLOYING, FIELD, TESTAMENT, RECONNECTING }
 
 # The wire-protocol contract, codegen'd from src/shared (pnpm gen:protocol). The
 # server references the same names, so message types, error codes, phases, and the
@@ -45,7 +45,7 @@ const TOKEN_PATH := "user://reconnect-token.txt"
 const NAME_PATH := "user://display-name.txt"
 
 var _net: NetClient
-var _screen: Screen = Screen.MENU
+var _screen: Screen = Screen.TITLE
 
 # ── Server-derived session state ─────────────────────────────────────────────
 var _self_id := ""
@@ -67,7 +67,10 @@ var _awaiting_resume := false     # sent RECONNECT, awaiting STATE_RESYNC or an 
 # ── UI shell ─────────────────────────────────────────────────────────────────
 var _root: VBoxContainer
 var _status: Label
-var _menu_bg: Control              # the menu's lit masonry backdrop (TD-071), MENU screen only
+var _menu_bg: Control              # the room-setup screen's lit masonry backdrop (TD-071)
+var _nave: TextureRect             # the title screen's held image (R231), TITLE screen only
+var _nave_bg: ColorRect            # fills whatever the integer-scaled plate does not cover
+var _setup_mode := ""              # "create" or "join" — which room-setup plate is showing
 var _menu_stone: TextureRect       # the brick surface inside it; also the torches' host
 var _ui_theme: Theme               # the gothic Theme, shared by the station popup and the menu
 var _name_input: LineEdit
@@ -151,6 +154,24 @@ func _ready() -> void:
 	_menu_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_menu_bg.visible = false
 	layer.add_child(_menu_bg)
+	# The title screen's held image: the empty nave (R231). A generated 640x360 plate drawn at an
+	# INTEGER scale and centred, with its own near-black filling the remainder — never fractionally
+	# stretched, so the pixel grid survives at every window size.
+	_nave_bg = ColorRect.new()
+	_nave_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_nave_bg.color = NAVE_BLACK            # the plate's own darkest value, so the fill is invisible
+	_nave_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_nave_bg.visible = false
+	layer.add_child(_nave_bg)
+	_nave = TextureRect.new()
+	_nave.texture = load("res://assets/ui/title/nave.png") as Texture2D
+	_nave.stretch_mode = TextureRect.STRETCH_SCALE
+	_nave.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_nave.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_nave.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_nave.visible = false
+	layer.add_child(_nave)
+
 	_menu_stone = TextureRect.new()
 	_menu_stone.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_menu_stone.texture = load("res://assets/ui/board/stone_tile.png") as Texture2D
@@ -341,7 +362,7 @@ func _ready() -> void:
 
 	_reconnect_token = _load_token()
 	_net.open(_server_url())
-	_show_menu()
+	_show_title()
 
 	# Dev-only: `-- --board-preview` opens the Contract Board over fixture intel, with no
 	# server and no walking, so the board's art can be iterated against a screenshot
@@ -362,9 +383,15 @@ func _ready() -> void:
 	# `-- --menu-preview` re-shows the menu with a fake reconnect token, so the Resume block —
 	# which only exists when there is an expedition to return to — is capturable unattended.
 	# Display-only: the token is never sent, the preview just proves the layout.
-	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--menu-preview"):
-		_reconnect_token = "preview-token"
-		call_deferred("_show_menu")
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--title-preview"):
+		# display only — never sent from the preview; --no-token captures the 3-option form even
+		# when a real token happens to be on disk.
+		_reconnect_token = "" if OS.get_cmdline_user_args().has("--no-token") else "preview-token"
+		call_deferred("_show_title")
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--setup-create"):
+		call_deferred("_show_room_setup", "create")
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--setup-join"):
+		call_deferred("_show_room_setup", "join")
 
 # Fixture board: EIGHT contracts' worth of ContractIntel (canonical BOARD_SIZE=8, TD-045),
 # the exact shape the server's `toContractIntel` puts on the wire (contractId, tier, origin,
@@ -513,6 +540,7 @@ func _focus_first_notice() -> void:
 # scroll size and rebuild its body (the notice scatter is resolution-scaled), then
 # re-center the panel. Cheap and only runs while a popup is open.
 func _on_viewport_resized() -> void:
+	_fit_nave()                     # the title is not a popup, but it is resolution-sensitive
 	if not _menu_open:
 		return
 	var vp := get_viewport_rect().size
@@ -680,32 +708,98 @@ func _on_socket_opened() -> void:
 		_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
 
 func _on_socket_closed() -> void:
-	if _screen == Screen.MENU or _screen == Screen.TESTAMENT:
+	if _screen == Screen.TITLE or _screen == Screen.MENU or _screen == Screen.TESTAMENT:
 		_set_status("server offline. start it with: pnpm dev:server")
 	else:
 		_show_reconnecting()
 
 # ── Screens ──────────────────────────────────────────────────────────────────
 
+# ── The title screen ────────────────────────────────────────────────────────
+# A held image and a short list of ways in. Contemplation before preparation (R231/R232):
+# no name field, no code field, no status line, and above all no figure — a title screen
+# showing an Incarnate would leak the mystery the game is built on.
+func _show_title() -> void:
+	_screen = Screen.TITLE
+	_world.visible = false
+	_clear()
+	_nave_bg.visible = true
+	_nave.visible = true
+	_fit_nave()
+	_status.visible = false        # the title carries no status line (R232) — it is an image
+	var vp := get_viewport_rect().size
+
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(0, vp.y * 0.30)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(spacer)
+
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_theme_constant_override("separation", 4)
+	_root.add_child(col)
+
+	col.add_child(Widgets.engraved_line("TESTAMENT", 26, Color(0.86, 0.72, 0.42), 700))
+	col.add_child(_menu_gap(10))
+	# The recovery path is listed FIRST and only when there is something live to return to —
+	# never a dead option (R232). Canon I7 keeps expedition state ephemeral, so this rejoins a
+	# running expedition; it is not a save-game load.
+	if _reconnect_token != "":
+		_title_option(col, "Return to your expedition", func():
+			if _net.is_open():
+				_awaiting_resume = true
+				_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
+			else:
+				_set_status("still connecting, try again in a moment"))
+	_title_option(col, "New Expedition", func(): _show_room_setup("create"))
+	_title_option(col, "Join Expedition", func(): _show_room_setup("join"))
+	_title_option(col, "Quit", func(): get_tree().quit())
+
+# One title choice: gilt Cinzel on the nave, no button chrome — the screen is an image, and a
+# row of stone-and-gold buttons would turn it back into a dialog.
+func _title_option(host: Node, text: String, on_pressed: Callable) -> void:
+	var b := Button.new()
+	b.text = text
+	b.flat = true
+	b.focus_mode = Control.FOCUS_ALL
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.add_theme_font_size_override("font_size", 13)
+	var font := Fonts.cinzel(500)
+	if font != null:
+		b.add_theme_font_override("font", font)
+	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(st, Color(0.86, 0.74, 0.46) if st == "font_color" else Color(1.0, 0.92, 0.66))
+	var empty := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		b.add_theme_stylebox_override(st, empty)
+	b.add_theme_stylebox_override("focus", Widgets.focus_ring())
+	b.pressed.connect(on_pressed)
+	host.add_child(b)
+
+# ── Room setup ──────────────────────────────────────────────────────────────
+# One screen deeper than the title: the plate that actually asks for what its path needs
+# (R233). "create" wants only a name; "join" wants a name and a Room code.
+func _show_room_setup(mode: String) -> void:
+	_setup_mode = mode
+	_show_menu()
+
 func _show_menu() -> void:
 	_screen = Screen.MENU
 	_world.visible = false
 	_clear()
-	# Light the masonry behind the panel (R227). add_torches rebuilds its host's children, so it
-	# is re-run per show — the menu is entered rarely and the rig is cheap.
 	_menu_bg.visible = true
 	BoardDecor.add_torches(_menu_stone, get_viewport_rect().size, _reduced_motion)
+	var joining := _setup_mode == "join"
 
 	var vp := get_viewport_rect().size
-	# Push the plate off the top edge without hardcoding a pixel: the panel is centred in the
-	# remaining space, so the layout holds at every integer scale (R227).
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, vp.y * 0.055)
+	spacer.custom_minimum_size = Vector2(0, vp.y * 0.14)
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(spacer)
 
 	var plate := PanelContainer.new()
-	plate.theme = _ui_theme                       # the same 9-slice gothic panel the stations wear
+	plate.theme = _ui_theme
 	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	plate.custom_minimum_size = Vector2(vp.x * 0.46, 0)
 	_root.add_child(plate)
@@ -718,57 +812,61 @@ func _show_menu() -> void:
 	col.add_theme_constant_override("separation", 5)
 	pad.add_child(col)
 
-	# The title is CARVED, not printed — the same engraved two-pass lettering as the board's
-	# sign, so the menu reads as an object in the Collegium (R227).
-	col.add_child(Widgets.engraved_line("TESTAMENT", 20, Color(0.86, 0.72, 0.42), 700))
+	col.add_child(Widgets.engraved_line("JOIN EXPEDITION" if joining else "NEW EXPEDITION",
+		15, Color(0.86, 0.72, 0.42), 700))
 	col.add_child(Widgets.hrule(Color(0.42, 0.28, 0.16, 0.7)))
 
-	# Block 1 — identity.
 	col.add_child(_menu_caption("YOUR NAME"))
 	_name_input = _reparent_to(_make_line_edit("your name", _load_name()), col)
 	_name_input.add_theme_font_size_override("font_size", MENU_FS)
 
-	# Block 2 — create.
-	_menu_action(col, "Create Room", func():
-		var who := _claim_name()
-		if who == "":
-			return
-		_pending_join = true
-		_net.send_message(Protocol.CREATE_ROOM, {"displayName": who}))
+	if joining:
+		col.add_child(_menu_gap(3))
+		col.add_child(_menu_caption("ROOM CODE"))
+		_code_input = _reparent_to(_make_line_edit("e.g. ABC234", ""), col)
+		_code_input.add_theme_font_size_override("font_size", MENU_FS)
+		col.add_child(_menu_gap(3))
+		_menu_action(col, "Join Room", func():
+			var who := _claim_name()
+			if who == "":
+				return
+			var code := _code_input.text.strip_edges().to_upper()
+			if code == "":
+				_set_status("enter a room code to join")
+				return
+			_pending_join = true
+			_net.send_message(Protocol.JOIN_ROOM, {"code": code, "displayName": who}))
+	else:
+		col.add_child(_menu_gap(3))
+		_menu_action(col, "Create Room", func():
+			var who := _claim_name()
+			if who == "":
+				return
+			_pending_join = true
+			_net.send_message(Protocol.CREATE_ROOM, {"displayName": who}))
 
 	col.add_child(_menu_gap(3))
 	col.add_child(Widgets.hrule(Color(0.42, 0.28, 0.16, 0.45)))
-
-	# Block 3 — join.
-	col.add_child(_menu_caption("JOIN WITH A ROOM CODE"))
-	_code_input = _reparent_to(_make_line_edit("room code (e.g. ABC234)", ""), col)
-	_code_input.add_theme_font_size_override("font_size", MENU_FS)
-	_menu_action(col, "Join Room", func():
-		var who := _claim_name()
-		if who == "":
-			return
-		var code := _code_input.text.strip_edges().to_upper()
-		if code == "":
-			_set_status("enter a room code to join")
-			return
-		_pending_join = true
-		_net.send_message(Protocol.JOIN_ROOM, {"code": code, "displayName": who}))
-
-	# Recovery path — shown only when there is something to return to, and set apart from the
-	# two ways IN so it never reads as a third equal option.
-	if _reconnect_token != "":
-		col.add_child(_menu_gap(3))
-		col.add_child(Widgets.hrule(Color(0.42, 0.28, 0.16, 0.45)))
-		_menu_action(col, "Resume unfinished expedition", func():
-			if _net.is_open():
-				_awaiting_resume = true
-				_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
-			else:
-				_set_status("still connecting, try again in a moment"))
+	_menu_action(col, "Back", func(): _show_title())
 
 # Menu control type size. The plate is budgeted to fit 360 logical px without scrolling: at the
 # theme default (~17) the fields alone overflowed and the Resume block fell off the bottom.
 const MENU_FS := 11
+
+# The nave plate's authored size and its darkest value. Drawn at an INTEGER multiple and centred,
+# with _nave_bg filling the remainder in the same black, so the pixel grid never softens (R231).
+const NAVE_SIZE := Vector2(640, 360)
+const NAVE_BLACK := Color(6.0 / 255.0, 5.0 / 255.0, 7.0 / 255.0)
+
+# Size and centre the nave at the largest integer scale that fits the viewport (never below 1x —
+# a window smaller than the plate crops rather than blurs).
+func _fit_nave() -> void:
+	if not is_instance_valid(_nave):
+		return
+	var vp := get_viewport_rect().size
+	var k := maxf(1.0, floorf(minf(vp.x / NAVE_SIZE.x, vp.y / NAVE_SIZE.y)))
+	_nave.size = NAVE_SIZE * k
+	_nave.position = ((vp - _nave.size) * 0.5).floor()
 
 # A small gilt section caption above a control group.
 func _menu_caption(text: String) -> Control:
@@ -2723,8 +2821,14 @@ func _load_token() -> String:
 func _clear() -> void:
 	for child in _root.get_children():
 		child.queue_free()
+	if is_instance_valid(_status):
+		_status.visible = true     # only the title hides it; every other screen wants it back
 	if is_instance_valid(_menu_bg):
-		_menu_bg.visible = false      # MENU turns it back on; every other screen leaves it off
+		_menu_bg.visible = false      # the room setup turns it back on; other screens leave it off
+	if is_instance_valid(_nave):
+		_nave.visible = false
+	if is_instance_valid(_nave_bg):
+		_nave_bg.visible = false
 
 func _h2(text: String) -> void:
 	var l := Label.new()

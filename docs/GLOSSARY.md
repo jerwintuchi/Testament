@@ -119,6 +119,13 @@ gives preparation teeth.
 Abandoning an accepted contract. Allowed, but it forfeits the Surety and costs some
 Collegium standing. There is no death-lock.
 
+**Hall of Petitions**
+The Collegium's staging hall: the fixed, walkable space the party occupies before deploying,
+where the Contract Board, the Quartermaster and the Deploy Gate stand. Named for the petitions
+that hang on its board — a Manifestation is *reported* by a petitioner, and the Collegium answers.
+Reached from the title screen; the player takes control of their Seeker here. (The title screen
+itself is deliberately outside it: contemplation, then preparation, then the expedition.)
+
 **Expedition**
 One full deployment against a contract, from Deploy to Extraction (or failure).
 

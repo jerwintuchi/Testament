@@ -2280,3 +2280,54 @@ load-bearing files as dead art:
 Result: **orphans: none, dangling: none** — the section now means something. Verified: `--selftest`
 and `--check` green; headless parse clean; board renders identically across `--reader-cycle`,
 `--reader` and `--board-empty` with no errors. Client + tooling only; no `src/**` change.
+
+## 2026-07-23 — TD-071 Phase D: the title screen is a held image, outside the Hall of Petitions
+
+Author redesign, mid-spec: the title screen becomes **minimalist and contemplative** — no
+characters, no combat, no monsters, no explosions. A solemn, sacred space. Choosing an option then
+takes the player into the **Hall of Petitions**, where they take control of their Seeker. The rhythm
+the game gains: **contemplation → preparation → expedition → the unknown.**
+
+This is not only taste, and the strongest argument is canonical: a title screen showing an Incarnate
+would **leak the mystery the game is built on** (Pillar 3 — understood through interpretation, never
+memorization), teaching a player what a Manifestation looks like before they read a single sign. And
+combat imagery would advertise the *failure* state, since the order's aims are witness, contain,
+redeem and killing is "a failure of understanding, not a trophy". The quiet screen is the canonical
+one, not merely the pretty one.
+
+**Rulings.** The image is **the empty nave**. There is **no "Continue"** — the ways in are **New
+Expedition** and **Join Expedition**, with **Return to your expedition** listed first and only when
+a reconnect token exists. "Continue" was rejected on the author's call, which also removed a lie the
+first draft would have shipped: canon I7 keeps expedition state ephemeral, so there is no save to
+load — only a still-live expedition to rejoin. This supersedes the earlier "keep functional terms"
+ruling **on the title screen**; `Room code` stays the field's name where a code is actually typed,
+and Create Room / Join Room stay on the room-setup plate one screen deeper.
+
+**Built (R231–R234, P126, T244–T248):**
+- `gen_nave.py` → `assets/ui/title/nave.png`, 640×360. A **real one-point corridor projection** —
+  every pixel ray-cast from the vanishing point to floor / vault / arcade / far wall with a depth
+  `t` driving perspective spacing. Two drafts were thrown away first and are worth recording: a
+  *vertical* shaft read as a flame or a laser rather than as light through a window, and flat
+  vertical piers read as a fence, because the first attempt faked perspective instead of projecting
+  it. Ordered 4×4 dithering was needed because a 5-step stone ramp turns a smooth falloff into
+  visible contour rings.
+- `Screen.TITLE`, booted into. Gilt Cinzel options with no button chrome; no name field, no code
+  field, **no status line** — it is an image and a short list of ways in (P126: the title emits only
+  `RECONNECT`, and only from Return; New/Join are pure navigation).
+- `_fit_nave()` draws the plate at the largest **integer** multiple that fits, centred, with a
+  ColorRect filling the remainder in the plate's own black. The first version used
+  `STRETCH_KEEP_ASPECT_CENTERED` and scaled 1.44× at 1920×1080, softening the pixel grid the whole
+  project rests on (TD-042).
+- `_show_room_setup(mode)` one screen deeper: **New Expedition** asks only for a name, **Join
+  Expedition** for name + Room code, both on the Phase B plate with **Back**. Phase B is reused, not
+  discarded.
+- **Hall of Petitions** enters `docs/GLOSSARY.md`. Not an invention: the fiction had already
+  converged on it — `PETITION TYPES` on the board bar, *"No petitions stand before the Collegium"*,
+  the signing **petitioner**, and "the hall" in `specs/collegium/`.
+
+Debug: `--title-preview` (+ `--no-token`), `--setup-create`, `--setup-join`. `--no-token` **clears**
+a real saved token rather than merely skipping the seeded one — the first version still showed
+Return because a live `reconnect-token.txt` was on disk. Verified: parse clean; title captured at
+1280×720 and 1920×1080; both setup plates captured; lobby + board unchanged and error-free;
+asset-map `--selftest`/`--check` green (the generator writes a **literal** relative path, per canon
+S5b, or the scanner drops nave.png's producer edge). Client + generated art only; no `src/**` change.
