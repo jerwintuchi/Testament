@@ -171,20 +171,10 @@ func _ready() -> void:
 	_nave_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_nave_bg.visible = false
 	layer.add_child(_nave_bg)
+	# The title's environment is TitleScene (TD-073); this node survives only so the older
+	# screens that reference _nave keep compiling. It is never shown.
 	_nave = TextureRect.new()
-	_nave.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_nave.texture = load("res://assets/ui/title/collegium_hall.png") as Texture2D
-	_nave.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	_nave.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	# LINEAR, not NEAREST: this is a painted environment matte, not pixel art (TD-073/R242).
-	_nave.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	_nave.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_nave.visible = false
-	# Layer 3+5: the painted candles are made to live by a shader that finds warm highlights and
-	# flickers them independently. Light2D cannot reach Control nodes (TD-047).
-	var fire := ShaderMaterial.new()
-	fire.shader = load("res://assets/ui/title/title_fire.gdshader") as Shader
-	_nave.material = fire if not OS.get_cmdline_user_args().has("--no-fire") else null
 	layer.add_child(_nave)
 
 	_menu_stone = TextureRect.new()
@@ -749,7 +739,7 @@ func _show_title() -> void:
 	var vp := get_viewport_rect().size
 
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, vp.y * 0.50)   # clear of the painted title
+	spacer.custom_minimum_size = Vector2(0, vp.y * 0.17)
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(spacer)
 
@@ -759,10 +749,27 @@ func _show_title() -> void:
 	col.add_theme_constant_override("separation", 4)
 	_root.add_child(col)
 
-	# The plate already carries the Collegium device, "TESTAMENT" and its rule, painted in the
-	# reference's own typography — better than anything we would redraw, and drawing ours on top
-	# doubled them (the uncanny read). Only the interactive options are rendered live; the spacer
-	# above drops them to where the painted menu sat.
+	# The environment carries no title now (the concept-art plate is gone, TD-073), so the UI
+	# renders the device, the title and its rule again — independent of every environment layer.
+	var mark := TextureRect.new()
+	mark.texture = load("res://assets/ui/board/collegium_logo.png") as Texture2D
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # or the VBox lets it grow without bound
+	mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	mark.custom_minimum_size = Vector2(44, 38)
+	mark.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	mark.modulate = Color(0.80, 0.72, 0.56, 0.92)
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(mark)
+	col.add_child(_menu_gap(2))
+	col.add_child(Widgets.engraved_line("TESTAMENT", 26, Color(0.86, 0.72, 0.42), 700))
+	col.add_child(_menu_gap(3))
+	var rule := Widgets.hrule(Color(0.62, 0.50, 0.31, 0.75))
+	rule.custom_minimum_size = Vector2(190, 1)
+	rule.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(rule)
+	col.add_child(_menu_gap(8))
 	# The recovery path is listed FIRST and only when there is something live to return to —
 	# never a dead option (R232). Canon I7 keeps expedition state ephemeral, so this rejoins a
 	# running expedition; it is not a save-game load.

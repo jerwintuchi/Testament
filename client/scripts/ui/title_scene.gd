@@ -1,83 +1,140 @@
-## The title screen's environment: a static matte-painted Collegium with independently animated
-## layers over it (TD-073). Built on a passed-in host, the `BoardDecor.add_torches` idiom.
+## The title screen's environment: a layered Collegium hall (TD-073).
 ##
-## Every asset is OPTIONAL. A missing texture skips its layer silently, so the authored pieces
-## (see specs/title-scene/asset-manifest.md) can land one at a time and the screen keeps running
-## the whole way. That is deliberate: it decouples the engineering from the art delivery.
+## Built on a passed-in host, the `BoardDecor.add_torches` idiom. Every layer is an INDEPENDENT
+## node with its own animation, and every layer's art is OPTIONAL: until its texture exists, the
+## layer renders as a labelled BLOCKOUT in the right place, at the right size, with the right
+## motion. So composition, lighting, animation and menu flow are all reviewable now, and real art
+## drops in later with no code change — the only thing that changes is a file appearing on disk.
 ##
-## Layer 1  plate        static, never moves or animates (P128)
-## Layer 2  cloth        banners, slow sway
-##          props        censers/chains, pendulum with randomized phase
-##          vessels      candle racks, braziers (drawn WITHOUT flame)
+## The reference concept art is NOT used as the background. It lives at
+## `art/src/collegium_hall_src.png` as a composition reference only.
+##
+## Layer 1  plate        architecture — static, never moves (P128)
+## Layer 2  cloth        banners: slow sway
+##          props        censers/chains: pendulum, randomized phase
+##          vessels      candle racks, braziers (art carries NO flame — fire is Layer 3)
 ##          overlays     dust / smoke / light shafts, additive
-## Layer 3  light        flicker + breathing, in-engine
-## Layer 4  camera       2-3px idle drift + a breathing zoom, almost imperceptible
+## Layer 3  light        warm glow per fire, flicker out of step
+## Layer 4  camera       2px idle drift + a breathing zoom, almost imperceptible
 extends RefCounted
 
 const DIR := "res://assets/ui/title/"
 
-# name -> (rect in viewport fractions [cx, cy, w], z, kind)
-# `kind` drives the animation the layer gets. Positions are authored, not derived — the plate is a
-# painting, so its props sit where the painter put them.
+# Blockout palette — deliberately flat and unmistakably provisional. Nobody should mistake this
+# for finished art, which is the whole point of a blockout.
+const C_ARCH := Color(0.18, 0.17, 0.16)
+const C_ARCH_HI := Color(0.26, 0.24, 0.22)
+const C_CLOTH := Color(0.34, 0.13, 0.12)
+const C_PROP := Color(0.30, 0.25, 0.15)
+const C_VESSEL := Color(0.24, 0.22, 0.19)
+const C_OVERLAY := Color(0.55, 0.52, 0.45)
+const C_EDGE := Color(0.52, 0.48, 0.40, 0.65)
+
+# ── The composition, in viewport fractions: [cx, cy, w] plus an aspect for the blockout box. ──
+# Read off the reference: two great piers framing, an arcade receding, banners high on the near
+# piers, censers hanging inboard of them, candle racks and braziers along the floor.
+const ARCH := [
+	["pier_left.png",    Vector3(0.075, 0.500, 0.170), 2.9, "Pier L"],
+	["pier_right.png",   Vector3(0.925, 0.500, 0.170), 2.9, "Pier R"],
+	["arcade_left.png",  Vector3(0.255, 0.480, 0.190), 2.4, "Arcade L"],
+	["arcade_right.png", Vector3(0.745, 0.480, 0.190), 2.4, "Arcade R"],
+	["vault.png",        Vector3(0.500, 0.150, 0.420), 0.62, "Vault"],
+	["apse.png",         Vector3(0.500, 0.560, 0.180), 1.30, "Apse / altar"],
+	["floor.png",        Vector3(0.500, 0.880, 1.000), 0.28, "Floor"],
+]
 const CLOTH := [
-	["banner_left.png",   Vector3(0.128, 0.300, 0.150), "sway"],
-	["banner_right.png",  Vector3(0.872, 0.300, 0.150), "sway"],
-	["banner_center.png", Vector3(0.500, 0.235, 0.090), "sway"],
+	["banner_left.png",   Vector3(0.150, 0.330, 0.088), 2.20, "Banner L"],
+	["banner_right.png",  Vector3(0.850, 0.330, 0.088), 2.20, "Banner R"],
+	["banner_center.png", Vector3(0.500, 0.300, 0.055), 2.20, "Banner C"],
 ]
 const PROPS := [
-	["censer.png",  Vector3(0.318, 0.360, 0.052), "pendulum"],
-	["censer.png",  Vector3(0.682, 0.360, 0.052), "pendulum"],
-	["chandelier.png", Vector3(0.500, 0.150, 0.150), "pendulum"],
+	["censer.png", Vector3(0.330, 0.400, 0.034), 2.60, "Censer"],
+	["censer.png", Vector3(0.670, 0.400, 0.034), 2.60, "Censer"],
+	["chandelier.png", Vector3(0.500, 0.245, 0.100), 0.72, "Chandelier"],
 ]
 const VESSELS := [
-	["candle_rack.png", Vector3(0.085, 0.760, 0.190), "still"],
-	["candle_rack.png", Vector3(0.915, 0.760, 0.190), "still"],
-	["brazier.png",     Vector3(0.235, 0.815, 0.100), "still"],
-	["brazier.png",     Vector3(0.765, 0.815, 0.100), "still"],
+	["candle_rack.png", Vector3(0.105, 0.760, 0.155), 0.60, "Candle rack"],
+	["candle_rack.png", Vector3(0.895, 0.760, 0.155), 0.60, "Candle rack"],
+	["brazier.png",     Vector3(0.290, 0.830, 0.075), 0.85, "Brazier"],
+	["brazier.png",     Vector3(0.710, 0.830, 0.075), 0.85, "Brazier"],
 ]
 const OVERLAYS := [
-	["light_shaft.png",  Vector3(0.360, 0.420, 0.470), "shaft"],
-	["smoke_overlay.png", Vector3(0.500, 0.560, 1.000), "drift"],
-	["dust_overlay.png",  Vector3(0.500, 0.500, 1.000), "drift"],
+	["light_shaft.png",   Vector3(0.360, 0.420, 0.300), 2.00, "Light shaft"],
+	["smoke_overlay.png", Vector3(0.500, 0.560, 1.000), 0.56, "Smoke"],
+	["dust_overlay.png",  Vector3(0.500, 0.500, 1.000), 0.56, "Dust"],
 ]
 
-# Fires the rig lights and animates, as viewport fractions. These sit ON the vessels above; when
-# `brazier.png`/`candle_rack.png` are absent they still light the plate's painted flames.
+# Where fire burns. These are Layer 3 and exist whether or not the vessel art has arrived.
 const FIRES := [
-	Vector2(0.085, 0.735), Vector2(0.915, 0.735),
-	Vector2(0.235, 0.795), Vector2(0.765, 0.795),
-	Vector2(0.318, 0.372), Vector2(0.682, 0.372),
-	Vector2(0.500, 0.700),
+	Vector2(0.105, 0.735), Vector2(0.895, 0.735),
+	Vector2(0.290, 0.805), Vector2(0.710, 0.805),
+	Vector2(0.330, 0.418), Vector2(0.670, 0.418),
+	Vector2(0.500, 0.610),
 ]
 
 
 static func _tex(file: String) -> Texture2D:
-	# ResourceLoader.exists keeps a missing asset from spamming the log every frame it is asked for.
 	var p := DIR + file
-	if not ResourceLoader.exists(p):
-		return null
-	return load(p) as Texture2D
+	return load(p) as Texture2D if ResourceLoader.exists(p) else null
 
 
-static func _place(host: Control, tex: Texture2D, r: Vector3, z: int) -> TextureRect:
-	var vp := host.size
-	var t := TextureRect.new()
-	t.texture = tex
-	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
-	t.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # painted art, not pixel art (R242)
-	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+static func _rect_of(vp: Vector2, r: Vector3, aspect: float, tex: Texture2D) -> Rect2:
 	var w := vp.x * r.z
-	var h := w * (float(tex.get_height()) / maxf(1.0, float(tex.get_width())))
-	t.size = Vector2(w, h)
-	t.position = Vector2(vp.x * r.x - w * 0.5, vp.y * r.y - h * 0.5)
-	t.z_index = z
-	host.add_child(t)
-	return t
+	var ratio := aspect
+	if tex != null:
+		ratio = float(tex.get_height()) / maxf(1.0, float(tex.get_width()))
+	var h := w * ratio
+	return Rect2(Vector2(vp.x * r.x - w * 0.5, vp.y * r.y - h * 0.5), Vector2(w, h))
 
 
-## Build the whole environment onto `host` (a full-rect Control). Returns the root it created so
-## the caller can free it. `reduced` freezes every animation to a lit, still frame (R244).
+## One layer: real art if it exists, else a labelled blockout of identical geometry. Returns the
+## node either way, so the animation code never needs to know which it got.
+static func _layer(host: Control, e: Array, z: int, tint: Color) -> Control:
+	var tex := _tex(e[0])
+	var rect := _rect_of(host.size, e[1], e[2], tex)
+	var node: Control
+	if tex != null:
+		var t := TextureRect.new()
+		t.texture = tex
+		t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		t.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		node = t
+	else:
+		node = _blockout(tint, str(e[3]), rect.size)
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.position = rect.position
+	node.size = rect.size
+	node.z_index = z
+	host.add_child(node)
+	return node
+
+
+static func _blockout(tint: Color, label: String, size: Vector2) -> Control:
+	# A flat panel with a hairline edge and its name on it. Obvious at a glance that it is a
+	# stand-in, while still occupying exactly the footprint the real asset will.
+	var p := Panel.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = tint
+	sb.border_color = C_EDGE
+	sb.set_border_width_all(1)
+	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = size
+	if size.y > 22.0 and size.x > 34.0:
+		var l := Label.new()
+		l.text = label
+		l.add_theme_font_size_override("font_size", 7)
+		l.add_theme_color_override("font_color", Color(0.85, 0.82, 0.72, 0.80))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.set_anchors_preset(Control.PRESET_FULL_RECT)
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		p.add_child(l)
+	return p
+
+
+## Build the environment onto `host` (a full-rect Control). Returns the root it created.
+## `reduced` freezes every animation to a lit, still frame (R244).
 static func build(host: Control, reduced: bool) -> Control:
 	var root := Control.new()
 	root.name = "TitleScene"
@@ -87,69 +144,59 @@ static func build(host: Control, reduced: bool) -> Control:
 	root.size = host.size
 
 	var rng := RandomNumberGenerator.new()
-	rng.seed = 0x7E57                       # seeded: the same hall every launch, but no two
-	                                        # props in phase with each other
+	rng.seed = 0x7E57          # seeded: the same hall every launch, no two props ever in phase
 
-	# ── Layer 1: the plate. Static, always. ──
-	var plate := _tex("hall_plate.png")
-	if plate == null:
-		plate = _tex("collegium_hall.png")   # today's stand-in, until the clean plate lands
-	if plate != null:
-		var p := TextureRect.new()
-		p.texture = plate
-		p.set_anchors_preset(Control.PRESET_FULL_RECT)
-		p.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		p.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		p.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		p.z_index = -60
-		var fire_mat := ShaderMaterial.new()
-		var sh := load(DIR + "title_fire.gdshader") as Shader
-		if sh != null:
-			fire_mat.shader = sh
-			fire_mat.set_shader_parameter("anim", 0.0 if reduced else 1.0)
-			p.material = fire_mat
-		root.add_child(p)
+	var bg := ColorRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.color = Color(0.055, 0.048, 0.042)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.z_index = -70
+	root.add_child(bg)
 
-	# ── Layer 2: authored sprites, each animated by kind. ──
-	for group in [[CLOTH, -50], [PROPS, -45], [VESSELS, -40], [OVERLAYS, -30]]:
-		var entries: Array = group[0]
-		var z: int = group[1]
-		for e in entries:
-			var tex := _tex(e[0])
-			if tex == null:
-				continue                     # asset not delivered yet — skip, do not error
-			var node := _place(root, tex, e[1], z)
-			if reduced:
-				continue
-			match e[2]:
-				"sway":
-					_sway(node, rng.randf_range(5.5, 7.5), rng.randf_range(0.0, TAU))
-				"pendulum":
-					_pendulum(node, rng.randf_range(3.4, 4.6), rng.randf_range(0.0, TAU))
-				"shaft":
-					node.material = _additive()
-					_breathe(node, rng.randf_range(9.0, 13.0))
-				"drift":
-					node.material = _additive()
-					node.modulate.a = 0.22
-					_drift(node, rng.randf_range(40.0, 70.0))
+	# ── Layer 1: architecture. Static, always — this is the plate. ──
+	for e in ARCH:
+		_layer(root, e, -60, C_ARCH_HI if e[0].begins_with("vault") else C_ARCH)
 
-	# ── Layer 3: light. Warm glow at every fire, flickering out of step. ──
+	# ── Layer 2: cloth / props / vessels / overlays, each animated by kind. ──
+	for e in CLOTH:
+		var n := _layer(root, e, -50, C_CLOTH)
+		if not reduced:
+			_sway(n, rng.randf_range(5.5, 7.5), rng.randf_range(0.0, TAU))
+	for e in PROPS:
+		var n2 := _layer(root, e, -45, C_PROP)
+		if not reduced:
+			_pendulum(n2, rng.randf_range(3.4, 4.6), rng.randf_range(0.0, TAU))
+	for e in VESSELS:
+		_layer(root, e, -40, C_VESSEL)
+	for e in OVERLAYS:
+		var n3 := _layer(root, e, -30, C_OVERLAY)
+		# Full-frame overlays as SOLID blockout panels fog the whole screen and hide the layers
+		# underneath, which defeats the point of a blockout. Real art is mostly transparent, so
+		# the stand-in is barely there; it exists to prove position and motion, not coverage.
+		n3.modulate.a = 0.05 if _tex(e[0]) == null else 0.20
+		if _tex(e[0]) != null:
+			n3.material = _additive()
+		if not reduced:
+			if e[0].begins_with("light_shaft"):
+				_breathe(n3, rng.randf_range(9.0, 13.0))
+			else:
+				_drift(n3, rng.randf_range(40.0, 70.0))
+
+	# ── Layer 3: light. Warm pools at every fire, flickering out of step. ──
 	for i in FIRES.size():
 		var g := _glow(root, FIRES[i], host.size)
 		if not reduced:
 			_flicker(g, rng.randf_range(2.6, 4.2), rng.randf_range(0.0, TAU))
 
-	# ── Layer 4: camera. 2-3px of idle drift and a breathing zoom — almost imperceptible. ──
+	# ── Layer 4: camera life. ──
 	if not reduced:
 		_camera_life(root)
 	return root
 
 
 # ── Animations ───────────────────────────────────────────────────────────────
-# All of them are LOW amplitude on purpose: the brief is Elden Ring, not an animated wallpaper.
-# Every one is a looping tween, so nothing needs _process and the whole rig frees cleanly.
+# All LOW amplitude on purpose: the brief is Elden Ring, not an animated wallpaper. Every one is
+# a looping tween, so nothing needs _process and the whole rig frees cleanly with its node.
 
 static func _sway(n: Control, period: float, phase: float) -> void:
 	n.pivot_offset = Vector2(n.size.x * 0.5, 0.0)      # cloth hangs from its rod
@@ -161,16 +208,16 @@ static func _sway(n: Control, period: float, phase: float) -> void:
 
 static func _pendulum(n: Control, period: float, phase: float) -> void:
 	n.pivot_offset = Vector2(n.size.x * 0.5, 0.0)      # swings from where the chain meets the roof
-	n.rotation = deg_to_rad(-0.8)
+	n.rotation = deg_to_rad(-0.9)
 	var t := n.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	t.tween_interval(phase * 0.1)
-	t.tween_property(n, "rotation", deg_to_rad(0.8), period * 0.5)
-	t.tween_property(n, "rotation", deg_to_rad(-0.8), period * 0.5)
+	t.tween_property(n, "rotation", deg_to_rad(0.9), period * 0.5)
+	t.tween_property(n, "rotation", deg_to_rad(-0.9), period * 0.5)
 
 static func _breathe(n: Control, period: float) -> void:
 	var a := n.modulate.a
 	var t := n.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	t.tween_property(n, "modulate:a", a * 0.72, period * 0.5)
+	t.tween_property(n, "modulate:a", a * 0.65, period * 0.5)
 	t.tween_property(n, "modulate:a", a, period * 0.5)
 
 static func _drift(n: Control, period: float) -> void:
@@ -184,12 +231,12 @@ static func _flicker(n: Control, period: float, phase: float) -> void:
 	var t := n.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	t.tween_interval(phase * 0.08)
 	t.tween_property(n, "modulate:a", a * 0.70, period * 0.37)
-	t.tween_property(n, "modulate:a", a * 1.04, period * 0.29)
+	t.tween_property(n, "modulate:a", a * 1.05, period * 0.29)
 	t.tween_property(n, "modulate:a", a, period * 0.34)
 
 static func _camera_life(root: Control) -> void:
-	# The whole environment drifts a couple of pixels and breathes a fraction of a percent. Below
-	# the threshold of notice frame to frame; felt over half a minute.
+	# The environment drifts ~2px and breathes 0.4%. Below the threshold of notice frame to
+	# frame; felt over half a minute. The UI layer is separate and never moves with it.
 	var p := root.position
 	var t := root.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	t.tween_property(root, "position", p + Vector2(2.0, -1.5), 18.0)
@@ -208,16 +255,16 @@ static func _additive() -> CanvasItemMaterial:
 	return m
 
 static func _glow(root: Control, at: Vector2, vp: Vector2) -> Control:
-	# A soft warm pool. Light2D cannot reach Control nodes (TD-047), so the glow is an additive
-	# radial sprite — the same call the board's torches make.
+	# Light2D cannot reach Control nodes (TD-047), so a fire's pool is an additive radial sprite
+	# — the same call the board's torches make.
 	var g := TextureRect.new()
 	g.texture = _radial()
 	g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	g.stretch_mode = TextureRect.STRETCH_SCALE
 	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	g.material = _additive()
-	g.modulate = Color(1.0, 0.72, 0.36, 0.30)
-	var r := vp.x * 0.10
+	g.modulate = Color(1.0, 0.70, 0.34, 0.34)
+	var r := vp.x * 0.095
 	g.size = Vector2(r * 2.0, r * 1.5)
 	g.position = Vector2(vp.x * at.x - r, vp.y * at.y - r * 0.75)
 	g.z_index = -35
