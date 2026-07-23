@@ -54,9 +54,9 @@ const ARCH := [
 ]
 const CLOTH := [
 	# Banners hang ON the near piers, so they ride outward with them.
-	["banner_left.png",   Vector3(0.178, 0.345, 0.098), 2.25, "Banner L"],
-	["banner_right.png",  Vector3(0.822, 0.345, 0.098), 2.25, "Banner R"],
-	["banner_center.png", Vector3(0.500, 0.300, 0.052), 2.20, "Banner C"],
+	["banner_left.png",   Vector3(0.180, 0.415, 0.140), 2.40, "Banner L"],
+	["banner_right.png",  Vector3(0.820, 0.415, 0.140), 2.40, "Banner R"],
+	["banner_center.png", Vector3(0.500, 0.360, 0.072), 2.30, "Banner C"],
 ]
 const PROPS := [
 	# Censers hang inboard of the arcade, over the aisle.
