@@ -1,55 +1,58 @@
-# Tasks — The title screen: a matte-painted Collegium (TD-073)
+# Tasks — The title screen: a layered Collegium hall (TD-073)
 
-> T# continues global from T254. Client render + art pipeline; the named test is a capture.
-> Ordered so the screen looks right immediately (matte first), then gains life layer by layer.
+> T# continues global from T254. Client render only; the named test is a capture.
+> **Revised twice.** The single procedural plate (TD-072) and the concept-art matte were both
+> withdrawn on author ruling. The concept art is a **composition reference only** — it is not
+> shipped and not displayed. The scene is built from independent layers, each rendering a labelled
+> **blockout** until its art exists.
 
-## Phase A — The matte
+## Phase A — The rig (done)
 
-- [ ] T255 [R241, R242 / V1] — **Import the concept art.** Copy to `art/src/collegium_hall_src.png`;
-      `gen_title_matte.py` crops 1536×1024 → 16:9 by area-averaging (no distortion) and writes
-      `assets/ui/title/collegium_hall.png`. Retire the generated `title/nave.png` from the client
-      (keep `gen_nave.py` — its measured camera is reusable for field work).
-      Test: **V1** — `--title-preview` shows the matte, undistorted, with the UI legible over it.
+- [x] T255 [R241, R243 / V1] — **`ui/title_scene.gd`.** Every layer an independent node in its real
+      position, at its real size, with its real animation, drawn as a labelled placeholder until
+      its texture lands: architecture (piers/arcades/vault/apse/floor), cloth, hanging props,
+      vessels, overlays. Art is loaded by exact filename and a missing file degrades to a blockout
+      rather than erroring — which is what decouples the engineering from art delivery.
+      Test: **V1** — `--title-preview` capture shows every layer labelled and placed.
 
-## Phase B — Life, layer by layer (each its own commit)
+- [x] T256 [R243 L3 / V2] — **Fire + light.** A warm additive pool at each of seven fires with
+      **seeded, non-synchronised** flicker. `Light2D` cannot reach Control nodes (TD-047), so the
+      pool is an additive radial — the same call the board's torches make.
+      Test: **V2** — capture; no two fires pulse together.
 
-- [ ] T256 [R243 L3, L5 / V2] — **Fire + light.** A `PointLight2D` at each painted flame in the
-      matte, warm, with **seeded non-synchronised flicker**; a slow "breathing" bloom/vignette
-      overlay. This is the highest life-per-effort layer: the flames are already painted, so the
-      lights simply make them live.
-      Test: **V2** — `--lights-off` visibly removes their contribution; no two flames pulse together.
+- [x] T257 [R243 L4 / V2] — **Atmosphere.** Real `CPUParticles2D`, art-independent so they are
+      finished work now: hanging dust motes across the volume, warm embers rising off each fire,
+      cold slow incense off the censers. `preprocess = lifetime` so nothing switches on at boot.
+      Test: **V2** — capture; motes and embers read, and never cross the menu's reading area.
+      Note: `scale_amount` multiplies the 128px radial, so 1.0 is a 128px blob — the first pass
+      used unit scales and blew the frame out to white. Motes are hundredths.
 
-- [ ] T257 [R243 L4 / V2] — **Atmosphere.** `CPUParticles2D` for dust, ash and slow embers: large,
-      low-opacity, very slow, drifting through the light. Never crosses the menu's reading area.
-      Test: **V2** — capture; particles read at the edges of vision, not as snow.
+- [x] T258 [R243 L1-L2 / V2] — **Motion by kind.** Cloth slow sway; props pendulum with randomized
+      phase; overlays drift/breathe; camera 2px idle drift + 1.004 breathing zoom. All looping
+      tweens, so nothing needs `_process` and the rig frees with its node.
+      Test: **V2** — capture over several seconds; motion is imperceptible frame to frame.
 
-- [ ] T258 [R243 L1, L2 / V2] — **Cloth + hanging props.** The banners and censers are *painted into
-      the matte*, so animating them needs them cut out and the hole behind them filled. Cut
-      `banner_l/r.png` and `censer_*.png` from the source, inpaint the matte beneath, and re-place
-      them as sprites with a slow sway / randomized-phase pendulum.
-      Test: **V2** — the cut edges are invisible against the matte; sway is imperceptible frame to
-      frame but obvious over ten seconds.
+- [x] T259 [R244 / V3] — **Reduced motion.** F9 skips every animation and every particle system.
+      Test: **V3** — captured; the frozen frame is **fully lit** (all glow pools present, every
+      layer visible) and loses no information.
 
-- [ ] T259 [R244 / V3] — **Reduced motion.** F9 freezes every layer to a fully-lit static frame.
-      Test: **V3** — captures with and without; the frozen frame loses no information.
+## Phase B — Art (blocked on assets)
 
-## Phase C — Verify
+- [ ] T260 [R241 / V1] — Drop in the authored assets per `asset-manifest.md`. **No code change** —
+      each file simply replaces its blockout. Then tune positions against the reference.
 
-- [ ] T260 [R245, R247 / V4, V5] — Legibility; second integer scale; asset-map `--selftest` +
-      `--check`; diff scoped; suites green; DECISION_LOG TD-073 (including the TD-055 exception);
-      CLAUDE.md.
+- [ ] T261 [R245, R247 / V4, V5] — Legibility pass; second integer scale; asset-map; suites; land.
 
 ## Blocked
 
 - [ ] T262 [audio] — **Ambient audio.** BLOCKED: no audio assets, no audio pipeline, and no
-      sanctioned audio tool (the toolchain is a closed list; adding one needs explicit approval).
+      sanctioned audio tool (closed list; adding one needs explicit approval).
 
 ## Notes
 
-- **Do not procedurally reconstruct architecture.** Two attempts are on record (TD-072's plate; this
-  spec's first draft). Modular architecture is reserved for procedural *expedition* environments,
-  where replayability makes it pay.
-- **Do not quantize the matte** to the Ash & Ember ramps — it is a painted environment exception to
-  TD-055, and quantizing would destroy exactly the atmosphere it is here to preserve.
-- Parallax is **off** by default (R246): the matte is one flat image and offsetting it would reveal
-  that.
+- **The concept art is never shipped.** `art/src/collegium_hall_src.png` is a composition reference.
+  Using it as the background was tried and rejected by the author.
+- **Do not procedurally reconstruct architecture** — TD-072 established that ceiling over four
+  passes.
+- Positions in `title_scene.gd` are authored constants in viewport fractions; retuning the
+  composition is a one-line edit per layer.

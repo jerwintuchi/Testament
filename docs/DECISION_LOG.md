@@ -2331,3 +2331,52 @@ Return because a live `reconnect-token.txt` was on disk. Verified: parse clean; 
 1280×720 and 1920×1080; both setup plates captured; lobby + board unchanged and error-free;
 asset-map `--selftest`/`--check` green (the generator writes a **literal** relative path, per canon
 S5b, or the scanner drops nave.png's producer edge). Client + generated art only; no `src/**` change.
+
+## 2026-07-23 — TD-073: the title screen is a layered scene; the concept art is reference only
+
+Three approaches were tried for this screen. Recording all three, because the failures are the
+useful part.
+
+1. **A single procedurally generated plate** (TD-072). Four passes. It hit a structural ceiling: a
+   per-pixel classifier with analytic shapes yields perfect symmetry, uniform repetition, hard
+   edges and banded falloff, while the target is a painting whose quality comes from thousands of
+   individually judged decisions. The clearest symptom was a drawn flame failing four times (box →
+   cone → ball → box): at a few pixels a shape function cannot decide *which* pixel is the flame —
+   exactly the finding TD-057 already recorded for the 17×22 medallion device.
+2. **The concept art as a matte background.** Shipped three times on a misreading: the author's
+   direction said "matte-painted background" and it was read as *the reference image itself*. It
+   also forced inpainting the baked-in UI, which smeared (80 rows of vertical interpolation reads
+   as vertical streaks at full resolution), and doubled the emblem where the painted device and the
+   UI-rendered one overlapped. The author's verdict was "uncanny", and then explicitly: do not use
+   the PNG as the main menu.
+3. **A layered scene, blocked out** — the direction taken. `art/src/collegium_hall_src.png` is kept
+   as a **composition reference only**: never shipped, never displayed.
+
+**What shipped.** `ui/title_scene.gd` builds every layer as an independent node in its real
+position, at its real size, with its real animation, rendering a **labelled blockout** until its art
+exists. Art is loaded by exact filename and a missing file degrades to a placeholder rather than
+erroring, so composition, lighting, motion and menu flow are reviewable now and real art drops in
+with **no code change**. That is the load-bearing property: it decouples the engineering from art
+delivery, whoever ends up authoring it.
+
+Layers: architecture (static); cloth (slow sway); hanging props (pendulum, randomized phase);
+vessels; overlays (drift/breathe); seven fires each with a warm additive pool flickering out of
+step (`Light2D` cannot reach Control nodes — TD-047, the ruling that produced
+`board_surface.gdshader`); real `CPUParticles2D` dust, embers and incense; and a camera life of 2px
+idle drift with a 1.004 breathing zoom. Every animation is a looping tween, so nothing needs
+`_process` and the rig frees with its node. F9 reduced-motion skips all of it and leaves a
+**fully lit** still frame — verified by capture, not asserted.
+
+`specs/title-scene/asset-manifest.md` carries the asset list with per-item prompts and the
+constraints that make pieces composite first time: one shared camera, true alpha, no baked UI, and
+**no baked flames** (fire is generated in-engine so each flickers independently).
+
+Bugs worth remembering: a canvas_item shader's `COLOR` already holds `texture(TEXTURE,UV) ×
+modulate` on entry to `fragment()`, so a trailing `* COLOR` squares the image (measured: 4× too
+dark, isolated by capturing with the shader off and diffing pixels); and `CPUParticles2D`'s
+`scale_amount` multiplies the source texture, so 1.0 on a 128px radial is a 128px blob — dust motes
+want hundredths.
+
+Ambient audio (Layer 5) is specified but **blocked**: no audio assets, no audio pipeline, and no
+sanctioned audio tool. The toolchain is a closed list and adding one needs explicit approval.
+Client render only; no board asset; no `src/**` change.

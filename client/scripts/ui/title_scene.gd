@@ -188,10 +188,84 @@ static func build(host: Control, reduced: bool) -> Control:
 		if not reduced:
 			_flicker(g, rng.randf_range(2.6, 4.2), rng.randf_range(0.0, TAU))
 
-	# ── Layer 4: camera life. ──
+	# ── Layer 4: atmosphere. Real particles, not placeholders — they need no art, so they are
+	#    finished work regardless of what the blockout is standing in for.
+	if not reduced:
+		_dust(root, host.size)
+		for i in FIRES.size():
+			_embers(root, FIRES[i], host.size, i)
+		_incense(root, Vector2(0.330, 0.418), host.size)
+		_incense(root, Vector2(0.670, 0.418), host.size)
+
+	# ── Layer 5: camera life. ──
 	if not reduced:
 		_camera_life(root)
 	return root
+
+
+# ── Atmosphere ───────────────────────────────────────────────────────────────
+# The brief: "very slow movement, large particles, low opacity, never distract from the menu."
+# So these are deliberately sparse and dim — you should notice them only if you look for them.
+
+static func _particles(root: Control, amount: int, life: float, z: int) -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.texture = _radial()
+	p.amount = amount
+	p.lifetime = life
+	p.lifetime_randomness = 0.55
+	p.preprocess = life                    # start mid-flight, so nothing "switches on" at boot
+	p.randomness = 0.6
+	p.material = _additive()
+	p.z_index = z
+	root.add_child(p)
+	return p
+
+static func _dust(root: Control, vp: Vector2) -> void:
+	# Motes hanging in the whole volume, barely moving. Large and very dim: this is the air of
+	# the room, not weather.
+	var p := _particles(root, 46, 26.0, -28)
+	p.position = Vector2(vp.x * 0.5, vp.y * 0.55)
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(vp.x * 0.52, vp.y * 0.46)
+	p.direction = Vector2(0.25, -1)
+	p.spread = 26.0
+	p.gravity = Vector2(1.2, -2.4)         # a whisper of a draught
+	p.initial_velocity_min = 1.0
+	p.initial_velocity_max = 3.5
+	p.scale_amount_min = 0.022        # ~3px
+	p.scale_amount_max = 0.070        # ~9px
+	p.color = Color(0.98, 0.88, 0.68, 0.10)
+
+static func _embers(root: Control, at: Vector2, vp: Vector2, salt: int) -> void:
+	# Rising off each fire. Few, small, warm — the only particles allowed to be noticed.
+	var p := _particles(root, 7, 4.2, -26)
+	p.position = Vector2(vp.x * at.x, vp.y * at.y)
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(vp.x * 0.028, vp.y * 0.006)
+	p.direction = Vector2(0.1 * (1 if salt % 2 == 0 else -1), -1)
+	p.spread = 18.0
+	p.gravity = Vector2(0, -9.0)
+	p.initial_velocity_min = 4.0
+	p.initial_velocity_max = 11.0
+	p.scale_amount_min = 0.014        # ~2px
+	p.scale_amount_max = 0.036        # ~5px
+	p.color = Color(1.0, 0.66, 0.28, 0.45)
+
+static func _incense(root: Control, at: Vector2, vp: Vector2) -> void:
+	# Smoke off a censer: slower and larger than embers, and colder, so the two never read as
+	# the same effect.
+	var p := _particles(root, 9, 13.0, -27)
+	p.position = Vector2(vp.x * at.x, vp.y * at.y)
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(vp.x * 0.010, vp.y * 0.004)
+	p.direction = Vector2(0.35, -1)
+	p.spread = 30.0
+	p.gravity = Vector2(1.6, -5.0)
+	p.initial_velocity_min = 2.0
+	p.initial_velocity_max = 5.0
+	p.scale_amount_min = 0.16         # smoke IS large — but 20px, not 400
+	p.scale_amount_max = 0.34
+	p.color = Color(0.86, 0.82, 0.74, 0.035)
 
 
 # ── Animations ───────────────────────────────────────────────────────────────

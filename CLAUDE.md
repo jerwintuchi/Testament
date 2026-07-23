@@ -146,6 +146,22 @@ holds hover-focus — are nondeterministic run-to-run, proven by a same-build co
 tranches** (their own commits): `board/notice_reader.gd` (reader+seal+animation+cooldown),
 `board/contract_board.gd` (the board shell; leaves `main.gd` a thin router).
 
+Active spec: **`specs/title-scene/`** (TD-073) — the title screen as a **layered scene**. Three
+approaches were tried; the first two are recorded as failures in DECISION_LOG TD-073 so they are not
+retried: a single procedurally generated plate (TD-072 — a structural ceiling, four passes), and the
+concept art used as a matte background (shipped three times on a misreading of "matte-painted
+background"; the author's verdict was "uncanny", then explicitly *do not use the PNG as the main
+menu*). `art/src/collegium_hall_src.png` is now a **composition reference only — never shipped,
+never displayed**. `ui/title_scene.gd` builds every layer as an independent node in its real
+position, size and animation, rendering a **labelled blockout** until its art exists; a missing file
+degrades to a placeholder rather than erroring, so real art drops in with **no code change**.
+Layers: architecture (static), cloth (sway), hanging props (pendulum, randomized phase), vessels,
+overlays (drift/breathe), seven fires with warm additive pools flickering out of step (Light2D can't
+reach Control — TD-047), real CPUParticles dust/embers/incense, and a camera life of 2px drift +
+1.004 breathing zoom. F9 leaves a **fully lit** still frame (captured). Asset list + per-item prompts
+in `specs/title-scene/asset-manifest.md`. **T255–T259 done; T260 (drop in art) waits on assets;
+T262 (audio) BLOCKED** — no audio assets, pipeline or sanctioned tool.
+
 Completed: **TD-070** — dead generated art deleted + the orphan signal made trustworthy. Removed 10
 files (`parch_live_*` incl. the four baked tilts, `foxing`, `board_placard`, `wall_v1`+`_n`), all
 superseded, **and** the generator lines that emitted them (`gen_detail`/`gen_structure`/
