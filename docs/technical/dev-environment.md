@@ -93,6 +93,22 @@ Start it **in the background** (`run_in_background: true`) before any live
 round-trip, and leave it up for the whole playtest. It is a watch process: it never
 returns, so a foreground call will block until it times out.
 
+Run it **in WSL** — the WSL clone is the only real one (§1). But the Windows-side
+client cannot then reach it at `localhost`; point it at the WSL IP (§6):
+
+```bash
+hostname -I                                    # in WSL → e.g. 172.22.125.177
+"$GODOT" --path "$CLIENT" -- --server=ws://172.22.125.177:3001
+```
+
+`--server=` overrides `SERVER_URL` for one run. It moves *where* the client connects,
+never what it trusts — the server stays authoritative over that socket (I1).
+
+`tsx watch` reloads on `src/server/` + `src/shared/` edits, and a reload drops all
+in-memory rooms (expedition state is ephemeral, I7), so an active playtest is bounced
+to reconnect. Client-only work never disturbs it — but GDScript edits do not hot-reload
+into a running client either, so relaunch the client to see them.
+
 Suites, for reference:
 
 ```bash
@@ -124,9 +140,31 @@ avoids the path translation entirely. Prefer it.
 
 WSL sits behind a NAT: **WSL cannot reach a Windows `localhost` service.** A
 Windows-side MCP server or tool must be launched by the Windows-side runtime, not
-proxied through a WSL port. The reverse direction (Windows Godot → WSL server on
-`localhost:3001`) works, because Godot is itself a Windows process talking to the
-WSL-forwarded port.
+proxied through a WSL port.
+
+**The reverse direction does not work on `localhost` either** (measured 2026-07-23;
+this section previously claimed it did). WSL2 localhost-forwarding is *not* active on
+this machine — there is no `C:\Users\jerwi\.wslconfig` — so a Windows process dialling
+`127.0.0.1:3001` is refused while the server listens happily in WSL:
+
+```
+Windows → 127.0.0.1:3001        refused ("target machine actively refused it")
+Windows → 172.22.125.177:3001   OK      (the WSL IP, from `hostname -I`)
+```
+
+Since the Godot client is a **Windows** process (§2) and the server runs in **WSL**
+(§4), every live round-trip crosses this seam. Two ways across:
+
+1. **Dial the WSL IP** — `-- --server=ws://<wsl-ip>:3001`. The server already binds
+   `0.0.0.0`, so nothing changes server-side. The IP is **reassigned on every WSL
+   restart**, which is why it is a runtime flag and never a hardcoded constant.
+   Confirm a real connection with
+   `ss -tn state established '( sport = :3001 )'` — a peer of `172.22.112.1` (the
+   vEthernet gateway) is the Windows client.
+2. **Mirrored networking** — create `C:\Users\jerwi\.wslconfig` with
+   `[wsl2]` / `networkingMode=mirrored`, then `wsl --shutdown`. This makes `localhost`
+   work in both directions permanently and retires the flag. It kills every running WSL
+   session, so do it between work sessions, never mid-playtest.
 
 ## 7. Rendering, fullscreen, and the pixel grid
 

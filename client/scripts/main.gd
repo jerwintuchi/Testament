@@ -24,6 +24,18 @@ const RiteBanner = preload("res://scripts/ui/rite_banner.gd")   # the CONTRACT S
 const Widgets = preload("res://scripts/ui/widgets.gd")          # shared label/rule/focus-ring/engraved builders
 
 const SERVER_URL := "ws://localhost:3001"
+
+# Where the client dials. `localhost` is right when client and server share a host, but a
+# Windows-side Godot talking to a server in WSL2 (NAT mode, no localhost forwarding) has to
+# dial the WSL IP instead — and that IP is reassigned on every WSL restart, so it can never be
+# hardcoded. `-- --server=ws://<host>:<port>` overrides it for one run; `hostname -I` in WSL
+# prints the address. Dev convenience only: it moves WHERE the client connects, never what it
+# trusts — the server remains authoritative over that socket exactly as before (I1).
+func _server_url() -> String:
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--server="):
+			return a.substr("--server=".length())
+	return SERVER_URL
 # The reconnect token survives a client relaunch (R75). It is an opaque server
 # secret, not game state — the one thing the client is allowed to remember.
 const TOKEN_PATH := "user://reconnect-token.txt"
@@ -296,7 +308,7 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_on_viewport_resized)
 
 	_reconnect_token = _load_token()
-	_net.open(SERVER_URL)
+	_net.open(_server_url())
 	_show_menu()
 
 	# Dev-only: `-- --board-preview` opens the Contract Board over fixture intel, with no
@@ -695,11 +707,11 @@ func _show_reconnecting() -> void:
 		_label("Your party holds your place. Reconnect to resume.")
 		_button("Reconnect", func():
 			_set_status("reconnecting...")
-			_net.open(SERVER_URL))
+			_net.open(_server_url()))
 		_button("Abandon (back to menu)", func():
 			_reset_session()
 			_show_menu()
-			_net.open(SERVER_URL))
+			_net.open(_server_url()))
 
 # ── Walkable world ───────────────────────────────────────────────────────────
 # The client renders server truth and sends only intents. A body moves only when
