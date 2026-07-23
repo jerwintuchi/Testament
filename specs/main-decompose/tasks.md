@@ -30,8 +30,17 @@
 
 ## Queued tranches (their own future commits — R217–R219)
 
-- [ ] T229 [R217] — `ui/widgets.gd`: `_card_label` (20 refs), `_h1`, `_hrule`, `_focus_ring`,
-      `_engraved_line`. Mechanical but many call sites; its own commit.
+- [x] T229 [R217 / P122 / V1, V2] — `ui/widgets.gd`: `_card_label` (20 refs), `_h1`, `_hrule`,
+      `_focus_ring`, `_engraved_line`. Mechanical but many call sites; its own commit.
+      `h1` takes the host (`Widgets.h1(_root, text)` — the builds-on-a-host idiom), the rest are
+      pure static factories; `engraved_line` carries its own `Fonts` preload. `main.gd`
+      2,538→2,475 (−63).
+      Test: **V1** — headless parse clean; a `--board-preview` capture is composition-identical to
+      HEAD (compared against a worktree build of 1c2204f: same header engraving, notices, hrules,
+      legend bar; the only deltas are the torch particles and which card holds hover-focus, both
+      nondeterministic run-to-run — a same-build control run differs the same way). A default
+      `--capture` shows the menu `h1` unchanged. **V2** — asset-map regenerated + `--check` green;
+      `git diff` scoped `client/ specs/ docs/`; server 362 + shared 65 green (untouched).
 - [ ] T230 [R218] — `board/notice_reader.gd`: the reader + seal + `_animate_seal` +
       `_spawn_seal_flash` + cooldown + scroll continuity (the delicate TD-062/64/65 logic). Its own
       commit, heavily capture-verified (unsealed/sealed/foot/flash/banner).

@@ -2113,3 +2113,27 @@ regardless of code; eyeball is the client-spec convention.) Asset-map regenerate
 edges); diff scoped `client/ docs/ specs/`; server + shared suites untouched-green. Queued tranches
 (their own commits): `ui/widgets.gd` (R217), `board/notice_reader.gd` (R218), `board/contract_board.gd`
 (R219). Client render only; no `src/**` change.
+
+## 2026-07-23 — TD-067: main.gd decomposition, tranche 2 (shared widget builders)
+
+**Tranche 2 (`specs/main-decompose/`, R217, T229):** the shared render-only Control factories left
+`main.gd` for `client/scripts/ui/widgets.gd`, moved verbatim, ~30 call sites rewired mechanically:
+- `Widgets.card_label(text, size, color, wrap, center)` — the workhorse (20 refs across the notices,
+  the reader, the seal caption, the legend bar, the empty-board state).
+- `Widgets.hrule(color)`, `Widgets.focus_ring()` — the scribe's rule and the gilt Tab-focus stylebox.
+- `Widgets.engraved_line(text, size, face_color, weight)` — the carved two-pass header lettering; it
+  carries its own `const Fonts = preload(...)` rather than reaching back into `main.gd`.
+- `Widgets.h1(host, text)` — the placeholder-screen heading. It appended to `_root`, so like
+  `RiteBanner` it takes the **host** as its first argument (the builds-on-a-passed-host idiom) rather
+  than becoming a node-owner; the five call sites pass `_root`.
+
+`main.gd` 2,538 → 2,475 lines (−63); `widgets.gd` is 70. Verified: headless parse clean; a
+`--board-preview` capture is composition-identical to a worktree build of HEAD (1c2204f) — same
+engraved header, eight writs, hrules, seal caption, legend bar. Two deltas are visible and are
+**nondeterministic run-to-run, not regressions**: the torch CPUParticles, and which live notice holds
+hover-focus (a same-build control run moved the focus ring to a third card). A default `--capture`
+confirms the menu `h1`. Asset-map regenerated + `--check` green; diff scoped `client/ docs/ specs/`;
+server 362 + shared 65 green (untouched). Tranche 1's three `.uid` files (`fonts`/`popup_theme`/
+`rite_banner`), missed in 1c2204f, are committed here — `.uid` is tracked for every other
+`scripts/ui/*.gd`. Queued: `board/notice_reader.gd` (R218), `board/contract_board.gd` (R219).
+Client render only; no `src/**` change.

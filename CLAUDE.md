@@ -137,10 +137,14 @@ S5 target (thin router + `core/world/board/stations/ui` feature files). **Tranch
 (T225–T228):** three stateless/transient builders extracted to `client/scripts/ui/` (preloaded
 `RefCounted`, never global `class_name`) — `fonts.gd` (`Fonts.cinzel`), `popup_theme.gd`
 (`PopupTheme.build`), `rite_banner.gd` (`RiteBanner.show(host,…)`, the `add_torches` builds-on-a-host
-idiom); `main.gd` 2,684→2,538 (−146); board + `--rite-banner` captures identical by eye. **Queued
-tranches** (their own commits): `ui/widgets.gd` (`_card_label`×20 + `_h1`/`_hrule`/`_focus_ring`),
-`board/notice_reader.gd` (reader+seal+animation+cooldown), `board/contract_board.gd` (the board shell;
-leaves `main.gd` a thin router).
+idiom); `main.gd` 2,684→2,538 (−146); board + `--rite-banner` captures identical by eye.
+**Tranche 2 COMPLETE (T229):** `ui/widgets.gd` — the shared render-only Control factories
+(`card_label`×20, `hrule`, `focus_ring`, `engraved_line`, and `h1(host,…)` on the same
+builds-on-a-host idiom), ~30 call sites rewired; `main.gd` 2,538→2,475 (−63); the board capture is
+composition-identical to a worktree build of HEAD (the only deltas — torch particles + which card
+holds hover-focus — are nondeterministic run-to-run, proven by a same-build control run). **Queued
+tranches** (their own commits): `board/notice_reader.gd` (reader+seal+animation+cooldown),
+`board/contract_board.gd` (the board shell; leaves `main.gd` a thin router).
 
 Completed: **`specs/seal-refresh/`** (TD-065) — targeted reader update + robust cooldown, on the
 author's TD-064 playtest. **COMPLETE (T222–T224, client render only):** two survivors fixed —

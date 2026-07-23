@@ -21,6 +21,7 @@ const BoardBar = preload("res://scripts/ui/board_bar.gd")       # bottom legend/
 const Fonts = preload("res://scripts/ui/fonts.gd")              # shared font builders (Cinzel)
 const PopupTheme = preload("res://scripts/ui/popup_theme.gd")   # the station popup's gothic Theme
 const RiteBanner = preload("res://scripts/ui/rite_banner.gd")   # the CONTRACT SEALED ceremony overlay
+const Widgets = preload("res://scripts/ui/widgets.gd")          # shared label/rule/focus-ring/engraved builders
 
 const SERVER_URL := "ws://localhost:3001"
 # The reconnect token survives a client relaunch (R75). It is an opaque server
@@ -577,7 +578,7 @@ func _show_menu() -> void:
 	_screen = Screen.MENU
 	_world.visible = false
 	_clear()
-	_h1("TESTAMENT")
+	Widgets.h1(_root, "TESTAMENT")
 	_label("The Collegium is hiring. We seek truth, not certainty.")
 	_name_input = _make_line_edit("display name", "Seeker")
 	_button("Create Room", func():
@@ -600,7 +601,7 @@ func _show_menu() -> void:
 func _show_lobby() -> void:
 	_screen = Screen.LOBBY
 	_clear()
-	_h1("Lobby: room %s" % _snapshot.get("roomCode", "?"))
+	Widgets.h1(_root, "Lobby: room %s" % _snapshot.get("roomCode", "?"))
 	_label("share the code aloud; the Collegium sends up to four")
 	for p in _snapshot.get("players", []):
 		_party_row(p)
@@ -622,7 +623,7 @@ func _show_deploying() -> void:
 	_screen = Screen.DEPLOYING
 	_clear()
 	var c: Dictionary = _snapshot.get("contract") if _snapshot.get("contract") != null else {}
-	_h1("Contract: %s" % c.get("targetName", "?"))
+	Widgets.h1(_root, "Contract: %s" % c.get("targetName", "?"))
 	_label("site: %s    tier: %s    verb: %s" % [c.get("siteName", "?"), c.get("tier", "?"), c.get("primaryVerb", "?")])
 	_label("")
 	_label("Walk to the Quartermaster (E) to requisition, the Deploy Gate (E) to deploy.")
@@ -638,7 +639,7 @@ func _show_deploying() -> void:
 func _show_field() -> void:
 	_screen = Screen.FIELD
 	_clear()
-	_h1("The Field: %s" % _field.get("siteName", "?"))
+	Widgets.h1(_root, "The Field: %s" % _field.get("siteName", "?"))
 	_label("target: %s" % _field.get("incarnateName", "?"))
 	_label("you perceive: %s" % (", ".join(_channels) if not _channels.is_empty() else "nothing (you packed no perception gear)"))
 	_label("party exposure: %d" % _exposure)
@@ -668,7 +669,7 @@ func _show_testament() -> void:
 	_screen = Screen.TESTAMENT
 	_world.visible = false
 	_clear()
-	_h1("Field Testament")
+	Widgets.h1(_root, "Field Testament")
 	_label("outcome: %s" % _testament.get("outcome", "?"))
 	_label("expedition: %s" % _testament.get("expeditionId", "?"))
 	_label("")
@@ -684,7 +685,7 @@ func _show_reconnecting() -> void:
 	_screen = Screen.RECONNECTING
 	_world.visible = false
 	_clear()
-	_h1("Connection lost")
+	Widgets.h1(_root, "Connection lost")
 	if _reconnect_token == "":
 		_label("No expedition to return to.")
 		_button("Back to menu", func():
@@ -1087,19 +1088,6 @@ const LIVE_Z := 3
 func _floor_tone(c: Color) -> Color:
 	return Color(maxf(c.r, TONE_FLOOR.r), maxf(c.g, TONE_FLOOR.g), maxf(c.b, TONE_FLOOR.b), c.a)
 
-# A gilt keyboard-focus ring (T146 / L6): a gold border + soft warm glow, drawn as a control's
-# `focus` stylebox so Tab-traversal is always visible on the dark wall. Reused by the live
-# notices and the seal stamp so keyboard focus reads the same everywhere.
-func _focus_ring() -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0, 0, 0, 0)
-	sb.set_border_width_all(2)
-	sb.border_color = Color(0.95, 0.80, 0.38)          # gilt gold
-	sb.set_corner_radius_all(3)
-	sb.shadow_color = Color(0.90, 0.68, 0.26, 0.55)    # warm bleed off the gilt edge
-	sb.shadow_size = 5
-	return sb
-
 # A keyboard-focus reticle (T146 / L6): four BRIGHT corner brackets over a FAINT full-edge
 # outline — the selection read from the reference. Drawn via the `draw` signal so it needs no
 # separate script or asset; sits over its card, hidden until the card takes focus. Returns the
@@ -1325,8 +1313,8 @@ func _build_contract_board() -> void:
 		ebox.size = Vector2(360, 60)
 		ebox.position = Vector2((inner.x - 360.0) * 0.5, inner.y * 0.5 - 30.0).floor()
 		ebox.z_index = LIVE_Z
-		ebox.add_child(_card_label("The wall stands empty.", 17, Color(0.86, 0.78, 0.58), true, true))
-		ebox.add_child(_card_label("No petitions stand before the Collegium.", 12, Color(0.66, 0.58, 0.44), true, true))
+		ebox.add_child(Widgets.card_label("The wall stands empty.", 17, Color(0.86, 0.78, 0.58), true, true))
+		ebox.add_child(Widgets.card_label("No petitions stand before the Collegium.", 12, Color(0.66, 0.58, 0.44), true, true))
 		canvas.add_child(ebox)
 	if OS.is_debug_build():
 		_dump_notes.call_deferred(notes)
@@ -1553,8 +1541,8 @@ func _make_live_notice(intel: Dictionary, idx: int, tfs: int = 9, sfs: int = 7) 
 	gap_top.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	gap_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(gap_top)
-	v.add_child(_card_label(str(intel.get("targetName", "?")), tfs, INK, true, true))
-	v.add_child(_card_label("at %s" % intel.get("siteName", "?"), sfs, INK_SOFT, true, true))
+	v.add_child(Widgets.card_label(str(intel.get("targetName", "?")), tfs, INK, true, true))
+	v.add_child(Widgets.card_label("at %s" % intel.get("siteName", "?"), sfs, INK_SOFT, true, true))
 	# Threat/reward are deliberately NOT shown on the wall (trait-free board; knowledge is
 	# not a number) — you learn threat only by taking the notice down to read. The
 	# requester's signature is shown in the reader, not on the glanceable card, so a
@@ -1621,17 +1609,9 @@ func _make_flavor_notice(f: Dictionary, idx: int) -> Control:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_theme_constant_override("separation", 3)
 	pad.add_child(v)
-	v.add_child(_card_label(str(f.get("head", "")), 10, Color(0.32, 0.16, 0.09), true, true))
-	v.add_child(_card_label(str(f.get("body", "")), 8, Color(0.36, 0.27, 0.16), true, false))
+	v.add_child(Widgets.card_label(str(f.get("head", "")), 10, Color(0.32, 0.16, 0.09), true, true))
+	v.add_child(Widgets.card_label(str(f.get("body", "")), 8, Color(0.36, 0.27, 0.16), true, false))
 	return note
-
-# A thin ruled line (a scribe's rule under a heading).
-func _hrule(color: Color) -> Control:
-	var r := ColorRect.new()
-	r.color = color
-	r.custom_minimum_size = Vector2(0, 1)
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return r
 
 # Take-down-to-read (R123): a dim over the board + the enlarged writ centred on it.
 # Clicking the dim (off the writ) returns it to the wall. Pure view state.
@@ -1789,43 +1769,43 @@ func _build_notice_reader(intel: Dictionary) -> Control:
 	var ink_soft := Color(0.26, 0.16, 0.07)
 	# Headline (sacred register), inked by charge + rule.
 	var rverb := str(intel.get("primaryVerb", ""))
-	var head := _card_label(Notice.headline(rverb), 12, INK, true, true)
+	var head := Widgets.card_label(Notice.headline(rverb), 12, INK, true, true)
 	head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(head)
-	col.add_child(_hrule(Color(0.42, 0.28, 0.16, 0.7)))
-	var title := _card_label(str(intel.get("targetName", "?")), 21, ink, true, true)
+	col.add_child(Widgets.hrule(Color(0.42, 0.28, 0.16, 0.7)))
+	var title := Widgets.card_label(str(intel.get("targetName", "?")), 21, ink, true, true)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(title)
-	var site := _card_label("at %s" % intel.get("siteName", "?"), 12, ink_soft, true, true)
+	var site := Widgets.card_label("at %s" % intel.get("siteName", "?"), 12, ink_soft, true, true)
 	site.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(site)
 	# Asserted genus (text-only gloss — the Origin wax seal is retired, TD-060: the
 	# assertion is a falsifiable claim and reads as prose, never pressed in wax).
 	var org := str(intel.get("origin", "SIN"))
-	var org_lbl := _card_label("Asserted %s: %s" % [_origin_word(org), ORIGIN_GLOSS.get(org, "")], 12, ink_soft, true, true)
+	var org_lbl := Widgets.card_label("Asserted %s: %s" % [_origin_word(org), ORIGIN_GLOSS.get(org, "")], 12, ink_soft, true, true)
 	org_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(org_lbl)
 	# Preamble + the petitioner's plea + the charge (procedural, verb-faithful). The plea
 	# replaces the retired threat pips (TD-061): danger reads as the DREAD in the
 	# petitioner's own words, banded by tier — words from a person, never a meter (P110).
-	var pre := _card_label(Notice.preamble(intel), 12, ink_soft, true, true)
+	var pre := Widgets.card_label(Notice.preamble(intel), 12, ink_soft, true, true)
 	pre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(pre)
-	var plea := _card_label(Notice.plea(intel), 12, ink_soft, true, true)
+	var plea := Widgets.card_label(Notice.plea(intel), 12, ink_soft, true, true)
 	plea.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(plea)
-	var charge := _card_label(Notice.charge(intel), 14, ink, true, true)
+	var charge := Widgets.card_label(Notice.charge(intel), 14, ink, true, true)
 	charge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(charge)
 	# Honest empty Archive (no fabricated signs/notes/reward).
-	var arch := _card_label("From the Archive: no prior testament on record.", 11, ink_soft, true, true)
+	var arch := Widgets.card_label("From the Archive: no prior testament on record.", 11, ink_soft, true, true)
 	arch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(arch)
 	# The signature of the petitioner who reported it.
-	var sig := _card_label(Notice.signature(intel.get("requester", {})), 12, ink, true, true)
+	var sig := Widgets.card_label(Notice.signature(intel.get("requester", {})), 12, ink, true, true)
 	sig.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(sig)
-	col.add_child(_hrule(Color(0.42, 0.28, 0.16, 0.7)))
+	col.add_child(Widgets.hrule(Color(0.42, 0.28, 0.16, 0.7)))
 	# The seal: the leader stamps to take up the charge (reversible).
 	col.add_child(_seal_block(intel, ink, ink_soft))
 	# Return to the board. Built inline (not via _popup_button) so it takes no keyboard
@@ -1878,7 +1858,7 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 	var empty := StyleBoxEmpty.new()
 	for st in ["normal", "hover", "pressed", "disabled"]:
 		stamp.add_theme_stylebox_override(st, empty)
-	stamp.add_theme_stylebox_override("focus", _focus_ring() if leader else empty)
+	stamp.add_theme_stylebox_override("focus", Widgets.focus_ring() if leader else empty)
 	if leader:
 		stamp.pressed.connect(func():
 			# The spam guard (TD-065/R212): a hard time-check, independent of the button's
@@ -1931,7 +1911,7 @@ func _seal_block(intel: Dictionary, ink: Color, ink_soft: Color) -> Control:
 		caption = "Awaiting the leader's seal."
 	if leader:
 		stamp.tooltip_text = "Click the seal to lift it" if selected else "Click the seal to stamp it"
-	var cap := _card_label(caption, 12, ink if selected else ink_soft, true, false)
+	var cap := Widgets.card_label(caption, 12, ink if selected else ink_soft, true, false)
 	cap.custom_minimum_size = Vector2(220, 0)
 	row.add_child(cap)
 
@@ -2109,9 +2089,9 @@ func _build_keyhint() -> Control:
 		csb.content_margin_left = 7; csb.content_margin_right = 7
 		csb.content_margin_top = 1; csb.content_margin_bottom = 1
 		chip.add_theme_stylebox_override("panel", csb)
-		chip.add_child(_card_label(pair[0], 8, Color(0.90, 0.80, 0.52), false, true))
+		chip.add_child(Widgets.card_label(pair[0], 8, Color(0.90, 0.80, 0.52), false, true))
 		cell.add_child(chip)
-		cell.add_child(_card_label(pair[1], 8, Color(0.74, 0.66, 0.50), false, false))
+		cell.add_child(Widgets.card_label(pair[1], 8, Color(0.74, 0.66, 0.50), false, false))
 		row.add_child(cell)
 	return bar
 
@@ -2209,9 +2189,9 @@ func _board_header() -> Control:
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	stack.add_theme_constant_override("separation", 0)
 	root.add_child(stack)
-	stack.add_child(_engraved_line("THE COLLEGIUM", 13, Color(0.86, 0.72, 0.42), 700))
+	stack.add_child(Widgets.engraved_line("THE COLLEGIUM", 13, Color(0.86, 0.72, 0.42), 700))
 	stack.add_child(_header_gap(1))
-	stack.add_child(_engraved_line("Contract Board", 8, Color(0.62, 0.50, 0.31), 400))
+	stack.add_child(Widgets.engraved_line("Contract Board", 8, Color(0.62, 0.50, 0.31), 400))
 	return root
 
 # The sign's 9-slice margins (source 204x38, end straps inside 36/11).
@@ -2226,31 +2206,6 @@ func _header_gap(h: int) -> Control:
 	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	g.custom_minimum_size = Vector2(0, h)
 	return g
-
-# One line of ENGRAVED lettering: a dark incised cut with a lit face riding a pixel below it,
-# so the glyphs read as chiselled into the plank rather than inked onto it (carved cathedral
-# signage). Both labels share the rect; only the face carries the soft down-right AO.
-func _engraved_line(text: String, size: int, face_color: Color, weight: int) -> Control:
-	var font := Fonts.cinzel(weight)
-	var row := Control.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.custom_minimum_size = Vector2(0, size + 1)
-	for pass_i in 2:
-		var is_cut := pass_i == 0
-		var l := _card_label(text, size, Color(0.05, 0.03, 0.01, 0.92) if is_cut else face_color, false, true)
-		if font != null:
-			l.add_theme_font_override("font", font)
-		l.set_anchors_preset(Control.PRESET_FULL_RECT)
-		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l.position.y = -1.0 if is_cut else 0.0
-		if not is_cut:
-			# Aged gilt: worn back off full strength so it reads as centuries-old leaf.
-			l.modulate = Color(1, 1, 1, 0.94)
-			l.add_theme_constant_override("shadow_offset_x", 1)
-			l.add_theme_constant_override("shadow_offset_y", 1)
-			l.add_theme_color_override("font_shadow_color", Color(0.04, 0.02, 0.01, 0.85))
-		row.add_child(l)
-	return row
 
 # Lift a card toward the viewer on hover (scale from its centre pivot).
 func _hover_card(card: Control, s: float) -> void:
@@ -2283,18 +2238,6 @@ func _notice_tack(cid: String) -> Control:
 	tack.offset_left = -6.0; tack.offset_right = 6.0
 	tack.offset_top = -5.0; tack.offset_bottom = 9.0
 	return tack
-
-func _card_label(text: String, size: int, color: Color, do_wrap: bool, center: bool = false) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", color)
-	if do_wrap:
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	if center:
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	return l
 
 func _select_board_card(c: Dictionary) -> void:
 	_board_selection = c
@@ -2504,12 +2447,6 @@ func _load_token() -> String:
 func _clear() -> void:
 	for child in _root.get_children():
 		child.queue_free()
-
-func _h1(text: String) -> void:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", 17)
-	_root.add_child(l)
 
 func _h2(text: String) -> void:
 	var l := Label.new()
