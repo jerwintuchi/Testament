@@ -21,7 +21,8 @@ const BoardBar = preload("res://scripts/board/board_bar.gd")       # bottom lege
 const Fonts = preload("res://scripts/ui/fonts.gd")              # shared font builders (Cinzel)
 const PopupTheme = preload("res://scripts/ui/popup_theme.gd")   # the station popup's gothic Theme
 const RiteBanner = preload("res://scripts/ui/rite_banner.gd")   # the CONTRACT SEALED ceremony overlay
-const Widgets = preload("res://scripts/ui/widgets.gd")          # shared label/rule/focus-ring/engraved builders
+const Widgets = preload("res://scripts/ui/widgets.gd")          # shared label/rule/engraved builders
+const TitleScene = preload("res://scripts/ui/title_scene.gd")   # the title's layered environment
 const StationNames = preload("res://scripts/core/station_names.gd")  # station kind -> player-facing name
 
 const SERVER_URL := "ws://localhost:3001"
@@ -71,6 +72,8 @@ var _menu_bg: Control              # the room-setup screen's lit masonry backdro
 var _nave: TextureRect             # the title screen's held image (R231), TITLE screen only
 var _nave_bg: ColorRect            # fills whatever the integer-scaled plate does not cover
 var _setup_mode := ""              # "create" or "join" — which room-setup plate is showing
+var _title_env: Control            # the title's layered environment (TD-073)
+var _title_host: Control           # full-rect host it is built onto, behind the UI
 var _menu_stone: TextureRect       # the brick surface inside it; also the torches' host
 var _ui_theme: Theme               # the gothic Theme, shared by the station popup and the menu
 var _name_input: LineEdit
@@ -157,6 +160,11 @@ func _ready() -> void:
 	# The title screen's held image: the empty nave (R231). A generated 640x360 plate drawn at an
 	# INTEGER scale and centred, with its own near-black filling the remainder — never fractionally
 	# stretched, so the pixel grid survives at every window size.
+	_title_host = Control.new()
+	_title_host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_title_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(_title_host)
+
 	_nave_bg = ColorRect.new()
 	_nave_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_nave_bg.color = NAVE_BLACK            # the plate's own darkest value, so the fill is invisible
@@ -729,16 +737,19 @@ func _show_title() -> void:
 	_screen = Screen.TITLE
 	_world.visible = false
 	_clear()
-	_nave.visible = true
+	_nave.visible = false
 	_nave_bg.visible = false
-	if _nave.material is ShaderMaterial:
-		# reduced motion pins every flame to its base energy: fully lit, simply still (R244)
-		(_nave.material as ShaderMaterial).set_shader_parameter("anim", 0.0 if _reduced_motion else 1.0)
+	# Layer 1-4 (TD-073): the plate plus its independently animated cloth, props, fire and
+	# atmosphere. Every asset is optional, so this renders correctly while the authored pieces
+	# are still being produced (specs/title-scene/asset-manifest.md).
+	if is_instance_valid(_title_env):
+		_title_env.queue_free()
+	_title_env = TitleScene.build(_title_host, _reduced_motion)
 	_status.visible = false        # the title carries no status line (R232) — it is an image
 	var vp := get_viewport_rect().size
 
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, vp.y * 0.16)
+	spacer.custom_minimum_size = Vector2(0, vp.y * 0.50)   # clear of the painted title
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(spacer)
 
@@ -748,25 +759,10 @@ func _show_title() -> void:
 	col.add_theme_constant_override("separation", 4)
 	_root.add_child(col)
 
-	var mark := TextureRect.new()
-	mark.texture = load("res://assets/ui/board/collegium_logo.png") as Texture2D
-	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # or the VBox lets it grow without bound
-	mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	mark.custom_minimum_size = Vector2(44, 38)
-	mark.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	mark.modulate = Color(0.80, 0.72, 0.56, 0.92)      # pale bone, not gilt — it is carved light
-	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(mark)
-	col.add_child(_menu_gap(2))
-	col.add_child(Widgets.engraved_line("TESTAMENT", 26, Color(0.86, 0.72, 0.42), 700))
-	col.add_child(_menu_gap(3))
-	var rule := Widgets.hrule(Color(0.62, 0.50, 0.31, 0.75))
-	rule.custom_minimum_size = Vector2(190, 1)
-	rule.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	col.add_child(rule)
-	col.add_child(_menu_gap(7))
+	# The plate already carries the Collegium device, "TESTAMENT" and its rule, painted in the
+	# reference's own typography — better than anything we would redraw, and drawing ours on top
+	# doubled them (the uncanny read). Only the interactive options are rendered live; the spacer
+	# above drops them to where the painted menu sat.
 	# The recovery path is listed FIRST and only when there is something live to return to —
 	# never a dead option (R232). Canon I7 keeps expedition state ephemeral, so this rejoins a
 	# running expedition; it is not a save-game load.
@@ -2854,6 +2850,9 @@ func _clear() -> void:
 		_nave.visible = false
 	if is_instance_valid(_nave_bg):
 		_nave_bg.visible = false
+	if is_instance_valid(_title_env):
+		_title_env.queue_free()      # the title's tweens must not outlive the screen
+		_title_env = null
 
 func _h2(text: String) -> void:
 	var l := Label.new()

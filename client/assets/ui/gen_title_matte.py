@@ -44,10 +44,11 @@ UI_X0, UI_X1 = 480, 1200
 # interpolating between clean rows just above and just below it, which is why these are narrow
 # per-line bands rather than one tall block.
 UI_BANDS = [
-    (336, 416),    # "TESTAMENT" — wide: serifs and AA reach well past the bright core, and a
-                   # sample row that still holds glyph smears it down the whole band
-    (416, 434),    # the small cross beneath it
-    (434, 452),    # the rule
+    # ONLY the interactive menu lines. The painted "TESTAMENT", its cross and rule, and the
+    # Collegium device above them are KEPT — they are the reference's own typography and they
+    # are better than anything we would redraw. Inpainting them cost twice: an 80-row vertical
+    # interpolation smeared visibly down the centre of the frame, and rendering our own emblem
+    # on top of the painted one doubled it. Both read as uncanny. Art stays; only the buttons go.
     (478, 506),    # CONTINUE  (+ its flanking diamonds)
     (514, 542),    # NEW EXPEDITION
     (549, 578),    # JOIN EXPEDITION
