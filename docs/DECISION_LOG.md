@@ -2137,3 +2137,47 @@ server 362 + shared 65 green (untouched). Tranche 1's three `.uid` files (`fonts
 `rite_banner`), missed in 1c2204f, are committed here — `.uid` is tracked for every other
 `scripts/ui/*.gd`. Queued: `board/notice_reader.gd` (R218), `board/contract_board.gd` (R219).
 Client render only; no `src/**` change.
+
+## 2026-07-23 — TD-068: taking a writ down no longer rebuilds the Contract Board
+
+Author playtest: opening a writ to read it, and putting it back, visibly re-renders the whole board.
+This is the **same defect TD-065 fixed for the seal stamp**, still living on the open/close path —
+TD-065 carved out the stamp (`_refresh_open_reader`, P120) and explicitly left this ("Grid-view
+updates keep the full rebuild").
+
+`_select_board_card` cross-faded into a full `_rebuild_popup_body`, so every take-down and every
+return re-ran: a fresh canvas + plank NinePatch with a new ShaderMaterial, `BoardGeo.layout_live`
+plus **`_fit_writ` per writ** (font metrics + wrap measuring + the step-down search), 8 ×
+(backlight + cast shadow + notice subtree), the decay, vignette, legend bar, placard, and
+**`add_torches`' CPUParticles**.
+
+**The insight (`specs/reader-swap/`, R221–R223, T232–T235):** `_board_selection` reaches the board in
+only two places — the reader overlay itself, and `_make_live_notice`'s `sel`. The second is **inert**:
+"the taken-down writ hangs straight" is overwritten two lines later by the placement
+`rotation_degrees = tilt`, and the 1.03 rest scale cannot fire while the reader's dim owns the mouse.
+So a rebuild always yields *seeded lean, scale 1.0*, and everything else it produces is a pure
+function of the snapshot + viewport, which a selection does not change. The board was pure waste.
+
+Open/close now swaps only the `ReaderOverlay` (which TD-065 had already made self-contained):
+- `_reset_notice_transforms()` puts the surviving writs back exactly as a rebuild left them, from a
+  new `tilt` meta — needed because a card is hover-lifted (1.05) at the instant it is clicked and the
+  old path discarded that node. `_hover_card` now tracks its tween in a meta and kills the previous
+  one, so an in-flight lift cannot animate over the direct scale write.
+- `_retire_reader_overlay` renames a closing overlay and makes it click-through before fading it, so
+  a dying overlay is never returned by the next `find_child("ReaderOverlay")` and its dim never
+  swallows a board click mid-fade.
+- The 0.12s/0.07s fades move onto the **overlay alone**, so the board behind no longer blinks out.
+- A non-board popup or a missing `_board_canvas` still falls back to the full rebuild — a fast path,
+  never the only path.
+
+Measured (P123): `--board-preview --reader` logs `board live=` **once**, where HEAD logged it twice;
+a new `--reader-cycle` (take down *and* return in one unattended run) also logs it once. The reader
+capture is identical to a stashed pre-change build **inside the sheet** — 0 differing px; all 14,073
+differing px sit in the two torch gutters (x<160 / x>1120), where the flame particles vary run to
+run regardless of code. The post-return capture shows the wall intact: eight writs at their leans,
+none swollen, focus reticle back on the first writ.
+
+Left alone on purpose: the inert `if sel: rotation_degrees = 0.0`. Making the straighten actually
+work is a *visible* change, not this spec's business — flagged for a deliberate decision. When
+`board/notice_reader.gd` is extracted (T230/R218) it must inherit this fast path, not re-introduce
+the rebuild. Client render only; no `src/**` change; server 362 + shared 65 green (untouched).

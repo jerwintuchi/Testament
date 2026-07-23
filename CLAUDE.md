@@ -146,6 +146,23 @@ holds hover-focus — are nondeterministic run-to-run, proven by a same-build co
 tranches** (their own commits): `board/notice_reader.gd` (reader+seal+animation+cooldown),
 `board/contract_board.gd` (the board shell; leaves `main.gd` a thin router).
 
+Completed: **`specs/reader-swap/`** (TD-068) — taking a writ down / putting it back no longer
+rebuilds the board, on the author's playtest. **COMPLETE (T232–T235, client render only):**
+`_select_board_card` cross-faded into a full `_rebuild_popup_body`, so every open AND close re-ran
+the canvas + plank shader, `_fit_writ` per writ, all 8 notice subtrees, the decay/vignette/bar/
+placard and `add_torches`' CPUParticles — the same defect TD-065 fixed for the stamp and explicitly
+left here. `_board_selection` turns out to reach the board in only two places: the overlay itself,
+and `_make_live_notice`'s `sel`, which is **inert** (the "hangs straight" is overwritten by the
+placement `rotation_degrees = tilt`; the 1.03 rest can't fire while the dim owns the mouse). So
+open/close now swaps only the `ReaderOverlay` — `_reset_notice_transforms()` restores each writ's
+seeded lean + rest scale from a new `tilt` meta (a card is hover-lifted at the instant it's clicked,
+and the old path threw that node away; `_hover_card` now kills its prior tween via a meta),
+`_retire_reader_overlay` renames + declaws a closing overlay so it's never re-found or click-eating
+mid-fade, and the 0.12s/0.07s fades ride the overlay alone so the board no longer blinks. Fallback
+to the full rebuild survives for a non-board popup / missing canvas. Measured (P123): `board live=`
+logs **once** per run (was twice); the reader is pixel-identical inside the sheet (all 14,073
+differing px lie in the torch gutters, particle noise). New debug flag `--reader-cycle`.
+
 Completed: **`specs/seal-refresh/`** (TD-065) — targeted reader update + robust cooldown, on the
 author's TD-064 playtest. **COMPLETE (T222–T224, client render only):** two survivors fixed —
 (1) the seal **couldn't be re-stamped until reopen** because the cooldown's re-enable timer fired a

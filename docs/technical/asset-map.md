@@ -156,8 +156,8 @@
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
-- `client/scripts/main.gd:2295` — `load/preload normal_path`
-- `client/scripts/main.gd:2322` — `load/preload path`
-- `client/scripts/main.gd:2326` — `load/preload normal_path`
+- `client/scripts/main.gd:2378` — `load/preload normal_path`
+- `client/scripts/main.gd:2405` — `load/preload path`
+- `client/scripts/main.gd:2409` — `load/preload normal_path`
 - `client/scripts/ui/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/ui/wax_seal.gd:21` — `load/preload SEAL_TEX`

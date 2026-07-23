@@ -380,7 +380,24 @@ func _board_preview() -> void:
 	# seal so a capture can show it blooming past the sheet edge, unclipped (TD-064/V1).
 	if OS.get_cmdline_user_args().has("--flash-preview"):
 		_flash_preview.call_deferred()
+	# `-- --reader-cycle` takes a writ down and puts it back, so an unattended capture proves the
+	# round trip leaves the wall intact and that NEITHER transition rebuilds the board (P123 —
+	# `board live=` must appear exactly once for the whole run).
+	if OS.get_cmdline_user_args().has("--reader-cycle"):
+		_reader_cycle.call_deferred()
 	_log("board preview: %d fixture contracts" % pv_board.size())
+
+func _reader_cycle() -> void:
+	_select_board_card(_PREVIEW_BOARD[1])
+	for _i in 20:
+		await get_tree().process_frame          # let the reader build, settle, and fade in
+	_select_board_card({})                      # …and back to the wall
+	# Then go inert: the Godot window pops under the OS cursor, and stray physical clicks kept
+	# re-opening a writ before the capture fired (the known preview gotcha). Capture-only.
+	for n in get_tree().get_nodes_in_group("live_notice"):
+		if n is Control:
+			(n as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_log("reader cycle complete")
 
 func _flash_preview() -> void:
 	for _i in 6:
@@ -1299,6 +1316,7 @@ func _build_contract_board() -> void:
 		node.size = size
 		node.pivot_offset = size * 0.5
 		node.rotation_degrees = tilt
+		node.set_meta("tilt", tilt)        # so open/close can restore the lean without a rebuild (P123)
 		node.position = pos
 		node.z_index = LIVE_Z
 		node.add_to_group("live_notice")   # keyboard entry point (T146 / L6): first-in-order gets focus
@@ -1642,7 +1660,7 @@ func _refresh_open_reader() -> void:
 		overlay.free()                 # immediate (not queue_free): no one-frame double overlay
 	_show_notice_reader(_board_canvas, _board_selection)
 
-func _show_notice_reader(canvas: Control, intel: Dictionary) -> void:
+func _show_notice_reader(canvas: Control, intel: Dictionary) -> Control:
 	# The whole reader (dim + centred reader row) lives under ONE named container so a
 	# stamp/lift can refresh JUST the reader in place (TD-065/R211) — free this and re-show,
 	# without rebuilding the board notices/torches (the stutter). Pass-through mouse so the
@@ -1697,6 +1715,7 @@ func _show_notice_reader(canvas: Control, intel: Dictionary) -> void:
 		target = _reader_scroll_mem
 	_reader_open_cid = cid
 	_reset_reader_scroll.call_deferred(rdr, target)
+	return overlay
 
 # Settle a freshly-(re)built reader at `target` (0 = the headline; a remembered offset on
 # a same-notice rebuild, R199; 100000 = the debug foot pin). The one-shot set lost a race
@@ -2223,8 +2242,18 @@ func _header_gap(h: int) -> Control:
 func _hover_card(card: Control, s: float) -> void:
 	if not is_instance_valid(card):
 		return
+	# One hover tween per card, remembered so it can be killed: a lift still in flight would
+	# otherwise animate straight over a direct scale write (the open/close reset, P123) — and
+	# two overlapping lifts used to fight each other on a fast re-hover.
+	_kill_hover_tween(card)
 	var t := card.create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	t.tween_property(card, "scale", Vector2(s, s), 0.09)
+	card.set_meta("hover_tween", t)
+
+func _kill_hover_tween(card: Control) -> void:
+	var prev = card.get_meta("hover_tween", null)
+	if prev is Tween and (prev as Tween).is_valid():
+		(prev as Tween).kill()
 
 # The primary-verb type badge, anchored in a notice's upper-left corner (Prototype v1).
 func _verb_corner_badge(verb: String) -> Control:
@@ -2259,10 +2288,64 @@ func _select_board_card(c: Dictionary) -> void:
 		_seal_prev.clear()               # … and the seal transition memory (R200)
 	else:
 		_log("select %s" % c.get("contractId", ""))
-	# Cross-fade: fade the current view out, then rebuild (which fades the new in).
-	var t := _popup_body.create_tween().set_ease(Tween.EASE_IN)
-	t.tween_property(_popup_body, "modulate:a", 0.0, 0.07)
-	t.tween_callback(_rebuild_popup_body)
+	# Taking a writ down / putting it back changes exactly TWO things: the reader overlay, and
+	# the selected writ's lean. The board underneath — the backing shader, all 8 writs and their
+	# _fit_writ measuring, the decay, and add_torches' CPUParticles — is byte-identical either
+	# way, so rebuilding it was pure waste and the hitch you feel on open/close. Swap the overlay
+	# in place instead (P123: the TD-065 stamp lesson applied to the open/close path; S6 — update
+	# the smallest subtree that reflects the change). No canvas ⇒ fall back to the full rebuild.
+	if _popup_kind != "CONTRACT_BOARD" or not is_instance_valid(_board_canvas):
+		var t := _popup_body.create_tween().set_ease(Tween.EASE_IN)
+		t.tween_property(_popup_body, "modulate:a", 0.0, 0.07)
+		t.tween_callback(_rebuild_popup_body)
+		return
+	var old := _board_canvas.find_child("ReaderOverlay", false, false) as Control
+	_reset_notice_transforms()
+	if c.is_empty():
+		# Back on the wall: retire the overlay on the same 0.07s the old cross-fade used. The
+		# board never moved, so there is nothing else to restore — only focus, which the reader
+		# had taken.
+		if old != null:
+			_retire_reader_overlay(old)
+		_focus_first_notice.call_deferred()
+		return
+	if old != null:
+		old.free()                       # immediate: never two live overlays in one frame
+	# Fade the reader in over the still board (the old 0.12s), so the takedown still reads as a
+	# deliberate act — but the board behind it no longer blinks out and back.
+	var ov := _show_notice_reader(_board_canvas, c)
+	if ov != null:
+		ov.modulate.a = 0.0
+		var ft := ov.create_tween().set_ease(Tween.EASE_OUT)
+		ft.tween_property(ov, "modulate:a", 1.0, 0.12)
+
+# Leave the surviving writs exactly as a rebuild would have: seeded lean, rest scale. A card is
+# hover-scaled (1.05) at the moment it is clicked, and the old rebuild discarded that node — so
+# without this the clicked writ would stay swollen behind the dim. Selection itself has no
+# board-level look: `_make_live_notice`'s "taken-down hangs straight" is overwritten by the
+# placement `rotation_degrees = tilt` below it, and the 1.03 rest can't fire while the dim owns
+# the mouse. Reproducing the rebuild's result is the contract here, not improving on it (P123).
+func _reset_notice_transforms() -> void:
+	for n in get_tree().get_nodes_in_group("live_notice"):
+		var card := n as Control
+		if card == null or not is_instance_valid(card):
+			continue
+		_kill_hover_tween(card)
+		card.rotation_degrees = float(card.get_meta("tilt", 0.0))
+		card.scale = Vector2.ONE
+
+# Fade a closing reader out and drop it. It is renamed and made click-through first: a dying
+# overlay must never be found by the next `find_child("ReaderOverlay")`, and its dim (which
+# STOPs mouse) must not swallow a click aimed at the board during the fade.
+func _retire_reader_overlay(ov: Control) -> void:
+	ov.name = "ReaderOverlayClosing"
+	ov.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for ch in ov.get_children():
+		if ch is Control:
+			(ch as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var t := ov.create_tween().set_ease(Tween.EASE_IN)
+	t.tween_property(ov, "modulate:a", 0.0, 0.07)
+	t.tween_callback(ov.queue_free)
 
 # Client-side mirror of the server's ghost-proof allReady (connected players only);
 # a display hint for the Accept affordance — the server remains the authority.
