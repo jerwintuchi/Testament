@@ -67,6 +67,9 @@ var _awaiting_resume := false     # sent RECONNECT, awaiting STATE_RESYNC or an 
 # ── UI shell ─────────────────────────────────────────────────────────────────
 var _root: VBoxContainer
 var _status: Label
+var _menu_bg: Control              # the menu's lit masonry backdrop (TD-071), MENU screen only
+var _menu_stone: TextureRect       # the brick surface inside it; also the torches' host
+var _ui_theme: Theme               # the gothic Theme, shared by the station popup and the menu
 var _name_input: LineEdit
 var _code_input: LineEdit
 
@@ -138,6 +141,26 @@ func _ready() -> void:
 
 	var layer := CanvasLayer.new()
 	add_child(layer)
+	# The menu's backdrop: the Collegium's own masonry under two sconces, so the first screen
+	# belongs to the same lit world as the Contract Board rather than reading as a settings dialog
+	# ("diegetic-lite", TD-071/R227). Shipped art only — stone_tile + the torch rig — so this
+	# needs no new generator. Added BEFORE the UI margin so it sits behind every screen's content,
+	# and shown only on MENU.
+	_menu_bg = Control.new()
+	_menu_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_menu_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_menu_bg.visible = false
+	layer.add_child(_menu_bg)
+	_menu_stone = TextureRect.new()
+	_menu_stone.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_menu_stone.texture = load("res://assets/ui/board/stone_tile.png") as Texture2D
+	_menu_stone.stretch_mode = TextureRect.STRETCH_SCALE
+	_menu_stone.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+	_menu_stone.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_menu_stone.material = _surface_material("res://assets/ui/board/stone_tile_n.png", 0.24, 1.0, Vector2(5.0, 4.2))
+	_menu_stone.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_menu_bg.add_child(_menu_stone)
+
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	# Metrics are in logical (640x360) pixels — see PixelScale. Keep them tight: a
@@ -160,6 +183,10 @@ func _ready() -> void:
 	scroll.add_child(_root)
 	_status = Label.new()
 	_status.modulate = Color(0.85, 0.7, 0.5)
+	# A quiet corner indicator (R227): small and right-aligned so "connected" recedes, while an
+	# actionable line ("server offline. start it with: …") keeps its full warm colour.
+	_status.add_theme_font_size_override("font_size", 10)
+	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	column.add_child(_status)
 
 	# Bottom-center interaction prompt (hidden until near a station).
@@ -236,7 +263,8 @@ func _ready() -> void:
 	pcenter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_popup_dim.add_child(pcenter)
 	_popup = PanelContainer.new()
-	_popup.theme = PopupTheme.build()  # 9-slice gothic panel + gold-on-charcoal controls
+	_ui_theme = PopupTheme.build()     # 9-slice gothic panel + gold-on-charcoal controls
+	_popup.theme = _ui_theme           # …cascaded to the popup AND reused by the menu (R227)
 	_popup.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # soft painterly frame (v1 raster)
 	# Skins swapped in per station: the Contract Board is a wooden board, its cards
 	# pinned parchment. Built once; a missing texture falls back to a flat box.
@@ -331,6 +359,12 @@ func _ready() -> void:
 	# state, and nothing is ever sent from it.
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--lobby-preview"):
 		call_deferred("_lobby_preview")
+	# `-- --menu-preview` re-shows the menu with a fake reconnect token, so the Resume block —
+	# which only exists when there is an expedition to return to — is capturable unattended.
+	# Display-only: the token is never sent, the preview just proves the layout.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--menu-preview"):
+		_reconnect_token = "preview-token"
+		call_deferred("_show_menu")
 
 # Fixture board: EIGHT contracts' worth of ContractIntel (canonical BOARD_SIZE=8, TD-045),
 # the exact shape the server's `toContractIntel` puts on the wire (contractId, tier, origin,
@@ -657,19 +691,59 @@ func _show_menu() -> void:
 	_screen = Screen.MENU
 	_world.visible = false
 	_clear()
-	Widgets.h1(_root, "TESTAMENT")
-	# NOT defaulted to "Seeker": that is the ROLE every player holds (GLOSSARY), so defaulting it
-	# made every party read as four Seekers. Restored from the last session instead (R225).
-	_name_input = _make_line_edit("your name", _load_name())
-	_button("Create Room", func():
+	# Light the masonry behind the panel (R227). add_torches rebuilds its host's children, so it
+	# is re-run per show — the menu is entered rarely and the rig is cheap.
+	_menu_bg.visible = true
+	BoardDecor.add_torches(_menu_stone, get_viewport_rect().size, _reduced_motion)
+
+	var vp := get_viewport_rect().size
+	# Push the plate off the top edge without hardcoding a pixel: the panel is centred in the
+	# remaining space, so the layout holds at every integer scale (R227).
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(0, vp.y * 0.055)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(spacer)
+
+	var plate := PanelContainer.new()
+	plate.theme = _ui_theme                       # the same 9-slice gothic panel the stations wear
+	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	plate.custom_minimum_size = Vector2(vp.x * 0.46, 0)
+	_root.add_child(plate)
+
+	var pad := MarginContainer.new()
+	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
+		pad.add_theme_constant_override(side, 10)
+	plate.add_child(pad)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 5)
+	pad.add_child(col)
+
+	# The title is CARVED, not printed — the same engraved two-pass lettering as the board's
+	# sign, so the menu reads as an object in the Collegium (R227).
+	col.add_child(Widgets.engraved_line("TESTAMENT", 20, Color(0.86, 0.72, 0.42), 700))
+	col.add_child(Widgets.hrule(Color(0.42, 0.28, 0.16, 0.7)))
+
+	# Block 1 — identity.
+	col.add_child(_menu_caption("YOUR NAME"))
+	_name_input = _reparent_to(_make_line_edit("your name", _load_name()), col)
+	_name_input.add_theme_font_size_override("font_size", MENU_FS)
+
+	# Block 2 — create.
+	_menu_action(col, "Create Room", func():
 		var who := _claim_name()
 		if who == "":
 			return
 		_pending_join = true
 		_net.send_message(Protocol.CREATE_ROOM, {"displayName": who}))
-	_label("")
-	_code_input = _make_line_edit("room code (e.g. ABC234)", "")
-	_button("Join Room", func():
+
+	col.add_child(_menu_gap(3))
+	col.add_child(Widgets.hrule(Color(0.42, 0.28, 0.16, 0.45)))
+
+	# Block 3 — join.
+	col.add_child(_menu_caption("JOIN WITH A ROOM CODE"))
+	_code_input = _reparent_to(_make_line_edit("room code (e.g. ABC234)", ""), col)
+	_code_input.add_theme_font_size_override("font_size", MENU_FS)
+	_menu_action(col, "Join Room", func():
 		var who := _claim_name()
 		if who == "":
 			return
@@ -679,14 +753,42 @@ func _show_menu() -> void:
 			return
 		_pending_join = true
 		_net.send_message(Protocol.JOIN_ROOM, {"code": code, "displayName": who}))
+
+	# Recovery path — shown only when there is something to return to, and set apart from the
+	# two ways IN so it never reads as a third equal option.
 	if _reconnect_token != "":
-		_label("")
-		_button("Resume unfinished expedition", func():
+		col.add_child(_menu_gap(3))
+		col.add_child(Widgets.hrule(Color(0.42, 0.28, 0.16, 0.45)))
+		_menu_action(col, "Resume unfinished expedition", func():
 			if _net.is_open():
 				_awaiting_resume = true
 				_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
 			else:
 				_set_status("still connecting, try again in a moment"))
+
+# Menu control type size. The plate is budgeted to fit 360 logical px without scrolling: at the
+# theme default (~17) the fields alone overflowed and the Resume block fell off the bottom.
+const MENU_FS := 11
+
+# A small gilt section caption above a control group.
+func _menu_caption(text: String) -> Control:
+	return Widgets.card_label(text, 8, Color(0.62, 0.50, 0.31), false, false)
+
+func _menu_gap(h: int) -> Control:
+	var g := Control.new()
+	g.custom_minimum_size = Vector2(0, h)
+	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return g
+
+# A full-width menu button on the plate. `_button` appends to _root and shrink-begins, which is
+# what made the old menu a ragged left-aligned stack.
+func _menu_action(host: Node, text: String, on_pressed: Callable) -> void:
+	var b := Button.new()
+	b.text = text
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.add_theme_font_size_override("font_size", MENU_FS)
+	b.pressed.connect(on_pressed)
+	host.add_child(b)
 
 # The trimmed name to act under, or "" with an inline hint when the field is empty. Refusing here
 # sends NOTHING — an affordance guard, never authority: the server validates the name regardless.
@@ -2621,6 +2723,8 @@ func _load_token() -> String:
 func _clear() -> void:
 	for child in _root.get_children():
 		child.queue_free()
+	if is_instance_valid(_menu_bg):
+		_menu_bg.visible = false      # MENU turns it back on; every other screen leaves it off
 
 func _h2(text: String) -> void:
 	var l := Label.new()
@@ -2644,6 +2748,14 @@ func _make_line_edit(placeholder: String, initial: String) -> LineEdit:
 	var e := LineEdit.new()
 	e.placeholder_text = placeholder
 	e.text = initial
-	e.custom_minimum_size = Vector2(280, 0)
+	e.custom_minimum_size = Vector2(120, 0)
+	e.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_root.add_child(e)
 	return e
+
+# Take a control built by a _root-appending helper and hand it to another parent (the menu plate).
+func _reparent_to(node: Control, host: Node) -> Control:
+	if node.get_parent() != null:
+		node.get_parent().remove_child(node)
+	host.add_child(node)
+	return node

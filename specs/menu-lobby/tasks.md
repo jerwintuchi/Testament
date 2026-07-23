@@ -31,11 +31,16 @@
 
 ## Phase B — The menu (own commit) — treatment: **diegetic-lite** (settled)
 
-- [ ] T239 [R227 / V3] — **Rebuild `_show_menu`** diegetic-lite: `panel.png` + Cinzel + stone
+- [x] T239 [R227 / V3] — **Rebuild `_show_menu`** diegetic-lite: `panel.png` + Cinzel + stone
       surround + the existing torch rig, shipped art only. Group identity / create / join; separate Resume; move connection state to a quiet
       corner indicator. Add `--menu-preview` for capture.
-      Test: **V3** — `--menu-preview` capture shows the themed menu, no tagline, grouped controls,
-      no overlap; re-captured at a second integer scale to prove the layout holds.
+      Test: **V3** — `--menu-preview` (seeds a fake reconnect token so the Resume block, which only
+      exists when there is something to return to, is capturable) shows the carved TESTAMENT plate on
+      lit masonry, grouped identity/create/join, Resume set apart, and `connected` quiet in the
+      corner. Re-captured at **1920×1080** (logical 952×520): proportional, no clipping, no
+      scrollbar. **Done.** Two things the first capture caught — the plate overflowed 360 logical px
+      (Resume clipped, scrollbar showing) and the controls used the theme default ~17px font, which
+      towers in a 640×360 space; fixed by `MENU_FS = 11` and a tighter top spacer.
 
 ## Phase C — The room scroll (own commit)
 

@@ -171,6 +171,6 @@
 
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
-- `client/scripts/main.gd:2446` — `load/preload normal_path`
-- `client/scripts/main.gd:2473` — `load/preload path`
-- `client/scripts/main.gd:2477` — `load/preload normal_path`
+- `client/scripts/main.gd:2548` — `load/preload normal_path`
+- `client/scripts/main.gd:2575` — `load/preload path`
+- `client/scripts/main.gd:2579` — `load/preload normal_path`
