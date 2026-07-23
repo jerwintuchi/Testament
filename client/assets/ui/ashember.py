@@ -51,6 +51,12 @@ RAMP = {
     "wax":       [_hex("#5E1D1A"), _hex("#8F2F2A"), _hex("#C65A4E"), _hex("#E1897B")],
     "gold":      [_hex("#6E5426"), _hex("#8C6C30"), _hex("#B08A3E"), _hex("#D6AE5C")],
     "flame":     [_hex("#E8973C"), _hex("#F0B25F"), _hex("#F9DCA6")],
+    # Warm ashlar for the Hall of Petitions' nave (TD-072). DERIVED FROM OUR OWN RAMPS, not
+    # transcribed from a photograph: each step is roughly the midpoint of `stone` and `wood`,
+    # which is how the board's masonry already reads once torchlight lands on it. `stone` stays
+    # as-is for the field tiles and everything cool.
+    "navestone": [_hex("#14100D"), _hex("#241D19"), _hex("#332A24"), _hex("#473A31"),
+                  _hex("#5C4C40"), _hex("#75624F"), _hex("#8F7A63")],
 }
 
 # Convenience named accessors (the tones the spec/generators cite by name). These
@@ -220,7 +226,7 @@ def write_png(path, w, h, pixel):
 def _selftest():
     # 1. Ramps are all distinct and well-formed.
     assert len(PALETTE) == len(PALETTE_SET), "duplicate palette colours"
-    assert len(PALETTE) == 3 + 5 + 5 + 5 + 3 + 2 + 4 + 4 + 3 == 34, "unexpected palette size"
+    assert len(PALETTE) == 3 + 5 + 5 + 5 + 3 + 2 + 4 + 4 + 3 + 7 == 41, "unexpected palette size"
 
     # 1b. ramp_shade rides the ramp and is monotone-ish at the ends.
     assert ramp_shade("parchment", 0.0) == PARCH_DEEP

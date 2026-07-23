@@ -730,7 +730,7 @@ func _show_title() -> void:
 	var vp := get_viewport_rect().size
 
 	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, vp.y * 0.30)
+	spacer.custom_minimum_size = Vector2(0, vp.y * 0.16)
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(spacer)
 
@@ -740,8 +740,25 @@ func _show_title() -> void:
 	col.add_theme_constant_override("separation", 4)
 	_root.add_child(col)
 
+	var mark := TextureRect.new()
+	mark.texture = load("res://assets/ui/board/collegium_logo.png") as Texture2D
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # or the VBox lets it grow without bound
+	mark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	mark.custom_minimum_size = Vector2(44, 38)
+	mark.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	mark.modulate = Color(0.80, 0.72, 0.56, 0.92)      # pale bone, not gilt — it is carved light
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(mark)
+	col.add_child(_menu_gap(2))
 	col.add_child(Widgets.engraved_line("TESTAMENT", 26, Color(0.86, 0.72, 0.42), 700))
-	col.add_child(_menu_gap(10))
+	col.add_child(_menu_gap(3))
+	var rule := Widgets.hrule(Color(0.62, 0.50, 0.31, 0.75))
+	rule.custom_minimum_size = Vector2(190, 1)
+	rule.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.add_child(rule)
+	col.add_child(_menu_gap(7))
 	# The recovery path is listed FIRST and only when there is something live to return to —
 	# never a dead option (R232). Canon I7 keeps expedition state ephemeral, so this rejoins a
 	# running expedition; it is not a save-game load.

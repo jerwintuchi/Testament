@@ -47,7 +47,7 @@
 - **`board_header_n.png`** — produced-by: `client/assets/ui/gen_header.py`, `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`board_surface.gdshader`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`cobweb.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
-- **`collegium_logo.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_banner.py` (reads), `client/assets/ui/gen_emblems.py` (reads), `client/assets/ui/gen_normals.py` (reads)
+- **`collegium_logo.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_banner.py` (reads), `client/assets/ui/gen_emblems.py` (reads), `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
 - **`frame_v1.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`parch_flavor_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
@@ -129,7 +129,7 @@
 - **`client/scripts/core/station_names.gd`**
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/world/space_view.gd` (preload)
 - **`client/scripts/main.gd`**
-  - loads: `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `nave.png`, `player.tscn`
+  - loads: `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `collegium_logo.png`, `frame_v1.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `nave.png`, `player.tscn`
   - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `station_names.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `widgets.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/ui/fonts.gd`**
@@ -176,6 +176,6 @@
 
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
-- `client/scripts/main.gd:2646` — `load/preload normal_path`
-- `client/scripts/main.gd:2673` — `load/preload path`
-- `client/scripts/main.gd:2677` — `load/preload normal_path`
+- `client/scripts/main.gd:2663` — `load/preload normal_path`
+- `client/scripts/main.gd:2690` — `load/preload path`
+- `client/scripts/main.gd:2694` — `load/preload normal_path`
