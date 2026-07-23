@@ -7,9 +7,9 @@ extends RefCounted
 ## size, the authoritative `contract` (or null), and the pre-formatted requester signature;
 ## no scene/socket state is touched. Consumed via preload as `BoardBar` (TD-029/30).
 
-const BoardGeo = preload("res://scripts/ui/board_geometry.gd")
-const VerbBadge = preload("res://scripts/ui/verb_badge.gd")
-const Notice = preload("res://scripts/ui/notice.gd")
+const BoardGeo = preload("res://scripts/board/board_geometry.gd")
+const VerbBadge = preload("res://scripts/board/verb_badge.gd")
+const Notice = preload("res://scripts/board/notice.gd")
 
 # The three-zone row. Caller positions it (it knows inner/z); this only builds the content.
 static func build(inner: Vector2, contract: Variant, sig: String) -> HBoxContainer:

@@ -12,9 +12,9 @@
 
 ### `client/assets/entities/player/`
 
-- **`Unarmed_Idle_with_shadow.png`** — produced-by: — · consumed-by: `client/scripts/player.gd` (preload)
-- **`Unarmed_Run_with_shadow.png`** — produced-by: — · consumed-by: `client/scripts/player.gd` (preload)
-- **`Unarmed_Walk_with_shadow.png`** — produced-by: — · consumed-by: `client/scripts/player.gd` (preload)
+- **`Unarmed_Idle_with_shadow.png`** — produced-by: — · consumed-by: `client/scripts/world/player.gd` (preload)
+- **`Unarmed_Run_with_shadow.png`** — produced-by: — · consumed-by: `client/scripts/world/player.gd` (preload)
+- **`Unarmed_Walk_with_shadow.png`** — produced-by: — · consumed-by: `client/scripts/world/player.gd` (preload)
 
 ### `client/assets/fonts/`
 
@@ -32,7 +32,7 @@
 - **`badge_capture.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
 - **`badge_eliminate.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
 - **`badge_investigate.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
-- **`banner_v1.png`** — produced-by: `client/assets/ui/gen_banner.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
+- **`banner_v1.png`** — produced-by: `client/assets/ui/gen_banner.py` · consumed-by: `client/scripts/board/board_decor.gd` (load)
 - **`banner_v1_n.png`** — produced-by: `client/assets/ui/gen_banner.py`, `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`board_header.png`** — produced-by: `client/assets/ui/gen_header.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`board_header_n.png`** — produced-by: `client/assets/ui/gen_header.py`, `client/assets/ui/gen_normals.py` · consumed-by: —
@@ -46,22 +46,22 @@
 - **`parch_v1_0.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`parch_v1_1.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`seal_collegium.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
-- **`spark.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
+- **`spark.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/board/board_decor.gd` (load)
 - **`stone_tile.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`stone_tile_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`tack_nail.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`tack_pin.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`tack_ribbon.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`tack_wax.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`torch_flame.png`** — produced-by: — · consumed-by: `client/scripts/ui/board_decor.gd` (load)
-- **`torch_glow.png`** — produced-by: — · consumed-by: `client/scripts/ui/board_decor.gd` (load)
-- **`torch_sconce.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/ui/board_decor.gd` (load)
+- **`torch_flame.png`** — produced-by: — · consumed-by: `client/scripts/board/board_decor.gd` (load)
+- **`torch_glow.png`** — produced-by: — · consumed-by: `client/scripts/board/board_decor.gd` (load)
+- **`torch_sconce.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/board/board_decor.gd` (load)
 - **`votive.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 - **`wall_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 
 ### `client/scenes/`
 
-- **`marker.tscn`** — produced-by: — · consumed-by: `client/scripts/space_view.gd` (preload)
+- **`marker.tscn`** — produced-by: — · consumed-by: `client/scripts/world/space_view.gd` (preload)
 - **`player.tscn`** — produced-by: — · consumed-by: `client/scripts/main.gd` (preload)
 - **`space_view.tscn`** — produced-by: — · consumed-by: `client/scenes/main.tscn` (ext_resource)
 
@@ -69,7 +69,7 @@
 ## Scripts — loads / preloads / loaded-by
 
 - **`client/protocol/protocol.gd`**
-  - loaded-by: `client/scripts/catalog.gd` (preload), `client/scripts/main.gd` (preload)
+  - loaded-by: `client/scripts/core/catalog.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scenes/main.tscn`**
   - loads: `space_view.tscn`
   - preloads: `main.gd`
@@ -80,47 +80,47 @@
   - loads: `tiles.tres`
   - preloads: `space_view.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
-- **`client/scripts/catalog.gd`**
-  - preloads: `protocol.gd`
-- **`client/scripts/main.gd`**
-  - loads: `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
-  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `fonts.gd`, `notice.gd`, `ornament_scrollbar.gd`, `popup_theme.gd`, `rite_banner.gd`, `verb_badge.gd`, `wax_seal.gd`, `widgets.gd`
-  - loaded-by: `client/scenes/main.tscn` (ext_resource)
-- **`client/scripts/player.gd`**
-  - loads: `Unarmed_Idle_with_shadow.png`, `Unarmed_Run_with_shadow.png`, `Unarmed_Walk_with_shadow.png`
-  - loaded-by: `client/scenes/player.tscn` (ext_resource)
-- **`client/scripts/space_view.gd`**
-  - loads: `marker.tscn`
-  - loaded-by: `client/scenes/space_view.tscn` (ext_resource)
-- **`client/scripts/ui/board_bar.gd`**
+- **`client/scripts/board/board_bar.gd`**
   - preloads: `board_geometry.gd`, `notice.gd`, `verb_badge.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
-- **`client/scripts/ui/board_decor.gd`**
+- **`client/scripts/board/board_decor.gd`**
   - loads: `banner_v1.png`, `spark.png`, `torch_flame.png`, `torch_glow.png`, `torch_sconce.png`
   - preloads: `board_geometry.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
-- **`client/scripts/ui/board_geometry.gd`**
-  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/board_bar.gd` (preload), `client/scripts/ui/board_decor.gd` (preload)
+- **`client/scripts/board/board_geometry.gd`**
+  - loaded-by: `client/scripts/board/board_bar.gd` (preload), `client/scripts/board/board_decor.gd` (preload), `client/scripts/main.gd` (preload)
+- **`client/scripts/board/notice.gd`**
+  - loaded-by: `client/scripts/board/board_bar.gd` (preload), `client/scripts/main.gd` (preload)
+- **`client/scripts/board/ornament_scrollbar.gd`**
+  - loaded-by: `client/scripts/main.gd` (preload)
+- **`client/scripts/board/verb_badge.gd`**
+  - loaded-by: `client/scripts/board/board_bar.gd` (preload), `client/scripts/main.gd` (preload)
+- **`client/scripts/board/wax_seal.gd`**
+  - loaded-by: `client/scripts/main.gd` (preload)
+- **`client/scripts/core/catalog.gd`**
+  - preloads: `protocol.gd`
+- **`client/scripts/main.gd`**
+  - loads: `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
+  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `widgets.gd`
+  - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/ui/fonts.gd`**
   - loads: `Cinzel.ttf`
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/widgets.gd` (preload)
-- **`client/scripts/ui/notice.gd`**
-  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/board_bar.gd` (preload)
-- **`client/scripts/ui/ornament_scrollbar.gd`**
-  - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/popup_theme.gd`**
   - loads: `panel.png`
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/rite_banner.gd`**
   - preloads: `fonts.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
-- **`client/scripts/ui/verb_badge.gd`**
-  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/board_bar.gd` (preload)
-- **`client/scripts/ui/wax_seal.gd`**
-  - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/widgets.gd`**
   - preloads: `fonts.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
+- **`client/scripts/world/player.gd`**
+  - loads: `Unarmed_Idle_with_shadow.png`, `Unarmed_Run_with_shadow.png`, `Unarmed_Walk_with_shadow.png`
+  - loaded-by: `client/scenes/player.tscn` (ext_resource)
+- **`client/scripts/world/space_view.gd`**
+  - loads: `marker.tscn`
+  - loaded-by: `client/scenes/space_view.tscn` (ext_resource)
 
 
 ## Generators — writes
@@ -156,8 +156,8 @@
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
+- `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
+- `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/main.gd:2378` — `load/preload normal_path`
 - `client/scripts/main.gd:2405` — `load/preload path`
 - `client/scripts/main.gd:2409` — `load/preload normal_path`
-- `client/scripts/ui/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
-- `client/scripts/ui/wax_seal.gd:21` — `load/preload SEAL_TEX`

@@ -82,7 +82,7 @@ not a restatement of the `load()` line. The auto map already carries the *what*.
 | Wire contract | `src/shared/` | types + constants only, no logic |
 | Client (render/input) | `client/` | Godot 4.7 project; zero game logic |
 | UI raster generators | `client/assets/ui/gen_*.py` + `ashember.py` | stdlib PNG authoring (TD-046) |
-| Board scene | `client/scripts/main.gd` + `scripts/ui/board_*.gd` | Contract/Notice Board render |
+| Board scene | `client/scripts/main.gd` + `scripts/board/*.gd` | Contract/Notice Board render |
 | Protocol codegen | `tools/` (node) | GDScript codegen from the message registry |
 | Dependency map | `tools/asset_map.py` → `asset-map.md` | this document's machine half |
 

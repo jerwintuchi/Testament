@@ -20,8 +20,8 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
-PixelScale="*res://scripts/pixel_scale.gd"
-DebugCapture="*res://scripts/debug_capture.gd"
+PixelScale="*res://scripts/core/pixel_scale.gd"
+DebugCapture="*res://scripts/core/debug_capture.gd"
 
 [display]
 

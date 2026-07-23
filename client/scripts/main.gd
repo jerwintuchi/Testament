@@ -11,13 +11,13 @@ enum Screen { MENU, LOBBY, DEPLOYING, FIELD, TESTAMENT, RECONNECTING }
 # server references the same names, so message types, error codes, phases, and the
 # gear catalog never drift (TD-029/TD-030: preload, not a global class_name).
 const Protocol = preload("res://protocol/protocol.gd")
-const WaxSeal = preload("res://scripts/ui/wax_seal.gd")
-const OrnamentScrollbar = preload("res://scripts/ui/ornament_scrollbar.gd")
-const VerbBadge = preload("res://scripts/ui/verb_badge.gd")
-const Notice = preload("res://scripts/ui/notice.gd")
-const BoardGeo = preload("res://scripts/ui/board_geometry.gd")  # pure board layout/keep-out/seed math
-const BoardDecor = preload("res://scripts/ui/board_decor.gd")   # torches + crest render factories
-const BoardBar = preload("res://scripts/ui/board_bar.gd")       # bottom legend/assignment/status bar
+const WaxSeal = preload("res://scripts/board/wax_seal.gd")
+const OrnamentScrollbar = preload("res://scripts/board/ornament_scrollbar.gd")
+const VerbBadge = preload("res://scripts/board/verb_badge.gd")
+const Notice = preload("res://scripts/board/notice.gd")
+const BoardGeo = preload("res://scripts/board/board_geometry.gd")  # pure board layout/keep-out/seed math
+const BoardDecor = preload("res://scripts/board/board_decor.gd")   # torches + crest render factories
+const BoardBar = preload("res://scripts/board/board_bar.gd")       # bottom legend/assignment/status bar
 const Fonts = preload("res://scripts/ui/fonts.gd")              # shared font builders (Cinzel)
 const PopupTheme = preload("res://scripts/ui/popup_theme.gd")   # the station popup's gothic Theme
 const RiteBanner = preload("res://scripts/ui/rite_banner.gd")   # the CONTRACT SEALED ceremony overlay
@@ -881,7 +881,7 @@ const _STATION_LABEL := {
 }
 
 # The procedural charge prose (headline / preamble / charge / signature) now lives
-# in `Notice` (scripts/ui/notice.gd), keyed off ContractIntel + contractId.
+# in `Notice` (scripts/board/notice.gd), keyed off ContractIntel + contractId.
 
 # The asserted-Origin gloss shown beside the wax seal in a charge's detail. A
 # claim the contract makes (falsifiable), never the hidden roll (GLOSSARY: Origin).

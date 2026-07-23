@@ -6,7 +6,7 @@ extends RefCounted
 ## + viewport size + reduced-motion flag; no other scene state is touched. Consumed via
 ## preload as `BoardDecor` (TD-029/30 convention). Grayscale-additive VFX tinted at runtime.
 
-const BoardGeo = preload("res://scripts/ui/board_geometry.gd")
+const BoardGeo = preload("res://scripts/board/board_geometry.gd")
 
 # Banner-centre x (screen fraction) per flank — BANNER PLACEMENT ONLY.
 # TD-059b/c: pushed OUTWARD toward the outer edge of the masonry gutter so the larger banner clears

@@ -166,7 +166,27 @@ Since the Godot client is a **Windows** process (§2) and the server runs in **W
    work in both directions permanently and retires the flag. It kills every running WSL
    session, so do it between work sessions, never mid-playtest.
 
-## 7. Rendering, fullscreen, and the pixel grid
+## 7. Moving a script that declares `class_name`
+
+Godot caches every global class in `.godot/global_script_class_cache.cfg`, keyed by **path**. Move
+such a script and the cache still points at the old location, so the parse fails twice over —
+first `Class "Player" hides a global script class` (old + new both registered), and after a naive
+cache delete, `Identifier "Catalog" not declared` (nothing registered yet).
+
+```bash
+rm client/.godot/global_script_class_cache.cfg
+"$GODOT" --headless --path "$CLIENT" --import      # rebuilds it against the new paths
+```
+
+`--import` is what repopulates it; a plain `--quit-after` run will not. Expect the first `--import`
+after moving an **autoload** to still log the old path once — project.godot is re-read on the pass
+after. Run it twice, then verify with a normal headless run.
+
+This only bites scripts using `class_name` — `Player`, `SpaceView`, `Catalog`. Everything else is
+`const X = preload(...)`, which the canon requires (S3.4 / TD-029/30) precisely because it resolves
+without the cache.
+
+## 8. Rendering, fullscreen, and the pixel grid
 
 The client runs **GL Compatibility** (`renderer/rendering_method="gl_compatibility"`),
 not Forward+/Vulkan. Confirm from the boot line:
