@@ -16,9 +16,15 @@ image — a title screen showing an Incarnate would leak the mystery the whole g
 (Pillar 3), and combat imagery would advertise the failure state. The reference's chairs are
 not reproduced: they clutter the frame and date the space.
 
-Geometry is a real one-point projection, not a painted fake: every pixel is ray-cast from the
-vanishing point onto floor / vault / side wall, carrying a depth `z` and a surface coordinate,
-so bays, ribs and flags all converge from the same arithmetic.
+Geometry is a real CAMERA, not a painted fake: an ultra-wide lens (hfov 105°, a ~14mm
+equivalent) at floor height, tilted UP 15°, ray-cast per pixel against the hall's planes. The
+tilt is the point — it makes verticals CONVERGE toward the top of frame (three-point
+perspective), which is what turns a corridor into a soaring space. The camera was recovered
+from the reference by measuring where its nave axis vanishes: at ≈0.68 of frame height, i.e.
+BELOW centre, which only happens when the camera is pitched up.
+
+Everything is in metres, at Chartres' proportions (16m wide, 37m to the vault), so the
+storeys sit where a real elevation puts them and the perspective follows for free.
 
 Run from client/assets/ui/:  python3 gen_nave.py  ->  title/nave.png
 """
@@ -29,87 +35,124 @@ import ashember as A
 
 W, H = 640, 360
 
-# ── The camera (R238) ────────────────────────────────────────────────────────
-# The vanishing point sits LOW, so the viewer looks UP the vault and it owns the frame's
-# upper half. At eye level the same geometry is merely a corridor.
-VPX, VPY = 0.5, 0.66
-HALF_W = 0.235            # hall half-width at the near plane
-UP = 0.72                 # vault height above the vanishing line, at the near plane
-DOWN = 0.34               # floor depth below it
-# Height/width ≈ 2.3 : tall and narrow, which is what makes stone read as drawn upward.
+# ── The camera, recovered from the reference (R238) ──────────────────────────
+HFOV = math.radians(105.0)        # ultra-wide: near piers fill the frame's sides and corners
+PITCH = math.radians(15.0)        # tilted UP — this is what converges the verticals
+EYE_Y = 1.5                       # standing on the flags, not floating
+TAN_H = math.tan(HFOV * 0.5)
+TAN_V = TAN_H / (W / H)
+SINP, COSP = math.sin(PITCH), math.cos(PITCH)
 
-BAY = 0.62                # bay length in half-widths — the arcade's rhythm
-K_LANCET = 0.55           # two-centred arch: a lancet, not a wide Tudor arch
+# ── The hall, in metres (Chartres' proportions) ──────────────────────────────
+HALF_W = 8.0                      # 16m across the nave
+VAULT_Y = 37.0                    # …and 37m to the vault: a height/width of 2.3
+Z_FAR = 115.0                     # the apse closes the view
+BAY = 7.0                         # bay length — the arcade's rhythm
 
-H_FLOOR = DOWN / HALF_W           # wall height coordinate at the floor  (+1.45)
-H_VAULT = -UP / HALF_W            # …and at the vault springing          (-3.06)
+# ── The three storeys, in metres up the wall ─────────────────────────────────
+ARC_SPRING, ARC_HALF = 9.0, 2.55        # main arcade (apex ≈ 12.7m)
+TRI_LO, TRI_HI, TRI_HALF = 15.2, 18.4, 0.95   # triforium band
+CLR_SPRING, CLR_HALF = 22.0, 2.10       # clerestory, the glazed storey (apex ≈ 25.0m)
+PIER_HALF = 1.75                        # half the solid pier between openings
 
+K_LANCET = 0.55                   # two-centred arch: a lancet, not a wide Tudor arch
 BLACK = (7, 6, 8)
 
 
 def lancet(dp, half, springing):
-    """Head height of a two-centred pointed arch at |dp| from the opening's centre.
+    """Apex height of a two-centred pointed arch at |dp| from the opening's centre, in metres.
 
-    Each half is an arc struck from the OPPOSITE springing point, so the two meet at an apex
-    instead of closing as a semicircle. Height is negative-upward, like `h` below.
+    Each half is an arc struck from the OPPOSITE springing point, so the two meet at a point
+    instead of closing as a semicircle.
     """
     r = half * (1.0 + K_LANCET)
     dx = dp + half * K_LANCET
-    return springing - math.sqrt(max(0.0, r * r - dx * dx))
+    return springing + math.sqrt(max(0.0, r * r - dx * dx))
 
 
-# ── The three storeys, in wall-height units (negative is up) ─────────────────
-ARC_SPRING, ARC_HALF = -0.30, 0.36              # main arcade
-TRI_LO, TRI_HI, TRI_HALF = -1.30, -1.62, 0.13   # triforium band
-CLR_SPRING, CLR_HALF = -2.05, 0.20              # clerestory (the glazed storey)
-
-# ── Fire (R236). Braziers stand in the aisles at bay intervals: the KEY light. ──
-BRAZIERS = [(side * 0.86, z) for z in (1.15, 1.95, 3.1, 4.9) for side in (-1, 1)]
+def ray(fx, fy):
+    """World-space direction for a pixel, through the pitched ultra-wide camera."""
+    sx = (fx - 0.5) * 2.0 * TAN_H
+    sy = (0.5 - fy) * 2.0 * TAN_V
+    return (sx, sy * COSP + SINP, -sy * SINP + COSP)
 
 
-def _braziers_screen():
-    """Project each brazier to screen space once, with a perspective radius and intensity."""
-    out = []
-    for cross, z in BRAZIERS:
-        fx = VPX + cross * HALF_W / z
-        fy = VPY + (H_FLOOR - 0.12) * HALF_W / z
-        rad = 0.30 * HALF_W / z            # nearer flames pool wider
-        inten = min(1.0, 0.55 / (z * 0.55))
-        out.append((fx, fy, rad, inten))
-    return out
+def project(px, py, pz):
+    """World point -> (fx, fy, inv_depth), or None behind the camera. Used to place fires."""
+    ry_, rz = py - EYE_Y, pz
+    df = ry_ * SINP + rz * COSP
+    if df <= 0.05:
+        return None
+    du = ry_ * COSP - rz * SINP
+    return (0.5 + px / df / (2.0 * TAN_H), 0.5 - du / df / (2.0 * TAN_V), 1.0 / df)
 
 
-BZ = _braziers_screen()
+def hit(fx, fy):
+    """Nearest plane the pixel's ray strikes: ("floor"|"vault"|"wall"|"apse", a, b, dist).
+
+    `a` runs down the hall (metres), `b` is across the surface — cross-hall on floor/vault,
+    height up the wall on a wall.
+    """
+    dx, dy, dz = ray(fx, fy)
+    best = None
+    if dy < -1e-6:                                   # floor, y = 0
+        t = -EYE_Y / dy
+        if t > 0:
+            best = (t, "floor")
+    if dy > 1e-6:                                    # vault, y = VAULT_Y
+        t = (VAULT_Y - EYE_Y) / dy
+        if t > 0 and (best is None or t < best[0]):
+            best = (t, "vault")
+    if abs(dx) > 1e-6:                               # side walls, x = ±HALF_W
+        t = (math.copysign(HALF_W, dx)) / dx
+        if t > 0 and (best is None or t < best[0]):
+            best = (t, "wall")
+    if dz > 1e-6:                                    # the apse closes the far end
+        t = Z_FAR / dz
+        if t > 0 and (best is None or t < best[0]):
+            best = (t, "apse")
+    if best is None:
+        return ("apse", 0.0, 0.0, Z_FAR)
+    t, kind = best
+    wx, wy, wz = dx * t, EYE_Y + dy * t, dz * t
+    if kind == "floor" or kind == "vault":
+        return (kind, wz, wx, wz)
+    if kind == "wall":
+        return (kind, wz, wy, wz)
+    return (kind, wy, wx, wz)
+
+
+# ── Fire (R236). Braziers stand along the aisles: the KEY light. ─────────────
+BRAZIERS = [(side * (HALF_W - 1.1), 0.9, z)
+            for z in (13.0, 20.0, 30.0, 45.0, 66.0) for side in (-1, 1)]
+BZ = [(pr[0], pr[1], pr[2]) for pr in
+      (project(bx, by, bz) for bx, by, bz in BRAZIERS) if pr is not None]
 
 
 def _firelight(fx, fy):
-    """Summed warm falloff from every brazier. This is the image's key light."""
+    """Summed warm falloff from every brazier — the image's key light."""
     tot = 0.0
-    for bx, by, rad, inten in BZ:
-        dx = (fx - bx) / (rad * 3.2)
-        dy = (fy - by) / (rad * 2.1)       # pools wider than tall: light lying on flags
-        d2 = dx * dx + dy * dy
+    for bx, by, inv in BZ:
+        rx_ = 4.0 * inv / (2.0 * TAN_H)                  # a real 4m pool, in perspective
+        ry_ = 2.2 * inv / (2.0 * TAN_V)                  # pools wider than tall on the flags
+        dxs = (fx - bx) / max(rx_, 1e-5)
+        dys = (fy - by) / max(ry_, 1e-5)
+        d2 = dxs * dxs + dys * dys
         if d2 < 1.0:
-            tot += inten * (1.0 - d2) ** 2
-    return min(1.35, tot)
+            tot += min(0.85, inv * 6.0) * (1.0 - d2) ** 2
+    return min(1.4, tot)
 
 
-def _farglow(fx, fy):
-    """The hall's far end. Depth reads as LUMINANCE (TD-072): the near is darkest and the
-    distance opens into light, so near piers fall to silhouette against it."""
-    dx = (fx - VPX) / 0.115
-    dy = (fy - VPY + 0.015) / 0.085
-    return max(0.0, 1.0 - A.smooth(0.0, 1.0, math.sqrt(dx * dx + dy * dy))) ** 1.5
-
-
-def _shaft(fx, fy):
-    """The cold counterpoint (TD-043) — a pale shaft through a high clerestory lancet. Dimmer
-    than the fire and no longer the source of the image."""
-    cx = 0.335 + 0.30 * (0.80 - fy)
-    d = abs(fx - cx) / 0.085
-    if d >= 1.0:
+def _apseglow(fx, fy):
+    """The lit east end. Depth reads as LUMINANCE: the near is darkest and the distance opens
+    into light, so the near piers fall to silhouette against it."""
+    pr = project(0.0, 12.0, Z_FAR - 2.0)
+    if pr is None:
         return 0.0
-    return (1.0 - d * d) ** 2.4 * A.smooth(0.0, 0.26, fy) * (1.0 - 0.6 * A.smooth(0.5, 0.95, fy))
+    ax, ay, _ = pr
+    dxs = (fx - ax) / 0.135
+    dys = (fy - ay) / 0.105
+    return max(0.0, 1.0 - A.smooth(0.0, 1.0, math.sqrt(dxs * dxs + dys * dys))) ** 1.4
 
 
 _DITHER = ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5))
@@ -123,105 +166,79 @@ def _dither(base, x, y):
 
 def nave_px(x, y):
     fx, fy = (x + 0.5) / W, (y + 0.5) / H
-    u, v = fx - VPX, fy - VPY
-    rx = abs(u) / HALF_W
-    ry = (v / DOWN) if v >= 0 else (-v / UP)
+    kind, a, b, dist = hit(fx, fy)
+    near = min(1.0, 14.0 / max(dist, 1.0))               # 1 close, → 0 far
 
-    if max(rx, ry) < 0.055:
-        # The far end: not a wall, an opening full of light.
-        base = A.ramp_shade("stone", 0.55)
-    elif rx >= ry:
-        # ── Side wall: compound piers and three storeys of pointed openings ──
-        au = max(abs(u), 1e-5)
-        z = HALF_W / au                             # depth
-        h = v / au                                  # wall height, negative-upward
-        p = (z / BAY) % 1.0
-        dp = abs(p - 0.5)
-        base = A.ramp_shade("stone", 0.10 + 0.16 * min(1.0, 1.4 / z))
-
-        arc_head = lancet(dp, ARC_HALF, ARC_SPRING) if dp < ARC_HALF else 0.0
-        clr_head = lancet(dp, CLR_HALF, CLR_SPRING) if dp < CLR_HALF else 0.0
-        in_arcade = dp < ARC_HALF and arc_head < h < H_FLOOR
-        in_clere = dp < CLR_HALF and clr_head < h < CLR_SPRING
-        in_trif = dp < TRI_HALF and TRI_HI < h < TRI_LO
-
-        if in_arcade:
-            # Through into the dark side aisle — the deepest value in the image.
-            base = A.lerp_rgb(BLACK, A.RAMP["stone"][0], 0.10 * min(1.0, 1.6 / z))
-        elif in_clere:
-            # Glazing. Jewelled from ramps already in hand (R235): no foreign palette.
-            mull = abs(((dp / (CLR_HALF * 0.5)) % 1.0) - 0.5)   # stone mullions divide the light
-            lit = min(1.0, 1.5 / z)
-            base = A.lerp_rgb(BLACK, A.RAMP["stone"][3], 0.30 + 0.22 * lit)
+    if kind == "apse":
+        base = A.ramp_shade("stone", 0.16)
+        light = abs(b) < 5.4 and 7.0 < a < lancet(abs(b) % 1.8, 0.9, 22.0)
+        if light:
+            mull = abs((abs(b) / 1.8) % 1.0 - 0.5)
+            base = A.lerp_rgb(A.RAMP["stone"][3], A.RAMP["parchment"][3], 0.55)
             if mull > 0.40:
-                base = A.over(base, A.RAMP["stone"][1], 0.60)
-        elif in_trif:
-            base = A.lerp_rgb(BLACK, A.RAMP["stone"][0], 0.22)
-        else:
-            # Pier face. Quantised into colonnettes, each shaded as a half-round: this is what
-            # turns a flat wall into a BUNDLE OF SHAFTS, which is the whole Gothic read.
-            shafts = 5.0
-            sp = (dp * shafts) % 1.0
-            round_ = math.sin(sp * math.pi)                 # half-cylinder across each shaft
-            base = A.over(base, A.RAMP["stone"][2], 0.34 * round_)
-            if sp < 0.10 or sp > 0.90:
-                base = A.over(base, BLACK, 0.42)            # the seam between shafts
-            # Capitals at the arcade springing, and a string-course under the clerestory.
-            if abs(h - ARC_SPRING) < 0.055 or abs(h - (TRI_LO + 0.06)) < 0.035:
-                base = A.over(base, A.RAMP["stone"][3], 0.45)
-            base = A.over(base, A.RAMP["stone"][0], 0.05 * (A.noise(x, y // 3, 7) + 8) / 16.0)
-    elif v >= 0:
-        # ── Floor: worn flags, courses across the hall, joints running away ──
-        z = DOWN / max(v, 1e-5)
-        cross = u / max(v, 1e-5) * DOWN / HALF_W
-        base = A.ramp_shade("stone", 0.07 + 0.10 * min(1.0, 1.5 / z))
-        if abs(((z / 0.42) % 1.0) - 0.5) > 0.455 or abs(((cross / 0.5) % 1.0) - 0.5) > 0.462:
-            base = A.over(base, BLACK, 0.55)
+                base = A.over(base, A.RAMP["stone"][0], 0.75)     # the stone between lights
+    elif kind == "floor":
+        base = A.ramp_shade("stone", 0.06 + 0.10 * near)
+        if abs(((a / 1.9) % 1.0) - 0.5) > 0.455 or abs(((b / 1.9) % 1.0) - 0.5) > 0.455:
+            base = A.over(base, BLACK, 0.55)             # flag joints
         else:
             base = A.over(base, A.RAMP["stone"][0], 0.05 * (A.noise(x // 2, y // 2, 11) + 8) / 16.0)
+    elif kind == "vault":
+        # Ribbed quadripartite bays: diagonals crossing at a boss, transverse ribs, sunk webs.
+        cross = b / HALF_W
+        loc = (a / BAY) % 1.0
+        base = A.ramp_shade("stone", 0.05 + 0.09 * near)
+        base = A.over(base, BLACK, 0.34)
+        rw = 0.085
+        diag = abs(abs(cross) - abs(2.0 * loc - 1.0))
+        if diag < rw or min(loc, 1.0 - loc) < rw * 0.45:
+            base = A.over(base, A.RAMP["stone"][2], 0.26)
+            if diag < rw * 0.5 and abs(loc - 0.5) < 0.10:
+                base = A.over(base, A.RAMP["stone"][3], 0.24)     # the boss
+        elif abs(cross) < rw * 0.4:
+            base = A.over(base, A.RAMP["stone"][1], 0.22)         # ridge rib
     else:
-        # ── Vault: ribbed quadripartite bays, bosses chaining away overhead ──
-        nv = max(-v, 1e-5)
-        z = UP / nv
-        cross = u / nv * UP / HALF_W                # -1..1 across the vault
-        a = (z / BAY) % 1.0
-        base = A.ramp_shade("stone", 0.05 + 0.09 * min(1.0, 1.3 / z))
-        diag = abs(abs(cross) - abs(2.0 * a - 1.0))     # the crossing diagonals
-        trans = min(a, 1.0 - a)                          # the bay division
-        ridge = abs(cross)
-        rw = 0.030 + 0.030 / max(1.0, z)                 # ribs thin with distance
-        fade = max(0.0, min(1.0, 1.9 / z - 0.55))        # ribs resolve near, then the dark takes it
-        base = A.over(base, BLACK, 0.62)                 # webs sit deep — this is a dark ceiling
-        if diag < rw or trans < rw * 0.5:
-            base = A.over(base, A.RAMP["stone"][2], 0.30 * fade)   # rib, catching a little light
-            if diag < rw * 0.5 and abs(a - 0.5) < 0.08:
-                base = A.over(base, A.RAMP["stone"][3], 0.28 * fade)   # the boss where they cross
-        elif ridge < rw * 0.35:
-            base = A.over(base, A.RAMP["stone"][1], 0.22 * fade)   # ridge rib, quiet
+        # ── Side wall: compound piers, three storeys of pointed openings ──
+        h = b                                            # metres up the wall
+        loc = (a / BAY) % 1.0
+        dp = abs(loc - 0.5) * BAY                        # metres from the bay's centre
+        base = A.ramp_shade("stone", 0.10 + 0.15 * near)
+        in_arc = dp < ARC_HALF and ARC_SPRING is not None and h < lancet(dp, ARC_HALF, ARC_SPRING)
+        in_clr = dp < CLR_HALF and CLR_SPRING < h < lancet(dp, CLR_HALF, CLR_SPRING)
+        in_tri = dp < TRI_HALF and TRI_LO < h < TRI_HI
+        if in_arc and h > 0.4:
+            base = A.lerp_rgb(BLACK, A.RAMP["stone"][0], 0.10 * near)   # into the dark aisle
+        elif in_clr:
+            mull = abs(((dp / (CLR_HALF * 0.42)) % 1.0) - 0.5)
+            base = A.lerp_rgb(BLACK, A.RAMP["stone"][3], 0.34 + 0.26 * near)
+            if mull > 0.40:
+                base = A.over(base, A.RAMP["stone"][1], 0.60)           # mullions
+        elif in_tri:
+            base = A.lerp_rgb(BLACK, A.RAMP["stone"][0], 0.24)
+        else:
+            # Pier face quantised into colonnettes, each shaded as a half-round: a flat wall
+            # becomes a BUNDLE OF SHAFTS, which is the whole Gothic read.
+            sp = (dp / 0.95) % 1.0
+            base = A.over(base, A.RAMP["stone"][2], 0.20 * math.sin(sp * math.pi))
+            if sp < 0.07 or sp > 0.93:
+                base = A.over(base, BLACK, 0.26)                         # seam between shafts
+            if abs(h - ARC_SPRING) < 0.55 or abs(h - TRI_HI) < 0.35 or abs(h - CLR_SPRING) < 0.40:
+                base = A.over(base, A.RAMP["stone"][3], 0.42)            # capitals, string-course
+            base = A.over(base, A.RAMP["stone"][0], 0.05 * (A.noise(x, y // 3, 7) + 8) / 16.0)
 
-    # ── Light. Fire is the key; the far end opens; the shaft is the cold accent. ──
+    # ── Light: fire is the key, the apse opens the distance. ──
+    glow = _apseglow(fx, fy)
+    base = A.over(base, A.lerp_rgb(A.RAMP["stone"][3], A.RAMP["parchment"][2], 0.40),
+                  min(0.66, glow * 0.66))
     fire = _firelight(fx, fy)
-    far = _farglow(fx, fy)
-    cold = _shaft(fx, fy)
-
-    base = A.over(base, A.lerp_rgb(A.RAMP["stone"][3], A.RAMP["parchment"][2], 0.35),
-                  min(0.62, far * 0.62))
-    if cold > 0.0:
-        base = A.over(base, A.RAMP["stone"][4], min(0.20, cold * 0.20))
     if fire > 0.0:
-        warm = A.RAMP["flame"][1] if fire > 0.5 else A.RAMP["gold"][2]
-        base = A.over(base, warm, min(0.72, fire * 0.55))
-    # The flames themselves, drawn last so nothing washes them out.
-    for bx, by, rad, inten in BZ:
-        dx = (fx - bx) / max(rad * 0.30, 1e-5)
-        dy = (fy - by + rad * 0.18) / max(rad * 0.55, 1e-5)
-        if dx * dx + dy * dy < 1.0:
-            base = A.FLAME_PALE
+        warm = A.RAMP["flame"][1] if fire > 0.55 else A.RAMP["gold"][2]
+        base = A.over(base, warm, min(0.58, fire * 0.44))
 
     v_ = max(abs(fx - 0.5) / 0.5, abs(fy - 0.5) / 0.5)
-    base = A.lerp_rgb(base, BLACK, 0.60 * A.smooth(0.60, 1.08, v_))
-    r, g, b = A.quantize(_dither(base, x, y))
-    return (r, g, b, 255)
+    base = A.lerp_rgb(base, BLACK, 0.55 * A.smooth(0.62, 1.10, v_))
+    r, g, b_ = A.quantize(_dither(base, x, y))
+    return (r, g, b_, 255)
 
 
 if __name__ == "__main__":
