@@ -5,6 +5,13 @@ extends RefCounted
 
 const Fonts = preload("res://scripts/ui/fonts.gd")
 
+# The Ash & Ember ink ramp. Shared: the live writs on the wall and the enlarged reader both
+# ink their headlines with it, so it lives here rather than being duplicated once the reader
+# moves out of main.gd (TD-067 T230). The parchment floor tone guarantees these clear the
+# 4.5:1 contrast floor wherever a writ lands (T145/L1).
+const INK := Color("2A2115")
+const INK_SOFT := Color("3D3120")
+
 static func card_label(text: String, size: int, color: Color, do_wrap: bool, center: bool = false) -> Label:
 	var l := Label.new()
 	l.text = text

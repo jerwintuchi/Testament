@@ -41,9 +41,27 @@
       nondeterministic run-to-run — a same-build control run differs the same way). A default
       `--capture` shows the menu `h1` unchanged. **V2** — asset-map regenerated + `--check` green;
       `git diff` scoped `client/ specs/ docs/`; server 362 + shared 65 green (untouched).
-- [ ] T230 [R218] — `board/notice_reader.gd`: the reader + seal + `_animate_seal` +
-      `_spawn_seal_flash` + cooldown + scroll continuity (the delicate TD-062/64/65 logic). Its own
-      commit, heavily capture-verified (unsealed/sealed/foot/flash/banner).
+- [x] T230 [R218 / P122 / V1, V2] — `board/notice_reader.gd`: the reader + seal + `_animate_seal` +
+      `_spawn_seal_flash` + cooldown + scroll continuity (the delicate TD-062/64/65 logic).
+      Shipped as a **preloaded RefCounted with static builders**, not a scene: the reader is
+      TRANSIENT (built on open, freed on close, rebuilt in place on a stamp), so it follows the
+      `BoardDecor.add_torches(host, …)` idiom. Its memory (open cid, scroll offset, seal-prev,
+      cooldown) moved with it as **static state**, because it IS reader state. The shell keeps the
+      socket (S3.5): a `Ctx` carries snapshot/leader/parch/etc. in, and `on_seal`/`on_dismiss`
+      callbacks carry intents out, so the module never touches `_net`. `main.gd` 2,919→2,545 (−374).
+      `INK`/`INK_SOFT` promoted to `Widgets` (shared by the wall writs and the reader) rather than
+      duplicated. Preserves TD-068's fast path — `show()` still attaches one named `ReaderOverlay`.
+      Test: **V1** — headless parse clean; captures verified for **unsealed** (dashed socket + the
+      leader's named oath), **sealed** (firm oxblood wax, device debossed, witnessed caption),
+      **foot** (scroll pin), **reader-cycle** (open→close, `board live=` once — TD-068 intact) and
+      the **flash** (warm bloom reading *past the sheet edge*, i.e. still unclipped per TD-064).
+      **V2** — asset-map + `--check`; no `src/**` change.
+      Two things worth recording: `_origin_word` was almost re-written as `capitalize()`, which is
+      NOT what the original did — caught before it shipped, and the verbatim `substr` form restored
+      (P122 means verbatim, not equivalent-looking). And `--flash-preview` now **loops** the bloom:
+      it lasts ~0.76s while the capture harness takes whole seconds, so a one-shot flash was never
+      catchable on film and had only ever been verified by "it did not error", which is not
+      verification.
 - [ ] T231 [R219] — `board/contract_board.gd`: the board shell driven by the snapshot, emitting
       intents via signal; `main.gd` delegates. The largest extraction; leaves `main.gd` a thin router.
 
