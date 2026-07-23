@@ -73,7 +73,8 @@
 
 ### `client/assets/ui/title/`
 
-- **`nave.png`** — produced-by: `client/assets/ui/gen_nave.py` · consumed-by: `client/scripts/main.gd` (load)
+- **`collegium_hall.png`** — produced-by: `client/assets/ui/gen_title_matte.py` · consumed-by: `client/scripts/main.gd` (load)
+- **`title_fire.gdshader`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
 
 ### `client/scenes/`
 
@@ -129,7 +130,7 @@
 - **`client/scripts/core/station_names.gd`**
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/world/space_view.gd` (preload)
 - **`client/scripts/main.gd`**
-  - loads: `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `collegium_logo.png`, `frame_v1.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `nave.png`, `player.tscn`
+  - loads: `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `collegium_logo.png`, `frame_v1.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `collegium_hall.png`, `title_fire.gdshader`, `player.tscn`
   - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `station_names.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `widgets.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/ui/fonts.gd`**
@@ -158,8 +159,8 @@
 - **`client/assets/ui/gen_banner.py`** → `banner_v1.png`, `banner_v1_n.png`
 - **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_collegium.png`, `spark.png`, `torch_sconce.png`
 - **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_header_n.png`
-- **`client/assets/ui/gen_nave.py`** → `nave.png`
 - **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`
+- **`client/assets/ui/gen_title_matte.py`** → `collegium_hall.png`
 
 
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
@@ -169,13 +170,13 @@
 
 ## Dangling references (resolvable ref, file absent) — advisory
 
-- none
+- `(writes) title/nave.png` referenced by `client/assets/ui/gen_nave.py:325`
 
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
-- `client/scripts/main.gd:2663` — `load/preload normal_path`
-- `client/scripts/main.gd:2690` — `load/preload path`
-- `client/scripts/main.gd:2694` — `load/preload normal_path`
+- `client/scripts/main.gd:2671` — `load/preload normal_path`
+- `client/scripts/main.gd:2698` — `load/preload path`
+- `client/scripts/main.gd:2702` — `load/preload normal_path`

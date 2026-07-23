@@ -164,12 +164,19 @@ func _ready() -> void:
 	_nave_bg.visible = false
 	layer.add_child(_nave_bg)
 	_nave = TextureRect.new()
-	_nave.texture = load("res://assets/ui/title/nave.png") as Texture2D
-	_nave.stretch_mode = TextureRect.STRETCH_SCALE
+	_nave.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_nave.texture = load("res://assets/ui/title/collegium_hall.png") as Texture2D
+	_nave.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	_nave.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_nave.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# LINEAR, not NEAREST: this is a painted environment matte, not pixel art (TD-073/R242).
+	_nave.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_nave.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_nave.visible = false
+	# Layer 3+5: the painted candles are made to live by a shader that finds warm highlights and
+	# flickers them independently. Light2D cannot reach Control nodes (TD-047).
+	var fire := ShaderMaterial.new()
+	fire.shader = load("res://assets/ui/title/title_fire.gdshader") as Shader
+	_nave.material = fire if not OS.get_cmdline_user_args().has("--no-fire") else null
 	layer.add_child(_nave)
 
 	_menu_stone = TextureRect.new()
@@ -540,7 +547,6 @@ func _focus_first_notice() -> void:
 # scroll size and rebuild its body (the notice scatter is resolution-scaled), then
 # re-center the panel. Cheap and only runs while a popup is open.
 func _on_viewport_resized() -> void:
-	_fit_nave()                     # the title is not a popup, but it is resolution-sensitive
 	if not _menu_open:
 		return
 	var vp := get_viewport_rect().size
@@ -723,9 +729,11 @@ func _show_title() -> void:
 	_screen = Screen.TITLE
 	_world.visible = false
 	_clear()
-	_nave_bg.visible = true
 	_nave.visible = true
-	_fit_nave()
+	_nave_bg.visible = false
+	if _nave.material is ShaderMaterial:
+		# reduced motion pins every flame to its base energy: fully lit, simply still (R244)
+		(_nave.material as ShaderMaterial).set_shader_parameter("anim", 0.0 if _reduced_motion else 1.0)
 	_status.visible = false        # the title carries no status line (R232) — it is an image
 	var vp := get_viewport_rect().size
 

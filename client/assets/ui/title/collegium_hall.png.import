@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b75u52gcstqcy"
-path="res://.godot/imported/nave.png-b26dd69cbc7b1ac0a44ed74a28c37253.ctex"
+uid="uid://bwi13cghxwsc4"
+path="res://.godot/imported/collegium_hall.png-1fda459def597231feed841a46d95cc9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/title/nave.png"
-dest_files=["res://.godot/imported/nave.png-b26dd69cbc7b1ac0a44ed74a28c37253.ctex"]
+source_file="res://assets/ui/title/collegium_hall.png"
+dest_files=["res://.godot/imported/collegium_hall.png-1fda459def597231feed841a46d95cc9.ctex"]
 
 [params]
 
