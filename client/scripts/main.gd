@@ -215,11 +215,11 @@ func _ready() -> void:
 	# diffuse/normal are sampled at UV*tile_scale so the shader tiles too. Ambient is LOW so the
 	# wall sits in the dark and is REVEALED warm only where a sconce's halo reaches (the target:
 	# masonry noticed in the dark, from the torchlight). Light2D can't reach Control nodes (TD-047).
-	_stone_bg.texture = load("res://assets/ui/stone_tile.png") as Texture2D
+	_stone_bg.texture = load("res://assets/ui/board/stone_tile.png") as Texture2D
 	_stone_bg.stretch_mode = TextureRect.STRETCH_SCALE          # UV 0..1; the shader does the tiling
 	_stone_bg.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED   # so UV*tile_scale wraps the brick
 	_stone_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp pixel brick, not blurred
-	_stone_bg.material = _surface_material("res://assets/ui/stone_tile_n.png", 0.24, 1.0, Vector2(5.0, 4.2))
+	_stone_bg.material = _surface_material("res://assets/ui/board/stone_tile_n.png", 0.24, 1.0, Vector2(5.0, 4.2))
 	_stone_bg.modulate = Color(1.0, 1.0, 1.0)   # brightness comes from the shader (dark ambient + sconce)
 	_stone_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stone_bg.visible = false
@@ -241,29 +241,29 @@ func _ready() -> void:
 	# Painterly wooden frame sliced from the Prototype-v1 raster (TD-044): a 9-slice with
 	# a transparent interior and the crest painted out (drawn separately). LINEAR-filtered.
 	# Frame + backing: shader-lit like the wall once the wall proof lands (T149). Plain for now.
-	_wood_sb = _texture_sb("res://assets/ui/frame_v1.png", 33.0, 20.0, Color(0.29, 0.19, 0.10), Color(0.45, 0.30, 0.15))
-	_backing_tex = load("res://assets/ui/backing_v1.png") as Texture2D
+	_wood_sb = _texture_sb("res://assets/ui/board/frame_v1.png", 33.0, 20.0, Color(0.29, 0.19, 0.10), Color(0.45, 0.30, 0.15))
+	_backing_tex = load("res://assets/ui/board/backing_v1.png") as Texture2D
 	# Batch-2 detail assets (T143/T144): deckled parchment split live vs flavor, tacks,
 	# and decay props. A missing texture is simply skipped (fallbacks below tolerate []).
 	for i in 2:
-		var lv := load("res://assets/ui/parch_v1_%d.png" % i) as Texture2D   # deckled cards on v1 painted paper
+		var lv := load("res://assets/ui/board/parch_v1_%d.png" % i) as Texture2D   # deckled cards on v1 painted paper
 		if lv != null:
 			_parch_live.append(lv)
-		var fv := load("res://assets/ui/parch_flavor_%d.png" % i) as Texture2D
+		var fv := load("res://assets/ui/board/parch_flavor_%d.png" % i) as Texture2D
 		if fv != null:
 			_parch_flavor.append(fv)
 	for tk in ["nail", "wax", "pin", "ribbon"]:
-		var t := load("res://assets/ui/tack_%s.png" % tk) as Texture2D
+		var t := load("res://assets/ui/board/tack_%s.png" % tk) as Texture2D
 		if t != null:
 			_tack_tex.append(t)
-	_cobweb_tex = load("res://assets/ui/cobweb.png") as Texture2D
-	_votive_tex = load("res://assets/ui/votive.png") as Texture2D
+	_cobweb_tex = load("res://assets/ui/board/cobweb.png") as Texture2D
+	_votive_tex = load("res://assets/ui/board/votive.png") as Texture2D
 	pcenter.add_child(_popup)
 	# Carved frame overlay (TD-047): the board's frame is a shader-lit NinePatch that tracks the
 	# popup rect from OUTSIDE the clipping ScrollContainer, so the torches light its relief (a
 	# StyleBox can't hold a material, and an in-canvas frame is clipped). Shown for the board only.
 	_board_frame = NinePatchRect.new()
-	_board_frame.texture = load("res://assets/ui/frame_v1.png") as Texture2D
+	_board_frame.texture = load("res://assets/ui/board/frame_v1.png") as Texture2D
 	_board_frame.patch_margin_left = 33; _board_frame.patch_margin_top = 33
 	_board_frame.patch_margin_right = 33; _board_frame.patch_margin_bottom = 33
 	_board_frame.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -956,7 +956,7 @@ func _open_station(kind: String) -> void:
 		clear.set_content_margin_all(20)
 		_popup.add_theme_stylebox_override("panel", clear)
 		_popup_scroll.custom_minimum_size = _board_inner_size()
-		_board_frame.material = _surface_material("res://assets/ui/frame_v1_n.png", 0.40, 1.0)
+		_board_frame.material = _surface_material("res://assets/ui/board/frame_v1_n.png", 0.40, 1.0)
 		_board_frame.visible = true
 	else:
 		_popup.remove_theme_stylebox_override("panel")
@@ -1212,7 +1212,7 @@ func _build_contract_board() -> void:
 		# Torch-lit via the surface shader (TD-047): the dark backing_v1 is pre-lifted in-shader
 		# (diffuse_gain) then lit by the torch rig — tests that a fragment shader preserves the
 		# NinePatch 9-slice AND takes the dynamic light (the frame conversion depends on this).
-		backing.material = _surface_material("res://assets/ui/backing_v1_n.png", 0.56, 1.25)  # TD-050: plank grain reads at rest, still below the parchment/frame key
+		backing.material = _surface_material("res://assets/ui/board/backing_v1_n.png", 0.56, 1.25)  # TD-050: plank grain reads at rest, still below the parchment/frame key
 		backing.modulate = Color(1.0, 1.0, 1.0)
 		# z_index MUST stay >= 0: at -2 the plank drew BEHIND the popup's opaque panel
 		# background and vanished, so the dark stone wall showed through ("see-through board").
@@ -1236,7 +1236,7 @@ func _build_contract_board() -> void:
 	# margin. Rendered on the stone layer in viewport space. Reduced-motion (F9) freezes it.
 	# TD-059: the banner is now a normal-mapped surface lit by the SAME torch rig as the wall —
 	# built here so the rig-uniform packing stays in `_surface_material` (P72/P102), passed in.
-	var banner_mat := _surface_material("res://assets/ui/banner_v1_n.png", 0.36, 1.05, Vector2.ONE, 2.4)
+	var banner_mat := _surface_material("res://assets/ui/board/banner_v1_n.png", 0.36, 1.05, Vector2.ONE, 2.4)
 	BoardDecor.add_torches(_stone_bg, get_viewport_rect().size, _reduced_motion, banner_mat)
 	# The papers live in their own layer beneath the placard and the reader. A hovered
 	# notice raises to front WITHIN this layer only, so dense overlap never lets a
@@ -2166,7 +2166,7 @@ func _board_header() -> Control:
 	# is the sign itself. (Header height is zero-sum against the writs: live_bounds.h = 184.24 -
 	# placard_h, split across two rows — dropping the seat gave the contracts ~27px back.)
 	var sign_top := 0.0
-	var ptex := load("res://assets/ui/board_header.png") as Texture2D
+	var ptex := load("res://assets/ui/board/board_header.png") as Texture2D
 	if ptex != null:
 		# Authored at its exact on-screen size (204x38 — the internal resolution is a fixed
 		# 640x360, so placard_rect is deterministic), hence NEAREST + 1:1, no downscale mush
@@ -2197,7 +2197,7 @@ func _board_header() -> Control:
 		# ambient (its carved relief in board_header_n) with only a whisper of torch reach — which is
 		# exactly the cool-dark the top of the frame beside it already sits in. The gilt title is a
 		# separate Godot Label drawn over this, so legibility is unaffected by how dim the wood goes.
-		sign.material = _surface_material("res://assets/ui/board_header_n.png", 0.86, 1.0, Vector2.ONE, 1.6)
+		sign.material = _surface_material("res://assets/ui/board/board_header_n.png", 0.86, 1.0, Vector2.ONE, 1.6)
 		_patch_header(sign)
 		root.add_child(sign)
 	else:
@@ -2251,7 +2251,11 @@ func _hover_card(card: Control, s: float) -> void:
 	card.set_meta("hover_tween", t)
 
 func _kill_hover_tween(card: Control) -> void:
-	var prev = card.get_meta("hover_tween", null)
+	# has_meta first: Godot treats a NULL default as "no default given" and errors on a missing
+	# key, so get_meta("hover_tween", null) is not the safe read it looks like.
+	if not card.has_meta("hover_tween"):
+		return
+	var prev = card.get_meta("hover_tween")
 	if prev is Tween and (prev as Tween).is_valid():
 		(prev as Tween).kill()
 
@@ -2374,7 +2378,7 @@ func _canvas_tex(diffuse: Texture2D, normal: Texture2D) -> CanvasTexture:
 # uniform torch lights itself. One rig (BoardDecor.torch_rig) feeds every surface (P72).
 func _surface_material(normal_path: String, ambient: float = 0.42, diffuse_gain: float = 1.0, tile: Vector2 = Vector2.ONE, radius_scale: float = 1.0) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
-	mat.shader = load("res://assets/ui/board_surface.gdshader") as Shader
+	mat.shader = load("res://assets/ui/board/board_surface.gdshader") as Shader
 	mat.set_shader_parameter("normal_tex", load(normal_path) as Texture2D)
 	mat.set_shader_parameter("ambient", ambient)
 	mat.set_shader_parameter("diffuse_gain", diffuse_gain)
