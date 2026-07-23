@@ -146,6 +146,20 @@ holds hover-focus — are nondeterministic run-to-run, proven by a same-build co
 tranches** (their own commits): `board/notice_reader.gd` (reader+seal+animation+cooldown),
 `board/contract_board.gd` (the board shell; leaves `main.gd` a thin router).
 
+Completed: **TD-070** — dead generated art deleted + the orphan signal made trustworthy. Removed 10
+files (`parch_live_*` incl. the four baked tilts, `foxing`, `board_placard`, `wall_v1`+`_n`), all
+superseded, **and** the generator lines that emitted them (`gen_detail`/`gen_structure`/
+`gen_normals` — `gen_structure` had been re-littering `board_frame`/`board_backing` every run). All
+7 generators re-run: nothing reappeared, no live art byte changed. **Kept 5 files the map called
+orphans** — `tiles.png` (via `tiles.tres`→`space_view.tscn`; deleting it breaks the field tilemap),
+`_src/_frame_v1_src.png` (the painted source `gen_normals` re-derives from), `_src/_slices/
+paper_band1.png`, `board/collegium_logo.png`, `_src/_proto_board.png`. So `tools/asset_map.py` was
+**fixed**: it now scans `.tres` for `ext_resource` (not just `.tscn` under `scenes/`) and treats
+generator **reads** as edges (literals at `read_png`/`_load_luma`/`copyfile`/`Image.open` call sites
++ constants like `EMB_SRC`, anchored to call sites so a docstring of outputs isn't a dep). Orphans:
+**none**; dangling: **none**. Lesson: the orphan list is advisory and *was* dangerous — verify
+before deleting.
+
 Completed: **TD-069** — client **scripts + assets grouped by feature** (canon S2.2/S5/S5b), on the
 author's request for a scalable tree. Pure relocation, no logic touched. Scripts to the S5 target:
 `scripts/core/` (pixel_scale, debug_capture, catalog), `scripts/world/` (player, space_view),

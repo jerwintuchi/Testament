@@ -22,41 +22,50 @@
 
 ### `client/assets/tiles/`
 
+- **`tiles.png`** — produced-by: — · consumed-by: `client/assets/tiles/tiles.tres` (ext_resource)
 - **`tiles.tres`** — produced-by: — · consumed-by: `client/scenes/space_view.tscn` (ext_resource)
+
+### `client/assets/ui/_src/`
+
+- **`_frame_v1_src.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads)
+
+### `client/assets/ui/_src/_slices/`
+
+- **`paper_band1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_parch_v1.py` (reads)
 
 ### `client/assets/ui/board/`
 
-- **`backing_v1.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
+- **`backing_v1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
 - **`backing_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
-- **`badge_banish.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
-- **`badge_capture.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
-- **`badge_eliminate.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
-- **`badge_investigate.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
-- **`banner_v1.png`** — produced-by: `client/assets/ui/gen_banner.py` · consumed-by: `client/scripts/board/board_decor.gd` (load)
+- **`badge_banish.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads)
+- **`badge_capture.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads)
+- **`badge_eliminate.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads)
+- **`badge_investigate.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads)
+- **`banner_v1.png`** — produced-by: `client/assets/ui/gen_banner.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
 - **`banner_v1_n.png`** — produced-by: `client/assets/ui/gen_banner.py`, `client/assets/ui/gen_normals.py` · consumed-by: —
-- **`board_header.png`** — produced-by: `client/assets/ui/gen_header.py` · consumed-by: `client/scripts/main.gd` (load)
+- **`board_header.png`** — produced-by: `client/assets/ui/gen_header.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
 - **`board_header_n.png`** — produced-by: `client/assets/ui/gen_header.py`, `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`board_surface.gdshader`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`cobweb.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
+- **`cobweb.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`collegium_logo.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_banner.py` (reads), `client/assets/ui/gen_emblems.py` (reads), `client/assets/ui/gen_normals.py` (reads)
 - **`frame_v1.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
-- **`parch_flavor_0.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`parch_flavor_1.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`parch_v1_0.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`parch_v1_1.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`seal_collegium.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: —
-- **`spark.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/board/board_decor.gd` (load)
-- **`stone_tile.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
+- **`parch_flavor_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`parch_flavor_1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`parch_v1_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`parch_v1_1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`seal_collegium.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads)
+- **`spark.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
+- **`stone_tile.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
 - **`stone_tile_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
-- **`tack_nail.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`tack_pin.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`tack_ribbon.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`tack_wax.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`torch_flame.png`** — produced-by: — · consumed-by: `client/scripts/board/board_decor.gd` (load)
-- **`torch_glow.png`** — produced-by: — · consumed-by: `client/scripts/board/board_decor.gd` (load)
-- **`torch_sconce.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/scripts/board/board_decor.gd` (load)
-- **`votive.png`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`wall_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
+- **`tack_nail.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`tack_pin.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`tack_ribbon.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`tack_wax.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`torch_flame.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
+- **`torch_glow.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
+- **`torch_sconce.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
+- **`votive.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
 
 ### `client/assets/ui/shared/`
 
@@ -71,6 +80,17 @@
 
 ## Scripts — loads / preloads / loaded-by
 
+- **`client/assets/tiles/tiles.tres`**
+  - loads: `tiles.png`
+  - loaded-by: `client/scenes/space_view.tscn` (ext_resource)
+- **`client/assets/ui/gen_banner.py`**
+  - loads: `collegium_logo.png`
+- **`client/assets/ui/gen_emblems.py`**
+  - loads: `collegium_logo.png`
+- **`client/assets/ui/gen_normals.py`**
+  - loads: `_frame_v1_src.png`, `backing_v1.png`, `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `banner_v1.png`, `board_header.png`, `cobweb.png`, `collegium_logo.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `seal_collegium.png`, `spark.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `torch_flame.png`, `torch_glow.png`, `torch_sconce.png`, `votive.png`
+- **`client/assets/ui/gen_parch_v1.py`**
+  - loads: `paper_band1.png`
 - **`client/protocol/protocol.gd`**
   - loaded-by: `client/scripts/core/catalog.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scenes/main.tscn`**
@@ -131,25 +151,12 @@
 - **`client/assets/ui/gen_banner.py`** → `banner_v1.png`, `banner_v1_n.png`
 - **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_collegium.png`, `spark.png`, `torch_sconce.png`
 - **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_header_n.png`
-- **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`, `wall_v1_n.png`
+- **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`
 
 
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
 
-- `client/assets/tiles/tiles.png`
-- `client/assets/ui/_src/_frame_v1_src.png`
 - `client/assets/ui/_src/_proto_board.png`
-- `client/assets/ui/_src/_slices/paper_band1.png`
-- `client/assets/ui/board/board_placard.png`
-- `client/assets/ui/board/collegium_logo.png`
-- `client/assets/ui/board/foxing.png`
-- `client/assets/ui/board/parch_live_0.png`
-- `client/assets/ui/board/parch_live_0_l.png`
-- `client/assets/ui/board/parch_live_0_r.png`
-- `client/assets/ui/board/parch_live_1.png`
-- `client/assets/ui/board/parch_live_1_l.png`
-- `client/assets/ui/board/parch_live_1_r.png`
-- `client/assets/ui/board/wall_v1.png`
 
 
 ## Dangling references (resolvable ref, file absent) — advisory

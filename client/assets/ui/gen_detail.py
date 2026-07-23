@@ -271,8 +271,6 @@ def _out(name):
 if __name__ == "__main__":
     # flat parchment variants (two tear seeds per tone)
     jobs = [
-        ("parch_live_0.png",   PARCH_W, PARCH_H, parch_live(101), False),
-        ("parch_live_1.png",   PARCH_W, PARCH_H, parch_live(203), False),
         ("parch_flavor_0.png", PARCH_W, PARCH_H, parch_flavor(305), False),
         ("parch_flavor_1.png", PARCH_W, PARCH_H, parch_flavor(407), False),
         ("tack_nail.png",   TACK_W, TACK_H, tack_nail,   False),
@@ -281,21 +279,17 @@ if __name__ == "__main__":
         ("tack_ribbon.png", TACK_W, TACK_H, tack_ribbon, False),
         ("cobweb.png",  WEB_W, WEB_H, cobweb_px, True),
         ("votive.png",  VOT_W, VOT_H, votive_px, False),
-        ("foxing.png",  FOX_W, FOX_H, foxing_px, False),
     ]
     for name, w, h, fn, is_vfx in jobs:
         assert_on_palette(w, h, fn, name, allow_vfx=is_vfx)
         write_png(_out(name), w, h, fn)
         print("  wrote %-18s %dx%d%s" % (name, w, h, "  [VFX grayscale]" if is_vfx else ""))
 
-    # pre-rotated tilt variants for live parchment (baked, pixel-safe)
-    for base_seed, tag in ((101, "0"), (203, "1")):
-        for deg, suff in ((-5, "l"), (5, "r")):
-            ow, oh, fn = rotated(parch_live(base_seed), PARCH_W, PARCH_H, deg)
-            name = "parch_live_%s_%s.png" % (tag, suff)
-            assert_on_palette(ow, oh, fn, name)
-            write_png(_out(name), ow, oh, fn)
-            print("  wrote %-18s %dx%d  [rot %+d°]" % (name, ow, oh, deg))
+    # NOTE (TD-070): the flat `parch_live_*` sheets, their pre-rotated ±5° tilt variants, and
+    # `foxing.png` are no longer emitted. Live writs render `parch_v1_*` (gen_parch_v1) and are
+    # rotated at runtime by `_place`, so the baked tilts were dead weight; the foxing look now
+    # lives in the `ramp_shade("foxing", …)` passes above, not a separate overlay texture. The
+    # `parch_live` / `foxing_px` painters are kept as the source of those looks.
 
     print("gen_detail OK — Batch-2 detail assets, all palette-locked "
           "(cobweb VFX grayscale; 4 baked parchment tilts).")

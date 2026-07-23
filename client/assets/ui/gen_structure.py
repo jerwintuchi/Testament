@@ -296,9 +296,9 @@ def _out(name):
 
 if __name__ == "__main__":
     jobs = [
-        ("board_frame.png",  FRAME_W, FRAME_H, frame_px, False),
-        ("board_backing.png", BACK_W, BACK_H, backing_px, False),
-        ("board_placard.png", PLAC_W, PLAC_H, placard_px, False),
+        # board_frame / board_backing / board_placard are NOT emitted (TD-070): the carved
+        # frame + plank backing are owned by gen_normals (frame_v1 / backing_v1) and the
+        # placard by gen_header (board_header), so emitting these only re-littered dead art.
         ("stone_tile.png",   STONE_W, STONE_H, stone_px, False),
         ("torch_flame.png",  FLAME_W * FLAME_N, FLAME_H, flame_sheet_px, True),
         ("torch_glow.png",   GLOW_R * 2, GLOW_R * 2, glow_px, True),
@@ -309,6 +309,6 @@ if __name__ == "__main__":
         assert_on_palette(w, h, fn, name, allow_vfx=is_vfx)       # palette lock, pre-write
         write_png(_out(name), w, h, fn)
         print("  wrote %-18s %dx%d%s" % (name, w, h, "  [VFX grayscale]" if is_vfx else ""))
-    print("gen_structure OK — 7 Batch-1 assets, all palette-locked.")
+    print("gen_structure OK — 4 Batch-1 assets, all palette-locked.")
     print("  9-slice margins → frame %d, backing %d, placard %d/%d; stone tiles; flame=%d frames."
           % (FRAME_B + 4, 12, PLAC_MX, PLAC_MY, FLAME_N))

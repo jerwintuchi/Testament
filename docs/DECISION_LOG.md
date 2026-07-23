@@ -2236,3 +2236,47 @@ Verified: headless parse clean; `--board-preview` renders the board identically 
 (case-insensitively grepped this time) and `board live=` once per run, so TD-068 still holds; five
 generators re-run and reproduced **byte-identical** art from the new paths; `--selftest` and
 `--check` green; no dangling references. Client only; no `src/**` change.
+
+## 2026-07-23 — TD-070: dead generated art deleted; the orphan signal made trustworthy
+
+Author request: delete unused generated assets so the Godot FileSystem dock is clean.
+
+**Deleted (10 files + their `.import`), all generated and genuinely unreferenced:**
+- `board/parch_live_{0,1}.png` + the four baked ±5° tilts `parch_live_{0,1}_{l,r}.png` — superseded
+  by `parch_v1_*` (which `main.gd` loads) and by runtime rotation in `_place`. Note the trap: the
+  `_parch_live` **variable** in `main.gd` holds `parch_v1_*`, not these files.
+- `board/foxing.png` — the foxing look lives in `ramp_shade("foxing", …)` passes, not an overlay.
+- `board/board_placard.png` — superseded by `board_header` (TD-053/TD-058).
+- `board/wall_v1.png` + `board/wall_v1_n.png` — a fully dead chain: the only reader of `wall_v1.png`
+  was `gen_normals`, deriving a normal map nothing renders.
+
+The emitting generators were edited too (`gen_detail`, `gen_structure`, `gen_normals`), otherwise the
+next run resurrects everything. `gen_structure` was additionally emitting `board_frame.png` and
+`board_backing.png`, superseded by `frame_v1`/`backing_v1` — it had been re-littering dead art on
+every run. All seven generators were re-run afterwards: nothing reappeared and **no live art byte
+changed**.
+
+**Kept, despite being listed as orphans** — the list was wrong, which is the more important finding:
+- `assets/tiles/tiles.png` — referenced by `tiles.tres`, which `space_view.tscn` loads. Deleting it
+  on the map's advice would have broken the field tilemap.
+- `_src/_frame_v1_src.png` — the preserved **painted** frame source `gen_normals` re-derives from.
+  Deleting it makes the generator copy its own regenerated output as "source", losing the original.
+- `_src/_slices/paper_band1.png` — the paper band `gen_parch_v1` samples for every live writ.
+- `board/collegium_logo.png` — the canonical emblem, read by `gen_banner` + `gen_emblems` via PIL.
+- `_src/_proto_board.png` — the Prototype v1 reference the paper band was sliced from.
+
+**So `tools/asset_map.py` was fixed, not just consulted.** Its Orphans section only knew about
+`load`/`preload`/`ext_resource`/`write_png`, so it was blind to two whole edge kinds and listed five
+load-bearing files as dead art:
+- `.tres` resources are now scanned for `ext_resource` (previously only `.tscn`, and only under
+  `scenes/` — `tiles.tres` sits beside its atlas in `assets/tiles/`).
+- Generator **reads** are now edges: `.png` literals at real read call-sites (`read_png`,
+  `_load_luma`, `copyfile`, `Image.open`) plus module constants like `EMB_SRC`. Anchored to call
+  sites rather than any literal so a docstring listing a generator's *outputs* is not mistaken for a
+  dependency; a generator reading back its own output is excluded. Templated reads glob the same way
+  templated writes always have, so `_load_luma("board/%s.png" % name)` over-reports its readers —
+  the same known looseness the write side has, not a new one.
+
+Result: **orphans: none, dangling: none** — the section now means something. Verified: `--selftest`
+and `--check` green; headless parse clean; board renders identically across `--reader-cycle`,
+`--reader` and `--board-empty` with no errors. Client + tooling only; no `src/**` change.

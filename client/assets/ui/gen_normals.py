@@ -106,7 +106,7 @@ def main():
     print("re-authored frame_v1.png carved warm wood (TD-048/T160)")
 
     # Backing + wall: diffuse UNCHANGED, gentle luminance-bump normals only.
-    for name, strength in (("backing_v1", 4.0), ("wall_v1", 4.0)):
+    for name, strength in (("backing_v1", 4.0),):   # wall_v1 dropped TD-070 — nothing renders it
         w, h, lum, _px = _load_luma("board/%s.png" % name)
         A.write_png("board/%s_n.png" % name, w, h, _normal_pixel(w, h, lum, strength))
         print("wrote %s_n.png (%dx%d)" % (name, w, h))
