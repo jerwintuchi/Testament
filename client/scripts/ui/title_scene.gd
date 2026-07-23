@@ -46,7 +46,9 @@ const ARCH := [
 	["pier_right.png",   Vector3(0.895, 0.500, 0.310), 2.45, "Pier R"],
 	["arcade_left.png",  Vector3(0.320, 0.490, 0.185), 2.60, "Arcade L"],
 	["arcade_right.png", Vector3(0.680, 0.490, 0.185), 2.60, "Arcade R"],
-	["vault.png",        Vector3(0.500, 0.120, 0.360), 0.66, "Vault"],
+	# The vault descends well into the frame — you are looking UP into it, so it should crowd the
+	# top third rather than cap it.
+	["vault.png",        Vector3(0.500, 0.215, 0.395), 0.70, "Vault"],
 	["apse.png",         Vector3(0.500, 0.575, 0.150), 1.35, "Apse / altar"],
 	["floor.png",        Vector3(0.500, 0.890, 1.000), 0.26, "Floor"],
 ]

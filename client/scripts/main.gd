@@ -769,7 +769,7 @@ func _show_title() -> void:
 	rule.custom_minimum_size = Vector2(190, 1)
 	rule.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	col.add_child(rule)
-	col.add_child(_menu_gap(8))
+	col.add_child(_menu_gap(24))
 	# The recovery path is listed FIRST and only when there is something live to return to —
 	# never a dead option (R232). Canon I7 keeps expedition state ephemeral, so this rejoins a
 	# running expedition; it is not a save-game load.
