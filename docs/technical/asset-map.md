@@ -126,22 +126,25 @@
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/world/space_view.gd` (preload)
 - **`client/scripts/main.gd`**
   - loads: `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `collegium_logo.png`, `frame_v1.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
-  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `station_names.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `title_scene.gd`, `widgets.gd`
+  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `station_names.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `room_scroll.gd`, `title_scene.gd`, `widgets.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/ui/fonts.gd`**
   - loads: `Cinzel.ttf`
-  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/widgets.gd` (preload)
+  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/room_scroll.gd` (preload), `client/scripts/ui/widgets.gd` (preload)
 - **`client/scripts/ui/popup_theme.gd`**
   - loads: `panel.png`
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/rite_banner.gd`**
   - preloads: `fonts.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
+- **`client/scripts/ui/room_scroll.gd`**
+  - preloads: `fonts.gd`, `widgets.gd`
+  - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/title_scene.gd`**
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/widgets.gd`**
   - preloads: `fonts.gd`
-  - loaded-by: `client/scripts/main.gd` (preload)
+  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/room_scroll.gd` (preload)
 - **`client/scripts/world/player.gd`**
   - loads: `Unarmed_Idle_with_shadow.png`, `Unarmed_Run_with_shadow.png`, `Unarmed_Walk_with_shadow.png`
   - loaded-by: `client/scenes/player.tscn` (ext_resource)
@@ -174,7 +177,7 @@
 
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
-- `client/scripts/main.gd:2674` — `load/preload normal_path`
-- `client/scripts/main.gd:2701` — `load/preload path`
-- `client/scripts/main.gd:2705` — `load/preload normal_path`
+- `client/scripts/main.gd:2694` — `load/preload normal_path`
+- `client/scripts/main.gd:2721` — `load/preload path`
+- `client/scripts/main.gd:2725` — `load/preload normal_path`
 - `client/scripts/ui/title_scene.gd:90` — `load/preload p`

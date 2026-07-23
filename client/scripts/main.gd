@@ -23,6 +23,7 @@ const PopupTheme = preload("res://scripts/ui/popup_theme.gd")   # the station po
 const RiteBanner = preload("res://scripts/ui/rite_banner.gd")   # the CONTRACT SEALED ceremony overlay
 const Widgets = preload("res://scripts/ui/widgets.gd")          # shared label/rule/engraved builders
 const TitleScene = preload("res://scripts/ui/title_scene.gd")   # the title's layered environment
+const RoomScroll = preload("res://scripts/ui/room_scroll.gd")   # the lobby's toggleable roster
 const StationNames = preload("res://scripts/core/station_names.gd")  # station kind -> player-facing name
 
 const SERVER_URL := "ws://localhost:3001"
@@ -74,6 +75,8 @@ var _nave_bg: ColorRect            # fills whatever the integer-scaled plate doe
 var _setup_mode := ""              # "create" or "join" — which room-setup plate is showing
 var _title_env: Control            # the title's layered environment (TD-073)
 var _title_host: Control           # full-rect host it is built onto, behind the UI
+var _room_scroll: Control          # the lobby's room scroll (TD-071), closed by default
+var _scroll_layer: Control         # holds it above the world, below the station popup
 var _menu_stone: TextureRect       # the brick surface inside it; also the torches' host
 var _ui_theme: Theme               # the gothic Theme, shared by the station popup and the menu
 var _name_input: LineEdit
@@ -160,6 +163,11 @@ func _ready() -> void:
 	# The title screen's held image: the empty nave (R231). A generated 640x360 plate drawn at an
 	# INTEGER scale and centred, with its own near-black filling the remainder — never fractionally
 	# stretched, so the pixel grid survives at every window size.
+	_scroll_layer = Control.new()
+	_scroll_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_scroll_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(_scroll_layer)
+
 	_title_host = Control.new()
 	_title_host.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_title_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -466,7 +474,10 @@ func _lobby_preview() -> void:
 		"positions": {"pv-self": {"x": 160, "y": 96}},
 	}
 	_show_lobby()
-	_log("lobby preview: room %s" % _snapshot["roomCode"])
+	if OS.get_cmdline_user_args().has("--scroll-open") and is_instance_valid(_room_scroll):
+		_room_scroll.set_open(true)
+	_log("lobby preview: room %s scroll_open=%s"
+		% [_snapshot["roomCode"], is_instance_valid(_room_scroll) and _room_scroll.is_open()])
 
 func _board_preview() -> void:
 	# `-- --board-empty` previews the empty wall (L8); default is the 8-contract fixture.
@@ -931,16 +942,21 @@ func _claim_name() -> String:
 func _show_lobby() -> void:
 	_screen = Screen.LOBBY
 	_clear()
-	Widgets.h1(_root, "Lobby: room %s" % _snapshot.get("roomCode", "?"))
-	_label("share the code aloud; the Collegium sends up to four")
-	for p in _snapshot.get("players", []):
-		_party_row(p)
-	_label("")
-	_button("Toggle Ready", func(): _net.send_message(Protocol.TOGGLE_READY))
-	_button("Leave Room", func():
-		_net.send_message(Protocol.LEAVE_ROOM)
-		_reset_session()
-		_show_menu())
+	# The lobby's HUD is the room scroll (TD-071/R228): closed by default so the walkable
+	# Collegium is unobstructed, opened with Tab. No standing labels over the world — that
+	# collision with the station markers and the Seeker is what this replaces.
+	if not is_instance_valid(_room_scroll):
+		_room_scroll = RoomScroll.new()
+		_room_scroll.ready_toggled.connect(func(): _net.send_message(Protocol.TOGGLE_READY))
+		_room_scroll.leave_pressed.connect(func():
+			_net.send_message(Protocol.LEAVE_ROOM)
+			_reset_session()
+			_show_title())
+		_room_scroll.kick_requested.connect(func(pid: String):
+			_net.send_message(Protocol.KICK_PLAYER, {"playerId": pid}))
+		_scroll_layer.add_child(_room_scroll)
+	_room_scroll.visible = true
+	_room_scroll.refresh(_snapshot, _self_id)
 	_render_space()
 	# Initial/authoritative body sync: the lobby snapshot carries everyone's spawn
 	# position, so spawn (and prune) bodies here. Without this the local body would
@@ -1056,6 +1072,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_select_board_card({})
 		else:
 			_close_station()
+		get_viewport().set_input_as_handled()
+	elif event.physical_keycode == KEY_TAB and _screen == Screen.LOBBY and not _menu_open \
+			and is_instance_valid(_room_scroll) and _room_scroll.visible:
+		_room_scroll.toggle()            # the Contract Board owns Tab while its popup is up
 		get_viewport().set_input_as_handled()
 	elif event.physical_keycode == KEY_F9:
 		# Reduced-motion toggle (playtest lever L5): freeze torch flicker, pin the glow
@@ -2855,6 +2875,8 @@ func _clear() -> void:
 		_menu_bg.visible = false      # the room setup turns it back on; other screens leave it off
 	if is_instance_valid(_nave):
 		_nave.visible = false
+	if is_instance_valid(_room_scroll):
+		_room_scroll.visible = false     # LOBBY turns it back on
 	if is_instance_valid(_nave_bg):
 		_nave_bg.visible = false
 	if is_instance_valid(_title_env):

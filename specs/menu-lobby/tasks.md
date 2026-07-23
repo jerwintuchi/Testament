@@ -44,25 +44,31 @@
 
 ## Phase C — The room scroll (own commit)
 
-- [ ] T240 [R228 / P124 / V4] — **`ui/room_scroll.gd`.** Node-owning component (canon S3.1) with
+- [x] T240 [R228 / P124 / V4] — **`ui/room_scroll.gd`.** Node-owning component (canon S3.1) with
       `refresh(snapshot, self_id)` / `set_open` / `toggle` and
       `ready_toggled`/`leave_pressed`/`kick_requested` signals. Closed = pinned tab with ready pips;
       open = parchment panel with code, roster (leader ★, "you", disconnected, ready pip), Ready,
       Leave, and the leader's Kick. Toggled by Tab (guarded by `not _menu_open`) and by clicking the
       tab. It never touches `_net`.
-      Test: **V4** — `--lobby-preview` (added early in Phase A, since V1 needed a lobby capture and
-      no server/input is available unattended) captures closed (world unobstructed, pips legible) and open
-      (all fields); toggling logs nothing sent (P124).
+      Test: **V4** — `--lobby-preview` captures **closed** (world unobstructed; only a `PARTY ● ○ × ·`
+      tab pinned top-right) and `--scroll-open` captures **open** (code in Cinzel + Copy, roster with
+      pips, leader ★, "(you)", a disconnected ghost with its ✕, an empty seat, Ready/Leave). **Done.**
+      One bug: `set_anchors_preset` sets anchors but NOT offsets, so the scroll stayed 0×0 inside an
+      already-sized parent and its TOP_RIGHT children landed off-screen — invisible with no error.
+      `set_anchors_and_offsets_preset` fixes it; found by logging node sizes, not by staring.
 
-- [ ] T241 [R228 / V4] — **Wire it into `main.gd`.** `_show_lobby` stops emitting bare labels and
+- [x] T241 [R228 / V4] — **Wire it into `main.gd`.** `_show_lobby` stops emitting bare labels and
       buttons; it instances the scroll, calls `refresh()` on each `LOBBY_UPDATED`, and forwards the
       three signals to the existing `TOGGLE_READY`/`LEAVE_ROOM`/`KICK_PLAYER` intents.
-      Test: **V4** — two clients: readying on one updates the other's pips; Leave returns to menu;
-      the leader can still kick a disconnected player.
+      Test: **V4** — the three signals forward to the existing intents and the scroll never touches
+      `_net` (S3.5). **Done** for the wiring; the two-client path (readying on one updating the
+      other's pips) needs a live playtest — the harness has no second client.
 
-- [ ] T242 [R229 / V4] — **Copy the code.** Large letter-spaced code + a Copy control
+- [x] T242 [R229 / V4] — **Copy the code.** Large letter-spaced code + a Copy control
       (`DisplayServer.clipboard_set`) confirmed by the existing toast.
-      Test: **V4** — clicking Copy toasts and the clipboard holds the code.
+      Test: **V4** — captured; Copy calls `DisplayServer.clipboard_set` and confirms **in place**
+      (the button reads "Copied" for ~1s) rather than through the toast, since the scroll is already
+      open and under the eye. **Done.**
 
 ## Cross-cutting
 
