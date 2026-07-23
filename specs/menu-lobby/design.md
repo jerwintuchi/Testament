@@ -4,12 +4,9 @@
 
 ---
 
-## OPEN DECISION — the menu's visual treatment
+## SETTLED — the menu's visual treatment: **diegetic-lite** (author ruling)
 
-The author chose the wording register and the lobby form, but **did not pick a menu treatment**.
-Implementation of Phase B waits on this; Phases A and C do not depend on it.
-
-**Recommendation — "diegetic-lite": the menu is a place in the Collegium.** A themed panel on the
+**"Diegetic-lite": the menu is a place in the Collegium.** A themed panel on the
 stone surround under the existing torch rig: `panel.png` 9-slice, Cinzel title, gilt-on-parchment
 controls, the two sconces already built by `BoardDecor.add_torches`. It reuses only shipped art, so
 it costs no new generator, and it makes the first screen belong to the same world as the board —

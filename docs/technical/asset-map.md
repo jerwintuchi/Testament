@@ -122,9 +122,11 @@
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/core/catalog.gd`**
   - preloads: `protocol.gd`
+- **`client/scripts/core/station_names.gd`**
+  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/world/space_view.gd` (preload)
 - **`client/scripts/main.gd`**
   - loads: `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `frame_v1.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
-  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `widgets.gd`
+  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `station_names.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `widgets.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/ui/fonts.gd`**
   - loads: `Cinzel.ttf`
@@ -143,6 +145,7 @@
   - loaded-by: `client/scenes/player.tscn` (ext_resource)
 - **`client/scripts/world/space_view.gd`**
   - loads: `marker.tscn`
+  - preloads: `station_names.gd`
   - loaded-by: `client/scenes/space_view.tscn` (ext_resource)
 
 
@@ -168,6 +171,6 @@
 
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
-- `client/scripts/main.gd:2382` — `load/preload normal_path`
-- `client/scripts/main.gd:2409` — `load/preload path`
-- `client/scripts/main.gd:2413` — `load/preload normal_path`
+- `client/scripts/main.gd:2446` — `load/preload normal_path`
+- `client/scripts/main.gd:2473` — `load/preload path`
+- `client/scripts/main.gd:2477` — `load/preload normal_path`

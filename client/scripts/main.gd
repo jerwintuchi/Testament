@@ -22,6 +22,7 @@ const Fonts = preload("res://scripts/ui/fonts.gd")              # shared font bu
 const PopupTheme = preload("res://scripts/ui/popup_theme.gd")   # the station popup's gothic Theme
 const RiteBanner = preload("res://scripts/ui/rite_banner.gd")   # the CONTRACT SEALED ceremony overlay
 const Widgets = preload("res://scripts/ui/widgets.gd")          # shared label/rule/focus-ring/engraved builders
+const StationNames = preload("res://scripts/core/station_names.gd")  # station kind -> player-facing name
 
 const SERVER_URL := "ws://localhost:3001"
 
@@ -39,6 +40,9 @@ func _server_url() -> String:
 # The reconnect token survives a client relaunch (R75). It is an opaque server
 # secret, not game state — the one thing the client is allowed to remember.
 const TOKEN_PATH := "user://reconnect-token.txt"
+# The display name the player last used. Like the token this is a local convenience, not game
+# state — the server still assigns identity, this only spares a returning player the retyping.
+const NAME_PATH := "user://display-name.txt"
 
 var _net: NetClient
 var _screen: Screen = Screen.MENU
@@ -321,6 +325,12 @@ func _ready() -> void:
 		_reduced_motion = true
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--board-preview"):
 		call_deferred("_board_preview")
+	# `-- --lobby-preview` shows the WAITING lobby over a fixture Collegium, so the walkable
+	# screen can be captured with no server and no input (station names, roster, the room
+	# scroll). Same discipline as _board_preview: a fabricated *display* snapshot, never game
+	# state, and nothing is ever sent from it.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--lobby-preview"):
+		call_deferred("_lobby_preview")
 
 # Fixture board: EIGHT contracts' worth of ContractIntel (canonical BOARD_SIZE=8, TD-045),
 # the exact shape the server's `toContractIntel` puts on the wire (contractId, tier, origin,
@@ -351,6 +361,46 @@ const _PREVIEW_BOARD := [
 	 "siteName": "Ashfen", "primaryVerb": "CAPTURE",
 	 "requester": {"name": "Hald", "role": "warden", "place": "Ashfen"}},
 ]
+
+# A small walkable Collegium: an open floor ringed by wall, with the three prep stations laid
+# out as the server lays them out (kind + tile). Enough to prove the render, never game state.
+const _PREVIEW_COLLEGIUM := {
+	"grid": {"width": 20, "height": 12, "rows": [
+		"####################",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"####################",
+	]},
+	"stations": [
+		{"x": 3,  "y": 3, "kind": "CONTRACT_BOARD"},
+		{"x": 10, "y": 2, "kind": "QUARTERMASTER"},
+		{"x": 16, "y": 8, "kind": "DEPLOY_GATE"},
+	],
+}
+
+func _lobby_preview() -> void:
+	_self_id = "pv-self"
+	_snapshot = {
+		"phase": Protocol.PHASE_WAITING,
+		"roomCode": "CZ3ZG4",
+		"collegium": _PREVIEW_COLLEGIUM,
+		"players": [
+			{"playerId": "pv-self", "displayName": "Aldric", "isLeader": true,  "readyState": true,  "connected": true},
+			{"playerId": "pv-2",    "displayName": "Wren",   "isLeader": false, "readyState": false, "connected": true},
+			{"playerId": "pv-3",    "displayName": "Hald",   "isLeader": false, "readyState": false, "connected": false},
+		],
+		"positions": {"pv-self": {"x": 160, "y": 96}},
+	}
+	_show_lobby()
+	_log("lobby preview: room %s" % _snapshot["roomCode"])
 
 func _board_preview() -> void:
 	# `-- --board-empty` previews the empty wall (L8); default is the 8-contract fixture.
@@ -608,16 +658,27 @@ func _show_menu() -> void:
 	_world.visible = false
 	_clear()
 	Widgets.h1(_root, "TESTAMENT")
-	_label("The Collegium is hiring. We seek truth, not certainty.")
-	_name_input = _make_line_edit("display name", "Seeker")
+	# NOT defaulted to "Seeker": that is the ROLE every player holds (GLOSSARY), so defaulting it
+	# made every party read as four Seekers. Restored from the last session instead (R225).
+	_name_input = _make_line_edit("your name", _load_name())
 	_button("Create Room", func():
+		var who := _claim_name()
+		if who == "":
+			return
 		_pending_join = true
-		_net.send_message(Protocol.CREATE_ROOM, {"displayName": _name_input.text}))
+		_net.send_message(Protocol.CREATE_ROOM, {"displayName": who}))
 	_label("")
 	_code_input = _make_line_edit("room code (e.g. ABC234)", "")
 	_button("Join Room", func():
+		var who := _claim_name()
+		if who == "":
+			return
+		var code := _code_input.text.strip_edges().to_upper()
+		if code == "":
+			_set_status("enter a room code to join")
+			return
 		_pending_join = true
-		_net.send_message(Protocol.JOIN_ROOM, {"code": _code_input.text.strip_edges().to_upper(), "displayName": _name_input.text}))
+		_net.send_message(Protocol.JOIN_ROOM, {"code": code, "displayName": who}))
 	if _reconnect_token != "":
 		_label("")
 		_button("Resume unfinished expedition", func():
@@ -626,6 +687,18 @@ func _show_menu() -> void:
 				_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
 			else:
 				_set_status("still connecting, try again in a moment"))
+
+# The trimmed name to act under, or "" with an inline hint when the field is empty. Refusing here
+# sends NOTHING — an affordance guard, never authority: the server validates the name regardless.
+func _claim_name() -> String:
+	var who := _name_input.text.strip_edges() if is_instance_valid(_name_input) else ""
+	if who == "":
+		_set_status("enter your name first")
+		if is_instance_valid(_name_input):
+			_name_input.grab_focus()
+		return ""
+	_save_name(who)
+	return who
 
 func _show_lobby() -> void:
 	_screen = Screen.LOBBY
@@ -636,7 +709,6 @@ func _show_lobby() -> void:
 		_party_row(p)
 	_label("")
 	_button("Toggle Ready", func(): _net.send_message(Protocol.TOGGLE_READY))
-	_label("Walk to the Contract Board and press E to accept.")
 	_button("Leave Room", func():
 		_net.send_message(Protocol.LEAVE_ROOM)
 		_reset_session()
@@ -654,8 +726,6 @@ func _show_deploying() -> void:
 	var c: Dictionary = _snapshot.get("contract") if _snapshot.get("contract") != null else {}
 	Widgets.h1(_root, "Contract: %s" % c.get("targetName", "?"))
 	_label("site: %s    tier: %s    verb: %s" % [c.get("siteName", "?"), c.get("tier", "?"), c.get("primaryVerb", "?")])
-	_label("")
-	_label("Walk to the Quartermaster (E) to requisition, the Deploy Gate (E) to deploy.")
 	_label("")
 	_h2("Party bags")
 	for p in _snapshot.get("players", []):
@@ -691,7 +761,6 @@ func _show_field() -> void:
 	for line in _probe_log:
 		_label(line)
 	_label("")
-	_label("Walk to the Extraction and press E to leave.")
 	_render_space()
 
 func _show_testament() -> void:
@@ -875,11 +944,6 @@ func _dir_axis(pos_a: Key, pos_b: Key, neg_a: Key, neg_b: Key) -> int:
 # The prompt/popup are pure client affordances off the server-given position; the
 # station action is still an intent the server re-validates (NOT_AT_*), R106/R108.
 
-const _STATION_LABEL := {
-	"CONTRACT_BOARD": "Contract Board", "QUARTERMASTER": "Quartermaster",
-	"DEPLOY_GATE": "Deploy Gate", "EXTRACTION": "Extraction",
-}
-
 # The procedural charge prose (headline / preamble / charge / signature) now lives
 # in `Notice` (scripts/board/notice.gd), keyed off ContractIntel + contractId.
 
@@ -898,7 +962,7 @@ func _update_stations() -> void:
 	_active_station = _nearest_station()
 	_prompt.visible = _active_station != ""
 	if _prompt.visible:
-		_prompt.text = "Press E: %s" % _STATION_LABEL.get(_active_station, _active_station)
+		_prompt.text = "Press E: %s" % StationNames.of(_active_station)
 
 # Kind of the station whose centre the local body stands within, else "". Reads
 # the local body's server target (feet px), never an integrated guess.
@@ -936,7 +1000,7 @@ func _open_station(kind: String) -> void:
 	_popup_kind = kind
 	_board_selection = {}          # a fresh open starts on the board grid, not a detail
 	_prompt.visible = false
-	_popup_title.text = _STATION_LABEL.get(kind, kind)
+	_popup_title.text = StationNames.of(kind)
 	_popup_title.visible = true                                    # board builder hides it (uses a placard)
 	_popup_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT  # board builder re-centres its own
 	# The Contract Board wears a wooden-board skin and fills the screen like a real
@@ -2534,6 +2598,17 @@ func _set_token(token: String) -> void:
 		var f := FileAccess.open(TOKEN_PATH, FileAccess.WRITE)
 		if f:
 			f.store_string(token)
+
+func _save_name(name: String) -> void:
+	var f := FileAccess.open(NAME_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(name)
+
+func _load_name() -> String:
+	if not FileAccess.file_exists(NAME_PATH):
+		return ""
+	var f := FileAccess.open(NAME_PATH, FileAccess.READ)
+	return f.get_as_text().strip_edges() if f else ""
 
 func _load_token() -> String:
 	if not FileAccess.file_exists(TOKEN_PATH):

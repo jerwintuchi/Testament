@@ -6,6 +6,8 @@ extends Node2D
 ## both are `{ grid, <markers> }`. Holds no NetClient/protocol ref and no phase
 ## knowledge — it renders what `set_space` gives it and sends nothing (P53).
 
+const StationNames = preload("res://scripts/core/station_names.gd")
+
 const TILE := 16       # mirrors shared TILE_SIZE (render constant)
 const SOLID := "#"     # mirrors shared TILE_SOLID
 const SOURCE_ID := 0   # the single atlas source in tiles.tres
@@ -49,5 +51,6 @@ func _place_markers(markers: Array) -> void:
 		node.position = Vector2(int(m["x"]) * TILE + TILE * 0.5, int(m["y"]) * TILE + TILE * 0.5)
 		var label := node.get_node_or_null("Kind")
 		if label:
-			label.text = str(m["kind"])
+			# The player never reads the wire's enum: DEPLOY_GATE renders "Deploy Gate" (R224).
+			label.text = StationNames.of(str(m["kind"]))
 		_markers.add_child(node)

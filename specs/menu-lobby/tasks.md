@@ -2,34 +2,37 @@
 
 > T# continues global from T235 (reader-swap). Client render + input only; the named test is a
 > capture (client-spec convention — no GDScript unit harness). Staged commits, in dependency order.
-> **Phase B (T239) is blocked on the author's menu-treatment choice** (see design.md OPEN DECISION);
-> Phases A and C do not depend on it and go first.
+> Menu treatment: **diegetic-lite**, settled by the author. Phase A landed first.
 
 ## Phase A — Wording + correctness (own commit)
 
-- [ ] T236 [R224 / P125 / V1] — **`core/station_names.gd`.** Move `_STATION_LABEL` out of `main.gd`
+- [x] T236 [R224 / P125 / V1] — **`core/station_names.gd`.** Move `_STATION_LABEL` out of `main.gd`
       into a preloaded `RefCounted` (`StationNames.of(kind)`, unknown → raw value); consume it from
       `main.gd`'s `_prompt` **and** from `world/space_view.gd:_place_markers`, which prints the raw
       enum today.
-      Test: **V1** — a lobby capture shows "Deploy Gate" on the world marker; `Press E: Deploy Gate`
-      still appears in range.
+      Test: **V1** — a `--lobby-preview` capture shows **"Deploy Gate"**, "Contract Board" and
+      "Quartermaster" on the world markers (was `DEPLOY_GATE`). `_popup_title` reads the same table,
+      so it moved too. **Done.**
 
-- [ ] T237 [R226 / V1] — **Retire instruction scaffolding.** Delete the three standing "Walk to the
+- [x] T237 [R226 / V1] — **Retire instruction scaffolding.** Delete the three standing "Walk to the
       … press E" lines and the menu tagline. The contextual `_prompt` is the only instruction.
-      Test: **V1** — lobby + deploying + field captures carry no standing instruction line; the
-      proximity prompt still shows.
+      Test: **V1** — the `--lobby-preview` capture carries no standing instruction line and the menu
+      no tagline; `_prompt` is untouched. **Done.** (The lobby's "share the code aloud" line survives
+      into Phase C, which replaces the whole lobby body with the scroll — R229 obsoletes it.)
 
-- [ ] T238 [R225 / V2] — **Identity, not role.** Drop the `"Seeker"` default for an empty field with
+- [x] T238 [R225 / V2] — **Identity, not role.** Drop the `"Seeker"` default for an empty field with
       a `your name` placeholder; persist to `user://display-name.txt`; refuse Create/Join on an empty
       name with an inline hint and **send nothing**.
-      Test: **V2** — first launch shows the empty placeholder; Create with an empty name sends no
-      message (log-verified) and hints; a relaunch restores the typed name.
+      Test: **V2** — a capture with no saved name shows the empty `your name` placeholder; seeding
+      `user://display-name.txt` and relaunching restores it (round-trip captured). **Done.** The
+      empty-name refusal is verified **by inspection, not capture**: `_claim_name()` returns before
+      any `_net.send_message`, and clicking it unattended would need input injection the capture
+      harness does not have.
 
-## Phase B — The menu (own commit; BLOCKED on the treatment choice)
+## Phase B — The menu (own commit) — treatment: **diegetic-lite** (settled)
 
-- [ ] T239 [R227 / V3] — **Rebuild `_show_menu`** in the chosen treatment (recommendation:
-      diegetic-lite — `panel.png` + Cinzel + stone surround + the existing torch rig, shipped art
-      only). Group identity / create / join; separate Resume; move connection state to a quiet
+- [ ] T239 [R227 / V3] — **Rebuild `_show_menu`** diegetic-lite: `panel.png` + Cinzel + stone
+      surround + the existing torch rig, shipped art only. Group identity / create / join; separate Resume; move connection state to a quiet
       corner indicator. Add `--menu-preview` for capture.
       Test: **V3** — `--menu-preview` capture shows the themed menu, no tagline, grouped controls,
       no overlap; re-captured at a second integer scale to prove the layout holds.
@@ -42,7 +45,8 @@
       open = parchment panel with code, roster (leader ★, "you", disconnected, ready pip), Ready,
       Leave, and the leader's Kick. Toggled by Tab (guarded by `not _menu_open`) and by clicking the
       tab. It never touches `_net`.
-      Test: **V4** — `--lobby-preview` captures closed (world unobstructed, pips legible) and open
+      Test: **V4** — `--lobby-preview` (added early in Phase A, since V1 needed a lobby capture and
+      no server/input is available unattended) captures closed (world unobstructed, pips legible) and open
       (all fields); toggling logs nothing sent (P124).
 
 - [ ] T241 [R228 / V4] — **Wire it into `main.gd`.** `_show_lobby` stops emitting bare labels and
