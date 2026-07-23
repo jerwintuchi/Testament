@@ -177,4 +177,4 @@
 - `client/scripts/main.gd:2674` — `load/preload normal_path`
 - `client/scripts/main.gd:2701` — `load/preload path`
 - `client/scripts/main.gd:2705` — `load/preload normal_path`
-- `client/scripts/ui/title_scene.gd:78` — `load/preload p`
+- `client/scripts/ui/title_scene.gd:88` — `load/preload p`

@@ -22,8 +22,12 @@ const DIR := "res://assets/ui/title/"
 
 # Blockout palette — deliberately flat and unmistakably provisional. Nobody should mistake this
 # for finished art, which is the whole point of a blockout.
-const C_ARCH := Color(0.18, 0.17, 0.16)
-const C_ARCH_HI := Color(0.26, 0.24, 0.22)
+# Architecture is tinted BY DEPTH, near-dark to far-light. That makes the blockout readable, and
+# it previews the real scene's most important property: depth reads as luminance, so the near
+# piers fall to silhouette against a distance that opens into light.
+const C_NEAR := Color(0.115, 0.105, 0.098)     # the framing piers
+const C_MID := Color(0.175, 0.163, 0.150)      # the arcade behind them
+const C_FAR := Color(0.255, 0.238, 0.215)      # vault, apse, floor
 const C_CLOTH := Color(0.34, 0.13, 0.12)
 const C_PROP := Color(0.30, 0.25, 0.15)
 const C_VESSEL := Color(0.24, 0.22, 0.19)
@@ -34,42 +38,48 @@ const C_EDGE := Color(0.52, 0.48, 0.40, 0.65)
 # Read off the reference: two great piers framing, an arcade receding, banners high on the near
 # piers, censers hanging inboard of them, candle racks and braziers along the floor.
 const ARCH := [
-	["pier_left.png",    Vector3(0.075, 0.500, 0.170), 2.9, "Pier L"],
-	["pier_right.png",   Vector3(0.925, 0.500, 0.170), 2.9, "Pier R"],
-	["arcade_left.png",  Vector3(0.255, 0.480, 0.190), 2.4, "Arcade L"],
-	["arcade_right.png", Vector3(0.745, 0.480, 0.190), 2.4, "Arcade R"],
-	["vault.png",        Vector3(0.500, 0.150, 0.420), 0.62, "Vault"],
-	["apse.png",         Vector3(0.500, 0.560, 0.180), 1.30, "Apse / altar"],
-	["floor.png",        Vector3(0.500, 0.880, 1.000), 0.28, "Floor"],
+	# The near piers are the frame. In the reference they are colossal — each owning roughly a
+	# quarter of the width and running PAST the top and bottom edges, so the eye is boxed in and
+	# forced down the nave. Sized so h = w x aspect exceeds the viewport height on purpose: a pier
+	# that fits inside the frame reads as a column, not as architecture you are standing under.
+	["pier_left.png",    Vector3(0.105, 0.500, 0.310), 2.45, "Pier L"],
+	["pier_right.png",   Vector3(0.895, 0.500, 0.310), 2.45, "Pier R"],
+	["arcade_left.png",  Vector3(0.320, 0.490, 0.185), 2.60, "Arcade L"],
+	["arcade_right.png", Vector3(0.680, 0.490, 0.185), 2.60, "Arcade R"],
+	["vault.png",        Vector3(0.500, 0.120, 0.360), 0.66, "Vault"],
+	["apse.png",         Vector3(0.500, 0.575, 0.150), 1.35, "Apse / altar"],
+	["floor.png",        Vector3(0.500, 0.890, 1.000), 0.26, "Floor"],
 ]
 const CLOTH := [
-	["banner_left.png",   Vector3(0.150, 0.330, 0.088), 2.20, "Banner L"],
-	["banner_right.png",  Vector3(0.850, 0.330, 0.088), 2.20, "Banner R"],
-	["banner_center.png", Vector3(0.500, 0.300, 0.055), 2.20, "Banner C"],
+	# Banners hang ON the near piers, so they ride outward with them.
+	["banner_left.png",   Vector3(0.178, 0.345, 0.098), 2.25, "Banner L"],
+	["banner_right.png",  Vector3(0.822, 0.345, 0.098), 2.25, "Banner R"],
+	["banner_center.png", Vector3(0.500, 0.300, 0.052), 2.20, "Banner C"],
 ]
 const PROPS := [
-	["censer.png", Vector3(0.330, 0.400, 0.034), 2.60, "Censer"],
-	["censer.png", Vector3(0.670, 0.400, 0.034), 2.60, "Censer"],
-	["chandelier.png", Vector3(0.500, 0.245, 0.100), 0.72, "Chandelier"],
+	# Censers hang inboard of the arcade, over the aisle.
+	["censer.png", Vector3(0.383, 0.400, 0.032), 2.60, "Censer"],
+	["censer.png", Vector3(0.617, 0.400, 0.032), 2.60, "Censer"],
+	["chandelier.png", Vector3(0.500, 0.235, 0.092), 0.72, "Chandelier"],
 ]
 const VESSELS := [
-	["candle_rack.png", Vector3(0.105, 0.760, 0.155), 0.60, "Candle rack"],
-	["candle_rack.png", Vector3(0.895, 0.760, 0.155), 0.60, "Candle rack"],
-	["brazier.png",     Vector3(0.290, 0.830, 0.075), 0.85, "Brazier"],
-	["brazier.png",     Vector3(0.710, 0.830, 0.075), 0.85, "Brazier"],
+	["candle_rack.png", Vector3(0.128, 0.770, 0.150), 0.60, "Candle rack"],
+	["candle_rack.png", Vector3(0.872, 0.770, 0.150), 0.60, "Candle rack"],
+	["brazier.png",     Vector3(0.318, 0.840, 0.070), 0.85, "Brazier"],
+	["brazier.png",     Vector3(0.682, 0.840, 0.070), 0.85, "Brazier"],
 ]
 const OVERLAYS := [
-	["light_shaft.png",   Vector3(0.360, 0.420, 0.300), 2.00, "Light shaft"],
+	["light_shaft.png",   Vector3(0.395, 0.400, 0.280), 2.10, "Light shaft"],
 	["smoke_overlay.png", Vector3(0.500, 0.560, 1.000), 0.56, "Smoke"],
 	["dust_overlay.png",  Vector3(0.500, 0.500, 1.000), 0.56, "Dust"],
 ]
 
-# Where fire burns. These are Layer 3 and exist whether or not the vessel art has arrived.
+# Where fire burns. Layer 3 — these exist whether or not the vessel art has arrived.
 const FIRES := [
-	Vector2(0.105, 0.735), Vector2(0.895, 0.735),
-	Vector2(0.290, 0.805), Vector2(0.710, 0.805),
-	Vector2(0.330, 0.418), Vector2(0.670, 0.418),
-	Vector2(0.500, 0.610),
+	Vector2(0.128, 0.745), Vector2(0.872, 0.745),
+	Vector2(0.318, 0.815), Vector2(0.682, 0.815),
+	Vector2(0.383, 0.418), Vector2(0.617, 0.418),
+	Vector2(0.500, 0.625),
 ]
 
 
@@ -155,7 +165,12 @@ static func build(host: Control, reduced: bool) -> Control:
 
 	# ── Layer 1: architecture. Static, always — this is the plate. ──
 	for e in ARCH:
-		_layer(root, e, -60, C_ARCH_HI if e[0].begins_with("vault") else C_ARCH)
+		var tint := C_FAR
+		if e[0].begins_with("pier"):
+			tint = C_NEAR
+		elif e[0].begins_with("arcade"):
+			tint = C_MID
+		_layer(root, e, -60 if e[0].begins_with("pier") else -62, tint)
 
 	# ── Layer 2: cloth / props / vessels / overlays, each animated by kind. ──
 	for e in CLOTH:
@@ -194,8 +209,8 @@ static func build(host: Control, reduced: bool) -> Control:
 		_dust(root, host.size)
 		for i in FIRES.size():
 			_embers(root, FIRES[i], host.size, i)
-		_incense(root, Vector2(0.330, 0.418), host.size)
-		_incense(root, Vector2(0.670, 0.418), host.size)
+		_incense(root, Vector2(0.383, 0.418), host.size)
+		_incense(root, Vector2(0.617, 0.418), host.size)
 
 	# ── Layer 5: camera life. ──
 	if not reduced:
