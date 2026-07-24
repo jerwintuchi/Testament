@@ -193,6 +193,6 @@
 - `client/scripts/board/board_decor.gd:56` — `load/preload normal_path`
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
-- `client/scripts/main.gd:1489` — `load/preload path`
-- `client/scripts/main.gd:1493` — `load/preload normal_path`
+- `client/scripts/main.gd:1505` — `load/preload path`
+- `client/scripts/main.gd:1509` — `load/preload normal_path`
 - `client/scripts/ui/title_scene.gd:90` — `load/preload p`

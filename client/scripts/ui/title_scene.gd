@@ -150,10 +150,13 @@ static func _blockout(tint: Color, label: String, size: Vector2) -> Control:
 static func build(host: Control, reduced: bool) -> Control:
 	var root := Control.new()
 	root.name = "TitleScene"
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# anchors AND offsets. FULL_RECT sets non-equal opposite anchors, so a manual `size` write
+	# is both overridden after _ready() and warned about on every launch — the same trap that
+	# left the room scroll at 0x0 in TD-071 T240. Every layer below measures `host.size`
+	# anyway, so nothing here depended on the write.
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(root)
-	root.size = host.size
 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 0x7E57          # seeded: the same hall every launch, no two props ever in phase
@@ -216,7 +219,7 @@ static func build(host: Control, reduced: bool) -> Control:
 
 	# ── Layer 5: camera life. ──
 	if not reduced:
-		_camera_life(root)
+		_camera_life(root, host.size)
 	return root
 
 
@@ -325,14 +328,14 @@ static func _flicker(n: Control, period: float, phase: float) -> void:
 	t.tween_property(n, "modulate:a", a * 1.05, period * 0.29)
 	t.tween_property(n, "modulate:a", a, period * 0.34)
 
-static func _camera_life(root: Control) -> void:
+static func _camera_life(root: Control, vp: Vector2) -> void:
 	# The environment drifts ~2px and breathes 0.4%. Below the threshold of notice frame to
 	# frame; felt over half a minute. The UI layer is separate and never moves with it.
 	var p := root.position
 	var t := root.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	t.tween_property(root, "position", p + Vector2(2.0, -1.5), 18.0)
 	t.tween_property(root, "position", p, 18.0)
-	root.pivot_offset = root.size * 0.5
+	root.pivot_offset = vp * 0.5   # from the host: `root.size` is not laid out yet on this frame
 	var z := root.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	z.tween_property(root, "scale", Vector2(1.004, 1.004), 24.0)
 	z.tween_property(root, "scale", Vector2.ONE, 24.0)

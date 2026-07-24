@@ -843,6 +843,8 @@ func _show_menu() -> void:
 			if code == "":
 				_set_status("enter a room code to join")
 				return
+			if not _require_connection():
+				return
 			_pending_join = true
 			_net.send_message(Protocol.JOIN_ROOM, {"code": code, "displayName": who}))
 	else:
@@ -850,6 +852,8 @@ func _show_menu() -> void:
 		_menu_action(col, "Create Room", func():
 			var who := _claim_name()
 			if who == "":
+				return
+			if not _require_connection():
 				return
 			_pending_join = true
 			_net.send_message(Protocol.CREATE_ROOM, {"displayName": who}))
@@ -899,6 +903,18 @@ func _menu_action(host: Node, text: String, on_pressed: Callable) -> void:
 
 # The trimmed name to act under, or "" with an inline hint when the field is empty. Refusing here
 # sends NOTHING — an affordance guard, never authority: the server validates the name regardless.
+# Refuse an action that needs the server, and SAY SO. `NetClient.send_message` drops the
+# message when the socket is closed (`if is_open()`, no else), so Create/Join with no server
+# running did nothing at all: no error, no toast, no status — the button just looked broken.
+# Silence is the worst failure mode a button has. Returns true when it is safe to send.
+func _require_connection() -> bool:
+	if _net != null and _net.is_open():
+		return true
+	var msg := "no connection to the Collegium — is the server running? (pnpm dev:server)"
+	_set_status("✝ " + msg)
+	_show_toast("✝ " + msg)   # top-centre: the status line is small, quiet and easy to miss
+	return false
+
 func _claim_name() -> String:
 	var who := _name_input.text.strip_edges() if is_instance_valid(_name_input) else ""
 	if who == "":
