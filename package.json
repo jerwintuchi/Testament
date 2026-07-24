@@ -7,7 +7,9 @@
     "gen:protocol": "pnpm --filter @testament/protocol-codegen generate",
     "test": "pnpm -r test",
     "test:watch": "pnpm -r test:watch",
-    "build": "pnpm --filter @testament/shared build && pnpm --filter @testament/server build"
+    "build": "pnpm --filter @testament/shared build && pnpm --filter @testament/server build",
+    "playtest": "bash tools/playtest.sh",
+    "playtest:client": "bash tools/playtest.sh --client"
   },
   "engines": {
     "node": ">=20",

@@ -81,9 +81,39 @@ fixture data would remove that constraint; it does not exist yet.
 
 ## 4. The server
 
+### Playtesting on your own — the short version
+
+```bash
+pnpm playtest          # starts the server AND prints the exact Godot command, with the live IP
+pnpm playtest:client   # …and launches the client too
+```
+
+Foreground, so Ctrl-C stops it. It refuses to start if something already holds the port
+rather than failing halfway. From **Windows**, with no WSL terminal at all, run (or make a
+desktop shortcut to) `tools/playtest.bat` — it starts the server in WSL, reads the current
+WSL IP itself, and launches Godot against it.
+
+**The permanent fix for the IP dance:** WSL ≥ 2.0 supports *mirrored* networking, which makes
+WSL services reachable from Windows at `localhost`. With it on, the client needs **no
+`--server` flag at all** — its default is already `ws://localhost:3001`. One-time, Windows-side:
+
+```ini
+# %USERPROFILE%\.wslconfig
+[wsl2]
+networkingMode=mirrored
+```
+
+then `wsl --shutdown` and reopen. This is a machine-wide WSL setting affecting every distro,
+so it is a deliberate choice, not a default this repo makes for you. If anything else you run
+depends on the NAT layout, skip it and keep using `pnpm playtest`.
+
+### The details
+
 The Godot client idles with "server offline" and no error when the server is down.
 That is not a failure — it is the expected state, and it is easy to misread as a
-client bug.
+client bug. (Create/Join now refuse loudly with "no connection to the Collegium" rather
+than silently dropping the message — `NetClient.send_message` no-ops on a closed socket,
+which made the buttons look broken.)
 
 ```bash
 pnpm dev:server        # tsx watch, ws://localhost:3001
