@@ -16,6 +16,8 @@ const OrnamentScrollbar = preload("res://scripts/board/ornament_scrollbar.gd")
 const VerbBadge = preload("res://scripts/board/verb_badge.gd")
 const Notice = preload("res://scripts/board/notice.gd")
 const NoticeReader = preload("res://scripts/board/notice_reader.gd")  # the taken-down writ + its seal
+const ContractBoard = preload("res://scripts/board/contract_board.gd")  # the wall the writs hang on
+const NoticeCard = preload("res://scripts/board/notice_card.gd")        # one writ + its furniture
 const BoardGeo = preload("res://scripts/board/board_geometry.gd")  # pure board layout/keep-out/seed math
 const BoardDecor = preload("res://scripts/board/board_decor.gd")   # torches + crest render factories
 const BoardBar = preload("res://scripts/board/board_bar.gd")       # bottom legend/assignment/status bar
@@ -109,15 +111,8 @@ var _menu_open := false           # a station popup is up: movement is locked
 var _popup_kind := ""             # the station kind the open popup was built for (for rebuilds)
 var _board_selection: Dictionary = {}  # the contract card being previewed, or {} = the grid view
 var _board_canvas: Control = null      # the current board canvas — for the targeted reader refresh (TD-065)
-var _focus_cid: String = ""            # contractId of the keyboard-focused writ, kept across rebuilds
 var _wood_sb: StyleBox            # Contract Board panel skin — the carved 9-slice frame (board_frame.png)
-var _backing_tex: Texture2D       # plank backing 9-slice, behind the notices
 var _board_frame: NinePatchRect   # carved frame overlay, shader-lit; tracks the popup rect (TD-047)
-var _parch_live: Array = []       # deckled LIVE parchment (warm, inner light) — 2 tear seeds (T143)
-var _parch_flavor: Array = []     # deckled FLAVOR parchment (aged, foxed) — 2 tear seeds
-var _tack_tex: Array = []         # nail · wax · pin · ribbon, seeded per live notice
-var _cobweb_tex: Texture2D        # grayscale-additive corner decay strand (tinted at runtime)
-var _votive_tex: Texture2D        # dead votive candle, ambient sacred-decay prop
 var _stone_bg: TextureRect        # tiled stone/mortar surround, dim; Contract Board only
 var _reduced_motion: bool = false # settings toggle (F9 in playtest): freeze flicker, pin glow to peak
 var _popup_tween: Tween           # the open/close animation, tracked so it can be killed on re-entry
@@ -187,7 +182,7 @@ func _ready() -> void:
 	_menu_stone.stretch_mode = TextureRect.STRETCH_SCALE
 	_menu_stone.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	_menu_stone.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_menu_stone.material = _surface_material("res://assets/ui/board/stone_tile_n.png", 0.24, 1.0, Vector2(5.0, 4.2))
+	_menu_stone.material = BoardDecor.surface_material(get_viewport_rect().size, "res://assets/ui/board/stone_tile_n.png", 0.24, 1.0, Vector2(5.0, 4.2))
 	_menu_stone.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_menu_bg.add_child(_menu_stone)
 
@@ -280,7 +275,7 @@ func _ready() -> void:
 	_stone_bg.stretch_mode = TextureRect.STRETCH_SCALE          # UV 0..1; the shader does the tiling
 	_stone_bg.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED   # so UV*tile_scale wraps the brick
 	_stone_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # crisp pixel brick, not blurred
-	_stone_bg.material = _surface_material("res://assets/ui/board/stone_tile_n.png", 0.24, 1.0, Vector2(5.0, 4.2))
+	_stone_bg.material = BoardDecor.surface_material(get_viewport_rect().size, "res://assets/ui/board/stone_tile_n.png", 0.24, 1.0, Vector2(5.0, 4.2))
 	_stone_bg.modulate = Color(1.0, 1.0, 1.0)   # brightness comes from the shader (dark ambient + sconce)
 	_stone_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stone_bg.visible = false
@@ -304,22 +299,9 @@ func _ready() -> void:
 	# a transparent interior and the crest painted out (drawn separately). LINEAR-filtered.
 	# Frame + backing: shader-lit like the wall once the wall proof lands (T149). Plain for now.
 	_wood_sb = _texture_sb("res://assets/ui/board/frame_v1.png", 33.0, 20.0, Color(0.29, 0.19, 0.10), Color(0.45, 0.30, 0.15))
-	_backing_tex = load("res://assets/ui/board/backing_v1.png") as Texture2D
-	# Batch-2 detail assets (T143/T144): deckled parchment split live vs flavor, tacks,
-	# and decay props. A missing texture is simply skipped (fallbacks below tolerate []).
-	for i in 2:
-		var lv := load("res://assets/ui/board/parch_v1_%d.png" % i) as Texture2D   # deckled cards on v1 painted paper
-		if lv != null:
-			_parch_live.append(lv)
-		var fv := load("res://assets/ui/board/parch_flavor_%d.png" % i) as Texture2D
-		if fv != null:
-			_parch_flavor.append(fv)
-	for tk in ["nail", "wax", "pin", "ribbon"]:
-		var t := load("res://assets/ui/board/tack_%s.png" % tk) as Texture2D
-		if t != null:
-			_tack_tex.append(t)
-	_cobweb_tex = load("res://assets/ui/board/cobweb.png") as Texture2D
-	_votive_tex = load("res://assets/ui/board/votive.png") as Texture2D
+	# Board art (backing, deckled parchment split live vs flavor, tacks, decay props) is
+	# loaded once, here, so the timing is exactly what it was before the T231 extraction.
+	ContractBoard.load_art()
 	pcenter.add_child(_popup)
 	# Carved frame overlay (TD-047): the board's frame is a shader-lit NinePatch that tracks the
 	# popup rect from OUTSIDE the clipping ScrollContainer, so the torches light its relief (a
@@ -362,7 +344,7 @@ func _ready() -> void:
 
 	# Keybind hint strip along the very bottom of the screen (Prototype-v1 read), shown for
 	# the Contract Board only. A child of the dim so it sits over the wall, below the frame.
-	_keyhint = _build_keyhint()
+	_keyhint = ContractBoard.keyhint()
 	_popup_dim.add_child(_keyhint)
 
 	# Reflow the open station popup when the window resizes (e.g. fullscreen toggle),
@@ -498,7 +480,7 @@ func _board_preview() -> void:
 	# `-- --focus-first` grabs keyboard focus on the first writ so an unattended capture can
 	# verify the gilt focus ring (L6) without injecting a Tab key.
 	if OS.get_cmdline_user_args().has("--focus-first"):
-		_focus_first_notice.call_deferred()
+		ContractBoard.focus_first.bind(self).call_deferred()
 	# `-- --flash-preview` (implies --reader --sealed) spawns one impact flash on the reader
 	# seal so a capture can show it blooming past the sheet edge, unclipped (TD-064/V1).
 	if OS.get_cmdline_user_args().has("--flash-preview"):
@@ -537,25 +519,6 @@ func _flash_preview() -> void:
 		_log("flash preview: bloom")
 		for _j in 66:
 			await get_tree().process_frame
-
-# Give keyboard nav a starting point on the board (T146 / L6): restore the writ that held
-# focus before a rebuild (by contractId), else focus the reading-first (top-left) writ, so
-# Tab immediately walks the grid and the corner reticle shows. (Groups aren't ordered, so
-# reading order is derived geometrically: top row, then left-most.)
-func _focus_first_notice() -> void:
-	var cards := get_tree().get_nodes_in_group("live_notice")
-	cards.sort_custom(func(a: Control, b: Control) -> bool:
-		if absf(a.position.y - b.position.y) > 8.0:
-			return a.position.y < b.position.y
-		return a.position.x < b.position.x)
-	if cards.is_empty():
-		return
-	if _focus_cid != "":
-		for c in cards:
-			if c is Control and str((c as Control).get_meta("cid", "")) == _focus_cid:
-				(c as Control).grab_focus()
-				return
-	(cards[0] as Control).grab_focus()
 
 # On a window/viewport resize, re-fit an open station: recompute the board's
 # scroll size and rebuild its body (the notice scatter is resolution-scaled), then
@@ -1267,7 +1230,7 @@ func _open_station(kind: String) -> void:
 		clear.set_content_margin_all(20)
 		_popup.add_theme_stylebox_override("panel", clear)
 		_popup_scroll.custom_minimum_size = _board_inner_size()
-		_board_frame.material = _surface_material("res://assets/ui/board/frame_v1_n.png", 0.40, 1.0)
+		_board_frame.material = BoardDecor.surface_material(get_viewport_rect().size, "res://assets/ui/board/frame_v1_n.png", 0.40, 1.0)
 		_board_frame.visible = true
 	else:
 		_popup.remove_theme_stylebox_override("panel")
@@ -1341,7 +1304,7 @@ func _rebuild_popup_body() -> void:
 func _build_station_content(kind: String) -> void:
 	match kind:
 		"CONTRACT_BOARD":
-			_build_contract_board()
+			_board_canvas = ContractBoard.build(_board_ctx())
 		"QUARTERMASTER":
 			var slots := Label.new()
 			slots.text = _slots_text()
@@ -1389,570 +1352,11 @@ func _popup_button(text: String, on_pressed: Callable, parent: Node = null) -> v
 	b.pressed.connect(on_pressed)
 	(parent if parent != null else _popup_body).add_child(b)
 
-# ── The Notice Board (specs/notice-board) ────────────────────────────────────
-# A wooden installation, not a menu: portrait parchment notices tacked at seeded
-# angles across the board (no scroll). The 4 live contracts are clickable; a few
-# decorative flavor notices are inert ambiance. Clicking a live notice "takes it
-# down" — it enlarges to centre over the dimmed board (a writ), where the party
-# signs the charge. Every notice string comes from ContractIntel + contractId via
-# `Notice`; nothing here is trait-derived or authoritative (I1/I3).
-
-# Inert ambient notices — pure flavor (P65). No contractId, never selectable.
-const FLAVOR_NOTICES := [
-	{ "head": "ATTENTION", "body": "All bearers of unsanctioned relics must present them at the Reliquary before the next bell." },
-	{ "head": "A PLEA", "body": "My brother went to the fens with the last party and has not returned. Leave any word with the Almoner." },
-	{ "head": "NOTICE OF DECAY", "body": "The east chancel is closed by order of the Wardens. The ground is no longer trustworthy." },
-	{ "head": "OBSERVANCE", "body": "Vespers are moved to the crypt until the upper nave is reconsecrated." },
-]
-# Live-contract anchor centres (fractions of the board's inner area). NOT a row —
-# a loose scatter across the whole board so the wall reads like a maintained
-# commission board (TD: dense organic scatter). Spread across quadrants so that,
-# even at the largest sizes, live notices overlap only at corners and never bury
-# another contract's headline/target; a seeded jitter loosens the grid further.
-# Ash & Ember ink ramp. The headline is INK, never wax and never a per-verb hue: wax is
-# the palette's lowest-luminance colour and fails the contrast floor as text.
-const INK := Widgets.INK
-const INK_SOFT := Widgets.INK_SOFT
-# Live-tone floor (T145 / L1): a live writ's paper never composites darker than this warm
-# ivory, so ink (INK/INK_SOFT) always clears the 4.5:1 contrast floor regardless of where on
-# the wall the notice lands. Enforced on every live-paper modulate (incl. hover).
-const TONE_FLOOR := Color("CBB583")
-# Minimum interactive size for a live notice (T145 / L6): a touch/click target is never
-# smaller than 44x44 even on a cramped viewport. The grid already exceeds this; this is the guard.
-const HIT_MIN := Vector2(44.0, 44.0)
-# The live-notice stack (backlight, shadow, card) draws at this z — above the wall vignette
-# (z 2), below the bar (4) / placard (5) / reader (10). Keeps the writs off the shadowed wall.
-const LIVE_Z := 3
-
-# Clamp a colour so no channel falls below the live-tone floor (alpha untouched).
-func _floor_tone(c: Color) -> Color:
-	return Color(maxf(c.r, TONE_FLOOR.r), maxf(c.g, TONE_FLOOR.g), maxf(c.b, TONE_FLOOR.b), c.a)
-
-# A keyboard-focus reticle (T146 / L6): four BRIGHT corner brackets over a FAINT full-edge
-# outline — the selection read from the reference. Drawn via the `draw` signal so it needs no
-# separate script or asset; sits over its card, hidden until the card takes focus. Returns the
-# reticle Control (add as the card's last child; toggle its visibility on focus).
-func _focus_reticle() -> Control:
-	var r := Control.new()
-	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	r.set_anchors_preset(Control.PRESET_FULL_RECT)
-	r.visible = false
-	r.draw.connect(func() -> void:
-		var s := r.size
-		var bright := Color(0.99, 0.87, 0.48)
-		var faint := Color(0.93, 0.80, 0.44, 0.26)
-		var arm := clampf(minf(s.x, s.y) * 0.24, 7.0, 18.0)
-		# Faint hairline on all four edges.
-		r.draw_rect(Rect2(Vector2.ZERO, s), faint, false, 1.0)
-		# Bright L-brackets at each corner (thin, offset in a hair so the arms read as a frame).
-		var corners := [
-			[Vector2(0.5, 0.5), Vector2(1, 0), Vector2(0, 1)],
-			[Vector2(s.x - 0.5, 0.5), Vector2(-1, 0), Vector2(0, 1)],
-			[Vector2(0.5, s.y - 0.5), Vector2(1, 0), Vector2(0, -1)],
-			[Vector2(s.x - 0.5, s.y - 0.5), Vector2(-1, 0), Vector2(0, -1)],
-		]
-		for c in corners:
-			var o: Vector2 = c[0]
-			r.draw_line(o, o + (c[1] as Vector2) * arm, bright, 1.0)
-			r.draw_line(o, o + (c[2] as Vector2) * arm, bright, 1.0))
-	r.resized.connect(r.queue_redraw)
-	return r
-
-# Theme a ScrollContainer's vertical bar to the board's idiom: a sunk wood/parchment channel
-# with a slim brass grabber, in place of Godot's flat grey default. Reader + station scroll.
-# Normalised inside BoardGeo.live_bounds(), not inside the whole canvas.
-# Flavor scraps fill the gaps and the edges. Drawn BEHIND the live notices, so they
-# may tuck under a contract (dense clutter) without ever stealing its click — they
-# are inert (MOUSE_FILTER_IGNORE), pure ambiance (P65).
-# Grid composition (Prototype-v1): flavor scraps are pinned in the side margins, clear
-# of the centred grid and the torches — a couple of aged notes, not a scatter.
-# Live-notice sizes span from small notes to big posters (dramatic variety). The
-# pick is seeded from contractId and is PURELY aesthetic — size never encodes
-# tier/importance (all contracts are equal-weight; the mystery is the mechanic).
-# Sizes are FRACTIONS of the board's inner canvas, not pixels: the same wall must read
-# at 640x360 (TD-042) and at any logical viewport PixelScale hands us. They were authored
-# as pixels against an 840x364 canvas and converted here; ratios are unchanged.
-
-# Reserved bands, as fractions of the inner canvas: the hanging placard along the top,
-# and the flanking torch sconces down each side. Live paper never enters either.
-# Torches now hang on the STONE WALL (outside the frame), so the board interior no
-# longer reserves a wide side band for them — the grid fills nearly the full width,
-# the way Prototype v1's writs do (dense, only a slim breathing margin from the frame).
-
-# Snap to whole pixels: a parchment on a half-pixel is a blurred parchment (Nearest).
-# Axis-aligned footprint of a `size` rect rotated by `tilt` degrees about its centre.
-# The notice keeps its own size; only its *collision* footprint grows.
-# Aged-parchment tints, seeded per notice — warm variety like a real board, without
-# encoding anything (the wax seal carries Origin; this is pure aesthetics).
-
-func _dump_notes(notes: Control) -> void:
-	await get_tree().process_frame
-	_log("notes children=%d canvas_global=%s" % [notes.get_child_count(), notes.get_global_rect()])
-	for c in notes.get_children():
-		var ct: Control = c
-		_log("  %s pos=%v size=%v scale=%v min=%v" % [ct.get_class(), ct.position, ct.size, ct.scale, ct.custom_minimum_size])
-
-func _build_contract_board() -> void:
-	var board: Array = _snapshot.get("board", [])
-	# The carved placard is the board's title now — hide the plain text header.
-	_popup_title.visible = false
-	# One canvas the wood frame wraps; notices are placed on it absolutely.
-	var inner := _board_inner_size()
-	var canvas := Control.new()
-	canvas.custom_minimum_size = inner
-	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# Text renders crisp: the popup panel is LINEAR (soft painted frame), but the notice
-	# layer resets to NEAREST so labels stay sharp. Raster nodes (paper/backing/crest)
-	# re-assert LINEAR on themselves, so only the fonts change.
-	canvas.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_popup_body.add_child(canvas)
-	_board_canvas = canvas             # remembered so a stamp can refresh only the reader (TD-065)
-	# Plank backing fills behind the notices (Batch 1). Backmost layer; the carved
-	# frame is the popup panel skin, the stone surround shows around it.
-	if _backing_tex != null:
-		var backing := NinePatchRect.new()
-		backing.texture = _backing_tex
-		backing.set_anchors_preset(Control.PRESET_FULL_RECT)
-		backing.patch_margin_left = 12
-		backing.patch_margin_top = 12
-		backing.patch_margin_right = 12
-		backing.patch_margin_bottom = 12
-		backing.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # painterly raster, keep it soft
-		backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Torch-lit via the surface shader (TD-047): the dark backing_v1 is pre-lifted in-shader
-		# (diffuse_gain) then lit by the torch rig — tests that a fragment shader preserves the
-		# NinePatch 9-slice AND takes the dynamic light (the frame conversion depends on this).
-		backing.material = _surface_material("res://assets/ui/board/backing_v1_n.png", 0.56, 1.25)  # TD-050: plank grain reads at rest, still below the parchment/frame key
-		backing.modulate = Color(1.0, 1.0, 1.0)
-		# z_index MUST stay >= 0: at -2 the plank drew BEHIND the popup's opaque panel
-		# background and vanished, so the dark stone wall showed through ("see-through board").
-		# Tree order (added before the notices) already keeps it behind the cards.
-		backing.z_index = 0
-		canvas.add_child(backing)
-		# Age + use: a tiling grain/speckle overlay so the planks read weathered, not a flat
-		# stretched slab (dark specks + faint lengthwise streaks, low alpha). Above the backing,
-		# below the notices. Runtime texture, no import.
-		var grain := TextureRect.new()
-		grain.texture = BoardGeo.wood_grain_texture()
-		grain.set_anchors_preset(Control.PRESET_FULL_RECT)
-		grain.stretch_mode = TextureRect.STRETCH_TILE
-		grain.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-		grain.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		grain.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		grain.z_index = 0
-		canvas.add_child(grain)
-	# Flanking torches now hang on the STONE WALL beside the inset board (Prototype v1),
-	# not inside the frame — banner + sconce + additive glow at each flank of the masonry
-	# margin. Rendered on the stone layer in viewport space. Reduced-motion (F9) freezes it.
-	# TD-059: the banner is now a normal-mapped surface lit by the SAME torch rig as the wall —
-	# built here so the rig-uniform packing stays in `_surface_material` (P72/P102), passed in.
-	var banner_mat := _surface_material("res://assets/ui/board/banner_v1_n.png", 0.36, 1.05, Vector2.ONE, 2.4)
-	BoardDecor.add_torches(_stone_bg, get_viewport_rect().size, _reduced_motion, banner_mat)
-	# The papers live in their own layer beneath the placard and the reader. A hovered
-	# notice raises to front WITHIN this layer only, so dense overlap never lets a
-	# paper float above the hanging sign (or over an open reading).
-	var notes := Control.new()
-	notes.set_anchors_preset(Control.PRESET_FULL_RECT)
-	notes.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(notes)
-	# Flavor scraps now read as a few small notes pinned in the side margins (as in the
-	# reference), not a scatter across the wall — the grid of live writs owns the centre.
-	# A light tilt keeps them from looking machine-placed; they draw behind the grid.
-	# Prototype v1 is a clean framed grid — no side scraps intruding over the writs.
-	# Flavor notices are opt-in (`--flavor`) until they get their own uncluttered band.
-	var flavor_n := mini(BoardGeo.FLAVOR_SIDE_SLOTS.size(), FLAVOR_NOTICES.size()) if OS.get_cmdline_user_args().has("--flavor") else 0
-	for i in flavor_n:
-		var fslot: Vector2 = BoardGeo.FLAVOR_SIDE_SLOTS[i] + BoardGeo.seed_jitter("flavor-%d" % i) * 0.4
-		var fsz := BoardGeo.notice_size(BoardGeo.FLAVOR_SIZE_FRACS, i, inner)
-		var fnode := _make_flavor_notice(FLAVOR_NOTICES[i], i)
-		_place(notes, fnode, fslot, fsz, BoardGeo.seed_tilt("flavor-%d" % i) * 0.6)
-		if OS.is_debug_build():
-			_log("  flavor[%d] want=%v got=%v pos=%v" % [i, fsz, fnode.size, fnode.position])
-	# Live notices are laid out by the keep-out solver first (T145), so no petition can
-	# ever bury another, then placed at the resolved rects. Flavor stays behind them.
-	var placed := BoardGeo.layout_live(board, inner)
-	var footprints: Array = []
-	var min_hit := Vector2(INF, INF)   # smallest live hit-target, self-checked ≥ HIT_MIN (T145)
-	for idx in placed.size():
-		var intel: Dictionary = board[idx]
-		var cid := str(intel.get("contractId", ""))
-		# TD-061 (R192): the grid cell is the disjoint CEILING, not the writ. Each writ takes
-		# its own content-fitted, seeded size inside the cell — non-uniform on purpose ("the
-		# variability and uniqueness of each contract"), and long site names always fit.
-		var fit := _fit_writ(intel, placed[idx]["size"])
-		var size: Vector2 = fit["size"]
-		var centre: Vector2 = placed[idx]["centre"]
-		# A subtle hand-pinned lean (±~2.7°) so the writs read as tacked paper, not a printed
-		# grid — small enough that the keep-out solver's cell gaps stay disjoint (self-checked).
-		var tilt := BoardGeo.seed_tilt(cid) * 0.42
-		# The whole live stack rides ABOVE the wall vignette (z 2): the vignette shapes the
-		# corners of the WALL, never the writs (its own stated intent), so a live paper never
-		# sinks below the legibility floor no matter where on the board it lands (T145 / L1, L3).
-		var hit_size := Vector2(maxf(size.x, HIT_MIN.x), maxf(size.y, HIT_MIN.y))
-		min_hit = Vector2(minf(min_hit.x, hit_size.x), minf(min_hit.y, hit_size.y))
-		var pos := (centre - size * 0.5).floor()
-		# Per-notice backlight: a warm amber pool behind the writ (additive), so the paper owns
-		# its own light and reads even with the torches frozen or in a dim gutter (L3). Larger
-		# than the paper so it haloes the wood around the sheet.
-		var glow := TextureRect.new()
-		glow.texture = BoardGeo.backlight_gradient()
-		glow.material = BoardGeo.additive_material()
-		glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		glow.stretch_mode = TextureRect.STRETCH_SCALE
-		glow.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		var gsz := size * 1.55
-		glow.size = gsz
-		glow.position = (centre - gsz * 0.5).floor()
-		glow.z_index = LIVE_Z
-		notes.add_child(glow)
-		# Cast shadow: the paper's own silhouette in translucent black, offset down-right (the
-		# board's ONE light), so each notice sits proud of the wood instead of printed on it.
-		var shadow := TextureRect.new()
-		shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		shadow.stretch_mode = TextureRect.STRETCH_SCALE
-		shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		shadow.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		if not _parch_live.is_empty():
-			shadow.texture = _parch_live[idx % _parch_live.size()]
-		shadow.modulate = Color(0.0, 0.0, 0.0, 0.33)
-		shadow.size = size
-		shadow.pivot_offset = size * 0.5
-		shadow.rotation_degrees = tilt
-		shadow.position = pos + Vector2(3.0, 5.0)
-		shadow.z_index = LIVE_Z
-		notes.add_child(shadow)
-		var node := _make_live_notice(intel, idx, fit["tfs"], fit["sfs"])
-		node.custom_minimum_size = hit_size
-		node.size = size
-		node.pivot_offset = size * 0.5
-		node.rotation_degrees = tilt
-		node.set_meta("tilt", tilt)        # so open/close can restore the lean without a rebuild (P123)
-		node.position = pos
-		node.z_index = LIVE_Z
-		node.add_to_group("live_notice")   # keyboard entry point (T146 / L6): first-in-order gets focus
-		notes.add_child(node)
-		footprints.append(Rect2(centre - BoardGeo.rotated_extent(size, tilt) * 0.5, BoardGeo.rotated_extent(size, tilt)))
-	var live := placed.size()
-	# Self-check for the playtest (T145): no live petition may bury another (rotation included),
-	# and every live hit-target clears the 44x44 minimum.
-	var hit_ok := live == 0 or (min_hit.x >= HIT_MIN.x and min_hit.y >= HIT_MIN.y)
-	_log("keepout live=%d ok=%s minhit=%dx%d hit_ok=%s" % [live, live > 0 and BoardGeo.all_disjoint(footprints, 0.0), int(min_hit.x) if live > 0 else 0, int(min_hit.y) if live > 0 else 0, hit_ok])
-	if OS.is_debug_build():
-		_log("keepout inner=%v bounds=%s" % [inner, BoardGeo.live_bounds(inner)])
-		for i in footprints.size():
-			_log("  live[%d] fp=%s" % [i, footprints[i]])
-	# Empty board (L8): no live petitions → a solemn scrap over the bare wall, never a
-	# blank popup. (T146 refines the styling; this is the honest empty state.)
-	if live == 0:
-		# A solemn empty state (T146 / L8), never a blank popup. Two-line: a title read + a
-		# quieter subtitle, above the vignette (z LIVE_Z) so the wall's shadow never swallows it.
-		var ebox := VBoxContainer.new()
-		ebox.alignment = BoxContainer.ALIGNMENT_CENTER
-		ebox.add_theme_constant_override("separation", 4)
-		ebox.custom_minimum_size = Vector2(360, 60)
-		ebox.size = Vector2(360, 60)
-		ebox.position = Vector2((inner.x - 360.0) * 0.5, inner.y * 0.5 - 30.0).floor()
-		ebox.z_index = LIVE_Z
-		ebox.add_child(Widgets.card_label("The wall stands empty.", 17, Color(0.86, 0.78, 0.58), true, true))
-		ebox.add_child(Widgets.card_label("No petitions stand before the Collegium.", 12, Color(0.66, 0.58, 0.44), true, true))
-		canvas.add_child(ebox)
-	if OS.is_debug_build():
-		_dump_notes.call_deferred(notes)
-	if OS.get_cmdline_user_args().has("--board-debug"):
-		for fp in footprints:
-			var mark := Panel.new()
-			var sb2 := StyleBoxFlat.new()
-			sb2.bg_color = Color(0, 0, 0, 0)
-			sb2.border_color = Color(1, 0, 0)
-			sb2.set_border_width_all(1)
-			mark.add_theme_stylebox_override("panel", sb2)
-			mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			mark.position = (fp as Rect2).position
-			mark.size = (fp as Rect2).size
-			mark.z_index = 20
-			canvas.add_child(mark)
-	# Sacred-decay ambiance (cobweb + votive), tucked into corners proven empty of any
-	# live petition so it never occludes a headline (DESIGN — decay is clutter, not cover).
-	_add_decay(canvas, inner, footprints)
-	# Warm-dark vignette over the whole wall: a lit pool at the centre falling to
-	# near-black at the corners (Prototype-v1 ambience). A runtime radial gradient (no
-	# PNG import); above the papers so their edges sink into shadow, below placard/reader.
-	var vig := TextureRect.new()
-	vig.texture = BoardGeo.vignette_gradient()
-	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
-	vig.stretch_mode = TextureRect.STRETCH_SCALE
-	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vig.z_index = 2
-	canvas.add_child(vig)
-	# The legend / active-assignment bar along the bottom (Prototype v1).
-	_add_board_bar(canvas, inner)
-	# The carved sign hangs over the top of the board, above the papers (own layer).
-	_place_placard(canvas)
-	# The heraldic crest is drawn as a popup-tracking OVERLAY (created in _init, synced in
-	# _process) so it can crown over the top edge — not clipped by the ScrollContainer.
-	_log("board live=%d flavor=%d" % [live, flavor_n])
-	# If a notice has been taken down, lay it on the reader over the dimmed board.
-	if not _board_selection.is_empty():
-		_show_notice_reader(canvas, _board_selection)
-	elif live > 0:
-		# Grid view: seed keyboard focus so Tab walks the writs and the corner reticle shows
-		# from the first frame (T146 / L6). Restores the prior writ across a rebuild.
-		_focus_first_notice.call_deferred()
-
-# The board's inner area (inside the wood frame): the popup scroll region, minus a
-# little breathing room. Absolute notice placement is normalised to this.
-#
-# The floor must never exceed the viewport, or the canvas grows past the frame and the
-# notices hang off the wall. At the 640x360 base (TD-042) the old 640x320 floor was
-# larger than the popup's own scroll region (568x232) — the board spilled its edges.
-func _board_inner_size() -> Vector2:
-	# Thin wrapper over BoardGeo (many call sites need it against the live viewport).
-	return BoardGeo.inner_size(get_viewport_rect().size)
-
-# Place a notice on the canvas: top-left from a normalised centre, rotated about
-# its own centre so it hangs at a human angle.
-func _place(canvas: Control, node: Control, center_norm: Vector2, size: Vector2, tilt: float) -> void:
-	node.custom_minimum_size = size
-	node.size = size
-	node.pivot_offset = size * 0.5
-	node.rotation_degrees = tilt
-	# Keep the paper (plus a little rotation slack) inside the wooden frame even when
-	# a big size lands under a jittered edge slot.
-	var inner := _board_inner_size()
-	# Reserve the top band for the hanging placard so papers sit below the sign
-	# (matching the reference) rather than jamming up behind it. Fractions, not pixels:
-	# 72px was a fifth of the whole board once the base became 640x360 (TD-042).
-	var top_reserve := inner.y * BoardGeo.TOP_RESERVE_FRAC
-	var pos := inner * center_norm - size * 0.5
-	pos.x = clampf(pos.x, 8.0, maxf(8.0, inner.x - size.x - 8.0))
-	pos.y = clampf(pos.y, top_reserve, maxf(top_reserve, inner.y - size.y - 8.0))
-	node.position = pos.floor()
-	canvas.add_child(node)
-
-# ── Keep-out (T145) ──────────────────────────────────────────────────────────
-# A live petition must always be readable: no live notice may bury another. Flavor
-# scraps are drawn behind and may tuck under freely — clutter, never occlusion.
-#
-# Deterministic: same seed -> same board. Pure geometry over Rect2s, resolved before
-# any node is added, then self-checked and logged for the playtest (`keepout ... ok=`).
-
-# Height of the bottom legend / active-assignment bar. Shared by the bar builder and
-# the live-bounds reserve so cards can never be laid over the bar.
-# Push overlapping rects apart along their centre-to-centre axis until disjoint.
-# Lay out the live notices as a clean, framed GRID (the Prototype-v1 composition —
-# the reference contract board is a tidy grid of pinned writs, not an organic scatter;
-# this supersedes the scatter solver / TD-040). Cells are centred in the live bounds
-# (below the placard, inside the torch reserves); each card is a portrait rect inset in
-# its cell. Disjoint by construction, so the keep-out self-check always passes.
-# The requester's signature line for a notice foot (trait-free intel): "— <name>,
-# <role>" or "— an unnamed <role>" for an anonymous petitioner. Diegetic fill only.
-func _notice_sig(req: Variant) -> String:
-	if typeof(req) != TYPE_DICTIONARY:
-		return ""
-	var nm := str((req as Dictionary).get("name", ""))
-	var role := str((req as Dictionary).get("role", "petitioner"))
-	# Kept short so it stays one line on the card foot; the full "name, role of place"
-	# is shown in the reader. Anonymous petitioners read as "— an unnamed <role>".
-	if nm == "":
-		return "— an unnamed %s" % role
-	return "— %s" % nm
-
-# A live contract notice: a clickable landscape parchment — sacred headline, target,
-# site, requester signature, and an Origin wax seal as a corner badge. No prose here
-# (glanceable); the full writ is read only when taken down.
-# Fit one writ inside its grid cell (TD-061 / R192, P111): a seeded width, then the text
-# measured with the SAME font/sizes/wrap the labels render with (ThemeDB.fallback_font is
-# the default theme font — no custom default is set), plus the card's furniture headroom
-# (pad 13 top / 4 bottom / 7 sides, VBox separation 1 — mirrors _make_live_notice). If the
-# cell can't hold the block at 9/7, the fonts step down once to 8/6 — the guarantee that a
-# long site ("at Hollowmere Crossing") never clips at the sheet edge.
-func _fit_writ(intel: Dictionary, cell: Vector2) -> Dictionary:
-	var cid := str(intel.get("contractId", ""))
-	var u_w := float(absi((cid + "|w").hash()) % 1000) / 999.0
-	var u_h := float(absi((cid + "|h").hash()) % 1000) / 999.0
-	var w := clampf(floorf(cell.x * (0.84 + 0.16 * u_w)), HIT_MIN.x, cell.x)
-	var font := ThemeDB.fallback_font
-	var target := str(intel.get("targetName", "?"))
-	var site := "at %s" % intel.get("siteName", "?")
-	var text_w := w - 14.0                    # pad margins 7+7
-	# Labels insert the theme's `line_spacing` (default 3) BETWEEN wrapped lines, which
-	# get_multiline_string_size does not count — the TD-061 fit was ~6px short on two
-	# 2-line blocks, clipping "Ossuary" at the sheet edge (TD-062/R196, P113).
-	var ls := float(ThemeDB.get_default_theme().get_constant("line_spacing", "Label"))
-	var chosen := [8, 6]                      # fallback if even stepping down can't fit
-	var need := 0.0
-	for fs in [[9, 7], [8, 6]]:
-		var th := font.get_multiline_string_size(target, HORIZONTAL_ALIGNMENT_CENTER, text_w, fs[0]).y
-		th += ls * maxf(0.0, roundf(th / font.get_height(fs[0])) - 1.0)
-		var sh := font.get_multiline_string_size(site, HORIZONTAL_ALIGNMENT_CENTER, text_w, fs[1]).y
-		sh += ls * maxf(0.0, roundf(sh / font.get_height(fs[1])) - 1.0)
-		need = 13.0 + 4.0 + th + 1.0 + sh + 2.0   # headroom + text block + safety (measure == render)
-		if need <= cell.y:
-			chosen = fs
-			break
-	# Seeded slack: even a short writ varies, growing part of the way into its remaining
-	# cell room — but the content floor (and the 44px hit floor) always wins.
-	var h := clampf(ceilf(need + u_h * maxf(0.0, cell.y - need) * 0.6), HIT_MIN.y, cell.y)
-	return {"size": Vector2(w, floorf(h)), "tfs": chosen[0], "sfs": chosen[1]}
-
-func _make_live_notice(intel: Dictionary, idx: int, tfs: int = 9, sfs: int = 7) -> Control:
-	var sel := not _board_selection.is_empty() and str(_board_selection.get("contractId", "")) == str(intel.get("contractId", ""))
-	var card := Button.new()
-	card.flat = true
-	card.clip_contents = true   # a long target never spills its writ onto the wall below
-	# Keyboard reachable (T146 / L6): Tab traverses the writs in board (reading) order, Enter/
-	# Space takes one down. The focus mark is a corner-bracket reticle (added below), not a
-	# stylebox ring, so all four states stay flat.
-	card.focus_mode = Control.FOCUS_ALL
-	var empty := StyleBoxEmpty.new()
-	for st in ["normal", "hover", "pressed", "focus"]:
-		card.add_theme_stylebox_override(st, empty)
-	if sel:
-		card.rotation_degrees = 0.0   # the one taken down hangs straight
-	card.pressed.connect(func(): _select_board_card(intel))
-	var tint := BoardGeo.parch_tint(str(intel.get("contractId", "")))
-	var bg := TextureRect.new()
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.stretch_mode = TextureRect.STRETCH_SCALE
-	# Obey the notice rect, not the texture's own 182x118: EXPAND_KEEP_SIZE (default)
-	# floors the min size to the full texture, so the paper overflowed the keep-out
-	# footprint and buried its neighbours. IGNORE_SIZE lets FULL_RECT shrink it to fit.
-	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR   # v1 painted paper stays soft/painterly
-	if not _parch_live.is_empty():
-		bg.texture = _parch_live[idx % _parch_live.size()]
-	# Lift the paper toward v1's bright, lit ivory, then floor it so no seed/tint ever drops a
-	# live writ below the legibility floor (T145 / L1). The stack also rides above the vignette.
-	bg.modulate = _floor_tone(tint.lightened(0.16))
-	card.add_child(bg)
-	# Paper curl: a soft inner shadow fading up from the foot, so the sheet lifts off the
-	# wall and shades itself (never a dead-flat rectangle). Above the paper, under the text.
-	var curl := TextureRect.new()
-	curl.texture = BoardGeo.curl_gradient()
-	curl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	curl.stretch_mode = TextureRect.STRETCH_SCALE
-	curl.anchor_left = 0.06; curl.anchor_right = 0.94
-	curl.anchor_top = 1.0; curl.anchor_bottom = 1.0
-	curl.offset_top = -11.0; curl.offset_bottom = -2.0
-	card.add_child(curl)
-	# Faint impressed watermark ring behind the writ (the aged-official read in the
-	# reference): a barely-there ink circle, inert, drawn above the paper, under the text.
-	var mark := Panel.new()
-	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mark.anchor_left = 0.20
-	mark.anchor_right = 0.80
-	mark.anchor_top = 0.28
-	mark.anchor_bottom = 0.72
-	var msb := StyleBoxFlat.new()
-	msb.bg_color = Color(0, 0, 0, 0)
-	msb.set_border_width_all(2)
-	msb.border_color = Color(0.26, 0.18, 0.10, 0.14)
-	msb.set_corner_radius_all(60)
-	mark.add_theme_stylebox_override("panel", msb)
-	card.add_child(mark)
-	# Lift toward the viewer AND raise above neighbours, so an overlapped notice is
-	# never occluded while you read/click it (dense scatter can stack corners).
-	# Hover takes precedence over the Tab position: moving the mouse onto a writ grabs focus, so
-	# the reticle jumps straight to the hovered writ (and Tab keeps working from there). (T146.)
-	card.mouse_entered.connect(func(): card.grab_focus(); card.move_to_front(); _hover_card(card, 1.05); bg.modulate = _floor_tone(tint.lightened(0.26)))
-	card.mouse_exited.connect(func(): _hover_card(card, 1.03 if sel else 1.0); bg.modulate = _floor_tone(tint.lightened(0.16)))
-	var verb := str(intel.get("primaryVerb", ""))
-	var pad := MarginContainer.new()
-	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pad.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["margin_left", "margin_right"]:
-		pad.add_theme_constant_override(side, 7)
-	# Room at the top for the corner furniture: the verb badge (upper-left) and the wax
-	# seal (upper-right) both straddle the top edge, so the text column starts below them.
-	pad.add_theme_constant_override("margin_top", 13)
-	pad.add_theme_constant_override("margin_bottom", 4)
-	card.add_child(pad)
-	var v := VBoxContainer.new()
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_theme_constant_override("separation", 1)
-	pad.add_child(v)
-	# No sacred-register type WORD on the card: the corner verb badge (keyed by the bottom
-	# legend) already carries it, and a long headline like "RITE OF BANISHMENT" both wrapped
-	# under the badge/seal and read illegibly faint. The card now leads with the target
-	# (Prototype v1), leaving room so every card keeps its site line.
-	# Centre the target/site block so the portrait writ fills top-to-bottom (Prototype v1).
-	var gap_top := Control.new()
-	gap_top.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	gap_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(gap_top)
-	v.add_child(Widgets.card_label(str(intel.get("targetName", "?")), tfs, INK, true, true))
-	v.add_child(Widgets.card_label("at %s" % intel.get("siteName", "?"), sfs, INK_SOFT, true, true))
-	# Threat/reward are deliberately NOT shown on the wall (trait-free board; knowledge is
-	# not a number) — you learn threat only by taking the notice down to read. The
-	# requester's signature is shown in the reader, not on the glanceable card, so a
-	# two-line target never fights the foot for the short portrait's vertical room.
-	var gap_bot := Control.new()
-	gap_bot.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	gap_bot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(gap_bot)
-	# Corner furniture (own children, above the text): the PRIMARY-VERB badge stamped in
-	# the upper-left (its legend is the bottom-left key). The asserted-Origin wax seal is
-	# RETIRED from the writ (TD-060): the petition-type badge is the only corner mark —
-	# a sealed assertion of genus implied a certainty the Collegium doesn't have.
-	card.add_child(_notice_tack(str(intel.get("contractId", ""))))
-	card.add_child(_verb_corner_badge(verb))
-	if sel:
-		var ring := Panel.new()
-		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ring.set_anchors_preset(Control.PRESET_FULL_RECT)
-		var rb := StyleBoxFlat.new()
-		rb.bg_color = Color(0, 0, 0, 0)
-		rb.set_border_width_all(2)
-		rb.border_color = Color(0.90, 0.74, 0.36)
-		rb.shadow_color = Color(0.85, 0.62, 0.24, 0.55)   # warm glow bleeding off the gilt edge
-		rb.shadow_size = 6
-		ring.add_theme_stylebox_override("panel", rb)
-		card.add_child(ring)
-	# Keyboard-focus reticle (T146 / L6): the last child so its brackets draw over the writ.
-	# Focus is tracked by contractId so a board rebuild (a ready-toggle, a seal) restores it.
-	var cid := str(intel.get("contractId", ""))
-	card.set_meta("cid", cid)
-	var reticle := _focus_reticle()
-	card.add_child(reticle)
-	card.focus_entered.connect(func():
-		_focus_cid = cid
-		reticle.visible = true
-		reticle.queue_redraw())
-	card.focus_exited.connect(func(): reticle.visible = false)
-	return card
-
-# An inert flavor notice: aged parchment, a header + a few lines, never clickable.
-func _make_flavor_notice(f: Dictionary, idx: int) -> Control:
-	var note := Panel.new()
-	note.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	note.modulate = Color(0.58, 0.55, 0.52)   # older, greyed hard so live notices always pop
-	var sb := StyleBoxEmpty.new()
-	note.add_theme_stylebox_override("panel", sb)
-	var bg := TextureRect.new()
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.stretch_mode = TextureRect.STRETCH_SCALE
-	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # fit the scrap to the notice rect
-	bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	if not _parch_flavor.is_empty():
-		bg.texture = _parch_flavor[idx % _parch_flavor.size()]   # already aged + foxed (T143)
-	bg.modulate = BoardGeo.parch_tint("flavor-%d" % idx).darkened(0.12)
-	note.add_child(bg)
-	var pad := MarginContainer.new()
-	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pad.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-		pad.add_theme_constant_override(side, 11)
-	note.add_child(pad)
-	var v := VBoxContainer.new()
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_theme_constant_override("separation", 3)
-	pad.add_child(v)
-	v.add_child(Widgets.card_label(str(f.get("head", "")), 10, Color(0.32, 0.16, 0.09), true, true))
-	v.add_child(Widgets.card_label(str(f.get("body", "")), 8, Color(0.36, 0.27, 0.16), true, false))
-	return note
+# ── Contract Board glue (specs/notice-board) ─────────────────────────────────
+# The wall, the writs and the sign all live in `board/` now (TD-067 T231). What is left here
+# is the shell's half of the contract: the two Ctx builders that hand those modules what they
+# need, the selection state they render from, and the intents they call back to send. The
+# socket stays here because `_net` does (S3.5).
 
 # Take-down-to-read (R123): a dim over the board + the enlarged writ centred on it.
 # Clicking the dim (off the writ) returns it to the wall. Pure view state.
@@ -1971,6 +1375,29 @@ func _refresh_open_reader() -> void:
 		overlay.free()                 # immediate (not queue_free): no one-frame double overlay
 	_show_notice_reader(_board_canvas, _board_selection)
 
+# The board's inner area (inside the wood frame), against the live viewport. Several shell
+# call sites need it (the popup scroll size, the reader Ctx), so the wrapper stays here.
+func _board_inner_size() -> Vector2:
+	return ContractBoard.inner_size(get_viewport_rect().size)
+
+# Everything ContractBoard needs from the shell. The shell keeps the socket (S3.5): the board
+# asks for a writ to be taken down (`on_select`) and for the reader to be laid on it
+# (`show_reader`) through callbacks, and never sends anything itself.
+func _board_ctx() -> ContractBoard.Ctx:
+	var c := ContractBoard.Ctx.new()
+	c.host = self
+	c.body = _popup_body
+	c.title = _popup_title
+	c.stone = _stone_bg
+	c.snapshot = _snapshot
+	c.selection = _board_selection
+	c.reduced_motion = _reduced_motion
+	c.viewport = get_viewport_rect().size
+	c.on_select = func(intel: Dictionary): _select_board_card(intel)
+	c.show_reader = func(canvas: Control, intel: Dictionary) -> Control: return _show_notice_reader(canvas, intel)
+	c.logger = func(msg: String): _log(msg)
+	return c
+
 # Everything NoticeReader needs from the shell. The shell keeps the socket (S3.5): the reader
 # calls back through on_seal/on_dismiss rather than sending anything itself.
 func _reader_ctx(canvas: Control, intel: Dictionary) -> NoticeReader.Ctx:
@@ -1981,7 +1408,7 @@ func _reader_ctx(canvas: Control, intel: Dictionary) -> NoticeReader.Ctx:
 	c.snapshot = _snapshot
 	c.leader = _is_leader()
 	c.reduced_motion = _reduced_motion
-	c.parch = _parch_live
+	c.parch = NoticeCard.parch_live()
 	c.inner = _board_inner_size()
 	var seeker := _display_name_plain(_self_id)
 	c.seeker_name = "Seeker" if seeker.is_empty() or seeker == _self_id else seeker
@@ -1997,260 +1424,6 @@ func _reader_ctx(canvas: Control, intel: Dictionary) -> NoticeReader.Ctx:
 func _show_notice_reader(canvas: Control, intel: Dictionary) -> Control:
 	return NoticeReader.show(_reader_ctx(canvas, intel))
 
-# A seeded position jitter (fractions of the inner board) so notices don't sit on a
-# grid — organic like a real wall. Deterministic per seed string (same board twice
-# → identical scatter).
-# A seeded hang angle (degrees), ~ -6.5°..+6.5° — a looser wall than a fixed pattern.
-# The carved "notice board" placard, hung at top-centre over the wall on two nails.
-# Flanking wall torches (Batch 1, T142): a grayscale-additive glow behind the papers
-# + an animated flame + an iron sconce at each inner edge. Flame/glow are white+alpha
-# VFX sources tinted to the flame ramp through an ADD-blend material, so the composite
-# stays on-palette. Reduced motion freezes the flicker and pins the glow to peak
-# brightness — the light is load-bearing, only the pulse is decorative.
-# A rect is "clear" when no live footprint intersects it — decay may only sit in space
-# no petition claims (keep-out heritage; DESIGN binds cobweb/votive to empty corners).
-# Sacred-decay props: one cobweb in a clear top corner (grayscale-additive, tinted cold
-# and dim like the glow) + a dead votive at a clear base corner. Both inert, behind the
-# papers, and skipped entirely if their corner is occupied — clutter, never occlusion.
-func _add_decay(canvas: Control, inner: Vector2, footprints: Array) -> void:
-	if _cobweb_tex != null:
-		var wsz := 40.0
-		# prefer the top-left corner; if a petition claims it, mirror into the top-right.
-		for spec in [[Vector2(3, 3), 1.0], [Vector2(inner.x - wsz - 3, 3), -1.0]]:
-			var pos: Vector2 = spec[0]
-			var flip: float = spec[1]
-			if BoardGeo.decay_clear(Rect2(pos, Vector2(wsz, wsz)), footprints):
-				var web := TextureRect.new()
-				web.texture = _cobweb_tex
-				web.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				web.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-				web.material = BoardGeo.additive_material()
-				web.modulate = Color(0.62, 0.66, 0.72, 0.34)  # cold, dim (tinted VFX) — TD-050: a whisper, not a focal detail
-				web.position = pos
-				if flip < 0.0:                                  # mirror for the right corner
-					web.scale.x = -1.0
-					web.position.x = pos.x + wsz
-				web.z_index = -1
-				canvas.add_child(web)
-				break
-	if _votive_tex != null:
-		var vsz := Vector2(14, 22)
-		for pos in [Vector2(6, inner.y - vsz.y - 4), Vector2(inner.x - vsz.x - 6, inner.y - vsz.y - 4)]:
-			if BoardGeo.decay_clear(Rect2(pos, vsz), footprints):
-				var vot := TextureRect.new()
-				vot.texture = _votive_tex
-				vot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				vot.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-				vot.position = pos
-				vot.z_index = -1
-				canvas.add_child(vot)
-				break
-
-# The bottom bar (Prototype v1): left = the order's verbs, centre = the sealed charge
-# (ACTIVE ASSIGNMENT), right = the status key. Trait-free — reads the snapshot's
-# authoritative `contract`, never a roll. Inert display.
-# The bottom-of-screen keybind strip (Prototype v1): one row of key-chips + captions,
-# centred just above the bottom edge. Built once; shown for the Contract Board only.
-func _build_keyhint() -> Control:
-	var bar := PanelContainer.new()
-	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bar.visible = false
-	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	# Grow UPWARD from the bottom edge — the Control default (GROW_BOTH) would put half the
-	# strip below y=vp.y (off-screen), leaving only a sliver visible. z above the frame.
-	bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	bar.z_index = 6
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.07, 0.05, 0.03, 0.96)
-	sb.border_color = Color(0.46, 0.33, 0.15)
-	sb.border_width_top = 2
-	sb.content_margin_top = 7; sb.content_margin_bottom = 7
-	sb.content_margin_left = 14; sb.content_margin_right = 14
-	bar.add_theme_stylebox_override("panel", sb)
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 26)
-	bar.add_child(row)
-	for pair in [["Tab", "Navigate"], ["Enter", "Take down"], ["Click", "View Contract"], ["Esc", "Back"]]:
-		var cell := HBoxContainer.new()
-		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cell.add_theme_constant_override("separation", 8)
-		var chip := PanelContainer.new()
-		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var csb := StyleBoxFlat.new()
-		csb.bg_color = Color(0.14, 0.11, 0.07)
-		csb.border_color = Color(0.44, 0.32, 0.15)
-		csb.set_border_width_all(1)
-		csb.set_corner_radius_all(3)
-		csb.content_margin_left = 7; csb.content_margin_right = 7
-		csb.content_margin_top = 1; csb.content_margin_bottom = 1
-		chip.add_theme_stylebox_override("panel", csb)
-		chip.add_child(Widgets.card_label(pair[0], 8, Color(0.90, 0.80, 0.52), false, true))
-		cell.add_child(chip)
-		cell.add_child(Widgets.card_label(pair[1], 8, Color(0.74, 0.66, 0.50), false, false))
-		row.add_child(cell)
-	return bar
-
-func _add_board_bar(canvas: Control, inner: Vector2) -> void:
-	# Delegated to the BoardBar module (render-only). Main supplies the authoritative
-	# contract + the pre-formatted requester signature; positioning stays here (needs inner/z).
-	var contract: Variant = _snapshot.get("contract", null)
-	var sig := _notice_sig((contract as Dictionary).get("requester", {})) if contract != null else ""
-	var row := BoardBar.build(inner, contract, sig)
-	var barh := BoardGeo.bar_height(inner)
-	row.position = Vector2(floorf(inner.x * 0.02), floorf(inner.y - barh - 6.0))
-	row.z_index = 4
-	canvas.add_child(row)
-
-# One dark gilt-edged panel in the bottom bar: a small gold caption over ink-on-parch body.
-# The header's rect, in inner-canvas space. Fractional (TD-042), so it survives a resize.
-func _place_placard(canvas: Control) -> void:
-	var inner := _board_inner_size()
-	var pr := BoardGeo.placard_rect(inner)
-	var placard := _board_header()
-	placard.custom_minimum_size = pr.size
-	placard.size = pr.size
-	placard.position = pr.position.floor()
-	# z_index wins over tree order absolutely, so a hovered paper (which raises to the
-	# front of its own layer) can never draw over the hanging sign.
-	placard.z_index = 5
-	canvas.add_child(placard)
-
-# A radial warm-dark vignette (runtime, no PNG import): clear at the centre, near-black
-# at the corners — the torch-lit pool that gives the board its Prototype-v1 ambience.
-# The Contract Board's header (TD-053; TD-058): a carved walnut sign, reinforced with forged
-# iron straps + bronze bolts, hung at the very top of the board and carrying an engraved two-line
-# title. The institution ("THE COLLEGIUM") outranks the thing ("Contract Board"). TD-058 dropped
-# the crowning bronze medallion (a repeated pain point at its 17x22 device slot — see TD-054/056/
-# 057) and reclaimed its height for the contracts: the sign is now the whole header, hung flush at
-# the top, with nothing floating above it. Pure render; inert to input.
-func _board_header() -> Control:
-	var root := Control.new()
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# No medallion (TD-058): the sign hangs flush at the top of the header rect, so the full rect
-	# is the sign itself. (Header height is zero-sum against the writs: live_bounds.h = 184.24 -
-	# placard_h, split across two rows — dropping the seat gave the contracts ~27px back.)
-	var sign_top := 0.0
-	var ptex := load("res://assets/ui/board/board_header.png") as Texture2D
-	if ptex != null:
-		# Authored at its exact on-screen size (204x38 — the internal resolution is a fixed
-		# 640x360, so placard_rect is deterministic), hence NEAREST + 1:1, no downscale mush
-		# (TD-050). The 9-slice only matters off-base: it keeps the end straps un-smeared and
-		# the grain runs horizontally, so the centre stretches cleanly.
-		# The contact shadow is drawn here, not baked, so it holds at any stretched width.
-		var shadow := NinePatchRect.new()
-		shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		shadow.set_anchors_preset(Control.PRESET_FULL_RECT)
-		shadow.offset_top = sign_top + 3.0
-		shadow.offset_left = 2.0
-		shadow.offset_right = 3.0
-		shadow.offset_bottom = 4.0
-		shadow.texture = ptex
-		shadow.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		shadow.modulate = Color(0.0, 0.0, 0.0, 0.55)
-		_patch_header(shadow)
-		root.add_child(shadow)
-		var sign := NinePatchRect.new()
-		sign.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		sign.set_anchors_preset(Control.PRESET_FULL_RECT)
-		sign.offset_top = sign_top
-		sign.texture = ptex
-		sign.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		# TD-059d: light the sign through the SAME board_surface.gdshader as the wall/frame/banner so
-		# it belongs to the scene instead of reading as a flat, self-lit plaque on a torch-lit wall.
-		# The header sits at the top centre, far from the corner sconces, so it takes the scene's cool
-		# ambient (its carved relief in board_header_n) with only a whisper of torch reach — which is
-		# exactly the cool-dark the top of the frame beside it already sits in. The gilt title is a
-		# separate Godot Label drawn over this, so legibility is unaffected by how dim the wood goes.
-		sign.material = _surface_material("res://assets/ui/board/board_header_n.png", 0.86, 1.0, Vector2.ONE, 1.6)
-		_patch_header(sign)
-		root.add_child(sign)
-	else:
-		var plaque := Panel.new()
-		plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		plaque.set_anchors_preset(Control.PRESET_FULL_RECT)
-		plaque.offset_top = sign_top
-		var psb := StyleBoxFlat.new()
-		psb.bg_color = Color(0.20, 0.15, 0.11)
-		psb.set_border_width_all(2)
-		psb.border_color = Color(0.09, 0.06, 0.04)
-		plaque.add_theme_stylebox_override("panel", psb)
-		root.add_child(plaque)
-	# The engraved title, centred in the sign's plank field between the top and bottom rails.
-	var stack := VBoxContainer.new()
-	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stack.set_anchors_preset(Control.PRESET_FULL_RECT)
-	stack.offset_top = sign_top + 4.0
-	stack.offset_bottom = -5.0
-	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	stack.add_theme_constant_override("separation", 0)
-	root.add_child(stack)
-	stack.add_child(Widgets.engraved_line("THE COLLEGIUM", 13, Color(0.86, 0.72, 0.42), 700))
-	stack.add_child(_header_gap(1))
-	stack.add_child(Widgets.engraved_line("Contract Board", 8, Color(0.62, 0.50, 0.31), 400))
-	return root
-
-# The sign's 9-slice margins (source 204x38, end straps inside 36/11).
-func _patch_header(np: NinePatchRect) -> void:
-	np.patch_margin_left = 36
-	np.patch_margin_top = 11
-	np.patch_margin_right = 36
-	np.patch_margin_bottom = 11
-
-func _header_gap(h: int) -> Control:
-	var g := Control.new()
-	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	g.custom_minimum_size = Vector2(0, h)
-	return g
-
-# Lift a card toward the viewer on hover (scale from its centre pivot).
-func _hover_card(card: Control, s: float) -> void:
-	if not is_instance_valid(card):
-		return
-	# One hover tween per card, remembered so it can be killed: a lift still in flight would
-	# otherwise animate straight over a direct scale write (the open/close reset, P123) — and
-	# two overlapping lifts used to fight each other on a fast re-hover.
-	_kill_hover_tween(card)
-	var t := card.create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	t.tween_property(card, "scale", Vector2(s, s), 0.09)
-	card.set_meta("hover_tween", t)
-
-func _kill_hover_tween(card: Control) -> void:
-	# has_meta first: Godot treats a NULL default as "no default given" and errors on a missing
-	# key, so get_meta("hover_tween", null) is not the safe read it looks like.
-	if not card.has_meta("hover_tween"):
-		return
-	var prev = card.get_meta("hover_tween")
-	if prev is Tween and (prev as Tween).is_valid():
-		(prev as Tween).kill()
-
-# The primary-verb type badge, anchored in a notice's upper-left corner (Prototype v1).
-func _verb_corner_badge(verb: String) -> Control:
-	var badge := VerbBadge.new()
-	badge.set_verb(verb)
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge.anchor_left = 0.0; badge.anchor_right = 0.0
-	badge.anchor_top = 0.0; badge.anchor_bottom = 0.0
-	badge.offset_left = 5.0; badge.offset_right = 20.0
-	badge.offset_top = 4.0; badge.offset_bottom = 19.0
-	return badge
-
-# A tack pinning a notice's top edge — nail · wax · pin · ribbon, chosen by the
-# contractId so a given notice always wears the same tack (deterministic). Static decor.
-func _notice_tack(cid: String) -> Control:
-	var tack := TextureRect.new()
-	tack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tack.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	if not _tack_tex.is_empty():
-		tack.texture = _tack_tex[absi((cid + "|tack").hash()) % _tack_tex.size()]
-	tack.anchor_left = 0.5; tack.anchor_right = 0.5
-	tack.anchor_top = 0.0; tack.anchor_bottom = 0.0
-	tack.offset_left = -6.0; tack.offset_right = 6.0
-	tack.offset_top = -5.0; tack.offset_bottom = 9.0
-	return tack
-
 func _select_board_card(c: Dictionary) -> void:
 	_board_selection = c
 	if c.is_empty():
@@ -2259,7 +1432,7 @@ func _select_board_card(c: Dictionary) -> void:
 		_log("select %s" % c.get("contractId", ""))
 	# Taking a writ down / putting it back changes exactly TWO things: the reader overlay, and
 	# the selected writ's lean. The board underneath — the backing shader, all 8 writs and their
-	# _fit_writ measuring, the decay, and add_torches' CPUParticles — is byte-identical either
+	# NoticeCard.fit measuring, the decay, and add_torches' CPUParticles — is byte-identical either
 	# way, so rebuilding it was pure waste and the hitch you feel on open/close. Swap the overlay
 	# in place instead (P123: the TD-065 stamp lesson applied to the open/close path; S6 — update
 	# the smallest subtree that reflects the change). No canvas ⇒ fall back to the full rebuild.
@@ -2269,14 +1442,14 @@ func _select_board_card(c: Dictionary) -> void:
 		t.tween_callback(_rebuild_popup_body)
 		return
 	var old := _board_canvas.find_child("ReaderOverlay", false, false) as Control
-	_reset_notice_transforms()
+	ContractBoard.reset_transforms(self)
 	if c.is_empty():
 		# Back on the wall: retire the overlay on the same 0.07s the old cross-fade used. The
 		# board never moved, so there is nothing else to restore — only focus, which the reader
 		# had taken.
 		if old != null:
 			NoticeReader.retire(old)
-		_focus_first_notice.call_deferred()
+		ContractBoard.focus_first.bind(self).call_deferred()
 		return
 	if old != null:
 		old.free()                       # immediate: never two live overlays in one frame
@@ -2287,21 +1460,6 @@ func _select_board_card(c: Dictionary) -> void:
 		ov.modulate.a = 0.0
 		var ft := ov.create_tween().set_ease(Tween.EASE_OUT)
 		ft.tween_property(ov, "modulate:a", 1.0, 0.12)
-
-# Leave the surviving writs exactly as a rebuild would have: seeded lean, rest scale. A card is
-# hover-scaled (1.05) at the moment it is clicked, and the old rebuild discarded that node — so
-# without this the clicked writ would stay swollen behind the dim. Selection itself has no
-# board-level look: `_make_live_notice`'s "taken-down hangs straight" is overwritten by the
-# placement `rotation_degrees = tilt` below it, and the 1.03 rest can't fire while the dim owns
-# the mouse. Reproducing the rebuild's result is the contract here, not improving on it (P123).
-func _reset_notice_transforms() -> void:
-	for n in get_tree().get_nodes_in_group("live_notice"):
-		var card := n as Control
-		if card == null or not is_instance_valid(card):
-			continue
-		_kill_hover_tween(card)
-		card.rotation_degrees = float(card.get_meta("tilt", 0.0))
-		card.scale = Vector2.ONE
 
 # Client-side mirror of the server's ghost-proof allReady (connected players only);
 # a display hint for the Accept affordance — the server remains the authority.
@@ -2324,38 +1482,6 @@ func _canvas_tex(diffuse: Texture2D, normal: Texture2D) -> CanvasTexture:
 	ct.normal_texture = normal
 	ct.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	return ct
-
-# A ShaderMaterial that lights a board surface from the torch rig (TD-047). Light2D does
-# not reach these Control nodes, so board_surface.gdshader samples the normal map + the
-# uniform torch lights itself. One rig (BoardDecor.torch_rig) feeds every surface (P72).
-func _surface_material(normal_path: String, ambient: float = 0.42, diffuse_gain: float = 1.0, tile: Vector2 = Vector2.ONE, radius_scale: float = 1.0) -> ShaderMaterial:
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://assets/ui/board/board_surface.gdshader") as Shader
-	mat.set_shader_parameter("normal_tex", load(normal_path) as Texture2D)
-	mat.set_shader_parameter("ambient", ambient)
-	mat.set_shader_parameter("diffuse_gain", diffuse_gain)
-	mat.set_shader_parameter("tile_scale", tile)   # >1 tiles a small seamless texture (the stone brick)
-	var vp := get_viewport_rect().size
-	var rig := BoardDecor.torch_rig(vp)
-	var uvs := PackedVector2Array()
-	var cols := PackedColorArray()
-	var rads := PackedFloat32Array()
-	for t in rig:
-		uvs.append(t["uv"])
-		var c: Color = t["color"]; c.a = 0.9             # energy in alpha (dimmed for the dungeon grade, TD-048)
-		cols.append(c)
-		# radius_scale widens ONE surface's reach without touching the shared torch_rig (P95/P102):
-		# the board's tight 0.24 halo keeps the wall dungeon-dark, but the banner (hung above its
-		# foot sconce) needs the throw to climb the cloth so its torch-lit gradient reads (TD-059).
-		rads.append(t["radius"] * radius_scale)
-	mat.set_shader_parameter("light_uv", uvs)
-	mat.set_shader_parameter("light_col", cols)
-	mat.set_shader_parameter("light_rad", rads)
-	# `--lights-off` (debug, V1) kills the torch lights so a capture shows flat neutral wood —
-	# the relief/warmth must vanish, proving the shader (not a baked diffuse) does the lighting.
-	mat.set_shader_parameter("light_count", 0 if OS.get_cmdline_user_args().has("--lights-off") else rig.size())
-	mat.set_shader_parameter("aspect", vp.x / maxf(1.0, vp.y))
-	return mat
 
 func _texture_sb(path: String, margin: float, content: float, bg: Color, border: Color, mod_color: Color = Color.WHITE, normal_path: String = "") -> StyleBox:
 	var tex := load(path) as Texture2D

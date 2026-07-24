@@ -62,8 +62,33 @@
       it lasts ~0.76s while the capture harness takes whole seconds, so a one-shot flash was never
       catchable on film and had only ever been verified by "it did not error", which is not
       verification.
-- [ ] T231 [R219] — `board/contract_board.gd`: the board shell driven by the snapshot, emitting
-      intents via signal; `main.gd` delegates. The largest extraction; leaves `main.gd` a thin router.
+- [x] T231 [R219 / P122 / V1, V2] — `board/contract_board.gd`: the board shell driven by the
+      snapshot, calling intents back through the shell; `main.gd` delegates. The largest extraction.
+      Shipped as **three** modules, not one — the verbatim block was ~850 lines, twice the S2.3
+      ceiling, and it holds three separable responsibilities: `contract_board.gd` (the wall — build,
+      layout, decay, vignette, bar, keyhint, focus traversal), `notice_card.gd` (ONE writ — fit, live
+      card, flavor scrap, tack, verb badge, focus reticle, hover lift), `board_header.gd` (the
+      hanging carved sign). Dependencies run **one way** (wall → card, wall → header), so no cyclic
+      preload: the card's art + focus memory are its own static state and the wall reads them through
+      `parch_live()` / `focus_cid()`. Same `Ctx`-plus-callbacks idiom as T230 — `on_select` and
+      `show_reader` carry intent out, so no board module touches `_net` (S3.5).
+      `_surface_material` moved to **`BoardDecor.surface_material(vp, …)`**: it packs `torch_rig`
+      into the shader uniforms, so it belongs beside the rig, and both the board's surfaces and the
+      menu/lobby masonry now light off one function instead of a shell private. `main.gd`
+      **2,553 → 1,679 (−874)**, and the Contract Board is out of it entirely.
+      Test: **V1** — headless parse clean; the board capture is **within same-build noise** of a
+      worktree build of 49e6e04 (0.419% differing px vs a 0.466% HEAD-vs-HEAD control run, the SAME
+      x-band signature: torch-gutter particles + which writ holds hover-focus, both decided by where
+      the cursor happens to sit when the window pops). `keepout live=8 ok=true minhit=80x53
+      hit_ok=true` and `inner=(473.6, 288)` match the control **exactly**. Reader verified for
+      **unsealed** (dashed socket + the leader's named oath), **sealed** (firm oxblood wax, device
+      debossed, witnessed caption), **flash** (warm bloom past the sheet edge — TD-064 unclipped),
+      **reader-cycle** (`board live=` once — TD-068 intact), **empty board** (L8) and **lights-off**
+      (wall/banner/sign go flat, proving `BoardDecor.surface_material` still lights them). Lobby +
+      room-setup captured too, since `_menu_stone` moved to the same call. **V2** — asset-map
+      regenerated, `--selftest` + `--check` green (the `board_header.png` consumer pin re-homed from
+      `main.gd` to `board_header.gd`); `git diff` scoped `client/ specs/ docs/ tools/`; server 362 +
+      shared 65 green (untouched).
 
 ## Notes
 

@@ -130,11 +130,12 @@ grew the writs **93x54 → 93x67** (larger than the pre-header 93x60). `board_he
 again). `keepout live=8 ok=true minhit=93x67`. Client render only; `art/src/collegium_device.*` kept as
 source art. Verified by `--board-preview` captures.
 
-Active spec: **`specs/main-decompose/`** (TD-067) — `main.gd` decomposition under the code-structure
-canon (TD-066). `main.gd` is a 2,684-line god-object (67% of client GDScript); the paydown is
+Completed: **`specs/main-decompose/`** (TD-067) — `main.gd` decomposition under the code-structure
+canon (TD-066). `main.gd` was a 2,684-line god-object (67% of client GDScript); the paydown was
 **incremental**, each tranche behavior-preserving (a refactor, not a redesign; I1/I2 hold), toward the
-S5 target (thin router + `core/world/board/stations/ui` feature files). **Tranche 1 COMPLETE
-(T225–T228):** three stateless/transient builders extracted to `client/scripts/ui/` (preloaded
+S5 target (thin router + `core/world/board/stations/ui` feature files). **ALL FOUR TRANCHES DONE —
+`main.gd` is now 1,679 lines (−1,005 from the start), and the Contract Board is out of it entirely.**
+**Tranche 1 COMPLETE (T225–T228):** three stateless/transient builders extracted to `client/scripts/ui/` (preloaded
 `RefCounted`, never global `class_name`) — `fonts.gd` (`Fonts.cinzel`), `popup_theme.gd`
 (`PopupTheme.build`), `rite_banner.gd` (`RiteBanner.show(host,…)`, the `add_torches` builds-on-a-host
 idiom); `main.gd` 2,684→2,538 (−146); board + `--rite-banner` captures identical by eye.
@@ -142,9 +143,23 @@ idiom); `main.gd` 2,684→2,538 (−146); board + `--rite-banner` captures ident
 (`card_label`×20, `hrule`, `focus_ring`, `engraved_line`, and `h1(host,…)` on the same
 builds-on-a-host idiom), ~30 call sites rewired; `main.gd` 2,538→2,475 (−63); the board capture is
 composition-identical to a worktree build of HEAD (the only deltas — torch particles + which card
-holds hover-focus — are nondeterministic run-to-run, proven by a same-build control run). **Queued
-tranches** (their own commits): `board/notice_reader.gd` (reader+seal+animation+cooldown),
-`board/contract_board.gd` (the board shell; leaves `main.gd` a thin router).
+holds hover-focus — are nondeterministic run-to-run, proven by a same-build control run). **Tranche 3 COMPLETE (T230):** `board/notice_reader.gd` (452) — the reader + seal + ceremony +
+cooldown + scroll continuity, as a preloaded RefCounted with static builders (the reader is
+TRANSIENT, so it follows the `add_torches(host, …)` idiom); its memory moved with it as static
+state; a `Ctx` carries snapshot/leader/parch in and `on_seal`/`on_dismiss` carry intents out, so
+the module never touches `_net`. `main.gd` 2,919→2,545 (−374).
+**Tranche 4 COMPLETE (T231, the last):** the Contract Board itself, shipped as **three** modules
+rather than the one the spec named — the verbatim block was ~850 lines and held three separable
+jobs: `board/contract_board.gd` (~470, the wall: build/layout/decay/vignette/bar/keyhint/focus),
+`board/notice_card.gd` (~346, ONE writ: fit, live card, flavor scrap, tack, verb badge, focus
+reticle, hover lift), `board/board_header.gd` (~109, the hanging carved sign). Dependencies run
+**one way** (wall → card, wall → header) so no cyclic `preload`: the card owns its art + focus
+memory as static state and the wall reads `parch_live()` / `focus_cid()`. `_surface_material`
+moved to **`BoardDecor.surface_material(vp, …)`**, beside the `torch_rig` it packs — board
+surfaces AND the menu/lobby masonry now light off one function (the P72 invariant, made real).
+`main.gd` 2,553→1,679 (−874). Proven unchanged by a **same-build control**: HEAD-vs-HEAD differs
+0.466% of pixels, HEAD-vs-this 0.419%, same x-bands (torch particles + which writ holds
+hover-focus, both cursor-dependent); deterministic readouts match exactly.
 
 Active spec: **`specs/title-scene/`** (TD-073) — the title screen as a **layered scene**. Three
 approaches were tried; the first two are recorded as failures in DECISION_LOG TD-073 so they are not
@@ -288,9 +303,9 @@ PIL-read from `collegium_logo.png`; `wax_seal.gd` de-Origin-keyed, R124 faint/fi
 untouched). Debug capture flags: `--reader` suppresses click-off dismiss (stray-click gotcha),
 `--reader-foot`, `--sealed`.
 
-@specs/main-decompose/requirements.md
-@specs/main-decompose/design.md
-@specs/main-decompose/tasks.md
+@specs/title-scene/requirements.md
+@specs/title-scene/design.md
+@specs/title-scene/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

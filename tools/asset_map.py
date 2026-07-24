@@ -277,8 +277,9 @@ def selftest():
     hdr = "client/assets/ui/board/board_header.png"
     check(any("gen_header.py" in p for p in m["producers"].get(hdr, [])),
           "board/board_header.png should be produced by gen_header.py")
-    check(any("main.gd" in c for c, _ in m["consumers"].get(hdr, set())),
-          "board/board_header.png should be consumed by main.gd")
+    # Re-pinned in TD-067 T231: the sign left main.gd for board/board_header.gd.
+    check(any("board_header.gd" in c for c, _ in m["consumers"].get(hdr, set())),
+          "board/board_header.png should be consumed by board/board_header.gd")
     check(any("board_geometry.gd" in p for p in m["preloads"].get("client/scripts/board/board_decor.gd", [])),
           "board/board_decor.gd should preload board/board_geometry.gd")
     check(any("main.tscn" in c for c, _ in m["loaded_by"].get("client/scripts/main.gd", set())),

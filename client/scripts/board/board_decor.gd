@@ -43,6 +43,41 @@ static func torch_rig(vp: Vector2) -> Array:
 		out.append({"uv": Vector2(cx / vp.x, ly / vp.y), "color": col, "radius": 0.24})
 	return out
 
+# A ShaderMaterial that lights a board surface from the torch rig (TD-047). Light2D does
+# not reach these Control nodes, so board_surface.gdshader samples the normal map + the
+# uniform torch lights itself. One rig (BoardDecor.torch_rig) feeds every surface (P72).
+#
+# Homed here (TD-067 T231) rather than in the shell: it packs `torch_rig` into the shader's
+# uniforms, so it belongs beside the rig it reads. Both the Contract Board's surfaces and the
+# menu/lobby masonry take their light from this one function, which is what keeps them coherent.
+static func surface_material(vp: Vector2, normal_path: String, ambient: float = 0.42, diffuse_gain: float = 1.0, tile: Vector2 = Vector2.ONE, radius_scale: float = 1.0) -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://assets/ui/board/board_surface.gdshader") as Shader
+	mat.set_shader_parameter("normal_tex", load(normal_path) as Texture2D)
+	mat.set_shader_parameter("ambient", ambient)
+	mat.set_shader_parameter("diffuse_gain", diffuse_gain)
+	mat.set_shader_parameter("tile_scale", tile)   # >1 tiles a small seamless texture (the stone brick)
+	var rig := torch_rig(vp)
+	var uvs := PackedVector2Array()
+	var cols := PackedColorArray()
+	var rads := PackedFloat32Array()
+	for t in rig:
+		uvs.append(t["uv"])
+		var c: Color = t["color"]; c.a = 0.9             # energy in alpha (dimmed for the dungeon grade, TD-048)
+		cols.append(c)
+		# radius_scale widens ONE surface's reach without touching the shared torch_rig (P95/P102):
+		# the board's tight 0.24 halo keeps the wall dungeon-dark, but the banner (hung above its
+		# foot sconce) needs the throw to climb the cloth so its torch-lit gradient reads (TD-059).
+		rads.append(t["radius"] * radius_scale)
+	mat.set_shader_parameter("light_uv", uvs)
+	mat.set_shader_parameter("light_col", cols)
+	mat.set_shader_parameter("light_rad", rads)
+	# `--lights-off` (debug, V1) kills the torch lights so a capture shows flat neutral wood —
+	# the relief/warmth must vanish, proving the shader (not a baked diffuse) does the lighting.
+	mat.set_shader_parameter("light_count", 0 if OS.get_cmdline_user_args().has("--lights-off") else rig.size())
+	mat.set_shader_parameter("aspect", vp.x / maxf(1.0, vp.y))
+	return mat
+
 # Flanking wall torches, drawn on the stone-wall layer (behind the centred board) in
 # VIEWPORT space so the banners hang on the masonry beside the inset board (Prototype v1).
 # Clears and rebuilds `stone_bg`'s children each call. Reduced motion pins the glow to peak.

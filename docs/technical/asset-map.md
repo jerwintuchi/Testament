@@ -35,7 +35,7 @@
 
 ### `client/assets/ui/board/`
 
-- **`backing_v1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`backing_v1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/contract_board.gd` (load)
 - **`backing_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`badge_banish.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads)
 - **`badge_capture.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads)
@@ -43,29 +43,29 @@
 - **`badge_investigate.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads)
 - **`banner_v1.png`** — produced-by: `client/assets/ui/gen_banner.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
 - **`banner_v1_n.png`** — produced-by: `client/assets/ui/gen_banner.py`, `client/assets/ui/gen_normals.py` · consumed-by: —
-- **`board_header.png`** — produced-by: `client/assets/ui/gen_header.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`board_header.png`** — produced-by: `client/assets/ui/gen_header.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_header.gd` (load)
 - **`board_header_n.png`** — produced-by: `client/assets/ui/gen_header.py`, `client/assets/ui/gen_normals.py` · consumed-by: —
-- **`board_surface.gdshader`** — produced-by: — · consumed-by: `client/scripts/main.gd` (load)
-- **`cobweb.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`board_surface.gdshader`** — produced-by: — · consumed-by: `client/scripts/board/board_decor.gd` (load)
+- **`cobweb.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/contract_board.gd` (load)
 - **`collegium_logo.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_banner.py` (reads), `client/assets/ui/gen_emblems.py` (reads), `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
 - **`frame_v1.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
-- **`parch_flavor_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
-- **`parch_flavor_1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
-- **`parch_v1_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
-- **`parch_v1_1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`parch_flavor_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
+- **`parch_flavor_1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
+- **`parch_v1_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
+- **`parch_v1_1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
 - **`seal_collegium.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads)
 - **`spark.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
 - **`stone_tile.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
 - **`stone_tile_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
-- **`tack_nail.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
-- **`tack_pin.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
-- **`tack_ribbon.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
-- **`tack_wax.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`tack_nail.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
+- **`tack_pin.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
+- **`tack_ribbon.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
+- **`tack_wax.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
 - **`torch_flame.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
 - **`torch_glow.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
 - **`torch_sconce.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
-- **`votive.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`votive.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/contract_board.gd` (load)
 
 ### `client/assets/ui/shared/`
 
@@ -105,22 +105,34 @@
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/board/board_bar.gd`**
   - preloads: `board_geometry.gd`, `notice.gd`, `verb_badge.gd`
-  - loaded-by: `client/scripts/main.gd` (preload)
+  - loaded-by: `client/scripts/board/contract_board.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scripts/board/board_decor.gd`**
-  - loads: `banner_v1.png`, `spark.png`, `torch_flame.png`, `torch_glow.png`, `torch_sconce.png`
+  - loads: `banner_v1.png`, `board_surface.gdshader`, `spark.png`, `torch_flame.png`, `torch_glow.png`, `torch_sconce.png`
   - preloads: `board_geometry.gd`
-  - loaded-by: `client/scripts/main.gd` (preload)
+  - loaded-by: `client/scripts/board/board_header.gd` (preload), `client/scripts/board/contract_board.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scripts/board/board_geometry.gd`**
-  - loaded-by: `client/scripts/board/board_bar.gd` (preload), `client/scripts/board/board_decor.gd` (preload), `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload)
+  - loaded-by: `client/scripts/board/board_bar.gd` (preload), `client/scripts/board/board_decor.gd` (preload), `client/scripts/board/board_header.gd` (preload), `client/scripts/board/contract_board.gd` (preload), `client/scripts/board/notice_card.gd` (preload), `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload)
+- **`client/scripts/board/board_header.gd`**
+  - loads: `board_header.png`
+  - preloads: `board_decor.gd`, `board_geometry.gd`, `widgets.gd`
+  - loaded-by: `client/scripts/board/contract_board.gd` (preload)
+- **`client/scripts/board/contract_board.gd`**
+  - loads: `backing_v1.png`, `cobweb.png`, `votive.png`
+  - preloads: `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `board_header.gd`, `notice_card.gd`, `widgets.gd`
+  - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/board/notice.gd`**
   - loaded-by: `client/scripts/board/board_bar.gd` (preload), `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload)
+- **`client/scripts/board/notice_card.gd`**
+  - loads: `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`
+  - preloads: `board_geometry.gd`, `verb_badge.gd`, `widgets.gd`
+  - loaded-by: `client/scripts/board/contract_board.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scripts/board/notice_reader.gd`**
   - preloads: `board_geometry.gd`, `notice.gd`, `ornament_scrollbar.gd`, `wax_seal.gd`, `widgets.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/board/ornament_scrollbar.gd`**
   - loaded-by: `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scripts/board/verb_badge.gd`**
-  - loaded-by: `client/scripts/board/board_bar.gd` (preload), `client/scripts/main.gd` (preload)
+  - loaded-by: `client/scripts/board/board_bar.gd` (preload), `client/scripts/board/notice_card.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scripts/board/wax_seal.gd`**
   - loaded-by: `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scripts/core/catalog.gd`**
@@ -128,8 +140,8 @@
 - **`client/scripts/core/station_names.gd`**
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/world/space_view.gd` (preload)
 - **`client/scripts/main.gd`**
-  - loads: `backing_v1.png`, `board_header.png`, `board_surface.gdshader`, `cobweb.png`, `collegium_logo.png`, `frame_v1.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `votive.png`, `player.tscn`
-  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `notice.gd`, `notice_reader.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `station_names.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `room_scroll.gd`, `title_scene.gd`, `widgets.gd`
+  - loads: `collegium_logo.png`, `frame_v1.png`, `stone_tile.png`, `player.tscn`
+  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `contract_board.gd`, `notice.gd`, `notice_card.gd`, `notice_reader.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `station_names.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `room_scroll.gd`, `title_scene.gd`, `widgets.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/ui/fonts.gd`**
   - loads: `Cinzel.ttf`
@@ -147,7 +159,7 @@
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/widgets.gd`**
   - preloads: `fonts.gd`
-  - loaded-by: `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload), `client/scripts/ui/room_scroll.gd` (preload)
+  - loaded-by: `client/scripts/board/board_header.gd` (preload), `client/scripts/board/contract_board.gd` (preload), `client/scripts/board/notice_card.gd` (preload), `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload), `client/scripts/ui/room_scroll.gd` (preload)
 - **`client/scripts/world/player.gd`**
   - loads: `Unarmed_Idle_with_shadow.png`, `Unarmed_Run_with_shadow.png`, `Unarmed_Walk_with_shadow.png`
   - loaded-by: `client/scenes/player.tscn` (ext_resource)
@@ -178,9 +190,9 @@
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
+- `client/scripts/board/board_decor.gd:56` — `load/preload normal_path`
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
-- `client/scripts/main.gd:2334` — `load/preload normal_path`
-- `client/scripts/main.gd:2361` — `load/preload path`
-- `client/scripts/main.gd:2365` — `load/preload normal_path`
+- `client/scripts/main.gd:1487` — `load/preload path`
+- `client/scripts/main.gd:1491` — `load/preload normal_path`
 - `client/scripts/ui/title_scene.gd:90` — `load/preload p`

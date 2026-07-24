@@ -2380,3 +2380,53 @@ want hundredths.
 Ambient audio (Layer 5) is specified but **blocked**: no audio assets, no audio pipeline, and no
 sanctioned audio tool. The toolchain is a closed list and adding one needs explicit approval.
 Client render only; no board asset; no `src/**` change.
+
+---
+
+## 2026-07-24 — TD-067 T231: the Contract Board leaves `main.gd`; the last tranche lands as three modules
+
+**Context.** T231 was the final tranche of the `main.gd` decomposition (TD-067) and the largest:
+the Contract Board — the wall the writs hang on. It was specified in `specs/main-decompose/` as one
+new file, `board/contract_board.gd`.
+
+**What changed against the spec.** The verbatim block came to ~850 lines: more than twice the S2.3
+soft ceiling, and holding three responsibilities that a reader has to hold apart anyway. It shipped
+as **three** modules instead:
+
+- `board/contract_board.gd` (~470) — the wall: `build()`, the keep-out layout, decay, vignette,
+  bottom bar, keybind strip, focus traversal, transform reset.
+- `board/notice_card.gd` (~346) — **one** writ: the content fit, the live card, the inert flavor
+  scrap, tack, verb badge, focus reticle, hover lift, and the live-tone contrast floor.
+- `board/board_header.gd` (~109) — the hanging carved sign and its placement.
+
+Dependencies run **one way** (wall → card, wall → header), which is what makes the split safe:
+GDScript cannot resolve a cyclic `preload`, so the card owns its own art and focus memory as static
+state and the wall reads them through `parch_live()` / `focus_cid()` rather than the card reaching
+back for a `Ctx` the wall defines.
+
+**The socket stays in the shell.** Same idiom as T230: a `Ctx` carries snapshot/selection/viewport
+in, and `on_select` / `show_reader` carry intent out, so no board module touches `_net` (S3.5) and
+none of them decides anything (I1). `main.gd` went **2,553 → 1,679 lines (−874)**, and the Contract
+Board — the thing that made it a god-object — is no longer in it.
+
+**One thing moved that the spec did not name.** `_surface_material` was a `main.gd` private, but it
+exists to pack `BoardDecor.torch_rig` into `board_surface.gdshader`'s uniforms, and it was being
+called from the board, the popup frame, the lobby masonry and the menu. It is now
+`BoardDecor.surface_material(vp, …)`, beside the rig it reads. Every lit surface in the game takes
+its light from one function again — which is the P72 invariant the comment already claimed.
+
+**How "unchanged" was proven.** A capture is not evidence on its own here: the board's torch
+particles are nondeterministic, and *which writ holds hover-focus* depends on where the OS cursor
+happens to sit when the window pops. So the check was a **same-build control**: HEAD captured twice
+differs by 0.466% of pixels; HEAD vs this build differs by 0.419%, in the **same x-bands**. The
+deterministic readouts match exactly (`keepout live=8 ok=true minhit=80x53 hit_ok=true`,
+`inner=(473.6, 288)`, `board live=8`). Reader paths verified across unsealed, sealed, flash
+(unclipped per TD-064), reader-cycle (`board live=` logged once — TD-068's fast path intact), empty
+board, and `--lights-off` (wall, banner and sign go flat, proving the moved `surface_material` still
+lights them). Lobby and room-setup captured too, since `_menu_stone` rides the same call.
+
+`tools/asset_map.py --selftest` caught the move immediately: `board_header.png`'s consumer pin still
+named `main.gd`. Re-pinned to `board_header.gd` — the selftest doing exactly the job it exists for,
+after sitting red unnoticed from TD-058 to TD-069.
+
+Client render only. No `src/**` change; server 362 + shared 65 suites green and untouched.
