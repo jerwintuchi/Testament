@@ -72,5 +72,27 @@ python3 tools/asset_map.py --check  # exit 1 if stale — run before marking the
 Record non-obvious wiring (the *why*) with a provenance header; see
 [docs/technical/code-map.md](../../docs/technical/code-map.md).
 
+## Keep the spec registry honest
+
+A spec written in one session and abandoned in another is invisible from inside either one. Two
+have already cost real time in opposite directions (DECISION_LOG **TD-074**): `notice-board`
+carried open boxes for work that had shipped, and `station-ui` was summarised in CLAUDE.md as
+shipping a Stipend economy that was never built. So spec status is **derived, never asserted**:
+
+```bash
+python3 tools/spec_status.py            # regenerate docs/technical/spec-status.md
+python3 tools/spec_status.py --check    # exit 1 if the committed report is stale
+python3 tools/spec_status.py --selftest # assert the RULES (not any live finding)
+python3 tools/spec_status_html.py       # the same data as a page you can look at
+```
+
+It reports **disagreements between a spec and the tree** — `CLAIM` (CLAUDE.md says complete,
+tasks are open), `MISSING` (an open task names a file that does not exist), `LIKELY-SHIPPED` (an
+open task names only files that do exist — probably done, never ticked), `STALE`.
+
+When you finish a task, tick it **in the same commit**. When a spec is overtaken by a redesign,
+**close it** with a `**STATUS: CLOSED**` banner and mark superseded items in place with what
+replaced them — do not leave them open, and do not delete them.
+
 ## Golden Rule
 If you can't point to a test that verifies it, the feature doesn't exist.

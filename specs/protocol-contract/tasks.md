@@ -31,8 +31,12 @@ its R#/P# and names a test or a documented manual gate.
 - [x] T9 [R6] — Refactor `client/main.gd`: add `const Protocol = preload("res://protocol/protocol.gd")`; replace every `_send(...)` literal and every `match type:` arm with `Protocol.*`; remove the hand-duplicated `CORRIDOR_HALF_WIDTH`/`DESIGN_VIEW_HEIGHT` consts and reference `Protocol.CORRIDOR_HALF_WIDTH`/`Protocol.DESIGN_VIEW_HEIGHT`.
   Test: manual gate (no GDScript test harness yet) — verified via the Godot MCP against the running server (Godot 4.7): the project compiles and runs with zero parser/runtime errors, and an instrumented run observed the Phase-1 round-trip end to end (connect, create-room, ROOM_UPDATE, start-run, `RUN_STARTED rooms=12 seekers=1`). The change is value-preserving (each `Protocol.*` equals the prior literal), so move-player/PLAYER_MOVED behaviour is unchanged.
 
-- [ ] T10 [R4, R5, R6] — Verify the full exit gate: `pnpm -r test` green, `pnpm gen:protocol` clean (no diff), server and client both reference the one source.
+- [x] T10 [R4, R5, R6] — Verify the full exit gate: `pnpm -r test` green, `pnpm gen:protocol` clean (no diff), server and client both reference the one source.
   Test: `pnpm -r test` (all suites green, including the new `messages.test.ts` and `generate.test.ts`); regenerating produces no git diff.
+  **Done — re-run and confirmed 2026-07-24** (the box had been left open since the TD-031
+  reconciliation; `tools/spec_status.py` flagged it LIKELY-SHIPPED and the gate did in fact pass
+  on the first try). `pnpm gen:protocol` regenerated `client/protocol/protocol.gd` with **no git
+  diff**; `pnpm -r test` green across all three packages — shared 65, server 362, codegen 7.
 
 ---
 

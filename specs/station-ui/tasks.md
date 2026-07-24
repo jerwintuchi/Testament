@@ -1,5 +1,31 @@
 # Tasks — Station UI v2 (Preparation Loop, Themed)
 
+> **AUDITED 2026-07-24 (TD-074) — READ THIS BEFORE TRUSTING CLAUDE.md ON THIS SPEC.**
+> CLAUDE.md described this as "Stipend-priced Quartermaster and Deploy Gate … shipped
+> server/shared-side". **That was wrong.** The Stipend economy does not exist anywhere in the
+> tree: `grep -rn "stipend\|price\|STARTING_STIPEND" src/` returns **nothing**. `GearItem` is
+> still `{ id, name } & ({kind:'PERCEPTION',channel} | {kind:'PROBE',stimulus})` — no `price`, no
+> `description`. `handleRequisition` validates `BAG_SLOTS` only; there is no
+> `INSUFFICIENT_STIPEND`. The claim has been corrected in CLAUDE.md.
+>
+> Actual state, task by task:
+> - **T122–T123 (server) — DONE.** The board pool and reversible leader `SELECT_CONTRACT` ship
+>   and are tested; the notice-board spec reuses them unchanged.
+> - **T124 (client board) — SUPERSEDED.** Replaced by the Notice Board render, and its
+>   `ThreatPips` were later deleted outright (TD-061).
+> - **T125–T126 (Stipend economy, server/shared) — NOT BUILT.** Real, unstarted work. `Stipend`
+>   is a canonical GLOSSARY term and part of the preparation pillar ("spent to requisition the
+>   loadout and to place the Surety"), so this is a genuine gap, not dead scope.
+> - **T127–T128 (client Quartermaster / Deploy Gate) — NOT BUILT.** The Quartermaster is still a
+>   plain `CheckBox` list with a slot counter and one "Requisition (replaces your bag)" button;
+>   the Deploy Gate is a single "DEPLOY the expedition" button. No prices, no balance, no
+>   contract summary, no roster-with-bags. Both depend on T125–T126.
+> - **T129 — PARTLY DONE.** The shared theme exists as `ui/popup_theme.gd` (`PopupTheme.build`,
+>   TD-067 T226) and every popup wears it; the `threat_pips`/`contract_card` reuse half is moot
+>   (pips deleted, TD-061).
+> - **T130 — unrun**, and needs two clients.
+
+
 > T# continues from T121. Order is dependency order and phase order (A → B → C);
 > each phase is shippable on its own. Server/shared tasks name a Vitest file;
 > client tasks name a `playtest.md` item (no GDScript unit harness — prior

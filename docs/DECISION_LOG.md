@@ -2484,3 +2484,67 @@ closed, not carried. Marking items superseded *in place* costs nothing and prese
 leaving them unchecked implies work that no longer exists.
 
 Docs + spec only. No code change; no `src/**` change.
+
+---
+
+## 2026-07-24 — TD-074 addendum: spec status is derived, and two specs were audited against the tree
+
+**Why.** TD-074 closed one rotted spec. The author's response was the right one: *"make a UI for
+spec status so I can visualize what's going on to prevent scenarios like this, due to different
+sessions."* Spec rot is a multi-session problem, and it is invisible from inside any one session.
+
+**The audit that prompted the tooling.** Two specs were checked line-by-line against live code, and
+they had rotted in **opposite directions**:
+
+- **`specs/collegium-client/`** — T115–T120 sat unchecked while the code ran fine every day.
+  Verified against `world/space_view.gd` (`SpaceView`, `set_space`, `grid_size_px`, `_draw`),
+  `_bodies`/`_apply_positions`, `_send_move_intent`'s edge-triggering, `_render_space()`,
+  `STATION_RADIUS`/`_update_stations`, `EXTRACTION_RADIUS` — all present; the `--lobby-preview`
+  capture shows the whole thing running. **Ticked.** Two task *descriptions* are superseded and
+  were deliberately NOT re-implemented to match: T118's inline roster overlay and T119's in-range
+  panels were replaced by TD-071's room scroll and the E-to-open station popup. T121 stays open —
+  it needs two clients.
+- **`specs/station-ui/`** — the reverse, and worse, because the error was in CLAUDE.md rather than
+  in the spec. CLAUDE.md announced a **"Stipend-priced Quartermaster and Deploy Gate"** as shipped.
+  It does not exist: `grep -rn "stipend\|price" src/` returns nothing, `GearItem` has no
+  `price`/`description`, there is no `STARTING_STIPEND`, and `handleRequisition` checks
+  `BAG_SLOTS` only. The client Quartermaster is still a `CheckBox` list; the Deploy Gate is one
+  button. **T125–T128 are real, unstarted work** — and `Stipend` is a canonical GLOSSARY term
+  load-bearing for the preparation pillar, so this is a gap in the game, not dead scope. CLAUDE.md
+  is corrected and the spec carries an audit banner.
+- **`specs/protocol-contract/`** T10 was flagged, re-run, and passed on the first try:
+  `pnpm gen:protocol` produces no diff and `pnpm -r test` is green (65 + 362 + 7). **Ticked.**
+
+**The tooling.** `tools/spec_status.py` (stdlib, read-only, same discipline as `asset_map.py`)
+scans every `specs/*/tasks.md` and reports **disagreements between a spec and the tree**, not the
+spec's own account of itself:
+
+| flag | meaning |
+|---|---|
+| `CLAIM` | CLAUDE.md calls a spec complete while unblocked tasks are open |
+| `MISSING` | an **open** task names a file absent from the tree — the design may have been replaced |
+| `LIKELY-SHIPPED` | an open task names only files that exist — probably shipped, never ticked |
+| `STALE` | open tasks, untouched for 45+ days |
+
+`tools/spec_status_html.py` renders the same data as a self-contained page, fed from `collect()` so
+the page can never disagree with the report.
+
+**Three refinements that mattered**, each from a false positive the first version produced:
+
+1. `MISSING` fires **only while work is open**. Flagging finished specs for naming since-retired
+   assets produced 22 findings out of 36 specs and buried the two real ones.
+2. `.md` is excluded from path evidence. Every "full playtest pass" task names its own
+   `playtest.md`, which resolved and made the task look shipped.
+3. `*.test.ts` is excluded from `LIKELY-SHIPPED` evidence. `gear.test.ts` exists and always did —
+   it proved nothing about whether the Stipend inside it was ever built, and it made station-ui's
+   T125/T126 read as shipped when they are the largest real gap in the repo.
+
+**And the selftest is pinned to the rules, not to findings.** The first version asserted "station-ui
+raises CLAIM" — then CLAIM was resolved by correcting CLAUDE.md and the selftest went red for doing
+its job. It now exercises `classify()` on synthetic rows (CLAIM fires on *completed*, not on
+*partly shipped*; `MISSING` never fires on a finished spec; `STALE` respects its threshold) plus a
+few structural live invariants. `asset_map.py` made exactly this mistake and sat red from TD-058 to
+TD-069; the same trap was not worth walking into twice.
+
+Result: **36 specs, 2 flagged** — `station-ui` (the real Stipend gap) and `mobile-input` (genuinely
+unstarted, its files are the deliverable). Tooling + docs; no runtime code change.

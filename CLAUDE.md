@@ -57,9 +57,16 @@ longer invisible until first move), a server-authoritative Shift-to-walk registe
 9-slice popup (`assets/ui/panel.png`, `_build_popup_theme`). **T121 (full MCP
 playtest) is still unrun — the spec is left open, re-exercised by Station UI.**
 
-Station UI v2 is shipped server/shared-side (`specs/station-ui/`, T122–T130): the
-contract **board** + leader `SELECT_CONTRACT` (T122–T124), Stipend-priced
-Quartermaster and Deploy Gate. Superseded on the client by the Notice Board.
+**PARTLY shipped: `specs/station-ui/`** (T122–T130) — *corrected 2026-07-24, TD-074; this block
+previously claimed a "Stipend-priced Quartermaster and Deploy Gate" that **does not exist**.*
+**Shipped:** the contract **board** pool + reversible leader `SELECT_CONTRACT` (T122–T123,
+server, tested; the Notice Board reuses them). **Superseded:** T124's client board (replaced by
+the Notice Board; its `ThreatPips` later deleted, TD-061). **NOT BUILT — real, unstarted work:**
+**T125–T128, the entire Stipend economy.** `grep -rn "stipend\|price" src/` returns nothing;
+`GearItem` has no `price`/`description`, there is no `STARTING_STIPEND`, no `stipend` on the
+room, and `handleRequisition` checks `BAG_SLOTS` only. The client Quartermaster is still a plain
+`CheckBox` list and the Deploy Gate a single button. **Stipend** is a canonical GLOSSARY term and
+load-bearing for the preparation pillar, so this is a gap in the design, not dead scope.
 
 Completed: **`specs/board-lighting/`** (TD-047/TD-048) — dynamic torch lighting, **Phases A–D
 done + verified** (T148–T162 + T154; only the T151 heat-haze stretch deferred). Surround normal-
@@ -408,6 +415,15 @@ Completed Phase 4 specs:
   need the UNC path. The direct Bash invocation above is verified and preferred.
 - None of this relaxes the trust boundary: capture is render-only, and game logic
   never moves into the client to make a check pass.
+
+**Before trusting anything below about what is or isn't shipped, read the derived spec registry:**
+`docs/technical/spec-status.md` (or the page, `docs/technical/spec-status.html`), produced by
+`tools/spec_status.py`. It reports **disagreements between a spec and the tree** — `CLAIM` (this
+file calls a spec complete while tasks are open), `MISSING` (an open task names a file that does
+not exist), `LIKELY-SHIPPED` (an open task names only files that do — probably done, never
+ticked), `STALE`. This block is prose written by hand across many sessions and **has been wrong
+before** (TD-074: it claimed a Stipend economy that was never built). The registry is generated;
+prefer it. Regenerate + `--check` on any spec change.
 
 **Before scouring for "which script loads this PNG / which generator writes it / who
 preloads this `.gd`?" — read the generated dependency map first:**
