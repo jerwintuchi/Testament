@@ -261,6 +261,14 @@ def classify(s: dict, ctx: dict) -> dict:
     return {**s, "status": status, "claude": label, "flags": flags}
 
 
+RE_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _sans_dates(text: str) -> str:
+    """The report minus its dates — see `--check`."""
+    return RE_DATE.sub("<date>", text)
+
+
 ORDER = {"active": 0, "blocked": 1, "dormant": 2, "done": 3, "closed": 4, "unknown": 5}
 
 
@@ -431,10 +439,14 @@ def main() -> int:
     text = render(rows)
     if "--check" in args:
         cur = open(OUT, encoding="utf-8").read() if os.path.isfile(OUT) else ""
-        if cur != text:
+        # Compare everything EXCEPT the "last touched" dates. They advance with every commit
+        # that touches a spec, so committing the report made it instantly stale against itself
+        # — a check that is always red teaches you to ignore it. Statuses, counts and findings
+        # are what must not drift, and those are still compared exactly.
+        if _sans_dates(cur) != _sans_dates(text):
             print("spec-status.md is STALE — run: python3 tools/spec_status.py")
             return 1
-        print("spec-status.md is current.")
+        print("spec-status.md is current (statuses and findings match).")
         return 0
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:

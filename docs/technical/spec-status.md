@@ -22,9 +22,9 @@ These are disagreements between what a spec says and what the tree contains.
 | spec | status | done | open | superseded | last touched | flags |
 |---|---|---:|---:|---:|---|---|
 | `mobile-input` | 🟡 dormant | 0 | 10 | 0 | 2026-07-11 | MISSING |
-| `station-ui` | 🟡 dormant | 3 | 6 | 0 | 2026-07-07 | MISSING |
+| `station-ui` | 🟡 dormant | 3 | 6 | 0 | 2026-07-24 | MISSING |
 | `title-scene` | 🟢 active | 5 | 3 | 0 | 2026-07-23 | — |
-| `collegium-client` | 🟡 dormant | 6 | 1 | 0 | 2026-07-06 | — |
+| `collegium-client` | 🟡 dormant | 6 | 1 | 0 | 2026-07-24 | — |
 | `nave-cathedral` | 🟡 dormant | 3 | 2 | 0 | 2026-07-23 | — |
 | `ambient-signs` | ✅ done | 4 | 0 | 0 | 2026-07-02 | — |
 | `board-banner` | ✅ done | 5 | 0 | 0 | 2026-07-14 | — |
@@ -48,7 +48,7 @@ These are disagreements between what a spec says and what the tree contains.
 | `main-decompose` | ✅ done | 7 | 0 | 0 | 2026-07-24 | — |
 | `menu-lobby` | ✅ done | 13 | 0 | 0 | 2026-07-24 | — |
 | `probe-handler` | ✅ done | 8 | 0 | 0 | 2026-07-02 | — |
-| `protocol-contract` | ✅ done | 15 | 0 | 0 | 2026-07-03 | — |
+| `protocol-contract` | ✅ done | 15 | 0 | 0 | 2026-07-24 | — |
 | `raw-ws-transport` | ✅ done | 5 | 0 | 0 | 2026-06-29 | — |
 | `reader-swap` | ✅ done | 4 | 0 | 0 | 2026-07-23 | — |
 | `seal-ceremony` | ✅ done | 5 | 0 | 0 | 2026-07-21 | — |
