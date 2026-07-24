@@ -351,14 +351,19 @@ First map already surfaced real findings: `crest_v1.png` is written by TWO gener
 legacy + `gen_heraldry.py` current — a latent conflict), and `parch_live_*` + `board_placard.png` are
 orphaned dead art. Stdlib-only; no server/shared/client-runtime change.
 
-Paused: **`specs/notice-board/`** — the diegetic commission wall (server done T131–T132,
-T138–T139; client Pass-2 raster reskin T140–T144 + the TD-046 art-director polish done).
-Remaining **T145–T147** (a11y/keyboard, empty-board, error-toast, L1–L8 verification) are
-deferred, not abandoned.
-
-@specs/notice-board/requirements.md
-@specs/notice-board/design.md
-@specs/notice-board/tasks.md
+**CLOSED: `specs/notice-board/`** (TD-074) — the diegetic commission wall. The Contract Board is
+shipped and signed off by the author; what was still open in this spec was **stale**, describing a
+board three redesigns out of date (a full-board **scatter** → the framed grid TD-040; **threat
+pips** → deleted TD-061; a **15-colour palette lock** → retired TD-046). T133–T136 and T146 all
+shipped — audited against the live code, not asserted — and T147's still-meaningful checks were
+measured on the way out: **L1 re-measured off a real composited capture** (worst writ 6.76:1, best
+9.28:1, all eight ≥ 4.5:1, WCAG relative luminance), plus L3/L4/L5/L6/L8 green. Superseded items are
+marked **in place** with what replaced them rather than deleted, and `requirements.md` + `design.md`
+stay as the record — shipped client code (`notice.gd`, `wax_seal.gd`, `main.gd`) and the live server
+handlers still cite R118–R128. **The one genuinely unfinished thing is a two-client manual
+playtest** (leader/non-leader seal split, the `CONTRACT_SELECTION` broadcast, staged deploy): the
+capture harness has no second client, so it needs a human. `playtest.md` is banner-marked
+**do not run as written**.
 
 Completed Phase 4 specs:
 - `specs/raw-ws-transport/`: raw WebSocket transport (wsHub, protocol envelope) + Godot client spike

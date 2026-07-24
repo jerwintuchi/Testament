@@ -2430,3 +2430,57 @@ named `main.gd`. Re-pinned to `board_header.gd` — the selftest doing exactly t
 after sitting red unnoticed from TD-058 to TD-069.
 
 Client render only. No `src/**` change; server 362 + shared 65 suites green and untouched.
+
+---
+
+## 2026-07-24 — TD-074: the notice-board spec is closed; a stale task list is worse than no task list
+
+**Context.** `specs/notice-board/` still carried unchecked boxes — T133–T137 and T145–T147 — and
+CLAUDE.md described them as "deferred, not abandoned". Picking the tail up to finish it revealed
+the problem: the tasks describe a board that no longer exists.
+
+**What had drifted.** Between the spec being written and today, the Contract Board was redesigned
+three times:
+
+- T134's **full-board scatter** was replaced by the framed grid (TD-040), its `_notice_placard` by
+  the carved sign (TD-053/058), and its flavor scraps put behind `--flavor`.
+- **Threat pips**, named in T134 and measured by Pass-2 **L2**, were **deleted** in TD-061: "no
+  knowledge as a number" applies to the Collegium's paperwork too.
+- Pass-2 **L7** checks the **15-colour palette lock**, **retired** in TD-046 — the check it
+  describes would now fail by design.
+
+So the remaining items could not be *run*, only reinterpreted. An unchecked box that cannot be
+executed is not a backlog item; it is a lie about the state of the work, and it costs a session
+every time someone tries to honour it.
+
+**What was actually still true.** Auditing the live code rather than the checkboxes: T133 shipped
+as `board/notice.gd`, T135 as `board/notice_reader.gd`, T136 grew far past its own description
+(TD-062/063/064/065/068), and **T146 was fully implemented** — Tab traversal in geometric reading
+order, the corner-bracket reticle (which replaced the specced gold ring because it fought the flat
+card states), the empty-board line, seal disabled/pressed/focus states with role-bound captions,
+and raced `LOBBY_ERROR`s surfacing on the board's own toast where the leader is looking. It had
+simply never been ticked.
+
+**One thing was worth finishing rather than closing.** Pass-2 **L1** (the contrast floor) had only
+ever been verified *analytically* — T145 argued that because `_floor_tone` clamps every live paper
+to `#CBB583`, ink must clear 4.5:1. True, but it is an argument, not a measurement. It is now
+**measured off a real composited capture**: sampling each of the 8 writs' text band (darkest ~1.2%
+of pixels = glyph cores, brightest 20% = lit paper, WCAG relative luminance) gives **6.76:1 worst**
+(The Weeping Reliquary), 9.28:1 best, all eight passing. L3/L4/L5/L6/L8 verified by capture at the
+same time.
+
+**Decision.** Close the spec. Superseded items are marked **in place** with what replaced them
+rather than deleted, so the trail from requirement to shipped code stays walkable;
+`requirements.md` and `design.md` remain, because R118–R128 are cited from shipped client code
+(`notice.gd`, `wax_seal.gd`, `main.gd`) and from live, tested server handlers. `playtest.md` is
+banner-marked **do not run as written**.
+
+**What survives as real work:** a **two-client manual playtest** — the leader/non-leader seal
+split, the `CONTRACT_SELECTION` broadcast, and the staged deploy. The capture harness has no second
+client, so this needs a human and is recorded as a standing playtest rather than a task.
+
+**The lesson worth keeping:** a spec that outlives three redesigns of its own subject should be
+closed, not carried. Marking items superseded *in place* costs nothing and preserves the trail;
+leaving them unchecked implies work that no longer exists.
+
+Docs + spec only. No code change; no `src/**` change.

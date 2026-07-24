@@ -1,5 +1,14 @@
 # Tasks — The Notice Board (procedural notices, sacred register)
 
+> **STATUS: CLOSED 2026-07-24.** The Contract Board shipped and is signed off by the author
+> ("the contract board … is already done and good"). What remained open here was **stale** — it
+> described a scatter board with threat pips under a palette lock, none of which survive. The
+> superseded items are marked in place with what replaced them rather than deleted, so the trail
+> from requirement to shipped code stays walkable; `requirements.md` + `design.md` stay as the
+> record for R118–R128, which shipped client code and the live server handlers still cite.
+> The one genuinely unfinished thing is a **two-client manual playtest**, which needs a second
+> client the capture harness does not have. See DECISION_LOG TD-074.
+>
 > T# continues from T130 (station-ui). Order is dependency + phase order (A→D);
 > each phase is shippable. Server/shared tasks name a Vitest file; client tasks name
 > a `playtest.md` item (no GDScript unit harness — prior client-spec convention).
@@ -23,49 +32,24 @@
       `expeditionSeed`/`traitRoll` (P64). Fix any other `ContractIntel`/`ContractRecord`
       fixtures across the server/shared suites to add `requester`.
 
-## Phase B — Procedural notice content (client)
+## Phases B–D — client render — **CLOSED (superseded, not abandoned)**
 
-- [ ] T133 [R120, R121 / P68] — New `client/scripts/ui/notice.gd` (preloaded):
-      `headline(verb)` (sacred register), `charge(intel)` (verb synonym + locale +
-      qualifier, moved/expanded from `main.gd`), `preamble(intel)`, `signature(req)`.
-      All pure functions of intel + `contractId`.
-      Verify: playtest item 1 — for each of the 4 verbs the correct headline logs;
-      a notice's charge names the site and is verb-faithful; the signature renders
-      `"<name>, <role> of <place>"` and the anonymous form; same contract → identical
-      text across reopens.
-
-## Phase C — Notice-board layout (client)
-
-- [ ] T134 [R122 / P65] — Rebuild `_build_contract_board` as a seeded notice canvas
-      (no ScrollContainer): full-board scatter via quadrant slots + `_seed_jitter`/
-      `_seed_tilt`, dramatic seeded sizes (aesthetic, not tier), tack/texture variants,
-      `WaxSeal` tack + `ThreatPips`; live notices drawn above flavor and clamped in
-      frame, hover raises to front; carved `_notice_placard` header. Render the 4 live
-      contracts as clickable notices + a `FLAVOR_NOTICES` table of inert aged notices.
-      Remove the obsolete wall/desk/authorization-bar helpers. (TD-040.)
-      Verify: playtest item 2 — board shows 4 live + N flavor notices filling the
-      board with corner overlap; every live notice's headline/target is readable and
-      clickable, flavor are inert (a click on flavor does nothing); `board live=4
-      flavor=N` logs.
-
-## Phase D — Read + authorization (client)
-
-- [ ] T135 [R123] — `_open_notice` view state + `_build_notice_reader(intel)`: the
-      enlarged parchment over a dim layer with headline/target/site/threat/preamble+
-      charge/Archive line/signature; return-to-board dismiss. Pure view state.
-      Verify: playtest item 3 — clicking a live notice enlarges it with full prose +
-      signature; dismiss returns to the wall; nothing is sent on open/close.
-
-- [ ] T136 [R124 / P66] — Seal block on the reader (revised TD-041): `_seal_block`
-      renders one Origin wax seal, faint until sealed / firm once sealed, state from
-      the snapshot's `contract`; the **local leader** stamps the faint seal →
-      `SELECT_CONTRACT`, clicks the firm seal → `DESELECT_CONTRACT`; non-leaders see
-      it read-only. `CONTRACT_SELECTION` drives a top-centre toast for the whole
-      party. Raced `NOT_*`/`WRONG_PHASE` still surfaces.
-      Verify: playtest items 4–5 (two clients) — the leader stamping seals the charge
-      for everyone (toast + seal firm on both clients); clicking the firm seal lifts
-      it (un-accepted toast); a non-leader has no stamp affordance; selection changes
-      no phase. Logs `seal <contractId> accepted=<bool>`.
+> **T133–T136 shipped, then were rebuilt past recognition.** Everything these tasks asked for
+> exists and works; the *descriptions* below no longer match the code, because the board was
+> redesigned three times after they were written. Re-running them verbatim would verify a board
+> that does not exist. Closed 2026-07-24 on the author's call ("the contract board … is already
+> done and good"). Where the work actually lives now:
+>
+> | asked for | shipped as |
+> |---|---|
+> | T133 `ui/notice.gd` — headline/charge/preamble/signature | `client/scripts/board/notice.gd`; grew `plea(intel)` when TD-061 retired the threat pips |
+> | T134 seeded full-board **scatter** + `ThreatPips` + `_notice_placard` | **superseded**: the framed **grid** (TD-040) replaced the scatter, the carved sign (TD-053/058) replaced the placard, the pips are **deleted** (TD-061), and flavor scraps are opt-in behind `--flavor`. The wall now lives in `board/contract_board.gd` + `board/notice_card.gd` (TD-067 T231) |
+> | T135 `_build_notice_reader` | `board/notice_reader.gd` (TD-067 T230) |
+> | T136 the seal block | shipped, then far outgrew this spec: the named oath (TD-062), the press ceremony + party-wide `CONTRACT SEALED` banner (TD-063), the unclipped flash + spam lockout (TD-064), the targeted reader refresh (TD-065), the overlay swap (TD-068) |
+>
+> The **requirements** (R118–R128) and **design** stay in this folder as the record: they are
+> cited from shipped client code (`notice.gd`, `wax_seal.gd`, `main.gd`) and they document the
+> server behaviour that is still live and still tested (T131/T132/T138/T139, green).
 
 ## Phase D-server — reversible selection & staged commit (TD-041)
 
@@ -90,15 +74,16 @@
       mutation); commit with a selection → DEPLOYING + `ROOM_DEPLOYING`, no
       `FIELD_STARTED`; launch from DEPLOYING unchanged (P70). **Green.**
 
-## Cross-cutting
+## Cross-cutting — **CLOSED**
 
-- [ ] T137 [R118–R126] — Full MCP playtest pass: run `specs/notice-board/playtest.md`
-      (all items) via `run_project` + `get_debug_output` against `pnpm dev:server`,
-      two clients for the leader/non-leader and multi-seal paths; fix any GDScript
-      errors; clean `stop_project`. Mark complete only when every item passes and the
-      full server + shared suites are green.
-      Verify: `playtest.md` all items green; `pnpm --filter @testament/server test`,
-      `pnpm --filter @testament/shared test`, and `pnpm build` (tsc) pass.
+- [~] T137 [R118–R126] — Full MCP playtest pass. **Closed as superseded**: `playtest.md` items 2
+      (scatter), and Pass-2 L2 (threat pips) / L7 (palette lock) describe things that have since
+      been deleted or retired, so the document cannot be run as written. The one item it holds
+      that is still real and still unrun is the **two-client** path (leader/non-leader seal
+      split, the `CONTRACT_SELECTION` broadcast, staged deploy) — that survives as a standing
+      manual playtest, not as a task here, because the capture harness has no second client.
+      Server-side, all of it is covered by Vitest (`selectContract` / `deselectContract` /
+      `deploy`, 362 green).
 
 # Pass 2 — Pixel-art reskin (spine-driven)
 
@@ -211,18 +196,38 @@
       board captures show 8 disjoint legible writs incl. corners. **L3**: capture shows each
       writ in its own warm halo, distinct from the gutter torches. Client-only.
 
-- [ ] T146 [EXPERIENCE State Patterns, Accessibility, Voice] — **A11y + state cluster.**
-      Keyboard **focus** traversal (Tab = reading order) + gold focus ring + Enter/Space;
+- [x] T146 [EXPERIENCE State Patterns, Accessibility, Voice] — **A11y + state cluster.**
+      Keyboard **focus** traversal (Tab = reading order) + focus mark + Enter/Space;
       **empty-board** presentation; **error surface** on the top-centre toast
       (`NOT_*`/`WRONG_PHASE`/`NO_CONTRACT_SELECTED`); **pressed/in-flight** + faint-ring
       seal states; captions bound to role/state; drop any off-register label.
-      Verify: playtest **L6** (focus/keyboard + hit-target), **L8** (empty board), raced
-      error appears on the toast (two-client eyeball).
+      **Done** — shipped incrementally across TD-046/062/064/065 and ticked here 2026-07-24 on
+      an audit of the live code, not on assertion. Where each piece is: writs are
+      `FOCUS_ALL` Buttons in a `live_notice` group, walked by Tab in geometric reading order
+      (`ContractBoard.focus_first`, restored across rebuilds by contractId), and marked by a
+      **corner-bracket reticle** rather than a stylebox ring (`NoticeCard._focus_reticle`) —
+      the gold ring named in the original task was rejected because it fought the flat card
+      states. Empty board renders "The wall stands empty." above the vignette. Raced errors
+      surface **where the leader is looking**: `LOBBY_ERROR` while the board is open raises the
+      board's own toast, not just the far status line (`main.gd`, the `T146` comment). The seal
+      carries `disabled` (non-leader **and** cooldown), pressed, and a leader-only focus ring,
+      with captions bound to role/state — the leader's named oath vs. "Awaiting the leader's
+      seal." The `44x44` hit floor self-checks every build (`hit_ok=`).
 
-- [ ] T147 [DESIGN + EXPERIENCE; validation-report] — **Pass-2 verification pass.**
-      Run `playtest.md` **L1–L8** on a worst-case seed (measured items sampled, not
-      eyeballed) via `run_project` + `get_debug_output`, two clients; fix any GDScript
-      errors; clean `stop_project`. Confirm every `validation-report.md` finding is
-      addressed or consciously deferred.
-      Verify: L1–L8 green; behavior items 1–6 still green; `pnpm --filter @testament/server
-      test` + `pnpm --filter @testament/shared test` + `pnpm build` pass; MCP clean.
+- [x] T147 [DESIGN + EXPERIENCE; validation-report] — **Pass-2 verification pass.**
+      **Closed 2026-07-24, partly verified and partly obsolete** — stated honestly rather than
+      ticked whole:
+      - **L1 (contrast floor) — MEASURED, and this time off a real composited capture**, not the
+        analytic floor-enforcement argument T145 settled for. Sampling each of the 8 writs'
+        text band (darkest ~1.2% = glyph cores vs. brightest 20% = lit paper, WCAG relative
+        luminance): **6.76:1 worst** (The Weeping Reliquary), 9.28:1 best, all eight ≥ 4.5:1.
+      - **L4** `keepout live=8 ok=true`, **L6** `minhit=80x53 hit_ok=true`, **L8** empty board,
+        **L3** per-notice backlight — all green on capture.
+      - **L5** reduced motion keeps the light — green (glow pinned, flame frozen to `_static_flame`).
+      - **L2 — OBSOLETE.** Threat pips were **deleted** in TD-061 ("no knowledge as a number"
+        applies to the Collegium's paperwork too); danger now reads as the petitioner's dread.
+        There is nothing left to measure.
+      - **L7 — OBSOLETE.** The 15-colour palette lock was **retired** in TD-046; 24-bit painted
+        ramps are the norm. The check it describes would fail by design.
+      - The two-client items stay a standing manual playtest (see T137).
+

@@ -1,5 +1,14 @@
 # Playtest — The Notice Board (MCP-driven)
 
+> **SUPERSEDED 2026-07-24 — do not run as written.** This script tests a board that no longer
+> exists. Item 2 checks a full-board **scatter** (replaced by the framed grid, TD-040); Pass-2 **L2**
+> measures **threat pips** (deleted, TD-061); **L7** checks the **15-colour palette lock** (retired,
+> TD-046). Items 1, 3, 4 and 6 describe behaviour that shipped and is now covered by
+> `--board-preview` captures and the server's Vitest suites. The one part still worth a human is
+> **item 5 — two clients** (leader/non-leader seal split, the `CONTRACT_SELECTION` broadcast,
+> staged deploy), which survives as a standing manual playtest. See DECISION_LOG TD-074.
+
+
 > Verifies the client requirements R120–R124, R126 (no GDScript unit harness —
 > prior client-spec convention) and exercises the TD-041 server flow (R127/R128)
 > end-to-end. Server/shared correctness is already covered by Vitest; this pass
