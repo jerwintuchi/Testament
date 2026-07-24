@@ -371,9 +371,11 @@ func _ready() -> void:
 	# state, and nothing is ever sent from it.
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--lobby-preview"):
 		call_deferred("_lobby_preview")
-	# `-- --menu-preview` re-shows the menu with a fake reconnect token, so the Resume block —
-	# which only exists when there is an expedition to return to — is capturable unattended.
-	# Display-only: the token is never sent, the preview just proves the layout.
+	# `-- --title-preview` re-shows the title with a fake reconnect token, so `Return to your
+	# expedition` — which only exists when there is an expedition to return to — is capturable
+	# unattended. Display-only: the token is never sent, the preview just proves the layout.
+	# (This supersedes TD-071 Phase B's `--menu-preview`: Phase D made the first screen the
+	# title, and moved the name/code plates behind `--setup-create` / `--setup-join`.)
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--title-preview"):
 		# display only — never sent from the preview; --no-token captures the 3-option form even
 		# when a real token happens to be on disk.

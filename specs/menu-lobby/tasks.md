@@ -72,9 +72,26 @@
 
 ## Cross-cutting
 
-- [ ] T243 [R230 / V5] — **Verify + land.** Headless parse clean; V1–V4 captures; regenerate
+- [x] T243 [R230 / V5] — **Verify + land.** Headless parse clean; V1–V4 captures; regenerate
       asset-map + `--check` + `--selftest`; `git diff` scoped `client/ specs/ docs/`; server + shared
       suites green (untouched); DECISION_LOG TD-071; CLAUDE.md active spec.
+      **Done**, re-run against the post-TD-067 tree (the whole Contract Board moved out of `main.gd`
+      between Phase D and this pass, so the captures are worth more here than they would have been
+      at the time). **V1** — `--lobby-preview`: the world markers read **Deploy Gate** / Contract
+      Board / Quartermaster, and no standing "walk to the … press E" line survives. **V2** — seeding
+      `user://display-name.txt` with "Brother Cassian" and relaunching restores it into the name
+      field, with `ROOM CODE` still on its `e.g. ABC234` placeholder (round-trip captured, then the
+      seed removed). **V3** — `--setup-create` / `--setup-join` both draw the plate on shader-lit
+      masonry under two sconces. **V4** — `--lobby-preview` closed leaves the world unobstructed
+      under a `PARTY ● ○ × ·` tab; `--scroll-open` shows the code in Cinzel + Copy, the roster with
+      leader ★ / "(you)" / a disconnected ghost carrying its ✕, an empty seat, and Ready/Leave.
+      Asset-map `--selftest` + `--check` green; server 362 + shared 65 green (untouched).
+      One stale comment fixed on the way through: the `--menu-preview` note still described a flag
+      Phase D had already superseded (the first screen became the title, and the name/code plates
+      moved behind `--setup-create` / `--setup-join`) — it now documents `--title-preview`, which is
+      what the `if` beneath it had always actually checked.
+      **Still owed a live playtest:** the two-client path (readying on one client updating the
+      other's pips) — the capture harness has no second client.
 
 ## Notes
 
