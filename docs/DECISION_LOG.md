@@ -2715,3 +2715,32 @@ own thing, which is a normal choice and no longer an accidental one.
 **Kept, not deleted.** `hall_geometry.py` and its self-tests stay in the tree. The flat-plane defect
 was real, the curved vault and cylindrical piers work, and that geometry may still earn its place for
 in-game Collegium screens where a generated environment is worth more than a painted one.
+
+## 2026-07-25 — TD-076 addendum: a pixel-art base replaces the painting, and the props come back
+
+**Why.** The author supplied a second image and asked two questions: can it be used, and is its
+resolution workable. Both measured rather than eyeballed.
+
+**Can it be used — yes, and it beats the painting on three counts.** It is **architecture only**: no
+banners, censers, candle stands or braziers in the image, so every layer that animates is drawn
+again (`PROPS_IN_PLATE` back to `false`). The painting had its furniture baked in and frozen, which
+cost the sway, the pendulum and the drift. It is also **genuinely pixel art** — at 4× the arch curves
+step one pixel at a time, hard-edged — so it lives in Testament's language with no down-registering,
+the step that destroyed an earlier attempt. And no UI is baked in, so nothing needs inpainting out.
+
+**Is the resolution workable — yes, with one crop and one scale.**
+
+| | measurement | consequence |
+|---|---|---|
+| aspect | 1536×1024 = **3:2** | 160px of height must go. Cropped 110 off the top, 50 off the bottom: the vault has headroom, the floor and the altar's steps are load-bearing |
+| native grain | **native at 1536** — the upscale test found no factor (all ratios ≈1.00) | nothing is already degraded; this is the real pixel grid |
+| display fit | a 720p window wants **1280×720** | 1536 → 1280 is a **1.2× non-integer** downscale, so it is resampled ONCE at build rather than unevenly at runtime every frame |
+
+**Also graded.** The source is greyscale and Testament is not, so luminance is mapped along the
+navestone ramp with the highlights running into gold — candlelight then has somewhere to go when the
+engine's pools land on it.
+
+**Honest remainder.** At 1280×720 the hall's grain stays finer than the Contract Board's, and the
+generated props (authored at the 640 grain) are consequently *chunkier* than the hall they stand in.
+That mismatch is visible if looked for. Fixing it means re-authoring the props at twice the detail —
+not merely scaling them — which is real work and is not done.

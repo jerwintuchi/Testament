@@ -1,6 +1,16 @@
 # Title Scene — Asset Manifest (TD-073 → TD-075 → **TD-076, current**)
 
-> **CURRENT: the hall is the author's painting.** After four procedural rebuilds the author ruled:
+> **CURRENT: the hall is the author's PIXEL-ART base** (`art/src/title/hall_base_src.jpeg`), which
+> supersedes the painting below. Measured: native at 1536×1024 (no upscale factor detected), 3:2,
+> greyscale. Processed by `gen_title_matte.py` — cropped to 16:9 (110px off the top, 50 off the
+> bottom: the vault has headroom, the floor and altar steps do not), scaled once to 1280×720, and
+> graded warm along the navestone ramp because Testament is not grey.
+>
+> **It is architecture only, and that is why it wins.** No banners, censers, candle stands or
+> braziers in the image, so every one of those layers ANIMATES again — `PROPS_IN_PLATE = false`.
+> The painting had its furniture frozen into it.
+>
+> *(superseded)* **the hall is the author's painting.** After four procedural rebuilds the author ruled:
 > *"disregard the constraints and make the great hall almost 1:1 to the reference image."* The only
 > thing 1:1 with a painting is that painting, so `gen_title_matte.py` processes it into the client at
 > **1280×720**, drawn 1:1 on device pixels at a 720p window through NEAREST — no filtering anywhere.

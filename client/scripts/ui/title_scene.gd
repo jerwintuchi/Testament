@@ -25,7 +25,10 @@ const PLATE := "hall_plate.png"
 
 # The plate is a painting that already contains the hall's furniture, so our prop layers would
 # double it. They stay in the tables (and in the asset contract) but are not drawn.
-const PROPS_IN_PLATE := true
+# FALSE again (TD-076): the pixel-art base is architecture only — no banners, censers, candle
+# stands or braziers in the image — so the layers that animate are drawn once more. This is the
+# whole reason that base beats the painting, which had its furniture frozen into it.
+const PROPS_IN_PLATE := false
 
 # Blockout palette — deliberately flat and unmistakably provisional. Nobody should mistake this
 # for finished art, which is the whole point of a blockout.
@@ -47,15 +50,15 @@ const C_EDGE := Color(0.52, 0.48, 0.40, 0.65)
 # emitter, and (in Python) the plume baked into `smoke_overlay.png`. Three of those are here, so
 # they are one constant: moving a censer and leaving its own smoke rising from where it used to
 # hang is exactly the kind of drift that survives a playtest unnoticed.
-const CENSER_LX := 0.292
-const CENSER_RX := 0.708
-const CENSER_Y := 0.300
-const CENSER_FIRE_Y := 0.352      # the vessel hangs below the sprite's centre; the fire is on it
+const CENSER_LX := 0.300
+const CENSER_RX := 0.700
+const CENSER_Y := 0.285
+const CENSER_FIRE_Y := 0.337      # the vessel hangs below the sprite's centre; the fire is on it
 
 const CLOTH := [
 	# Banners hang ON the near piers, so they ride outward with them.
-	["banner_left.png",   Vector3(0.155, 0.345, 0.1031), 2.55, "Banner L"],
-	["banner_right.png",  Vector3(0.845, 0.338, 0.1031), 2.45, "Banner R"],
+	["banner_left.png",   Vector3(0.158, 0.330, 0.1031), 2.55, "Banner L"],
+	["banner_right.png",  Vector3(0.842, 0.322, 0.1031), 2.45, "Banner R"],
 	# The third hangs HIGH, small and deep. It used to sit at 0.360, squarely behind the title;
 	# the centre of this frame belongs to the UI (R245), and cloth reads better as depth than as a
 	# backdrop for lettering. Sized so its head meets the frame's top edge — it hangs from
@@ -68,7 +71,7 @@ const PROPS := [
 	# they flanked the title so closely they read as part of it.
 	["censer.png", Vector3(CENSER_LX, CENSER_Y, 0.0312), 3.10, "Censer"],
 	["censer.png", Vector3(CENSER_RX, CENSER_Y, 0.0312), 3.10, "Censer"],
-	["chandelier.png", Vector3(0.500, 0.190, 0.0688), 0.68, "Chandelier"],
+	["chandelier.png", Vector3(0.500, 0.140, 0.0688), 0.68, "Chandelier"],
 ]
 # The floor props are NOT mirrored, in two senses. Each is its own seeded variant — different
 # taper counts and heights, a different bowl, differently spun legs — and each is drawn LEANING
@@ -78,10 +81,10 @@ const PROPS := [
 # These lines are printed by `gen_title_props.py`, which owns the geometry — the width includes
 # the padding its shear needs, so the object still renders at the size the generator was asked for.
 const VESSELS := [
-	["candle_rack.png",   Vector3(0.1400, 0.8100, 0.1500), 0.573, "Candle rack"],
-	["candle_rack_b.png", Vector3(0.8650, 0.8000, 0.1375), 0.580, "Candle rack"],
-	["brazier.png",       Vector3(0.3300, 0.8700, 0.0703), 0.933, "Brazier"],
-	["brazier_b.png",     Vector3(0.6750, 0.8600, 0.0656), 0.929, "Brazier"],
+	["candle_rack.png",   Vector3(0.1700, 0.8800, 0.1500), 0.573, "Candle rack"],
+	["candle_rack_b.png", Vector3(0.8350, 0.8720, 0.1375), 0.580, "Candle rack"],
+	["brazier.png",       Vector3(0.3400, 0.9150, 0.0703), 0.933, "Brazier"],
+	["brazier_b.png",     Vector3(0.6620, 0.9080, 0.0656), 0.929, "Brazier"],
 ]
 const OVERLAYS := [
 	["light_shaft.png",   Vector3(0.400, 0.500, 0.4688), 1.20, "Light shaft"],
@@ -93,10 +96,10 @@ const OVERLAYS := [
 const FIRES := [
 	# These track VESSELS: a fire burns on a vessel, so moving one and not the other leaves a
 	# warm pool hanging over empty floor.
-	Vector2(0.070, 0.800), Vector2(0.200, 0.870),
-	Vector2(0.800, 0.870), Vector2(0.930, 0.800),
-	Vector2(0.270, 0.510), Vector2(0.710, 0.510),
-	Vector2(0.500, 0.860),
+	Vector2(0.170, 0.856), Vector2(0.835, 0.849),
+	Vector2(0.340, 0.893), Vector2(0.662, 0.887),
+	Vector2(CENSER_LX, CENSER_FIRE_Y), Vector2(CENSER_RX, CENSER_FIRE_Y),
+	Vector2(0.500, 0.845),
 ]
 
 
