@@ -73,11 +73,13 @@
 
 ## Notes
 
-- **The statue's figure is deferred by default.** At its on-screen size a shape function will blob —
-  the finding TD-056/TD-057 already paid for twice. The niche is modelled; the figure lands as a
-  hand-placed sprite if the author wants it.
+- **The statue's figure is IN**, on the author's ruling for a detailed niche. It is drawable because
+  R258 doubled the grain: ~90px tall at 1280×720, where at 640×360 it would have blobbed — the
+  finding TD-056/TD-057 already paid for twice. If it blobs anyway, the niche stands without it
+  rather than shipping a smudge.
 - **No gameplay reuse.** The brief is explicit that this hall is a bespoke hero environment. Nothing
   in `hall_geometry.py` is designed for the modular top-down pipeline, and it should not be borrowed
   for it.
-- Three open questions are listed at the foot of `design.md` (vault profile, the statue, nave
-  length). Defaults are stated for all three, so a silent approval is unambiguous.
+- **All four of the author's rulings are folded in:** semicircular vault, detailed niche with a
+  figure, nave length unchanged at 58m, and authoring at 1280×720 rather than 640×360. No open
+  questions remain in `design.md`.

@@ -1,6 +1,6 @@
 # Design — The Great Hall from curved geometry (TD-076)
 
-> **Status:** DRAFT — awaiting approval. Satisfies R248–R256. Client render + generated art only.
+> **Status:** DRAFT — awaiting approval. Satisfies R248–R258. Client render + generated art only.
 
 ---
 
@@ -192,11 +192,9 @@ draws 1:1 NEAREST; only the plate's content changes).
 **Retired on landing:** `gen_nave.py` — its camera moves into `hall_geometry.py` and its flat-plane
 `hit()` is the thing this spec exists to replace.
 
-## Open questions for the author
+## Settled by the author
 
-1. **Vault profile** — pointed (Gothic, matches Reference A) or semicircular (Romanesque, simpler)?
-   Default: pointed.
-2. **The statue** — worth the hand-authored sprite, or leave the niche empty for now? Default:
-   niche modelled, figure deferred.
-3. **Bay count in view** — the nave currently closes at 58m (≈8 bays). Longer reads more immense but
-   makes the far half tiny at 640×360. Default: keep 58m.
+1. **Vault profile** — **semicircular**.
+2. **The niche** — **detailed**, with the figure; R258's grain makes it drawable.
+3. **Nave length** — unchanged at 58m (≈8 bays).
+4. **Grain** — **1280×720**, knowingly finer than the Contract Board's.
