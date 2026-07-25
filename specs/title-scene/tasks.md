@@ -132,6 +132,20 @@
       --selftest`, `spec_status --check` all green. Suites untouched and green: server 362, shared
       65, tools 7. Diff scoped to `client/ specs/ docs/` — no `src/**` change (R247).
 
+- [x] T263 [R245 / V4] — **Composition pass, on the author's review of the finished screen.** The
+      positions were authored against labelled blockouts, and two of them fought the UI once real
+      art landed: the centre banner sat directly behind **TESTAMENT**, and the censers flanked the
+      title so closely at 0.383/0.617 that they read as part of it. The censers move **outboard** to
+      0.292/0.708 over the aisle; the centre banner moves **up and deep** (0.360→0.086, w
+      0.072→0.040) so it hangs from the frame's top edge and stops above the corona. The centre of
+      the frame is now the UI's alone.
+      A censer's position was written in **four** places — the prop, its glow pool, its incense
+      emitter, and the plume baked into `smoke_overlay.png`. Three are now one constant
+      (`CENSER_LX`/`CENSER_RX`/`CENSER_FIRE_Y`) and the fourth, being in Python, is a commented
+      mirror; the overlay was re-rendered, or the hall would smoke from where nothing hangs.
+      Test: **V4** — captured in both motion states; title, rule and all four options sit on dark
+      nave with no layer behind them.
+
 ## Blocked
 
 - [ ] T262 [audio] — **Ambient audio.** BLOCKED: no audio assets, no audio pipeline, and no

@@ -225,4 +225,4 @@
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/main.gd:1505` — `load/preload path`
 - `client/scripts/main.gd:1509` — `load/preload normal_path`
-- `client/scripts/ui/title_scene.gd:103` — `load/preload p`
+- `client/scripts/ui/title_scene.gd:118` — `load/preload p`

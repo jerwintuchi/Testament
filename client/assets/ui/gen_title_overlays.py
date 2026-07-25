@@ -106,9 +106,11 @@ def _fbm(x, y, salt):
     return tot / 1.5
 
 
-# The censers hang at these frame fractions (title_scene.gd PROPS), so the smoke leaves from
-# under them. A plume that starts nowhere in particular is the tell that it was drawn, not lit.
-PLUMES = ((0.383, 0.430, 1.00), (0.617, 0.430, 0.92), (0.500, 0.560, 0.55))
+# The censers hang at these frame fractions, so the smoke leaves from under them. A plume that
+# starts nowhere in particular is the tell that it was drawn, not lit — which makes this table a
+# MIRROR of `title_scene.gd`'s CENSER_LX / CENSER_RX / CENSER_FIRE_Y. Move a censer there and this
+# must follow, or the hall smokes from a spot where nothing hangs.
+PLUMES = ((0.292, 0.404, 1.00), (0.708, 0.404, 0.92), (0.500, 0.560, 0.55))
 
 
 def smoke_px(x, y):

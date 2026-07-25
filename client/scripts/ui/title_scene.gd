@@ -65,16 +65,31 @@ const ARCH := [
 	["apse.png",         Vector3(0.5000, 0.5833, 0.0552), 2.226, "Apse / altar"],
 	["floor.png",        Vector3(0.5000, 0.8463, 1.0000), 0.173, "Floor"],
 ]
+# The censer's position is read in FOUR places — the prop itself, its glow pool, its incense
+# emitter, and (in Python) the plume baked into `smoke_overlay.png`. Three of those are here, so
+# they are one constant: moving a censer and leaving its own smoke rising from where it used to
+# hang is exactly the kind of drift that survives a playtest unnoticed.
+const CENSER_LX := 0.292
+const CENSER_RX := 0.708
+const CENSER_Y := 0.372
+const CENSER_FIRE_Y := 0.404      # the vessel hangs below the sprite's centre; the fire is on it
+
 const CLOTH := [
 	# Banners hang ON the near piers, so they ride outward with them.
 	["banner_left.png",   Vector3(0.180, 0.415, 0.140), 2.40, "Banner L"],
 	["banner_right.png",  Vector3(0.820, 0.415, 0.140), 2.40, "Banner R"],
-	["banner_center.png", Vector3(0.500, 0.360, 0.072), 2.30, "Banner C"],
+	# The third hangs HIGH, small and deep. It used to sit at 0.360, squarely behind the title;
+	# the centre of this frame belongs to the UI (R245), and cloth reads better as depth than as a
+	# backdrop for lettering. Sized so its head meets the frame's top edge — it hangs from
+	# off-screen, the way the censer's chain does — and its foot stops just above the corona
+	# rather than disappearing behind it.
+	["banner_center.png", Vector3(0.500, 0.086, 0.040), 2.30, "Banner C"],
 ]
 const PROPS := [
-	# Censers hang inboard of the arcade, over the aisle.
-	["censer.png", Vector3(0.383, 0.400, 0.032), 2.60, "Censer"],
-	["censer.png", Vector3(0.617, 0.400, 0.032), 2.60, "Censer"],
+	# Censers hang inboard of the arcade, over the aisle — moved OUTBOARD from 0.383/0.617, where
+	# they flanked the title so closely they read as part of it.
+	["censer.png", Vector3(CENSER_LX, CENSER_Y, 0.032), 2.60, "Censer"],
+	["censer.png", Vector3(CENSER_RX, CENSER_Y, 0.032), 2.60, "Censer"],
 	["chandelier.png", Vector3(0.500, 0.235, 0.092), 0.72, "Chandelier"],
 ]
 const VESSELS := [
@@ -93,7 +108,7 @@ const OVERLAYS := [
 const FIRES := [
 	Vector2(0.128, 0.745), Vector2(0.872, 0.745),
 	Vector2(0.318, 0.815), Vector2(0.682, 0.815),
-	Vector2(0.383, 0.418), Vector2(0.617, 0.418),
+	Vector2(CENSER_LX, CENSER_FIRE_Y), Vector2(CENSER_RX, CENSER_FIRE_Y),
 	Vector2(0.500, 0.625),
 ]
 
@@ -262,8 +277,8 @@ static func build(host: Control, reduced: bool) -> Control:
 		_dust(root, host.size)
 		for i in FIRES.size():
 			_embers(root, FIRES[i], host.size, i)
-		_incense(root, Vector2(0.383, 0.418), host.size)
-		_incense(root, Vector2(0.617, 0.418), host.size)
+		_incense(root, Vector2(CENSER_LX, CENSER_FIRE_Y), host.size)
+		_incense(root, Vector2(CENSER_RX, CENSER_FIRE_Y), host.size)
 
 	# ── Layer 5: camera life. ──
 	if not reduced:
