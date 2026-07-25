@@ -66,8 +66,24 @@
       replaced, undistorted, no seam; menu legible (the engine's glow pools were retuned 0.34→0.26,
       having been set against a black backdrop); F9 reduced-motion still frame fully lit.
 
+- [x] T260c [R243 L4, R244 / V2, V3] — **The atmosphere overlays, generated.**
+      `client/assets/ui/gen_title_overlays.py` emits all three: `dust_overlay.png` (1400 seeded
+      motes splatted into an alpha buffer — a size distribution, not a uniform field of specks,
+      which is what reads as snow), `smoke_overlay.png` (fBm plumes leaving from the censers'
+      own positions, widening and wobbling as they rise), `light_shaft.png` (a wedge that widens
+      as it descends, dies before the floor, and carries faint tracery striations). Pure surfaces
+      — Python's half of the TD-057 split. RGB is flat white and the image lives entirely in the
+      **alpha channel**, so under the rig's additive blend the contribution IS the alpha and
+      `modulate` stays an honest dimmer. The frame's centre is thinned because the menu is read
+      there (R245).
+      Test: **V2/V3** — `--title-preview` captured: motes read across the volume, the shaft falls
+      through the left of the nave, smoke drifts under the vault; menu still legible; the F9 still
+      frame keeps all three (they are textures, so reduced motion loses nothing).
+
 - [ ] T260 [R241 / V1] — Drop in the remaining assets per `asset-manifest.md` — cloth, props,
-      vessels, overlays, and the seven optional architecture overrides (**1 of 18 slots filled**).
+      vessels, and the seven optional architecture overrides (**4 of 18 slots filled**). The
+      remaining art is the Aseprite half of TD-057 (censer, candle rack, chandelier, brazier) plus
+      the banners.
       **No code change** — each file simply replaces its blockout. Stage into `art/src/title/`,
       then `python3 tools/title_assets.py --import`.
 

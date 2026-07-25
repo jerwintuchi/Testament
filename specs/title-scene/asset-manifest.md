@@ -144,6 +144,13 @@ independently.
 
 Greyscale-white because the runtime tints them to the candle ramp — one asset serves warm and cold.
 
+> **Shipped, and generated:** `client/assets/ui/gen_title_overlays.py` emits all three. They are
+> pure surfaces — falloffs, value noise, a wedge — which is Python's half of the TD-057 split, and
+> nothing in them is a per-pixel design decision. RGB is flat white and the whole image lives in
+> the **alpha channel**, so under the rig's additive blend the sheet's contribution is exactly its
+> alpha and `modulate` stays an honest dimmer. The frame's centre is deliberately thinned: the menu
+> is read there (R245). Regenerate with `python3 gen_title_overlays.py` from `client/assets/ui/`.
+
 ---
 
 ## Naming, and why it matters

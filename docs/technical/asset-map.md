@@ -73,7 +73,10 @@
 
 ### `client/assets/ui/title/`
 
+- **`dust_overlay.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
 - **`hall_plate.png`** — produced-by: `client/assets/ui/gen_title_plate.py` · consumed-by: —
+- **`light_shaft.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
+- **`smoke_overlay.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
 
 ### `client/scenes/`
 
@@ -179,6 +182,7 @@
 - **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_collegium.png`, `spark.png`, `torch_sconce.png`
 - **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_header_n.png`
 - **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`
+- **`client/assets/ui/gen_title_overlays.py`** → `dust_overlay.png`, `light_shaft.png`, `smoke_overlay.png`
 - **`client/assets/ui/gen_title_plate.py`** → `hall_plate.png`
 
 
