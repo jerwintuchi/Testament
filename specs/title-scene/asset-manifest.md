@@ -136,8 +136,10 @@ of them are the architecture. Any piece you do not author simply stays with the 
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `candle_rack.png` | 520×300 | yes | a rank of tapers at **varying heights** |
-| `brazier.png` | 300×280 | yes | large standing iron brazier, **no flame** |
+| `candle_rack.png` | 658×300 | yes | a rank of tapers at **varying heights**; stands left |
+| `candle_rack_b.png` | 660×300 | yes | its own rack, not a mirror; stands right, further off |
+| `brazier.png` | 362×280 | yes | large standing iron brazier, **no flame**; stands left |
+| `brazier_b.png` | 364×280 | yes | a different bowl; stands right, further off |
 
 > A votive candle rack: an aged iron stand holding two dozen white wax candles of differing heights,
 > heavy wax runs down the frame. **Unlit — draw the candles but NOT the flames**, transparent
@@ -146,8 +148,18 @@ of them are the architecture. Any piece you do not author simply stays with the 
 Flames are deliberately excluded: they are Layer 3, generated in-engine so each flickers
 independently.
 
-> **Shipped, and generated:** `client/assets/ui/gen_title_props.py` emits all four props (censer,
-> chandelier, candle rack, brazier) as anti-aliased signed-distance parts composited back to front.
+> **The floor pairs are not mirrors, in two senses.** Each is its own **seeded** variant — taper
+> counts and heights, bowl proportions, how the three legs happen to stand — and each is drawn
+> **leaning** toward the zenith its own floor position implies. This camera is pitched up 15°, so
+> every vertical in the hall converges above the frame (at fy ≈ −2.05); a prop drawn plumb reads as
+> pasted onto the picture instead of standing in it. The lean is a **shear**, not a rotation: the
+> foot stays where it was placed and only the height tilts. The right-hand pair also stands a
+> little further down the nave, so it is smaller and higher in frame. Sizes above include the
+> padding the shear needs, and `gen_title_props.py` prints the matching `VESSELS` lines — the
+> generator owns that geometry.
+
+> **Shipped, and generated:** `client/assets/ui/gen_title_props.py` emits all six props (censer,
+> chandelier, two racks, two braziers) as anti-aliased signed-distance parts composited back to front.
 > **These are Python and not Aseprite on purpose**, and it is not a contradiction of TD-057: that
 > finding was measured at **17×22 px**, where a shape function cannot decide which pixel carries the
 > crossguard. At 140–520px in the painted register the job is *form* — cylinders, spheres, drip,

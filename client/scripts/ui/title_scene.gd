@@ -92,11 +92,18 @@ const PROPS := [
 	["censer.png", Vector3(CENSER_RX, CENSER_Y, 0.032), 2.60, "Censer"],
 	["chandelier.png", Vector3(0.500, 0.235, 0.092), 0.72, "Chandelier"],
 ]
+# The floor props are NOT mirrored, in two senses. Each is its own seeded variant — different
+# taper counts and heights, a different bowl, differently spun legs — and each is drawn LEANING
+# toward the zenith its own position implies, because this camera is pitched up and every vertical
+# in the hall converges above the frame. A plumb prop reads as pasted onto the picture.
+# The right-hand pair also stands slightly further down the nave: smaller, and higher in frame.
+# These lines are printed by `gen_title_props.py`, which owns the geometry — the width includes
+# the padding its shear needs, so the object still renders at the size the generator was asked for.
 const VESSELS := [
-	["candle_rack.png", Vector3(0.128, 0.770, 0.150), 0.60, "Candle rack"],
-	["candle_rack.png", Vector3(0.872, 0.770, 0.150), 0.60, "Candle rack"],
-	["brazier.png",     Vector3(0.318, 0.840, 0.070), 0.85, "Brazier"],
-	["brazier.png",     Vector3(0.682, 0.840, 0.070), 0.85, "Brazier"],
+	["candle_rack.png",   Vector3(0.1280, 0.7700, 0.1898), 0.456, "Candle rack"],
+	["candle_rack_b.png", Vector3(0.8760, 0.7620, 0.1802), 0.455, "Candle rack"],
+	["brazier.png",       Vector3(0.3180, 0.8400, 0.0845), 0.773, "Brazier"],
+	["brazier_b.png",     Vector3(0.6880, 0.8310, 0.0801), 0.769, "Brazier"],
 ]
 const OVERLAYS := [
 	["light_shaft.png",   Vector3(0.395, 0.400, 0.280), 2.10, "Light shaft"],
@@ -106,8 +113,10 @@ const OVERLAYS := [
 
 # Where fire burns. Layer 3 — these exist whether or not the vessel art has arrived.
 const FIRES := [
-	Vector2(0.128, 0.745), Vector2(0.872, 0.745),
-	Vector2(0.318, 0.815), Vector2(0.682, 0.815),
+	# These track VESSELS: a fire burns on a vessel, so moving one and not the other leaves a
+	# warm pool hanging over empty floor.
+	Vector2(0.128, 0.745), Vector2(0.876, 0.738),
+	Vector2(0.318, 0.815), Vector2(0.688, 0.807),
 	Vector2(CENSER_LX, CENSER_FIRE_Y), Vector2(CENSER_RX, CENSER_FIRE_Y),
 	Vector2(0.500, 0.625),
 ]

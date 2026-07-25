@@ -146,6 +146,22 @@
       Test: **V4** — captured in both motion states; title, rule and all four options sit on dark
       nave with no layer behind them.
 
+- [x] T264 [R241, R243 L2 / V2] — **The floor props stand in the perspective, and stop being
+      mirrors.** Two faults, one pass. (1) Both racks and both braziers were the same file drawn
+      twice, so the hall was symmetrical in a way the plate's own walls deliberately are not — each
+      is now its own **seeded** variant (taper counts and heights, bowl proportions, leg spin, wax
+      runs, wear), and the right-hand pair stands further down the nave: smaller, higher in frame.
+      (2) They were drawn **plumb** in a scene whose camera is pitched up 15°, where every vertical
+      converges on a zenith at fy ≈ −2.05 — so each prop is now sheared toward the zenith **its own
+      floor position implies** (`lean_for`), between 6° and 13°. A shear, not a rotation: the foot
+      stays where it was placed and only the height tilts, which is what perspective does to a
+      standing object. `Canvas` pads the image for the shear and `gen_title_props.py` prints the
+      `VESSELS` lines, so the rig's numbers stay derived. `FIRES` moved with the vessels — a fire
+      burns *on* something. Slots 18 → 20.
+      Test: **V2** — captured; the props now tilt with the piers above them rather than against
+      them, and `title_assets --check` is green at 20 of 20 (it caught the two new files missing
+      from the manifest, which is the check doing its job).
+
 ## Blocked
 
 - [ ] T262 [audio] — **Ambient audio.** BLOCKED: no audio assets, no audio pipeline, and no

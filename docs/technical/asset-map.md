@@ -80,7 +80,9 @@
 - **`banner_left.png`** — produced-by: `client/assets/ui/gen_title_banners.py` · consumed-by: —
 - **`banner_right.png`** — produced-by: `client/assets/ui/gen_title_banners.py` · consumed-by: —
 - **`brazier.png`** — produced-by: `client/assets/ui/gen_title_props.py` · consumed-by: —
+- **`brazier_b.png`** — produced-by: `client/assets/ui/gen_title_props.py` · consumed-by: —
 - **`candle_rack.png`** — produced-by: `client/assets/ui/gen_title_props.py` · consumed-by: —
+- **`candle_rack_b.png`** — produced-by: `client/assets/ui/gen_title_props.py` · consumed-by: —
 - **`censer.png`** — produced-by: `client/assets/ui/gen_title_props.py` · consumed-by: —
 - **`chandelier.png`** — produced-by: `client/assets/ui/gen_title_props.py` · consumed-by: —
 - **`dust_overlay.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
@@ -204,7 +206,7 @@
 - **`client/assets/ui/gen_title_banners.py`** → `banner_center.png`, `banner_left.png`, `banner_right.png`
 - **`client/assets/ui/gen_title_overlays.py`** → `dust_overlay.png`, `light_shaft.png`, `smoke_overlay.png`
 - **`client/assets/ui/gen_title_plate.py`** → `hall_plate.png`
-- **`client/assets/ui/gen_title_props.py`** → `brazier.png`, `candle_rack.png`, `censer.png`, `chandelier.png`
+- **`client/assets/ui/gen_title_props.py`** → `brazier.png`, `brazier_b.png`, `candle_rack.png`, `candle_rack_b.png`, `censer.png`, `chandelier.png`
 
 
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
@@ -225,4 +227,4 @@
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/main.gd:1505` — `load/preload path`
 - `client/scripts/main.gd:1509` — `load/preload normal_path`
-- `client/scripts/ui/title_scene.gd:118` — `load/preload p`
+- `client/scripts/ui/title_scene.gd:127` — `load/preload p`
