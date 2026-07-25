@@ -192,7 +192,10 @@ the two walls are not mirrors, near falls to silhouette because the foreground i
 dimmer), `gen_title_banners.py` (three seeded standards, rod in the image since the rig sways from top
 centre), `gen_title_props.py` (censer/chandelier/candle rack/brazier as anti-aliased SDF parts —
 Python not Aseprite because TD-057's finding was measured at 17×22px, not at 140–520px painted).
-**11 of 18 slots filled; the 7 remaining are optional architecture overrides the plate carries.**
+plus `gen_title_arch.py` (the seven architecture pieces cut as **slices of the plate's own camera**
+— same shading, split by surface and depth; placement DERIVED from each crop's box, and
+`--verify` reassembles them at the rig's own ARCH numbers and diffs against the plate: 0 uncovered,
+0 mismatched, which is P128 made checkable). **18 of 18 slots filled.**
 `tools/title_assets.py` derives the slot list from `title_scene.gd` and fails if the manifest drifts
 from it — that drift was real and would have made authored art silently never appear.
 **T255–T261 done; T262 (audio) BLOCKED** — no audio assets, pipeline or sanctioned tool.

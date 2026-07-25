@@ -103,12 +103,24 @@
       to near-white: an unlit asset in a torch-lit hall must be dark enough that the FIRE brightens
       it. The same correction the banners needed.
 
-- [x] T260 [R241 / V1] — **Every non-optional slot is filled** (11 of 18; the remaining 7 are the
-      architecture overrides, which the plate carries — the manifest marks them optional). All of it
-      generated: `gen_title_plate` / `gen_title_overlays` / `gen_title_banners` / `gen_title_props`.
+- [x] T260f [R241, P128 / V1] — **The architecture layers, cut from one camera.**
+      `client/assets/ui/gen_title_arch.py` emits the seven pieces as **slices of the plate**, not a
+      second drawing of it: every pixel comes from `plate_px`, and each layer keeps only the pixels
+      whose ray strikes its surface (walls split near/far at z=14m per design.md, then by side).
+      **Placement is derived** — each layer is cropped to the box its surface actually occupies and
+      the generator prints that box back as the viewport fractions ARCH wants, so the table can
+      never drift from the geometry. `_layer` gained the plate's overscan for architecture, or the
+      slice would sit 1.2% inside the plate and show a hairline double edge.
+      Test: **`python3 gen_title_arch.py --verify`** — reassembles the seven committed layers at the
+      placement parsed out of `title_scene.gd` and diffs against the committed plate:
+      **2,073,600 px, 0 uncovered, 0 mismatched.** One check proving the layers tile the frame, carry
+      the plate's shading, and still match the rig's numbers.
+
+- [x] T260 [R241 / V1] — **18 of 18 slots filled**, all generated: `gen_title_plate` /
+      `gen_title_overlays` / `gen_title_banners` / `gen_title_props` / `gen_title_arch`.
       Author-painted art still replaces any slot by name via `art/src/title/` — the rig neither knows
       nor cares which produced a file.
-      Test: **V1** — `python3 tools/title_assets.py --check` reports 11 of 18 with no contract
+      Test: **V1** — `python3 tools/title_assets.py --check` reports 18 of 18 with no contract
       violation; `--title-preview` captured with every layer present.
 
 - [x] T261 [R245, R247 / V4, V5] — **Legibility pass; second integer scale; asset-map; suites.**

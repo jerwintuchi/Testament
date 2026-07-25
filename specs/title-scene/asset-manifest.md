@@ -75,23 +75,30 @@ camera's 2px drift cannot walk an edge into view, and it never moves (P128).
 ### The pieces (optional overrides)
 
 Authored separately, each of these **layers over the plate** — and used without a plate, the seven
-of them are the architecture. Any piece you do not author simply stays with the plate. Sizes are
-what the rig's width fractions come to on a 1920-wide frame; the art's own aspect wins, so treat
-them as targets, not constraints.
+of them are the architecture. Any piece you do not author simply stays with the plate.
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `pier_left.png` | 600×1470 | yes | the near framing pier; runs past top and bottom on purpose |
-| `pier_right.png` | 600×1470 | yes | not a mirror — asymmetry is what sells it |
-| `arcade_left.png` | 360×936 | yes | the receding arcade behind the pier |
-| `arcade_right.png` | 360×936 | yes | |
-| `vault.png` | 760×532 | yes | ribbed vault, seen from below, crowding the top third |
-| `apse.png` | 290×390 | yes | the distant lit altar — the brightest thing in the frame |
-| `floor.png` | 1920×500 | yes | worn flagstones + faded runner, receding |
+| `pier_left.png` | 633×924 | yes | the near frame, z < 14m; not a mirror of the right |
+| `pier_right.png` | 633×924 | yes | |
+| `arcade_left.png` | 400×824 | yes | the receding arcade behind the pier, z ≥ 14m |
+| `arcade_right.png` | 400×824 | yes | |
+| `vault.png` | 320×512 | yes | ribbed vault, seen from below |
+| `apse.png` | 106×236 | yes | the distant lit altar — the frame's destination |
+| `floor.png` | 1920×332 | yes | worn flagstones + faded runner, receding |
 
 > One element of a Gothic cathedral interior — a towering compound pier of weathered stone, seen
 > from floor level looking up so the verticals converge. Transparent background, evenly lit, no
 > baked highlight, centuries of soot. Painterly dark fantasy.
+
+> **Shipped, and generated:** `client/assets/ui/gen_title_arch.py` cuts all seven **out of the
+> plate's own camera** — same shading, each keeping only the pixels whose ray strikes its surface.
+> They are slices, not a second drawing: composite them and the plate comes back pixel for pixel,
+> which is `python3 gen_title_arch.py --verify` (0 uncovered, 0 mismatched). **The sizes above are
+> derived, not targets** — each layer is cropped to the box its surface actually occupies, and the
+> generator prints that box back as the viewport fractions `title_scene.gd`'s ARCH table uses, so
+> placement can never drift from the geometry (P128). Replacing one by hand is still fine; keep its
+> footprint and update ARCH if the crop changes.
 
 ## Layer 2 — cloth
 

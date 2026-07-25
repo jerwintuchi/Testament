@@ -51,20 +51,19 @@ const C_EDGE := Color(0.52, 0.48, 0.40, 0.65)
 # ── The composition, in viewport fractions: [cx, cy, w] plus an aspect for the blockout box. ──
 # Read off the reference: two great piers framing, an arcade receding, banners high on the near
 # piers, censers hanging inboard of them, candle racks and braziers along the floor.
+# DERIVED, not authored: `gen_title_arch.py` cuts these seven layers out of the plate's own
+# camera and prints back the bounding box each surface actually occupies, as viewport fractions.
+# So they agree with the plate — and with each other — by construction (P128), where a hand-tuned
+# table drifts the moment any of the hall's metres change. Re-run the generator and paste.
+# (The blockouts use the same numbers, so the stand-in now sits where the real geometry is.)
 const ARCH := [
-	# The near piers are the frame. In the reference they are colossal — each owning roughly a
-	# quarter of the width and running PAST the top and bottom edges, so the eye is boxed in and
-	# forced down the nave. Sized so h = w x aspect exceeds the viewport height on purpose: a pier
-	# that fits inside the frame reads as a column, not as architecture you are standing under.
-	["pier_left.png",    Vector3(0.105, 0.500, 0.310), 2.45, "Pier L"],
-	["pier_right.png",   Vector3(0.895, 0.500, 0.310), 2.45, "Pier R"],
-	["arcade_left.png",  Vector3(0.320, 0.490, 0.185), 2.60, "Arcade L"],
-	["arcade_right.png", Vector3(0.680, 0.490, 0.185), 2.60, "Arcade R"],
-	# The vault descends well into the frame — you are looking UP into it, so it should crowd the
-	# top third rather than cap it.
-	["vault.png",        Vector3(0.500, 0.215, 0.395), 0.70, "Vault"],
-	["apse.png",         Vector3(0.500, 0.575, 0.150), 1.35, "Apse / altar"],
-	["floor.png",        Vector3(0.500, 0.890, 1.000), 0.26, "Floor"],
+	["pier_left.png",    Vector3(0.1648, 0.4278, 0.3297), 1.460, "Pier L"],
+	["pier_right.png",   Vector3(0.8352, 0.4278, 0.3297), 1.460, "Pier R"],
+	["arcade_left.png",  Vector3(0.3703, 0.3815, 0.2083), 2.060, "Arcade L"],
+	["arcade_right.png", Vector3(0.6297, 0.3815, 0.2083), 2.060, "Arcade R"],
+	["vault.png",        Vector3(0.5000, 0.2370, 0.1667), 1.600, "Vault"],
+	["apse.png",         Vector3(0.5000, 0.5833, 0.0552), 2.226, "Apse / altar"],
+	["floor.png",        Vector3(0.5000, 0.8463, 1.0000), 0.173, "Floor"],
 ]
 const CLOTH := [
 	# Banners hang ON the near piers, so they ride outward with them.
@@ -115,9 +114,14 @@ static func _rect_of(vp: Vector2, r: Vector3, aspect: float, tex: Texture2D) -> 
 
 ## One layer: real art if it exists, else a labelled blockout of identical geometry. Returns the
 ## node either way, so the animation code never needs to know which it got.
-static func _layer(host: Control, e: Array, z: int, tint: Color) -> Control:
+static func _layer(host: Control, e: Array, z: int, tint: Color, overscan: float = 1.0) -> Control:
 	var tex := _tex(e[0])
 	var rect := _rect_of(host.size, e[1], e[2], tex)
+	if overscan != 1.0:
+		# Scale about the frame's centre, exactly as `_plate` does, so a layer cut from the
+		# plate's camera stays coincident with it.
+		var c := host.size * 0.5
+		rect = Rect2((rect.position - c) * overscan + c, rect.size * overscan)
 	var node: Control
 	if tex != null:
 		var t := TextureRect.new()
@@ -211,7 +215,11 @@ static func build(host: Control, reduced: bool) -> Control:
 			tint = C_NEAR
 		elif e[0].begins_with("arcade"):
 			tint = C_MID
-		_layer(root, e, -60 if e[0].begins_with("pier") else -62, tint)
+		# An architecture piece is a slice of the plate's own camera, so it takes the plate's
+		# overscan too. Without it the layer sits 1.2% inside the plate beneath, and the mismatch
+		# reads as a hairline double edge wherever the two disagree.
+		_layer(root, e, -60 if e[0].begins_with("pier") else -62, tint,
+			PLATE_OVERSCAN if plate != null else 1.0)
 
 	# ── Layer 2: cloth / props / vessels / overlays, each animated by kind. ──
 	for e in CLOTH:
