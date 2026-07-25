@@ -29,8 +29,8 @@ import os
 
 import ashember as A
 
-FW, FH = 1920, 1080          # the full-frame sheets
-SW, SH = 900, 1080           # the light shaft's own size, per the manifest
+FW, FH = 640, 360            # the internal resolution: authored at the size it is shown
+SW, SH = 300, 360            # the light shaft's own size
 
 
 def rnd(i, salt):
@@ -68,18 +68,19 @@ def dust_buf():
     """Sparse motes at wildly different sizes. Real dust in a shaft is mostly invisible with a
     few grains catching the light, so a uniform field of identical specks reads as snow."""
     buf = bytearray(FW * FH)
-    for i in range(1400):
+    for i in range(520):
         fx, fy = rnd(i, 11), rnd(i, 13)
         q = quiet(fx, fy)
         if rnd(i, 17) > q:                       # thinned over the menu, not clipped to a box
             continue
         # A few big soft grains, many small hard ones — the size distribution does the work.
-        big = rnd(i, 19)
-        r = 2.0 + 9.0 * big ** 3
-        peak = (44.0 + 150.0 * rnd(i, 23)) * (0.45 + 0.55 * (1.0 - big))
-        # Dust gathers where the air is lit and still: thicker high in the volume.
-        peak *= 0.55 + 0.65 * (1.0 - fy)
-        splat(buf, FW, FH, fx * FW, fy * FH, r, peak * q)
+        big = 1 if rnd(i, 19) > 0.82 else 0
+        peak = int((70.0 + 140.0 * rnd(i, 23)) * q * (0.55 + 0.65 * (1.0 - fy)))
+        px_, py_ = int(fx * FW), int(fy * FH)
+        for dy in range(big + 1):
+            for dx in range(big + 1):
+                if 0 <= px_ + dx < FW and 0 <= py_ + dy < FH:
+                    buf[(py_ + dy) * FW + px_ + dx] = min(255, peak)
     return buf
 
 
@@ -128,7 +129,8 @@ def smoke_px(x, y):
             continue
         body = (1.0 - d * d) ** 2 * max(0.0, 1.0 - rise / 0.62) ** 1.4
         a += strength * body * _fbm(fx * 7.0, fy * 4.0 - rise * 2.2, 31)
-    return int(min(255.0, a * 210.0 * quiet(fx, fy)))
+    v = a * 210.0 * quiet(fx, fy)
+    return 0 if v < 14 else (18 if v < 34 else (30 if v < 58 else 44))
 
 
 # ── Light shaft: one wedge through the clerestory ────────────────────────────
@@ -144,9 +146,10 @@ def shaft_px(x, y):
         return 0
     body = (1.0 - d * d) ** 2
     body *= A.smooth(0.0, 0.16, fy) * (1.0 - A.smooth(0.55, 1.0, fy)) ** 1.3
-    # Faint striations: the tracery of the window it came through, not a clean cone.
-    body *= 0.80 + 0.20 * math.sin((fx - axis) / max(wide, 1e-5) * 5.4 + fy * 2.0)
-    return int(min(255.0, body * 176.0))
+    # THREE flat steps, not a falloff: a smooth cone needs dithering to survive, and dithering is
+    # what the brief rules out.
+    lvl = 0 if body < 0.18 else (1 if body < 0.42 else (2 if body < 0.72 else 3))
+    return (0, 14, 24, 34)[lvl]
 
 
 def main():

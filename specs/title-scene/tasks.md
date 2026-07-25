@@ -162,6 +162,35 @@
       them, and `title_assets --check` is green at 20 of 20 (it caught the two new files missing
       from the manifest, which is the check doing its job).
 
+## Phase C — The overhaul (TD-075)
+
+- [x] T265 [R241, R242-withdrawn / V1] — **The hall, re-authored as pixel art.** The author supplied
+      two references with a precedence rule: composition from the concept art, **craft from the
+      Contract Board**. Everything shipped since TD-073 failed that — a painterly 1920×1080 plate
+      with per-pixel noise, drawn into a 640×360 viewport through a LINEAR filter. `gen_title_hall.py`
+      authors at **640×360, drawn 1:1 through NEAREST**, every colour a ramp index, light in flat
+      steps, depth banded **per bay** so tone changes land on pier edges, joints gated by distance.
+      Camera pitched 15°→21° and the nave shortened to 58m, so the vault crowds the top and the
+      sanctuary sits low — Reference A's composition, and it frees the frame's centre for the UI.
+      Test: **`A.assert_on_palette`** passes — the same check the board's own art passes, which is
+      what "matches the Contract Board" means in a form a machine can check. Captured.
+
+- [x] T266 [R243 / V2] — **Cloth and furniture, re-authored at display size.**
+      `gen_title_furniture.py` replaces the props and banners generators: three banners, censer,
+      chandelier, two racks, two braziers, authored at **20–96px**, the size they are shown. Flat
+      tones from shipped ramps, no form shading, no AA. All nine pass `assert_on_palette`.
+      Test: **V2** — captured; `title_assets --check` green at 13 of 13.
+
+- [x] T267 [R243 L4 / V2] — **Overlays re-cut at the internal resolution.** Dust motes are whole
+      pixels (1px, the odd 2×2), the god ray is **three flat bands**, smoke is four alpha steps. A
+      continuous falloff would need dithering, which the brief rules out.
+
+- [x] T268 [R247 / V5] — **Retire what the brief supersedes.** `gen_title_plate.py`,
+      `gen_title_arch.py` and the seven architecture slices are deleted — the cathedral is a bespoke
+      hero environment and must not become reusable architecture. The camera drift is gone too: the
+      brief makes the architecture static, and a 2px drift resampled a plate that must stay on whole
+      pixels. Slots 20 → 13. DECISION_LOG **TD-075**.
+
 ## Blocked
 
 - [ ] T262 [audio] — **Ambient audio.** BLOCKED: no audio assets, no audio pipeline, and no

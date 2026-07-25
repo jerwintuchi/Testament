@@ -9,39 +9,25 @@
 ## The reference concept art is NOT used as the background. It lives at
 ## `art/src/collegium_hall_src.png` as a composition reference only.
 ##
-## Layer 1  plate        architecture — static, never moves (P128)
+## Layer 1  plate        the hall — one bespoke pixel-art plate, drawn 1:1, never moves (P128)
 ## Layer 2  cloth        banners: slow sway
 ##          props        censers/chains: pendulum, randomized phase
 ##          vessels      candle racks, braziers (art carries NO flame — fire is Layer 3)
 ##          overlays     dust / smoke / light shafts, additive
 ## Layer 3  light        warm glow per fire, flicker out of step
-## Layer 4  camera       2px idle drift + a breathing zoom, almost imperceptible
+## The architecture never moves at all (TD-075): only cloth, props, fire and air do.
 extends RefCounted
 
 const DIR := "res://assets/ui/title/"
 
-# The architecture arrives one of two ways, and the rig takes either:
-#   * `hall_plate.png` — ONE painted full-frame nave. This is what the asset manifest asks for,
-#     because a painted plate holds a single coherent camera, where seven separately-authored
-#     cutouts have to be re-aligned to each other by hand.
-#   * the seven per-piece slots in ARCH below — used alone, or layered OVER a plate as overrides
-#     for any piece authored separately.
-# Whatever is on disk wins. With a plate present, a missing piece is not a hole (the plate already
-# carries that architecture), so it draws no blockout.
+# The hall itself: one bespoke plate, authored at the internal resolution and drawn 1:1.
 const PLATE := "hall_plate.png"
-
-# The camera drifts 2px and breathes 0.4% (`_camera_life`). The plate is drawn a touch larger than
-# the frame so that drift can never walk an edge into view.
-const PLATE_OVERSCAN := 1.012
 
 # Blockout palette — deliberately flat and unmistakably provisional. Nobody should mistake this
 # for finished art, which is the whole point of a blockout.
 # Architecture is tinted BY DEPTH, near-dark to far-light. That makes the blockout readable, and
 # it previews the real scene's most important property: depth reads as luminance, so the near
 # piers fall to silhouette against a distance that opens into light.
-const C_NEAR := Color(0.115, 0.105, 0.098)     # the framing piers
-const C_MID := Color(0.175, 0.163, 0.150)      # the arcade behind them
-const C_FAR := Color(0.255, 0.238, 0.215)      # vault, apse, floor
 const C_CLOTH := Color(0.34, 0.13, 0.12)
 const C_PROP := Color(0.30, 0.25, 0.15)
 const C_VESSEL := Color(0.24, 0.22, 0.19)
@@ -49,48 +35,36 @@ const C_OVERLAY := Color(0.55, 0.52, 0.45)
 const C_EDGE := Color(0.52, 0.48, 0.40, 0.65)
 
 # ── The composition, in viewport fractions: [cx, cy, w] plus an aspect for the blockout box. ──
-# Read off the reference: two great piers framing, an arcade receding, banners high on the near
-# piers, censers hanging inboard of them, candle racks and braziers along the floor.
-# DERIVED, not authored: `gen_title_arch.py` cuts these seven layers out of the plate's own
-# camera and prints back the bounding box each surface actually occupies, as viewport fractions.
-# So they agree with the plate — and with each other — by construction (P128), where a hand-tuned
-# table drifts the moment any of the hall's metres change. Re-run the generator and paste.
-# (The blockouts use the same numbers, so the stand-in now sits where the real geometry is.)
-const ARCH := [
-	["pier_left.png",    Vector3(0.1648, 0.4278, 0.3297), 1.460, "Pier L"],
-	["pier_right.png",   Vector3(0.8352, 0.4278, 0.3297), 1.460, "Pier R"],
-	["arcade_left.png",  Vector3(0.3703, 0.3815, 0.2083), 2.060, "Arcade L"],
-	["arcade_right.png", Vector3(0.6297, 0.3815, 0.2083), 2.060, "Arcade R"],
-	["vault.png",        Vector3(0.5000, 0.2370, 0.1667), 1.600, "Vault"],
-	["apse.png",         Vector3(0.5000, 0.5833, 0.0552), 2.226, "Apse / altar"],
-	["floor.png",        Vector3(0.5000, 0.8463, 1.0000), 0.173, "Floor"],
-]
+# The cathedral is ONE bespoke plate (TD-075, the author's brief): "Do not attempt to convert the
+# cathedral into reusable gameplay architecture." The seven per-surface slices that used to layer
+# over it are retired — only decorative foreground elements stay separate, and they stay separate
+# because they ANIMATE, not because they might be reused.
 # The censer's position is read in FOUR places — the prop itself, its glow pool, its incense
 # emitter, and (in Python) the plume baked into `smoke_overlay.png`. Three of those are here, so
 # they are one constant: moving a censer and leaving its own smoke rising from where it used to
 # hang is exactly the kind of drift that survives a playtest unnoticed.
 const CENSER_LX := 0.292
 const CENSER_RX := 0.708
-const CENSER_Y := 0.372
-const CENSER_FIRE_Y := 0.404      # the vessel hangs below the sprite's centre; the fire is on it
+const CENSER_Y := 0.300
+const CENSER_FIRE_Y := 0.352      # the vessel hangs below the sprite's centre; the fire is on it
 
 const CLOTH := [
 	# Banners hang ON the near piers, so they ride outward with them.
-	["banner_left.png",   Vector3(0.180, 0.415, 0.140), 2.40, "Banner L"],
-	["banner_right.png",  Vector3(0.820, 0.415, 0.140), 2.40, "Banner R"],
+	["banner_left.png",   Vector3(0.155, 0.345, 0.1031), 2.55, "Banner L"],
+	["banner_right.png",  Vector3(0.845, 0.338, 0.1031), 2.45, "Banner R"],
 	# The third hangs HIGH, small and deep. It used to sit at 0.360, squarely behind the title;
 	# the centre of this frame belongs to the UI (R245), and cloth reads better as depth than as a
 	# backdrop for lettering. Sized so its head meets the frame's top edge — it hangs from
 	# off-screen, the way the censer's chain does — and its foot stops just above the corona
 	# rather than disappearing behind it.
-	["banner_center.png", Vector3(0.500, 0.086, 0.040), 2.30, "Banner C"],
+	["banner_center.png", Vector3(0.500, 0.090, 0.0406), 2.38, "Banner C"],
 ]
 const PROPS := [
 	# Censers hang inboard of the arcade, over the aisle — moved OUTBOARD from 0.383/0.617, where
 	# they flanked the title so closely they read as part of it.
-	["censer.png", Vector3(CENSER_LX, CENSER_Y, 0.032), 2.60, "Censer"],
-	["censer.png", Vector3(CENSER_RX, CENSER_Y, 0.032), 2.60, "Censer"],
-	["chandelier.png", Vector3(0.500, 0.235, 0.092), 0.72, "Chandelier"],
+	["censer.png", Vector3(CENSER_LX, CENSER_Y, 0.0312), 3.10, "Censer"],
+	["censer.png", Vector3(CENSER_RX, CENSER_Y, 0.0312), 3.10, "Censer"],
+	["chandelier.png", Vector3(0.500, 0.190, 0.0688), 0.68, "Chandelier"],
 ]
 # The floor props are NOT mirrored, in two senses. Each is its own seeded variant — different
 # taper counts and heights, a different bowl, differently spun legs — and each is drawn LEANING
@@ -100,25 +74,25 @@ const PROPS := [
 # These lines are printed by `gen_title_props.py`, which owns the geometry — the width includes
 # the padding its shear needs, so the object still renders at the size the generator was asked for.
 const VESSELS := [
-	["candle_rack.png",   Vector3(0.1280, 0.7700, 0.1898), 0.456, "Candle rack"],
-	["candle_rack_b.png", Vector3(0.8760, 0.7620, 0.1802), 0.455, "Candle rack"],
-	["brazier.png",       Vector3(0.3180, 0.8400, 0.0845), 0.773, "Brazier"],
-	["brazier_b.png",     Vector3(0.6880, 0.8310, 0.0801), 0.769, "Brazier"],
+	["candle_rack.png",   Vector3(0.1400, 0.8100, 0.1500), 0.573, "Candle rack"],
+	["candle_rack_b.png", Vector3(0.8650, 0.8000, 0.1375), 0.580, "Candle rack"],
+	["brazier.png",       Vector3(0.3300, 0.8700, 0.0703), 0.933, "Brazier"],
+	["brazier_b.png",     Vector3(0.6750, 0.8600, 0.0656), 0.929, "Brazier"],
 ]
 const OVERLAYS := [
-	["light_shaft.png",   Vector3(0.395, 0.400, 0.280), 2.10, "Light shaft"],
-	["smoke_overlay.png", Vector3(0.500, 0.560, 1.000), 0.56, "Smoke"],
-	["dust_overlay.png",  Vector3(0.500, 0.500, 1.000), 0.56, "Dust"],
+	["light_shaft.png",   Vector3(0.400, 0.500, 0.4688), 1.20, "Light shaft"],
+	["smoke_overlay.png", Vector3(0.500, 0.500, 1.000), 0.5625, "Smoke"],
+	["dust_overlay.png",  Vector3(0.500, 0.500, 1.000), 0.5625, "Dust"],
 ]
 
 # Where fire burns. Layer 3 — these exist whether or not the vessel art has arrived.
 const FIRES := [
 	# These track VESSELS: a fire burns on a vessel, so moving one and not the other leaves a
 	# warm pool hanging over empty floor.
-	Vector2(0.128, 0.745), Vector2(0.876, 0.738),
-	Vector2(0.318, 0.815), Vector2(0.688, 0.807),
+	Vector2(0.140, 0.775), Vector2(0.865, 0.766),
+	Vector2(0.330, 0.843), Vector2(0.675, 0.834),
 	Vector2(CENSER_LX, CENSER_FIRE_Y), Vector2(CENSER_RX, CENSER_FIRE_Y),
-	Vector2(0.500, 0.625),
+	Vector2(0.500, 0.640),
 ]
 
 
@@ -133,7 +107,10 @@ static func _rect_of(vp: Vector2, r: Vector3, aspect: float, tex: Texture2D) -> 
 	if tex != null:
 		ratio = float(tex.get_height()) / maxf(1.0, float(tex.get_width()))
 	var h := w * ratio
-	return Rect2(Vector2(vp.x * r.x - w * 0.5, vp.y * r.y - h * 0.5), Vector2(w, h))
+	# Snap to whole pixels: the point of authoring at the internal resolution is that a sprite
+	# occupies exact pixels, and a fractional position quietly undoes it.
+	return Rect2(Vector2(roundf(vp.x * r.x - w * 0.5), roundf(vp.y * r.y - h * 0.5)),
+		Vector2(roundf(w), roundf(h)))
 
 
 ## One layer: real art if it exists, else a labelled blockout of identical geometry. Returns the
@@ -172,10 +149,13 @@ static func _plate(host: Control, tex: Texture2D, vp: Vector2) -> Control:
 	# COVERED, not STRETCH: a 16:9 plate in a non-16:9 viewport overflows rather than distorting
 	# the composition, which R241 forbids.
 	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	t.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	t.size = vp * PLATE_OVERSCAN
-	t.position = -vp * (PLATE_OVERSCAN - 1.0) * 0.5
+	# EXACTLY the viewport, no overscan: the plate is authored at the internal resolution, so 1:1
+	# is the only scale at which its pixels stay square. An overscan of 1.2% would resample every
+	# one of them, which is the difference between pixel art and a photograph of pixel art.
+	t.size = vp
+	t.position = Vector2.ZERO
 	t.z_index = -64
 	host.add_child(t)
 	return t
@@ -231,19 +211,6 @@ static func build(host: Control, reduced: bool) -> Control:
 	var plate := _tex(PLATE)
 	if plate != null:
 		_plate(root, plate, host.size)
-	for e in ARCH:
-		if plate != null and _tex(e[0]) == null:
-			continue          # the plate carries this piece; a blockout would only cover it
-		var tint := C_FAR
-		if e[0].begins_with("pier"):
-			tint = C_NEAR
-		elif e[0].begins_with("arcade"):
-			tint = C_MID
-		# An architecture piece is a slice of the plate's own camera, so it takes the plate's
-		# overscan too. Without it the layer sits 1.2% inside the plate beneath, and the mismatch
-		# reads as a hairline double edge wherever the two disagree.
-		_layer(root, e, -60 if e[0].begins_with("pier") else -62, tint,
-			PLATE_OVERSCAN if plate != null else 1.0)
 
 	# ── Layer 2: cloth / props / vessels / overlays, each animated by kind. ──
 	for e in CLOTH:
@@ -289,9 +256,9 @@ static func build(host: Control, reduced: bool) -> Control:
 		_incense(root, Vector2(CENSER_LX, CENSER_FIRE_Y), host.size)
 		_incense(root, Vector2(CENSER_RX, CENSER_FIRE_Y), host.size)
 
-	# ── Layer 5: camera life. ──
-	if not reduced:
-		_camera_life(root, host.size)
+	# No camera life. The brief is explicit: "The architecture itself remains static. Only
+	# atmospheric elements should move." A 2px drift also resampled a plate that must stay on
+	# whole pixels, so this is a register requirement as much as an art direction one.
 	return root
 
 
@@ -399,18 +366,6 @@ static func _flicker(n: Control, period: float, phase: float) -> void:
 	t.tween_property(n, "modulate:a", a * 0.70, period * 0.37)
 	t.tween_property(n, "modulate:a", a * 1.05, period * 0.29)
 	t.tween_property(n, "modulate:a", a, period * 0.34)
-
-static func _camera_life(root: Control, vp: Vector2) -> void:
-	# The environment drifts ~2px and breathes 0.4%. Below the threshold of notice frame to
-	# frame; felt over half a minute. The UI layer is separate and never moves with it.
-	var p := root.position
-	var t := root.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	t.tween_property(root, "position", p + Vector2(2.0, -1.5), 18.0)
-	t.tween_property(root, "position", p, 18.0)
-	root.pivot_offset = vp * 0.5   # from the host: `root.size` is not laid out yet on this frame
-	var z := root.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	z.tween_property(root, "scale", Vector2(1.004, 1.004), 24.0)
-	z.tween_property(root, "scale", Vector2.ONE, 24.0)
 
 
 # ── Light ────────────────────────────────────────────────────────────────────

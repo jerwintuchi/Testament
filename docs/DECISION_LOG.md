@@ -2626,3 +2626,57 @@ the plate. A plate that pre-lights its own foreground would be lit twice.
 **Not closed.** This does not retire the author-art path: dropping a painted `hall_plate.png` into
 `art/src/title/` still replaces the generated one, and the rig neither knows nor cares which
 produced it. The per-piece architecture overrides and every prop layer remain unauthored (T260).
+
+## 2026-07-25 — TD-075: the title screen is PIXEL ART; the Contract Board is the visual authority
+
+**Why.** The author supplied two references with an explicit precedence rule: Reference A (a concept
+painting of the Collegium's great hall) governs **composition, camera, scale, mood and lighting**;
+Reference B (the shipped Contract Board) governs **pixel density, palette, shading, readability and
+craftsmanship** — *"if there is ever a conflict between the two references, follow the Contract
+Board."* The brief also rules out, by name: anti-aliasing, painterly textures, procedural texture
+noise, more than minimal dithering, and anything resembling AI-generated pixel art.
+
+Everything shipped for the title screen since TD-073 fails that on all five counts. The plate was a
+1920×1080 painterly render with per-pixel noise and dithered falloff; the props and banners were
+smooth-shaded objects authored at 340–660px. **The register was decided by the pipeline, not by the
+shading:** art authored at 1920×1080 and drawn into a 640×360 viewport through a LINEAR filter is
+resampled 3:1 and can never be crisp, however carefully it is painted.
+
+**Decided — the pipeline first.**
+
+1. **Author at the size it is displayed.** Everything is now authored at the canonical 640×360
+   internal resolution (TD-042) or, for props, at their exact on-screen size (20–96px), and drawn
+   **1:1 through NEAREST**. `_rect_of` rounds every layer to whole pixels; the plate's 1.2% overscan
+   is gone, and with it the camera drift — which the brief kills anyway (*"the architecture itself
+   remains static"*) and which would have resampled the plate every frame.
+2. **Every colour is a ramp entry.** Shading picks an INDEX into an Ash & Ember ramp; there are no
+   lerps between arbitrary colours. Each generator ends in `A.assert_on_palette` — the same check the
+   board's own art passes, and the operational definition of "matches the Contract Board".
+3. **Light in flat steps, not gradients.** A candle's pool is two or three flat rings. The moment a
+   light term is a float the image needs dithering to survive, which the brief forbids; making the
+   term an integer makes the whole class of failure impossible.
+4. **Depth bands per BAY, not per pixel.** Banding on raw distance drew a straight diagonal across
+   the frame wherever the band changed — a huge flat slab whose edge belonged to no architecture,
+   which ghosted on the piers through four passes. A bay is a real unit, so its boundaries are pier
+   faces and a change of tone there reads as construction.
+5. **Detail gated by distance.** Masonry joints stop once a course projects under ~2px; vault ribs
+   stop once a bay is small. Large stone surfaces stay quiet, which is what makes the hall read as
+   immense rather than as static.
+
+**Composition.** The camera is pitched from 15° to **21°** and the nave shortened from 115m to 58m:
+Reference A puts the vault across the top of the frame and the altar low, and at 15°/115m our
+sanctuary landed at fy 0.37 — directly behind the title — with a far wall 35px across. The crest is
+**not** hung on the far wall for the same reason: that wall occupies the exact column the title,
+rule and menu sit in. The brief asks for the crest on the **banners**, and that is where it is.
+
+**Retired.** `gen_title_plate.py`, `gen_title_arch.py` and the seven architecture slices they
+produced — the brief is explicit that the cathedral is a bespoke hero environment and must not become
+reusable architecture. `gen_title_props.py` and `gen_title_banners.py` are replaced by
+`gen_title_furniture.py`. Slots 20 → 13.
+
+**Withdrawn.** R242's painted-register exception for the title screen. It was granted when the plan
+was a painted matte; the author has now ruled the opposite way. The board and HUD register is
+unchanged — it was always the one being matched.
+
+**Verified.** `assert_on_palette` passes on the hall and all nine furniture pieces; `title_assets
+--check` is green at 13 of 13; captured in the client at 1280×720 (logical 640×360).

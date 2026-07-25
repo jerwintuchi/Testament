@@ -183,22 +183,19 @@ reach Control — TD-047), real CPUParticles dust/embers/incense, and a camera l
 1.004 breathing zoom. F9 leaves a **fully lit** still frame (captured). Asset list + per-item prompts
 in `specs/title-scene/asset-manifest.md`.
 
-**The art is in, and it is GENERATED** (author's call, 2026-07-25 — a deliberate retry of TD-072's
-recorded single-plate failure, logged in DECISION_LOG with why the retry is narrower: the plate holds
-no props and no baked fire, which is exactly what failed there). Four new generators:
-`gen_title_plate.py` (1920×1080 nave, camera imported from `gen_nave.py`, seeded per-bay variation so
-the two walls are not mirrors, near falls to silhouette because the foreground is lit in-engine),
-`gen_title_overlays.py` (dust/smoke/light-shaft, alpha-only so an additive `modulate` is an honest
-dimmer), `gen_title_banners.py` (three seeded standards, rod in the image since the rig sways from top
-centre), `gen_title_props.py` (censer/chandelier/candle rack/brazier as anti-aliased SDF parts —
-Python not Aseprite because TD-057's finding was measured at 17×22px, not at 140–520px painted).
-plus `gen_title_arch.py` (the seven architecture pieces cut as **slices of the plate's own camera**
-— same shading, split by surface and depth; placement DERIVED from each crop's box, and
-`--verify` reassembles them at the rig's own ARCH numbers and diffs against the plate: 0 uncovered,
-0 mismatched, which is P128 made checkable). **18 of 18 slots filled.**
-`tools/title_assets.py` derives the slot list from `title_scene.gd` and fails if the manifest drifts
-from it — that drift was real and would have made authored art silently never appear.
-**T255–T261 done; T262 (audio) BLOCKED** — no audio assets, pipeline or sanctioned tool.
+**OVERHAULED to PIXEL ART (TD-075, the author's two-reference brief).** The Contract Board is the
+visual authority; the concept art gives composition only. Everything is now authored **at the size it
+is displayed** — the hall at the canonical 640×360, props at 20–96px — and drawn **1:1 through
+NEAREST**, with every colour an Ash & Ember ramp index proved by `assert_on_palette` (the board's own
+check). Light is flat steps, depth bands **per bay** so tone changes land on pier edges, joints are
+gated by distance, and there is no per-pixel noise. Camera pitched 15°→21°, nave shortened to 58m:
+vault across the top, sanctuary low, centre of the frame free for the UI. Generators:
+`gen_title_hall.py`, `gen_title_furniture.py`, `gen_title_overlays.py` — **13 of 13 slots**.
+RETIRED: `gen_title_plate.py`, `gen_title_arch.py`, the seven architecture slices (the cathedral is a
+bespoke hero environment, not reusable architecture) and the camera drift (the architecture is
+static). R242's painted-register exception is **withdrawn**. `tools/title_assets.py` derives the slot
+list from `title_scene.gd` and fails if the manifest drifts.
+**T255–T268 done; T262 (audio) BLOCKED** — no audio assets, pipeline or sanctioned tool.
 
 Completed: **TD-070** — dead generated art deleted + the orphan signal made trustworthy. Removed 10
 files (`parch_live_*` incl. the four baked tilts, `foxing`, `board_placard`, `wall_v1`+`_n`), all

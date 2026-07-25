@@ -1,18 +1,22 @@
-# Title Scene — Asset Manifest (TD-073)
+# Title Scene — Asset Manifest (TD-073, overhauled TD-075)
 
-> The list to generate, with the technical constraints that make the pieces **composite correctly
-> the first time**. Each entry has a ready-to-paste prompt. Author art lands in `art/src/title/`,
-> and `tools/title_assets.py` validates it and installs it to `client/assets/ui/title/`.
+> **The Contract Board is the visual authority.** Where the concept art (Reference A) and the board
+> (Reference B) disagree, the board wins — the author's ruling. Reference A gives composition,
+> camera, scale, mood and lighting; the board gives pixel density, palette, shading, readability and
+> craftsmanship. Nothing here is a matte painting.
 >
-> **The scene rig treats every asset as optional.** A missing file simply skips its layer, so these
-> can arrive one at a time and the screen keeps running.
+> **Every asset is authored at the size it is displayed**, on the canonical 640×360 internal
+> resolution, and drawn 1:1 through NEAREST. That is the whole register decision: art authored at
+> 1920×1080 and squeezed into a 640×360 viewport through a LINEAR filter cannot match the board no
+> matter how it is shaded. The pipeline decides the register, not the brushwork.
 >
-> **This file and the rig are checked against each other.** `title_scene.gd` loads by exact
-> filename and never errors on a name it does not know, so a manifest that drifts from the rig
-> produces art that silently never appears — which is precisely what happened: this document asked
-> for a `hall_plate.png` the rig had no slot for, listed a `chain.png` nothing loads, and omitted
-> the seven architecture pieces the rig does load. `python3 tools/title_assets.py --check` now
-> derives the slot list from the rig and fails if the two disagree.
+> **Every pixel is an Ash & Ember ramp entry.** Each generator ends in `A.assert_on_palette`, the
+> same check the board's own art passes — which is what "matches the Contract Board" means in a form
+> a machine can verify.
+>
+> **This file and the rig are checked against each other:** `python3 tools/title_assets.py --check`
+> derives the slot list from `title_scene.gd` and fails if the two disagree. The rig loads by exact
+> filename and silently skips what it does not know, so drift here produces art that never appears.
 
 ## How to land a piece
 
@@ -21,193 +25,94 @@ mkdir -p art/src/title && cp <your>.png art/src/title/<exact name>.png
 python3 tools/title_assets.py --import   # validate, install, and import into Godot
 ```
 
-Then look at it: `"$GODOT" --path "$CLIENT" --quit-after 900 -- --capture=3 --title-preview`.
-No code change is needed for any asset below — the layer is already built and animated.
+Or regenerate, from `client/assets/ui/`:
 
-## Rules that apply to everything
+```bash
+python3 gen_title_hall.py        # the hall
+python3 gen_title_furniture.py   # banners, censer, chandelier, racks, braziers
+python3 gen_title_overlays.py    # dust, smoke, the god ray
+```
 
-1. **One camera.** Every piece must be drawn in the *same* perspective as the plate — a low camera
-   looking up a Gothic nave, verticals converging. If a prop is drawn straight-on it will not sit in
-   the scene.
-2. **16:9 for full-frame layers**, 1920×1080. Props are their own size, listed below.
-3. **True alpha**, not a black or checkerboard background, on everything except the plate.
-4. **No baked UI.** No title, no menu, no logo — those are rendered live. (The current plate has
-   them painted in and needed inpainting; a clean plate removes that whole problem.)
-5. **No characters, no creatures, no weapons in use.** Pillar 3: the title must never show an
-   Incarnate.
-6. **Unlit or evenly lit props.** Godot adds the flicker and glow (Layer 3). A prop with a baked
-   hotspot will fight the real light.
+Then look at it: `"$GODOT" --path "$CLIENT" --quit-after 900 -- --capture=4 --title-preview`.
 
 ---
 
-## Layer 1 — the architecture
-
-The architecture can arrive **either way**, and the rig takes both. Start with the plate.
-
-### The plate (the recommended path)
+## The hall
 
 | File | Size | Alpha |
 |---|---|---|
-| `hall_plate.png` | 1920×1080 | opaque |
+| `hall_plate.png` | 640×360 | opaque |
 
-> **Shipped, and generated:** `client/assets/ui/gen_title_plate.py` emits this plate by ray-casting
-> the hall through the camera TD-072 measured (imported from `gen_nave.py`, not re-derived). It is a
-> deliberate retry of what TD-072 recorded as a failure, narrowed where that failed: the plate holds
-> **no props** (the class of thing that failed at small scale) and **no baked fire** (the light is
-> in-engine), so what is left is architecture — which the ray-caster was always good at. Regenerate
-> with `python3 gen_title_plate.py` from `client/assets/ui/`. Author-painted art still replaces it
-> by dropping a file of the same name into `art/src/title/`; the rig neither knows nor cares which
-> produced it.
+One **bespoke** plate. The brief is explicit: *"Do not attempt to convert the cathedral into
+reusable gameplay architecture."* The seven per-surface slices that used to layer over it are
+**retired** — only decorative foreground elements stay separate, and they stay separate because they
+**animate**, not because they might be reused.
 
-> A vast ancient Gothic cathedral interior, seen from floor level looking up the nave toward a
-> distant lit altar. Towering compound piers, ribbed vaults, stained glass high on both walls, worn
-> flagstone floor with a faded red carpet runner, weathered stone, centuries of soot and candle
-> smoke. Deep shadow, warm amber ambient light. **Empty: no banners, no censers, no candles, no
-> braziers, no people, no text.** Dark, solemn, painterly, 16:9.
+`gen_title_hall.py` ray-casts the hall through the camera TD-072 measured (hfov 105°), pitched up
+**21°** so the vault crowds the top and the sanctuary sits low, as Reference A composes it. The nave
+closes at 58m so the altar reads as a place you could walk to. Then it renders in pixel discipline:
+ramp indices only, light in **flat steps**, depth banded **per bay** so a change of tone lands on a
+pier edge, masonry joints gated by distance so large stone stays quiet, and no per-pixel noise
+anywhere.
 
-Everything removable is removed **on purpose** — those become the animated layers below, and a plate
-without them needs no inpainting. One painted plate holds a single coherent camera; seven separately
-generated cutouts have to be re-aligned to each other by hand, which is the work this avoids.
-
-It is drawn full-frame, aspect-preserved (**never distorted**, R241), with a 1.2% overscan so the
-camera's 2px drift cannot walk an edge into view, and it never moves (P128).
-
-### The pieces (optional overrides)
-
-Authored separately, each of these **layers over the plate** — and used without a plate, the seven
-of them are the architecture. Any piece you do not author simply stays with the plate.
+## Cloth
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `pier_left.png` | 633×924 | yes | the near frame, z < 14m; not a mirror of the right |
-| `pier_right.png` | 633×924 | yes | |
-| `arcade_left.png` | 400×824 | yes | the receding arcade behind the pier, z ≥ 14m |
-| `arcade_right.png` | 400×824 | yes | |
-| `vault.png` | 320×512 | yes | ribbed vault, seen from below |
-| `apse.png` | 106×236 | yes | the distant lit altar — the frame's destination |
-| `floor.png` | 1920×332 | yes | worn flagstones + faded runner, receding |
+| `banner_left.png` | 66×168 | yes | hangs on the left pier, crest in bone dye |
+| `banner_right.png` | 66×162 | yes | its own weave and wear — not a mirror |
+| `banner_center.png` | 26×62 | yes | small, deep, hung from the frame's top edge |
 
-> One element of a Gothic cathedral interior — a towering compound pier of weathered stone, seen
-> from floor level looking up so the verticals converge. Transparent background, evenly lit, no
-> baked highlight, centuries of soot. Painterly dark fantasy.
-
-> **Shipped, and generated:** `client/assets/ui/gen_title_arch.py` cuts all seven **out of the
-> plate's own camera** — same shading, each keeping only the pixels whose ray strikes its surface.
-> They are slices, not a second drawing: composite them and the plate comes back pixel for pixel,
-> which is `python3 gen_title_arch.py --verify` (0 uncovered, 0 mismatched). **The sizes above are
-> derived, not targets** — each layer is cropped to the box its surface actually occupies, and the
-> generator prints that box back as the viewport fractions `title_scene.gd`'s ARCH table uses, so
-> placement can never drift from the geometry (P128). Replacing one by hand is still fine; keep its
-> footprint and update ARCH if the crop changes.
-
-## Layer 2 — cloth
+## Hanging props
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `banner_left.png` | 340×760 | yes | hangs on the left pier, top-anchored |
-| `banner_right.png` | 340×760 | yes | mirror-ish, not identical — asymmetry sells it |
-| `banner_center.png` | 260×620 | yes | smaller, deeper in the nave |
+| `censer.png` | 20×62 | yes | the chain runs to the **top edge**; hung twice |
+| `chandelier.png` | 44×30 | yes | an iron corona on three chains |
 
-> A long hanging medieval banner of faded crimson cloth, worn and dust-aged, with a pale bone-white
-> emblem of an upright sword crossed with laurel wreaths. Frayed lower hem, soft vertical folds,
-> hanging from a dark iron rod. **Transparent background.** Lit softly and evenly, no strong
-> highlight. Painterly, dark fantasy.
-
-> **Shipped, and generated:** `client/assets/ui/gen_title_banners.py` — `gen_banner.py`'s idiom
-> re-cut for the hall in the **painted** register (these hang at 340px, so smooth drape shading is
-> right where it would be wrong on the board's 64px cloth). Each banner is **seeded separately**, so
-> the right one is "mirror-ish, not identical": fold phase, hem wear, holes and threads all come off
-> its own seed. The **iron rod is in the image**, because the rig sways from top centre — cloth and
-> rod swing as one object. The emblem is the same `board/collegium_logo.png`, printed as a bone dye
-> the weave shows through. Nothing is lit: folds are form, not light (the fires are in-engine).
-
-## Layer 2 — hanging props
+## Fire vessels
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `censer.png` | 140×420 | yes | includes its chain; **pivot at the top centre**; hung twice |
-| `chandelier.png` | 420×300 | yes | optional, for the deep nave |
+| `candle_rack.png` | 96×55 | yes | tapers at varying heights; stands left |
+| `candle_rack_b.png` | 88×51 | yes | its own rack; stands right, further off |
+| `brazier.png` | 45×42 | yes | standing iron bowl, **no flame**; stands left |
+| `brazier_b.png` | 42×39 | yes | a different bowl; stands right, further off |
 
-> An ornate hanging brass censer on a long chain, aged and tarnished, pierced metalwork, small ruby
-> glass panels, gothic ecclesiastical. **The chain must run to the very top edge of the image** so it
-> can hang from off-screen. Transparent background. Unlit — no glow baked in.
+**Nothing burns in the art.** Cold wicks, dead coals. Every flame in this scene is an in-engine
+additive pool that flickers out of step (TD-043); a baked hotspot would fight it.
 
-## Layer 2 — fire vessels
-
-| File | Size | Alpha | Notes |
-|---|---|---|---|
-| `candle_rack.png` | 658×300 | yes | a rank of tapers at **varying heights**; stands left |
-| `candle_rack_b.png` | 660×300 | yes | its own rack, not a mirror; stands right, further off |
-| `brazier.png` | 362×280 | yes | large standing iron brazier, **no flame**; stands left |
-| `brazier_b.png` | 364×280 | yes | a different bowl; stands right, further off |
-
-> A votive candle rack: an aged iron stand holding two dozen white wax candles of differing heights,
-> heavy wax runs down the frame. **Unlit — draw the candles but NOT the flames**, transparent
-> background. Godot adds the fire.
-
-Flames are deliberately excluded: they are Layer 3, generated in-engine so each flickers
-independently.
-
-> **The floor pairs are not mirrors, in two senses.** Each is its own **seeded** variant — taper
-> counts and heights, bowl proportions, how the three legs happen to stand — and each is drawn
-> **leaning** toward the zenith its own floor position implies. This camera is pitched up 15°, so
-> every vertical in the hall converges above the frame (at fy ≈ −2.05); a prop drawn plumb reads as
-> pasted onto the picture instead of standing in it. The lean is a **shear**, not a rotation: the
-> foot stays where it was placed and only the height tilts. The right-hand pair also stands a
-> little further down the nave, so it is smaller and higher in frame. Sizes above include the
-> padding the shear needs, and `gen_title_props.py` prints the matching `VESSELS` lines — the
-> generator owns that geometry.
-
-> **Shipped, and generated:** `client/assets/ui/gen_title_props.py` emits all six props (censer,
-> chandelier, two racks, two braziers) as anti-aliased signed-distance parts composited back to front.
-> **These are Python and not Aseprite on purpose**, and it is not a contradiction of TD-057: that
-> finding was measured at **17×22 px**, where a shape function cannot decide which pixel carries the
-> crossguard. At 140–520px in the painted register the job is *form* — cylinders, spheres, drip,
-> tarnish — and a hand-placed pixel would be resampled away. Nothing burns: the candles have cold
-> wicks and the brazier holds dead coals.
-
-## Layer 2 — atmosphere overlays
+## Atmosphere overlays
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `dust_overlay.png` | 1920×1080 | yes | sparse motes, **greyscale-white**, tinted at runtime |
-| `smoke_overlay.png` | 1920×1080 | yes | slow incense drifts, greyscale-white |
-| `light_shaft.png` | 900×1080 | yes | one god-ray wedge, greyscale-white, soft edges |
+| `dust_overlay.png` | 640×360 | yes | motes as **whole pixels**, 1px and the odd 2×2 |
+| `smoke_overlay.png` | 640×360 | yes | incense off the censers, in four alpha steps |
+| `light_shaft.png` | 300×360 | yes | one god ray, **three flat bands** |
 
-> Soft volumetric light shaft falling at an angle through dusty air, pure white to transparent, no
-> colour, no background. Used as an additive overlay.
-
-Greyscale-white because the runtime tints them to the candle ramp — one asset serves warm and cold.
-
-> **Shipped, and generated:** `client/assets/ui/gen_title_overlays.py` emits all three. They are
-> pure surfaces — falloffs, value noise, a wedge — which is Python's half of the TD-057 split, and
-> nothing in them is a per-pixel design decision. RGB is flat white and the whole image lives in
-> the **alpha channel**, so under the rig's additive blend the sheet's contribution is exactly its
-> alpha and `modulate` stays an honest dimmer. The frame's centre is deliberately thinned: the menu
-> is read there (R245). Regenerate with `python3 gen_title_overlays.py` from `client/assets/ui/`.
+Greyscale-white with the whole image in the **alpha channel**, so under the rig's additive blend the
+sheet's contribution is exactly its alpha. Banded, never smooth: a continuous falloff needs dithering
+to survive, and dithering is what the brief rules out. The frame's centre is thinned — the menu is
+read there (R245).
 
 ---
 
 ## Naming, and why it matters
 
-The rig loads by exact filename and skips what is absent. Keep these names and the layers wire
-themselves up; rename anything and it silently vanishes from the scene rather than erroring — no
-log line, no missing-resource error, just a layer that never appears. That failure mode is why
-`tools/title_assets.py` exists: it reads the slot list out of `title_scene.gd`, so a name that
-would vanish is a hard failure at the command line instead of a mystery in a capture.
-
-Run it after every drop:
+The rig loads by exact filename and skips what is absent — no log line, no missing-resource error,
+just a layer that never appears. That failure mode is why `tools/title_assets.py` exists: it reads
+the slot list out of `title_scene.gd`, so a name that would vanish is a hard failure at the command
+line instead of a mystery in a capture. Run it after every drop:
 
 ```bash
 python3 tools/title_assets.py --check     # slots filled, contract intact
 python3 tools/title_assets.py --selftest  # the rules themselves
 ```
 
-## What happens to the current composite
+## What happens to the concept art
 
 `art/src/collegium_hall_src.png` stays a **composition reference only** — never shipped, never
-displayed (TD-073, the author's ruling after it was tried as the background three times). There is
-no matte generator to retire: painted source art is copied byte-for-byte into the client, because
-re-encoding a painted matte through a pixel-art generator is the register mistake TD-055 warns
-about. The plate is the one deliberate painted-register exception (R242); board and HUD surfaces
-keep the pixel register untouched (P127).
+displayed (TD-073, after it was tried as the background three times). The painted-register exception
+R242 granted the title screen is **withdrawn** by TD-075: the title screen is pixel art, like the
+board. Author-painted art can still replace any slot by name via `art/src/title/`, but it should be
+authored at the size in the table above, or it will not sit beside the board.
