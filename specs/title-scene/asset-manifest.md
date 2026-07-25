@@ -1,11 +1,28 @@
 # Title Scene — Asset Manifest (TD-073)
 
 > The list to generate, with the technical constraints that make the pieces **composite correctly
-> the first time**. Each entry has a ready-to-paste prompt. Author art lands in `art/src/`, is
-> processed by `gen_title_assets.py`, and ships to `client/assets/ui/title/`.
+> the first time**. Each entry has a ready-to-paste prompt. Author art lands in `art/src/title/`,
+> and `tools/title_assets.py` validates it and installs it to `client/assets/ui/title/`.
 >
 > **The scene rig treats every asset as optional.** A missing file simply skips its layer, so these
 > can arrive one at a time and the screen keeps running.
+>
+> **This file and the rig are checked against each other.** `title_scene.gd` loads by exact
+> filename and never errors on a name it does not know, so a manifest that drifts from the rig
+> produces art that silently never appears — which is precisely what happened: this document asked
+> for a `hall_plate.png` the rig had no slot for, listed a `chain.png` nothing loads, and omitted
+> the seven architecture pieces the rig does load. `python3 tools/title_assets.py --check` now
+> derives the slot list from the rig and fails if the two disagree.
+
+## How to land a piece
+
+```bash
+mkdir -p art/src/title && cp <your>.png art/src/title/<exact name>.png
+python3 tools/title_assets.py --import   # validate, install, and import into Godot
+```
+
+Then look at it: `"$GODOT" --path "$CLIENT" --quit-after 900 -- --capture=3 --title-preview`.
+No code change is needed for any asset below — the layer is already built and animated.
 
 ## Rules that apply to everything
 
@@ -23,7 +40,11 @@
 
 ---
 
-## Layer 1 — the plate
+## Layer 1 — the architecture
+
+The architecture can arrive **either way**, and the rig takes both. Start with the plate.
+
+### The plate (the recommended path)
 
 | File | Size | Alpha |
 |---|---|---|
@@ -36,7 +57,32 @@
 > braziers, no people, no text.** Dark, solemn, painterly, 16:9.
 
 Everything removable is removed **on purpose** — those become the animated layers below, and a plate
-without them needs no inpainting.
+without them needs no inpainting. One painted plate holds a single coherent camera; seven separately
+generated cutouts have to be re-aligned to each other by hand, which is the work this avoids.
+
+It is drawn full-frame, aspect-preserved (**never distorted**, R241), with a 1.2% overscan so the
+camera's 2px drift cannot walk an edge into view, and it never moves (P128).
+
+### The pieces (optional overrides)
+
+Authored separately, each of these **layers over the plate** — and used without a plate, the seven
+of them are the architecture. Any piece you do not author simply stays with the plate. Sizes are
+what the rig's width fractions come to on a 1920-wide frame; the art's own aspect wins, so treat
+them as targets, not constraints.
+
+| File | Size | Alpha | Notes |
+|---|---|---|---|
+| `pier_left.png` | 600×1470 | yes | the near framing pier; runs past top and bottom on purpose |
+| `pier_right.png` | 600×1470 | yes | not a mirror — asymmetry is what sells it |
+| `arcade_left.png` | 360×936 | yes | the receding arcade behind the pier |
+| `arcade_right.png` | 360×936 | yes | |
+| `vault.png` | 760×532 | yes | ribbed vault, seen from below, crowding the top third |
+| `apse.png` | 290×390 | yes | the distant lit altar — the brightest thing in the frame |
+| `floor.png` | 1920×500 | yes | worn flagstones + faded runner, receding |
+
+> One element of a Gothic cathedral interior — a towering compound pier of weathered stone, seen
+> from floor level looking up so the verticals converge. Transparent background, evenly lit, no
+> baked highlight, centuries of soot. Painterly dark fantasy.
 
 ## Layer 2 — cloth
 
@@ -55,8 +101,7 @@ without them needs no inpainting.
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `censer.png` | 140×420 | yes | includes its chain; **pivot at the top centre** |
-| `chain.png` | 40×500 | yes | plain hanging chain, tileable vertically |
+| `censer.png` | 140×420 | yes | includes its chain; **pivot at the top centre**; hung twice |
 | `chandelier.png` | 420×300 | yes | optional, for the deep nave |
 
 > An ornate hanging brass censer on a long chain, aged and tarnished, pierced metalwork, small ruby
@@ -95,10 +140,23 @@ Greyscale-white because the runtime tints them to the candle ramp — one asset 
 ## Naming, and why it matters
 
 The rig loads by exact filename and skips what is absent. Keep these names and the layers wire
-themselves up; rename anything and it silently vanishes from the scene rather than erroring.
+themselves up; rename anything and it silently vanishes from the scene rather than erroring — no
+log line, no missing-resource error, just a layer that never appears. That failure mode is why
+`tools/title_assets.py` exists: it reads the slot list out of `title_scene.gd`, so a name that
+would vanish is a hard failure at the command line instead of a mystery in a capture.
+
+Run it after every drop:
+
+```bash
+python3 tools/title_assets.py --check     # slots filled, contract intact
+python3 tools/title_assets.py --selftest  # the rules themselves
+```
 
 ## What happens to the current composite
 
-`art/src/collegium_hall_src.png` stays as the **reference** and as today's stand-in plate. Once
-`hall_plate.png` lands, the inpainting in `gen_title_matte.py` is deleted outright — it only ever
-existed to remove baked UI, and a clean plate makes it unnecessary.
+`art/src/collegium_hall_src.png` stays a **composition reference only** — never shipped, never
+displayed (TD-073, the author's ruling after it was tried as the background three times). There is
+no matte generator to retire: painted source art is copied byte-for-byte into the client, because
+re-encoding a painted matte through a pixel-art generator is the register mistake TD-055 warns
+about. The plate is the one deliberate painted-register exception (R242); board and HUD surfaces
+keep the pixel register untouched (P127).

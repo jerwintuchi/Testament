@@ -20,6 +20,20 @@ extends RefCounted
 
 const DIR := "res://assets/ui/title/"
 
+# The architecture arrives one of two ways, and the rig takes either:
+#   * `hall_plate.png` — ONE painted full-frame nave. This is what the asset manifest asks for,
+#     because a painted plate holds a single coherent camera, where seven separately-authored
+#     cutouts have to be re-aligned to each other by hand.
+#   * the seven per-piece slots in ARCH below — used alone, or layered OVER a plate as overrides
+#     for any piece authored separately.
+# Whatever is on disk wins. With a plate present, a missing piece is not a hole (the plate already
+# carries that architecture), so it draws no blockout.
+const PLATE := "hall_plate.png"
+
+# The camera drifts 2px and breathes 0.4% (`_camera_life`). The plate is drawn a touch larger than
+# the frame so that drift can never walk an edge into view.
+const PLATE_OVERSCAN := 1.012
+
 # Blockout palette — deliberately flat and unmistakably provisional. Nobody should mistake this
 # for finished art, which is the whole point of a blockout.
 # Architecture is tinted BY DEPTH, near-dark to far-light. That makes the blockout readable, and
@@ -122,6 +136,23 @@ static func _layer(host: Control, e: Array, z: int, tint: Color) -> Control:
 	return node
 
 
+## The full-frame architecture plate: inert, behind everything, never animated (P128).
+static func _plate(host: Control, tex: Texture2D, vp: Vector2) -> Control:
+	var t := TextureRect.new()
+	t.texture = tex
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	# COVERED, not STRETCH: a 16:9 plate in a non-16:9 viewport overflows rather than distorting
+	# the composition, which R241 forbids.
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	t.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.size = vp * PLATE_OVERSCAN
+	t.position = -vp * (PLATE_OVERSCAN - 1.0) * 0.5
+	t.z_index = -64
+	host.add_child(t)
+	return t
+
+
 static func _blockout(tint: Color, label: String, size: Vector2) -> Control:
 	# A flat panel with a hairline edge and its name on it. Obvious at a glance that it is a
 	# stand-in, while still occupying exactly the footprint the real asset will.
@@ -169,7 +200,12 @@ static func build(host: Control, reduced: bool) -> Control:
 	root.add_child(bg)
 
 	# ── Layer 1: architecture. Static, always — this is the plate. ──
+	var plate := _tex(PLATE)
+	if plate != null:
+		_plate(root, plate, host.size)
 	for e in ARCH:
+		if plate != null and _tex(e[0]) == null:
+			continue          # the plate carries this piece; a blockout would only cover it
 		var tint := C_FAR
 		if e[0].begins_with("pier"):
 			tint = C_NEAR

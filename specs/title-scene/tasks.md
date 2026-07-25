@@ -38,8 +38,23 @@
 
 ## Phase B — Art (blocked on assets)
 
+- [x] T260a [R241, R243 / V1, V2] — **The drop path, made real.** The manifest and the rig had
+      drifted: the rig loaded seven per-piece architecture slots the manifest never named, and the
+      manifest asked for a `hall_plate.png` the rig had no slot for plus a `chain.png` nothing
+      loads. Since the rig loads by exact filename and silently skips the unknown, that art would
+      have been generated and then simply never appeared. Fixed three ways — the rig now takes
+      `hall_plate.png` as a full-frame plate (aspect-preserved, 1.2% overscan against the camera
+      drift, inert per P128) with the seven pieces demoted to **optional overrides**; the manifest
+      is re-cut to the rig's exact slots; and `tools/title_assets.py` derives the slot list from
+      `title_scene.gd` and fails when the two disagree. See DECISION_LOG TD-073 addendum.
+      Test: **V1/V2** — `python3 tools/title_assets.py --selftest` green, `--check` exits 0 at 0/18
+      slots; a throwaway synthetic plate installed + imported + captured (`--title-preview`) shows
+      the architecture blockouts replaced, undistorted, no edge seam, overlays still animating.
+
 - [ ] T260 [R241 / V1] — Drop in the authored assets per `asset-manifest.md`. **No code change** —
       each file simply replaces its blockout. Then tune positions against the reference.
+      Blocked only on the art itself: stage into `art/src/title/`, then
+      `python3 tools/title_assets.py --import`.
 
 - [ ] T261 [R245, R247 / V4, V5] — Legibility pass; second integer scale; asset-map; suites; land.
 

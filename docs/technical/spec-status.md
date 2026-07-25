@@ -23,7 +23,7 @@ These are disagreements between what a spec says and what the tree contains.
 |---|---|---:|---:|---:|---|---|
 | `mobile-input` | 🟡 dormant | 0 | 10 | 0 | 2026-07-11 | MISSING |
 | `station-ui` | 🟡 dormant | 3 | 6 | 0 | 2026-07-24 | MISSING |
-| `title-scene` | 🟢 active | 5 | 3 | 0 | 2026-07-23 | — |
+| `title-scene` | 🟢 active | 6 | 3 | 0 | 2026-07-23 | — |
 | `collegium-client` | 🟡 dormant | 6 | 1 | 0 | 2026-07-24 | — |
 | `nave-cathedral` | 🟡 dormant | 3 | 2 | 0 | 2026-07-23 | — |
 | `ambient-signs` | ✅ done | 4 | 0 | 0 | 2026-07-02 | — |

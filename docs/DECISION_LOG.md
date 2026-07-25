@@ -2548,3 +2548,43 @@ TD-069; the same trap was not worth walking into twice.
 
 Result: **36 specs, 2 flagged** — `station-ui` (the real Stipend gap) and `mobile-input` (genuinely
 unstarted, its files are the deliverable). Tooling + docs; no runtime code change.
+
+## 2026-07-25 — TD-073 addendum: the title rig takes a plate, and the asset contract is refereed
+
+**Why.** T260 is "drop in the authored assets per `asset-manifest.md`" — and the manifest and the
+rig had drifted apart, so following the manifest literally would have produced art that never
+appeared. `title_scene.gd` loaded seven per-piece architecture slots (`pier_left.png`, `vault.png`,
+`floor.png`, …) that the manifest never mentions; the manifest asked for one `hall_plate.png` the
+rig had no slot for, plus a `chain.png` nothing loads. The rig loads **by exact filename and skips
+what is absent** — the property that lets art arrive one piece at a time — so none of that errors.
+It renders a blockout and says nothing. The author would have generated a plate, dropped it in, seen
+no change, and had nothing to debug from.
+
+**Decided.**
+
+1. **The rig takes the plate.** `hall_plate.png` is a full-frame architecture layer at `z=-64`,
+   `STRETCH_KEEP_ASPECT_COVERED` (a 16:9 plate in a non-16:9 viewport overflows rather than
+   distorting the composition, R241), drawn at a **1.2% overscan** so `_camera_life`'s 2px drift
+   cannot walk an edge into view, and never animated (P128). One painted plate holds a single
+   coherent camera; seven separately generated cutouts have to be re-aligned to each other by hand.
+2. **The seven pieces become overrides, not rivals.** With a plate present, a per-piece slot renders
+   only if its own file exists — a missing piece is not a hole, so it draws no blockout over the
+   plate. Without a plate, nothing changes: the seven blockouts are the architecture, as before.
+   Both paths, and the mixture, work.
+3. **The contract is refereed, not asserted.** `tools/title_assets.py` derives the slot list from
+   `title_scene.gd` — the only thing that actually loads anything — and the expected sizes from the
+   manifest's table rows, then fails if the two disagree. It also installs staged art from
+   `art/src/title/` and checks each file's IHDR: a prop exported as RGB instead of RGBA is a **hard
+   error**, because it arrives with its background baked in and renders as a rectangle over the
+   scene. `--selftest` asserts the rules; `--check` exits 1 on a violation.
+
+**Not decided.** No `gen_title_assets.py`. Painted source art is copied **byte-for-byte**; re-encoding
+a painted matte through a pixel-art generator is the register mistake TD-055 warns about. The plate
+remains the one deliberate painted-register exception (R242) and no board or HUD asset changes (P127).
+
+**Verified.** A throwaway synthetic plate (never `collegium_hall_src.png`, which stays reference-only)
+installed, imported and captured: the seven architecture blockouts vanish, the plate fills the frame
+undistorted with no edge seam, and the cloth/prop/vessel/overlay blockouts still animate over it.
+The validator raised both intended warnings on it (wrong size, carries alpha). The test plate was
+then deleted; `--check` is green at 0 of 18 slots filled, which is the correct state until art lands.
+Client render + tooling + docs; no `src/**` change.
