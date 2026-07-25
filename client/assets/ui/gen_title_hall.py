@@ -103,7 +103,7 @@ def px(x, y):
         # The groin is where the two barrels meet — a place the geometry HAS, so the rib is a
         # moulding sitting on it rather than a line drawn across a ceiling.
         zc = (int(p[2] / G.BAY) + 0.5) * G.BAY
-        if abs(G._h_trans(p[0]) - G._h_long(p[2], zc)) < 0.30:
+        if abs(G._h_trans(p[0]) - G._h_long(p[2], zc)) < 0.16:
             idx += 2
         elif coursed(d, 1.1):
             u = math.atan2(p[1] - G.SPRING, p[0]) * 3.0
@@ -163,12 +163,15 @@ def px(x, y):
 
     elif h.kind == "apse":
         xw, hh = h.u, h.v
-        if abs(xw) < 2.6 and 6.0 < hh < G.arch_top(abs((xw + 2.6) % 1.75 - 0.875), 0.7, 13.0):
-            if abs(((xw + 2.6) / 1.75) % 1.0 - 0.5) > 0.38:
-                return ramp("navestone", 1) + (255,)
-            return ramp("gold", 1) + (255,)
-        if hh < 1.8:
-            idx = 2 + int(hh / 0.6) - vignette(fx, fy)       # the altar steps, worn pale
+        # The sanctuary reads LOW: a lit altar table and its steps at the foot of the far wall,
+        # with the wall above it left dark. The tall lancets that used to stand here sat exactly
+        # behind the menu, and dimming them twice never fixed what was a placement problem.
+        if abs(xw) < 3.2 and 1.1 < hh < 2.0:
+            return ramp("gold", 2 if abs(((xw / 0.5) % 1.0) - 0.5) > 0.3 else 3) + (255,)
+        if hh <= 1.1:
+            idx = 3 + int(hh / 0.4) - vignette(fx, fy)       # the altar steps, worn pale
+        elif hh < 9.0:
+            idx = 1 + lit - vignette(fx, fy)                 # dark wall behind the sanctuary
 
     elif h.kind == "void":
         return ramp("black", 0) + (255,)

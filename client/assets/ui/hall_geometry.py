@@ -130,7 +130,7 @@ def _vault(ox, oy, oz, dx, dy, dz):
         zc = (int(z / BAY) + 0.5) * BAY
         if _h_trans(x) <= _h_long(z, zc) + 0.02:
             m = math.sqrt(x * x + (y - SPRING) ** 2) or 1.0
-            best = (t, "vault", (x / m, (y - SPRING) / m, 0.0), x, z)
+            best = (t, "vault", (-x / m, -(y - SPRING) / m, 0.0), x, z)
 
     # longitudinal barrels, one per bay — ellipses with semi-axes (r, HALF_W):
     #   ((z−zc)/r)² + ((y−SPRING)/HALF_W)² = 1
@@ -151,7 +151,7 @@ def _vault(ox, oy, oz, dx, dy, dz):
                 # gradient of the ellipse, not of a circle
                 gy, gz = (y - SPRING) / R2, (z - zc) / r2
                 m = math.sqrt(gy * gy + gz * gz) or 1.0
-                best = (t, "vault", (0.0, gy / m, gz / m), x, z)
+                best = (t, "vault", (0.0, -gy / m, -gz / m), x, z)
     return best
 
 

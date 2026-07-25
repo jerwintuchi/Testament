@@ -83,7 +83,7 @@
       Test: capture with lights on and `--lights-off`; every difference is local to a source. Plus
       an assertion that the light term's type is `int` at the point of use (P131).
 
-- [ ] T272 [R248, R249, R254, R258, P130 / V1, V4] — **Re-render the plate on the new geometry, at
+- [x] T272 [R248, R249, R254, P130 / V1, V4] — **Re-render the plate on the new geometry, at
       1280×720.** `gen_title_hall.py` keeps its material and banding discipline and drops every
       painted-curvature hack (rib lines on a plane, shaft stripes on a wall). Authoring resolution
       goes to 1280×720 so the grain is fine enough for the detail Phase B adds.
