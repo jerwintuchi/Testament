@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
-"""gen_title_furniture.py — the hall's cloth and furniture, as PIXEL ART (TD-075).
+"""gen_title_furniture.py — the hall's cloth and furniture, at the HALL'S OWN GRAIN (TD-076).
 
     title/banner_left.png  banner_right.png  banner_center.png
     title/censer.png  chandelier.png
     title/candle_rack.png  candle_rack_b.png  brazier.png  brazier_b.png
 
-Replaces the painterly props and banners. They were authored at 340-660px and drawn into a 640x360
-viewport — a 4:1 downscale that no filter survives. **Everything here is authored at the size it is
-displayed**, which for these objects is 20 to 96 pixels across. At that size a prop is drawn the way
-a pixel artist draws one: a silhouette, two or three flat tones from a shipped ramp, and a single
-highlight where the light is. No form shading, no anti-aliasing, no gradients.
+**Re-authored at twice the pixel count, at the same display size.** The hall is now a 1280x720 plate
+that lands one art pixel per device pixel at 720p; these props were authored for the 640 grain, so
+each of their pixels covered a 2x2 block and they read as chunkier than the hall they stood in.
 
-Every pixel is a ramp entry, so `A.assert_on_palette` passes on all nine — the same check the board's
-own art passes, and the reason these sit beside it.
+That is fixed by drawing MORE, not by scaling up. A NEAREST upscale would preserve the 2x2 blocks
+exactly — the mismatch is a detail-density problem, not a size one. So every piece here is redrawn
+with detail that only exists at the finer grain: chain links with gaps, tapers with a lit and a
+shaded side, a rim on the censer's bowl, wax runs of varying width, iron with a highlight edge.
 
+The rig's viewport fractions are UNCHANGED and need no edit: display size is `fraction x 640`
+logical, and one art pixel per device pixel means `art_width = 1280 x fraction`. Doubling the art
+while holding the fraction is exactly what puts them on the hall's grain.
+
+Every pixel is an Ash & Ember ramp entry — `A.assert_on_palette` passes on all nine.
 Nothing burns: cold wicks, dead coals. The fire is in-engine (TD-043).
 
 Run from client/assets/ui/:  python3 gen_title_furniture.py
@@ -25,13 +30,16 @@ import pngio
 
 EMB_SRC = "board/collegium_logo.png"
 
-# Every colour used here, by name, so the whole set can be read at a glance.
 IRON_D, IRON_M, IRON_L = A.RAMP["navestone"][0], A.RAMP["navestone"][2], A.RAMP["navestone"][4]
+IRON_XL = A.RAMP["navestone"][5]
 BRASS_D, BRASS_M, BRASS_L = A.RAMP["gold"][0], A.RAMP["gold"][1], A.RAMP["gold"][2]
+BRASS_XL = A.RAMP["gold"][3]
 WAX_D, WAX_M, WAX_L = A.RAMP["parchment"][0], A.RAMP["parchment"][2], A.RAMP["parchment"][3]
-CLOTH_D, CLOTH_M, CLOTH_L = A.RAMP["black"][2], A.RAMP["wax"][0], A.RAMP["wax"][1]
-BONE_D, BONE_L = A.RAMP["parchment"][1], A.RAMP["parchment"][3]
-COAL_D, COAL_M = A.RAMP["black"][1], A.RAMP["navestone"][1]
+WAX_XL = A.RAMP["parchment"][4]
+CLOTH_XD, CLOTH_D, CLOTH_M, CLOTH_L = (A.RAMP["black"][1], A.RAMP["black"][2],
+                                       A.RAMP["wax"][0], A.RAMP["wax"][1])
+BONE_D, BONE_M, BONE_L = A.RAMP["parchment"][1], A.RAMP["parchment"][2], A.RAMP["parchment"][4]
+COAL_D, COAL_M, COAL_L = A.RAMP["black"][1], A.RAMP["navestone"][1], A.RAMP["navestone"][3]
 NONE = (0, 0, 0, 0)
 
 
@@ -42,7 +50,7 @@ def h(x, y, s=0):
 
 
 class Grid:
-    """A little pixel canvas. Set pixels; there is no blending, ever."""
+    """A pixel canvas. Set pixels; there is no blending, ever."""
 
     def __init__(self, w, hh):
         self.w, self.h = w, hh
@@ -64,22 +72,19 @@ class Grid:
         for y in range(y0, y1 + 1):
             self.hline(y, x0, x1, c)
 
-    def ellipse(self, cx, cy, rx, ry, c, fill=True):
-        for y in range(int(cy - ry), int(cy + ry) + 1):
-            for x in range(int(cx - rx), int(cx + rx) + 1):
+    def ellipse(self, cx, cy, rx, ry, c, fill=True, thick=1.0):
+        for y in range(int(cy - ry) - 1, int(cy + ry) + 2):
+            for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
                 d = ((x - cx) / max(rx, .5)) ** 2 + ((y - cy) / max(ry, .5)) ** 2
-                if d <= 1.0 and (fill or d > 0.45):
+                if d <= 1.0 and (fill or d > 1.0 - 0.42 * thick):
                     self.set(x, y, c)
 
     def reader(self):
         return lambda x, y: self.px[y][x]
 
 
-# ── The device, thresholded to two tones ─────────────────────────────────────
-
 def emblem(target_w):
-    """The Collegium device at `target_w` px, as 0/1/2 coverage. Thresholded, never resampled:
-    a smooth reduction of a big logo hands back grey mush, which TD-054 already paid for once."""
+    """The Collegium device, thresholded to three levels. Never smoothly resampled (TD-054)."""
     w, hh, px = pngio.read_png(EMB_SRC)
     sc = w / float(target_w)
     th = int(hh / sc)
@@ -106,29 +111,40 @@ def emblem(target_w):
 
 def banner(w, hh, seed, with_device=True):
     g = Grid(w, hh)
-    g.rect(0, 0, w - 1, 1, IRON_M)                            # the rod it hangs from
-    g.hline(0, 0, w - 1, IRON_L)
-    top = 3
-    # A ragged foot, resolved per COLUMN as whole pixels — cloth wears away a thread at a time.
+    # The rod: iron with a lit top edge and two brackets, which only resolve at this grain.
+    g.rect(0, 2, w - 1, 4, IRON_M)
+    g.hline(1, 0, w - 1, IRON_L)
+    g.hline(5, 0, w - 1, IRON_D)
+    for bx in (int(w * 0.18), int(w * 0.82)):
+        g.rect(bx - 1, 0, bx + 1, 7, IRON_L)
+    top = 7
+
     for x in range(w):
-        hem = hh - 1 - int((0.10 + 0.14 * h(x // 2, 0, 7 + seed)) * hh)
-        # Folds: narrow and IRREGULAR. Four equal bands across the width read as a barcode
-        # printed on the cloth; real drape is a few close creases and a lot of quiet field.
+        # A ragged foot resolved per column, in whole pixels, at twice the resolution of before.
+        hem = hh - 1 - int((0.09 + 0.13 * h(x // 3, 0, 7 + seed)) * hh)
+        # Folds: four tones now, so a crease has a lit face, a body, a deep and a core shadow.
+        fold = h(x // 5, 0, 31 + seed)
         col = CLOTH_M
-        fold = h(x // 3, 0, 31 + seed)
-        if fold > 0.86:
-            col = CLOTH_L                                     # the lit crest of a crease
-        elif fold < 0.20:
-            col = CLOTH_D                                     # the deep of one
+        if fold > 0.90:
+            col = CLOTH_L
+        elif fold < 0.08:
+            col = CLOTH_XD
+        elif fold < 0.24:
+            col = CLOTH_D
         g.vline(x, top, hem, col)
-        if x in (0, w - 1):
-            g.vline(x, top, hem, CLOTH_D)                     # selvage
-        for _ in range(1):                                    # a few loose threads below the hem
-            if h(x, 1, 11 + seed) > 0.86:
-                g.vline(x, hem + 1, hem + 1 + int(3 * h(x, 2, 13)), CLOTH_D)
-    if with_device and w >= 24:
-        dev, dw, dh = emblem(int(w * 0.62))
-        x0, y0 = (w - dw) // 2, int(hh * 0.20)
+        # A one-pixel highlight down the lit side of each crease — pure finer-grain detail.
+        if fold > 0.88 and h(x // 5, 1, 41 + seed) > 0.4:
+            g.vline(x, top + 2, hem - 3, CLOTH_L)
+        if x <= 1 or x >= w - 2:
+            g.vline(x, top, hem, CLOTH_XD)                      # selvage, two pixels now
+        if h(x, 1, 11 + seed) > 0.88:                           # loose threads below the hem
+            g.vline(x, hem + 1, hem + 1 + int(6 * h(x, 2, 13)), CLOTH_D)
+        if h(x, 3, 17 + seed) > 0.955:                          # a worn-through pinhole
+            g.set(x, hem - int(10 + 30 * h(x, 4, 19)), CLOTH_XD)
+
+    if with_device and w >= 48:
+        dev, dw, dh = emblem(int(w * 0.64))
+        x0, y0 = (w - dw) // 2, int(hh * 0.19)
         for y in range(dh):
             for x in range(dw):
                 v = dev[y][x]
@@ -139,84 +155,127 @@ def banner(w, hh, seed, with_device=True):
 
 # ── Hanging props ────────────────────────────────────────────────────────────
 
-def censer(w=20, hh=62):
+def censer(w=40, hh=124):
     g = Grid(w, hh)
     cx = w // 2
-    for y in range(0, 30):                                    # the chain, to the very top edge
-        g.set(cx, y, BRASS_M if y % 3 else BRASS_D)
-    g.ellipse(cx, 31, 3, 2, BRASS_M, fill=False)              # suspension ring
-    for dx, y0 in ((-4, 34), (0, 34), (4, 34)):               # three chains to the rim
-        for y in range(y0, 41):
-            g.set(cx + int(dx * (y - y0) / 7.0), y, BRASS_D)
-    g.ellipse(cx, 48, 6, 6, BRASS_D)                          # the vessel
-    g.ellipse(cx - 1, 46, 4, 4, BRASS_M)
-    g.set(cx - 2, 45, BRASS_L)
-    for dx, dy in ((-3, 48), (0, 50), (3, 47), (-1, 52)):     # pierced metalwork
-        g.set(cx + dx, dy, IRON_D)
-    g.rect(cx - 5, 41, cx + 5, 42, BRASS_M)                   # the lid's seam
-    g.vline(cx, 38, 40, BRASS_L)                              # finial
-    g.ellipse(cx, 55, 2, 1, BRASS_D)                          # foot
+    # A chain with actual LINKS: two lit pixels, a gap, a dark pixel. At the old grain this was a
+    # dotted line; here it reads as forged links.
+    for y in range(0, 60):
+        m = y % 4
+        if m == 0:
+            g.set(cx - 1, y, BRASS_M); g.set(cx, y, BRASS_L)
+        elif m == 1:
+            g.set(cx - 1, y, BRASS_D); g.set(cx, y, BRASS_M)
+        elif m == 2:
+            g.set(cx, y, BRASS_D)
+    g.ellipse(cx, 63, 6, 4, BRASS_M, fill=False, thick=1.4)     # suspension ring
+    g.set(cx - 3, 61, BRASS_L)
+    for dx in (-8, 0, 8):                                       # three chains to the rim
+        for y in range(68, 82):
+            t = (y - 68) / 14.0
+            g.set(cx + int(dx * t), y, BRASS_M if y % 3 else BRASS_D)
+    g.rect(cx - 11, 82, cx + 11, 85, BRASS_M)                   # the lid's flange
+    g.hline(82, cx - 11, cx + 11, BRASS_L)
+    g.hline(85, cx - 11, cx + 11, BRASS_D)
+    g.ellipse(cx, 96, 12, 12, BRASS_D)                          # the vessel
+    g.ellipse(cx - 2, 93, 8, 8, BRASS_M)
+    g.ellipse(cx - 3, 91, 4, 4, BRASS_L)                        # its lit shoulder
+    for dx, dy in ((-6, 96), (-1, 100), (5, 94), (2, 104), (-4, 103), (7, 99)):
+        g.set(cx + dx, dy, IRON_D)                              # pierced metalwork
+        g.set(cx + dx + 1, dy, BRASS_D)                         # and the lip of each piercing
+    g.vline(cx, 74, 81, BRASS_L)                                # finial spike
+    g.set(cx, 73, BRASS_XL)
+    g.ellipse(cx, 110, 5, 3, BRASS_D)                           # foot
+    g.hline(109, cx - 3, cx + 3, BRASS_M)
     return g
 
 
-def chandelier(w=44, hh=30):
+def chandelier(w=88, hh=60):
     g = Grid(w, hh)
-    cx, cy = w // 2, 19
-    for dx in (-16, 0, 16):                                   # three chains up out of frame
-        for y in range(0, cy - 4):
-            g.set(cx + int(dx * y / float(cy - 4)), y, IRON_D)
-    g.ellipse(cx, cy, 20, 5, IRON_M, fill=False)              # the corona
-    g.ellipse(cx, cy + 2, 19, 4, IRON_D, fill=False)
-    for i in range(7):                                        # unlit tapers around the rim
-        t = (i + 0.5) / 7.0
-        x = int(cx - 19 + 38 * t)
-        y = cy + int(4.5 * (1.0 - abs(t - 0.5) * 2.0) ** 0.5) - 3
-        tall = 4 + int(3 * h(i, 0, 5))
-        g.vline(x, y - tall, y, WAX_M)
-        g.set(x, y - tall, WAX_L)
-        g.set(x, y - tall - 1, IRON_D)                        # a cold wick
+    cx, cy = w // 2, 38
+    for dx in (-32, 0, 32):
+        for y in range(0, cy - 8):
+            x = cx + int(dx * y / float(cy - 8))
+            g.set(x, y, BRASS_M if y % 3 else BRASS_D)          # links, not a dotted line
+    g.ellipse(cx, cy, 40, 10, IRON_M, fill=False, thick=1.6)    # the corona
+    g.ellipse(cx, cy - 1, 40, 10, IRON_L, fill=False, thick=0.5)
+    g.ellipse(cx, cy + 4, 38, 9, IRON_D, fill=False, thick=1.2)
+    for i in range(9):
+        t = (i + 0.5) / 9.0
+        x = int(cx - 38 + 76 * t)
+        y = cy + int(9.0 * (1.0 - abs(t - 0.5) * 2.0) ** 0.5) - 6
+        tall = 8 + int(6 * h(i, 0, 5))
+        g.rect(x - 2, y - 2, x + 2, y, IRON_D)                  # the pricket's pan
+        g.hline(y - 2, x - 2, x + 2, IRON_L)
+        g.vline(x - 1, y - tall, y - 3, WAX_D)                  # taper: shaded side
+        g.vline(x, y - tall, y - 3, WAX_M)                      # ...and lit side
+        g.set(x, y - tall, WAX_XL)
+        g.set(x, y - tall - 2, IRON_D)                          # a cold wick
     return g
 
 
 # ── Floor vessels ────────────────────────────────────────────────────────────
 
-def candle_rack(w=96, hh=55, seed=0):
+def candle_rack(w=192, hh=110, seed=0):
     g = Grid(w, hh)
-    tray = hh - 14
-    g.hline(tray, 4, w - 5, IRON_M)                           # the tray
-    g.hline(tray + 1, 4, w - 5, IRON_D)
-    g.vline(6, tray, hh - 2, IRON_M)                          # splayed legs
-    g.vline(w - 7, tray, hh - 2, IRON_M)
-    g.hline(hh - 2, 5, w - 6, IRON_D)
+    tray = hh - 28
+    g.rect(8, tray, w - 9, tray + 2, IRON_M)                    # the tray
+    g.hline(tray, 8, w - 9, IRON_L)
+    g.hline(tray + 3, 8, w - 9, IRON_D)
+    for lx in (12, w - 13):                                     # legs, with a lit inner edge
+        g.rect(lx - 1, tray, lx + 1, hh - 4, IRON_M)
+        g.vline(lx - 1, tray, hh - 4, IRON_D)
+        g.vline(lx + 1, tray, hh - 4, IRON_L)
+        g.rect(lx - 4, hh - 4, lx + 4, hh - 2, IRON_D)          # foot
+    g.rect(10, hh - 8, w - 11, hh - 7, IRON_D)                  # the stretcher bar
+
     n = 13 + int(4 * h(seed, 0, 17))
     for i in range(n):
-        x = 6 + int((w - 13) * (i + 0.5) / n)
-        tall = 8 + int((hh - 26) * h(i, seed, 11))
-        g.vline(x, tray - tall, tray - 1, WAX_M)
-        g.vline(x - 1, tray - tall + 1, tray - 1, WAX_D)      # the shaded side of the taper
+        x = 14 + int((w - 30) * (i + 0.5) / n)
+        tall = 16 + int((hh - 52) * h(i, seed, 11))
+        # A taper is now four pixels across: shade, body, light, and a rim — where at the old
+        # grain it was a single bright column.
+        g.vline(x - 1, tray - tall, tray - 1, A.RAMP["parchment"][0])
+        g.vline(x, tray - tall, tray - 1, WAX_D)
+        g.vline(x + 1, tray - tall + 1, tray - 1, WAX_M)
         g.set(x, tray - tall, WAX_L)
-        g.set(x, tray - tall - 1, IRON_D)                     # cold wick
-    for i in range(5):                                        # wax run down the tray's lip
-        x = 8 + int((w - 16) * h(i, seed, 23))
-        g.vline(x, tray + 2, tray + 2 + int(3 * h(i, seed, 29)), WAX_D)
+        g.set(x + 1, tray - tall, WAX_D)
+        g.vline(x, tray - tall - 3, tray - tall - 1, IRON_D)    # cold wick
+        if h(i, seed, 31) > 0.6:                                # wax welded to its neighbour
+            g.vline(x + 2, tray - int(tall * 0.3), tray - 1, WAX_D)
+
+    for i in range(7):                                          # runs down the tray's lip
+        x = 16 + int((w - 32) * h(i, seed, 23))
+        drop = 3 + int(9 * h(i, seed, 29))
+        g.vline(x, tray + 3, tray + 3 + drop, WAX_D)
+        g.vline(x + 1, tray + 3, tray + 2 + drop, WAX_M)
+        g.set(x, tray + 3 + drop, WAX_M)                        # the bead at the bottom
     return g
 
 
-def brazier(w=45, hh=42, seed=0):
+def brazier(w=90, hh=84, seed=0):
     g = Grid(w, hh)
-    cx, rim = w // 2, 14
-    for dx in (-11, 0, 11):                                   # three legs
-        for y in range(rim + 6, hh - 1):
-            g.set(cx + int(dx * (y - rim - 6) / float(hh - rim - 7)), y, IRON_M)
-    g.ellipse(cx, rim + 4, 16, 8, IRON_M)                     # the bowl
-    g.ellipse(cx, rim + 6, 15, 7, IRON_D)
-    g.ellipse(cx, rim, 17, 5, IRON_L, fill=False)             # the rim, catching what light there is
-    for y in range(rim - 3, rim + 3):                         # dead coals, banked in the bowl
-        for x in range(cx - 14, cx + 15):
-            d = ((x - cx) / 14.0) ** 2 + ((y - rim) / 3.2) ** 2
+    cx, rim = w // 2, 28
+    for dx in (-22, 0, 22):                                     # three legs, tapering
+        for y in range(rim + 12, hh - 3):
+            t = (y - rim - 12) / float(hh - rim - 15)
+            x = cx + int(dx * (0.55 + 0.45 * t))
+            g.set(x, y, IRON_M)
+            g.set(x + 1, y, IRON_D)
+            if y % 7 == 0:
+                g.set(x, y, IRON_L)                             # a rivet down the leg
+        g.hline(hh - 3, cx + int(dx * 1.0) - 2, cx + int(dx * 1.0) + 2, IRON_D)
+    g.ellipse(cx, rim + 8, 32, 16, IRON_M)                      # the bowl
+    g.ellipse(cx, rim + 11, 30, 14, IRON_D)
+    g.ellipse(cx - 6, rim + 6, 18, 9, IRON_L, fill=False, thick=0.7)   # its lit flank
+    g.ellipse(cx, rim, 34, 10, IRON_L, fill=False, thick=1.5)   # the rim
+    g.ellipse(cx, rim - 1, 34, 10, IRON_XL, fill=False, thick=0.5)
+    for y in range(rim - 6, rim + 6):                           # dead coals, three tones
+        for x in range(cx - 28, cx + 29):
+            d = ((x - cx) / 28.0) ** 2 + ((y - rim) / 6.4) ** 2
             if d <= 1.0:
-                v = h(x // 2, y, 7 + seed)
-                g.set(x, y, COAL_M if v > 0.62 else COAL_D)
+                v = h(x // 3, y // 2, 7 + seed)
+                g.set(x, y, COAL_L if v > 0.88 else (COAL_M if v > 0.55 else COAL_D))
     return g
 
 
@@ -227,11 +286,11 @@ def emit(name, g):
 
 def main():
     os.makedirs(os.path.join(os.path.dirname(os.path.abspath(__file__)), "title"), exist_ok=True)
-    bl = emit("banner_left", banner(66, 168, 1))
+    bl = emit("banner_left", banner(132, 336, 1))
     A.write_png("title/banner_left.png", bl.w, bl.h, bl.reader())
-    br = emit("banner_right", banner(66, 162, 2))
+    br = emit("banner_right", banner(132, 324, 2))
     A.write_png("title/banner_right.png", br.w, br.h, br.reader())
-    bc = emit("banner_center", banner(26, 62, 3, with_device=False))
+    bc = emit("banner_center", banner(52, 124, 3, with_device=False))
     A.write_png("title/banner_center.png", bc.w, bc.h, bc.reader())
 
     ce = emit("censer", censer())
@@ -241,18 +300,18 @@ def main():
 
     r1 = emit("candle_rack", candle_rack(seed=1))
     A.write_png("title/candle_rack.png", r1.w, r1.h, r1.reader())
-    r2 = emit("candle_rack_b", candle_rack(w=88, hh=51, seed=2))
+    r2 = emit("candle_rack_b", candle_rack(w=176, hh=102, seed=2))
     A.write_png("title/candle_rack_b.png", r2.w, r2.h, r2.reader())
     b1 = emit("brazier", brazier(seed=3))
     A.write_png("title/brazier.png", b1.w, b1.h, b1.reader())
-    b2 = emit("brazier_b", brazier(w=42, hh=39, seed=4))
+    b2 = emit("brazier_b", brazier(w=84, hh=78, seed=4))
     A.write_png("title/brazier_b.png", b2.w, b2.h, b2.reader())
 
-    print("gen_title_furniture OK — 3 banners, censer, chandelier, 2 racks, 2 braziers, on-palette.")
-    print("  widths as viewport fractions (640 wide): "
-          + ", ".join("%s %.4f" % (n, g.w / 640.0) for n, g in
-                      (("banner", bl), ("banner_c", bc), ("censer", ce), ("chandelier", ch),
-                       ("rack", r1), ("rack_b", r2), ("brazier", b1), ("brazier_b", b2))))
+    print("gen_title_furniture OK — 9 pieces at the hall's grain, on-palette.")
+    print("  rig fractions (art_width / 1280, unchanged from before):")
+    for n, g in (("banner", bl), ("banner_c", bc), ("censer", ce), ("chandelier", ch),
+                 ("rack", r1), ("rack_b", r2), ("brazier", b1), ("brazier_b", b2)):
+        print("    %-11s %dx%-4d  %.4f" % (n, g.w, g.h, g.w / 1280.0))
 
 
 if __name__ == "__main__":

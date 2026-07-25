@@ -73,32 +73,33 @@ architecture slices. `hall_geometry.py` is *kept* — its curved vault and cylin
 real flat-plane defect and carry tests a painted surface cannot pass, and it may serve an in-game
 Collegium screen where a generated environment is worth more than a painted one (TD-076).
 
-## Cloth — BUILT, NOT DRAWN
+## Cloth
 
-*The painting contains its own. `PROPS_IN_PLATE = true` turns these off; the files and the contract
-stay, so restoring them is one flag.*
-
-| File | Size | Alpha | Notes |
-|---|---|---|---|
-| `banner_left.png` | 66×168 | yes | hangs on the left pier, crest in bone dye |
-| `banner_right.png` | 66×162 | yes | its own weave and wear — not a mirror |
-| `banner_center.png` | 26×62 | yes | small, deep, hung from the frame's top edge |
-
-## Hanging props — BUILT, NOT DRAWN
+*Drawn and animated again: the pixel-art base has no furniture of its own. Authored at **twice** the
+old pixel count at the same display size, so they sit on the hall's grain rather than reading as
+2×2 blocks against it.*
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `censer.png` | 20×62 | yes | the chain runs to the **top edge**; hung twice |
-| `chandelier.png` | 44×30 | yes | an iron corona on three chains |
+| `banner_left.png` | 132×336 | yes | hangs on the left pier, crest in bone dye |
+| `banner_right.png` | 132×324 | yes | its own weave and wear — not a mirror |
+| `banner_center.png` | 52×124 | yes | small, deep, hung from the frame's top edge |
 
-## Fire vessels — BUILT, NOT DRAWN
+## Hanging props
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `candle_rack.png` | 96×55 | yes | tapers at varying heights; stands left |
-| `candle_rack_b.png` | 88×51 | yes | its own rack; stands right, further off |
-| `brazier.png` | 45×42 | yes | standing iron bowl, **no flame**; stands left |
-| `brazier_b.png` | 42×39 | yes | a different bowl; stands right, further off |
+| `censer.png` | 40×124 | yes | the chain runs to the **top edge**; hung twice |
+| `chandelier.png` | 88×60 | yes | an iron corona on three chains |
+
+## Fire vessels
+
+| File | Size | Alpha | Notes |
+|---|---|---|---|
+| `candle_rack.png` | 192×110 | yes | tapers at varying heights; stands left |
+| `candle_rack_b.png` | 176×102 | yes | its own rack; stands right, further off |
+| `brazier.png` | 90×84 | yes | standing iron bowl, **no flame**; stands left |
+| `brazier_b.png` | 84×78 | yes | a different bowl; stands right, further off |
 
 **Nothing burns in the art.** Cold wicks, dead coals. Every flame in this scene is an in-engine
 additive pool that flickers out of step (TD-043); a baked hotspot would fight it.
