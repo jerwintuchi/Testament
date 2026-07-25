@@ -1,0 +1,69 @@
+# Tasks — The Great Hall from curved geometry (TD-076)
+
+> **Status:** DRAFT — awaiting approval. Nothing here is started.
+> T# continues global from T268. Client render + generated art only; the named test is stated for
+> each task before any code is written (`spec-workflow.md`).
+>
+> Ordered so the author sees the fix for the reported defect **first**, in one reviewable slice,
+> before any of the enrichment work is spent on top of it.
+
+## Phase A — The geometry (the reported defect)
+
+- [ ] T269 [R248, P129 / V1] — **`hall_geometry.py`: the camera and the curved vault.** Move the
+      measured camera out of `gen_nave.py`; add the groin vault as the intersection of a transverse
+      and a longitudinal barrel, solved bay by bay as quadratics (no marching). `trace()` returns
+      kind, world point, **unit normal**, distance.
+      Test: `python3 hall_geometry.py --selftest` — on a horizontal scanline across a web carrying
+      no rib, the surface normal's `x` component **changes sign** across the nave and its magnitude
+      is monotonic to either side. A plane cannot satisfy that; a barrel does by construction.
+
+- [ ] T270 [R249, P129 / V1] — **Round piers.** Compound piers as a core cylinder plus engaged
+      colonnettes, ray-cast, with normals; the wall behind stays a plane.
+      Test: `--selftest` — a scanline across one colonnette yields `n·L` rising then falling, and
+      the rendered indices read dark → light → dark. Painted stripes cannot produce that order.
+
+- [ ] T271 [R253, P131 / V3] — **Lighting from normals, in world space.** Point lights with radius
+      and strength; contribution `max(0, n·l̂)·falloff`, summed and **banded to an integer** before
+      it reaches the output.
+      Test: capture with lights on and `--lights-off`; every difference is local to a source. Plus
+      an assertion that the light term's type is `int` at the point of use (P131).
+
+- [ ] T272 [R248, R249, R254, P130 / V1, V4] — **Re-render the plate on the new geometry.**
+      `gen_title_hall.py` keeps its material and banding discipline and drops every painted-curvature
+      hack (rib lines on a plane, shaft stripes on a wall).
+      Test: `A.assert_on_palette` passes; `--title-preview` captured at 1:1. **This is the slice the
+      author reviews before anything below is built.**
+
+## Phase B — What the geometry makes possible
+
+- [ ] T273 [R250 / V2] — **Furnish the hall.** Tables, benches and candle stands as world-space
+      primitives along both aisles; memorial plaques on the aisle walls; a niche modelled for the
+      statue. Per-bay primitive lists so a pixel only tests its own bay.
+      Test: capture; furnishings recede correctly and occlude each other; the far nave stays quiet.
+
+- [ ] T274 [R251 / V2] — **Windows that read as windows.** The nearest bay on each side turns its
+      window wall ~35° toward the viewer, carrying a full traceried window in the upper corners; a
+      cool wash from the (unseen) west window opposes the warm candlelight.
+      Test: capture; at least two windows show tracery rather than slivers.
+
+- [ ] T275 [R252 / V2] — **Age.** Chipped block corners, worn stair treads at the sanctuary, wax
+      build-up at the candle stands, banded soot above every flame, a polished processional line.
+      Test: capture; reads ancient and **maintained**, never ruined.
+
+## Phase C — Landing it
+
+- [ ] T276 [R255, R256 / V5, V6] — **Legibility, contract, suites.** Captures at two integer scales
+      with all four menu options legible; `title_assets --selftest` + `--check`; asset map
+      regenerated + `--check`; server and shared suites green; diff scoped to `client/ specs/ docs/`.
+      Retire `gen_nave.py`, whose flat-plane `hit()` this spec replaces.
+
+## Notes
+
+- **The statue's figure is deferred by default.** At its on-screen size a shape function will blob —
+  the finding TD-056/TD-057 already paid for twice. The niche is modelled; the figure lands as a
+  hand-placed sprite if the author wants it.
+- **No gameplay reuse.** The brief is explicit that this hall is a bespoke hero environment. Nothing
+  in `hall_geometry.py` is designed for the modular top-down pipeline, and it should not be borrowed
+  for it.
+- Three open questions are listed at the foot of `design.md` (vault profile, the statue, nave
+  length). Defaults are stated for all three, so a silent approval is unambiguous.
