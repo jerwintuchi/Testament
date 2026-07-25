@@ -83,7 +83,7 @@
 - **`censer.png`** — produced-by: `client/assets/ui/gen_title_furniture.py` · consumed-by: —
 - **`chandelier.png`** — produced-by: `client/assets/ui/gen_title_furniture.py` · consumed-by: —
 - **`dust_overlay.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
-- **`hall_plate.png`** — produced-by: `client/assets/ui/gen_title_hall.py` · consumed-by: —
+- **`hall_plate.png`** — produced-by: `client/assets/ui/gen_title_hall.py`, `client/assets/ui/gen_title_matte.py` · consumed-by: —
 - **`light_shaft.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
 - **`smoke_overlay.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
 
@@ -195,6 +195,7 @@
 - **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`
 - **`client/assets/ui/gen_title_furniture.py`** → `banner_center.png`, `banner_left.png`, `banner_right.png`, `brazier.png`, `brazier_b.png`, `candle_rack.png`, `candle_rack_b.png`, `censer.png`, `chandelier.png`
 - **`client/assets/ui/gen_title_hall.py`** → `hall_plate.png`
+- **`client/assets/ui/gen_title_matte.py`** → `hall_plate.png`
 - **`client/assets/ui/gen_title_overlays.py`** → `dust_overlay.png`, `light_shaft.png`, `smoke_overlay.png`
 
 
@@ -216,4 +217,4 @@
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/main.gd:1505` — `load/preload path`
 - `client/scripts/main.gd:1509` — `load/preload normal_path`
-- `client/scripts/ui/title_scene.gd:101` — `load/preload p`
+- `client/scripts/ui/title_scene.gd:105` — `load/preload p`

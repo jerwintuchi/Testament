@@ -41,7 +41,7 @@ Then look at it: `"$GODOT" --path "$CLIENT" --quit-after 900 -- --capture=4 --ti
 
 | File | Size | Alpha |
 |---|---|---|
-| `hall_plate.png` | 640×360 | opaque |
+| `hall_plate.png` | 1280×720 | opaque |
 
 One **bespoke** plate. The brief is explicit: *"Do not attempt to convert the cathedral into
 reusable gameplay architecture."* The seven per-surface slices that used to layer over it are

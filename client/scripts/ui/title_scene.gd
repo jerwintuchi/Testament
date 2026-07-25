@@ -23,6 +23,10 @@ const DIR := "res://assets/ui/title/"
 # The hall itself: one bespoke plate, authored at the internal resolution and drawn 1:1.
 const PLATE := "hall_plate.png"
 
+# The plate is a painting that already contains the hall's furniture, so our prop layers would
+# double it. They stay in the tables (and in the asset contract) but are not drawn.
+const PROPS_IN_PLATE := true
+
 # Blockout palette — deliberately flat and unmistakably provisional. Nobody should mistake this
 # for finished art, which is the whole point of a blockout.
 # Architecture is tinted BY DEPTH, near-dark to far-light. That makes the blockout readable, and
@@ -89,10 +93,10 @@ const OVERLAYS := [
 const FIRES := [
 	# These track VESSELS: a fire burns on a vessel, so moving one and not the other leaves a
 	# warm pool hanging over empty floor.
-	Vector2(0.140, 0.775), Vector2(0.865, 0.766),
-	Vector2(0.330, 0.843), Vector2(0.675, 0.834),
-	Vector2(CENSER_LX, CENSER_FIRE_Y), Vector2(CENSER_RX, CENSER_FIRE_Y),
-	Vector2(0.500, 0.640),
+	Vector2(0.070, 0.800), Vector2(0.200, 0.870),
+	Vector2(0.800, 0.870), Vector2(0.930, 0.800),
+	Vector2(0.270, 0.510), Vector2(0.710, 0.510),
+	Vector2(0.500, 0.860),
 ]
 
 
@@ -213,16 +217,17 @@ static func build(host: Control, reduced: bool) -> Control:
 		_plate(root, plate, host.size)
 
 	# ── Layer 2: cloth / props / vessels / overlays, each animated by kind. ──
-	for e in CLOTH:
-		var n := _layer(root, e, -50, C_CLOTH)
-		if not reduced:
-			_sway(n, rng.randf_range(5.5, 7.5), rng.randf_range(0.0, TAU))
-	for e in PROPS:
-		var n2 := _layer(root, e, -45, C_PROP)
-		if not reduced:
-			_pendulum(n2, rng.randf_range(3.4, 4.6), rng.randf_range(0.0, TAU))
-	for e in VESSELS:
-		_layer(root, e, -40, C_VESSEL)
+	if not PROPS_IN_PLATE:
+		for e in CLOTH:
+			var n := _layer(root, e, -50, C_CLOTH)
+			if not reduced:
+				_sway(n, rng.randf_range(5.5, 7.5), rng.randf_range(0.0, TAU))
+		for e in PROPS:
+			var n2 := _layer(root, e, -45, C_PROP)
+			if not reduced:
+				_pendulum(n2, rng.randf_range(3.4, 4.6), rng.randf_range(0.0, TAU))
+		for e in VESSELS:
+			_layer(root, e, -40, C_VESSEL)
 	for e in OVERLAYS:
 		var n3 := _layer(root, e, -30, C_OVERLAY)
 		# Full-frame overlays as SOLID blockout panels fog the whole screen and hide the layers

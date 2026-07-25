@@ -2680,3 +2680,38 @@ unchanged — it was always the one being matched.
 
 **Verified.** `assert_on_palette` passes on the hall and all nine furniture pieces; `title_assets
 --check` is green at 13 of 13; captured in the client at 1280×720 (logical 640×360).
+
+## 2026-07-25 — TD-076: the title hall IS the author's painting; the procedural route is closed
+
+**Why.** Four rebuilds of a generated hall, each better than the last, and none of them close to the
+reference. The author's verdict was blunt and correct — *"structurally the pillars and ceiling and
+the wall looks disjointed … disregard the constraints and make the great hall almost 1:1 to the
+reference image."*
+
+The finding underneath is worth keeping, because it was earned expensively: **a ray-caster produces
+ordered variation, and a painting's character is controlled irregularity.** Structure was always
+reproducible — the curved-geometry work fixed a genuine defect and proved it with tests a painted
+surface cannot pass (the vault's normal swings −1.00…1.00; a pier's sweeps a full turn). Likeness
+never was. The only thing 1:1 with a painting is that painting.
+
+**Decided.** `gen_title_matte.py` processes `art/src/title/hall_plate_src.jpeg` into the client. The
+prop layers stand down (`PROPS_IN_PLATE`) because the image already contains banners, censers, candle
+stands and braziers; the fire pools, dust and smoke move onto the lights the painting actually has,
+since a glow sitting where we used to invent one lights empty stone.
+
+**Both treatments were built and captured rather than argued about.**
+
+| | result |
+|---|---|
+| `--register` | 640×360, on-palette, median + two mode passes: **31 colours, 523 single-pixel islands** against a naive downscale's 5876. Technically a success — and an artistic failure. The architecture dissolves; the painting's structure lives at a frequency 640×360 cannot hold |
+| `--fidelity` | 1280×720, LANCZOS, drawn **1:1 on device pixels** at a 720p window with NEAREST and no filtering. Reads as the painting itself. **Shipped** |
+
+**Two rulings are reversed, knowingly.** TD-073 forbade using the PNG as the main menu (the author's
+verdict then was "uncanny"), and the author had ruled days earlier that the title screen must keep the
+Contract Board's pixel language. Both were overridden explicitly and in writing. The board, the HUD
+and every other surface keep the pixel register untouched — the title screen is now deliberately its
+own thing, which is a normal choice and no longer an accidental one.
+
+**Kept, not deleted.** `hall_geometry.py` and its self-tests stay in the tree. The flat-plane defect
+was real, the curved vault and cylindrical piers work, and that geometry may still earn its place for
+in-game Collegium screens where a generated environment is worth more than a painted one.

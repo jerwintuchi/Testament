@@ -1,6 +1,21 @@
 # Requirements — The Great Hall, built from curved geometry (TD-076)
 
-> **STATUS: ROUTE CHANGED — the hall is AUTHOR-SUPPLIED ART, not generated (R260).**
+> **STATUS: LANDED — the hall IS the author's painting (R260), at fidelity.**
+>
+> The author, after seeing several procedural attempts: *"disregard the constraints and make the
+> great hall similar / almost 1:1 to the reference image."* The only thing that is 1:1 with a
+> painting is the painting. `gen_title_matte.py` processes it into the client; the props stand down
+> because the image contains its own; the fires, dust and smoke move onto the lights it actually has.
+>
+> **Both treatments were built and captured rather than argued about.** `--register` (640×360, on
+> palette, mode-filtered — 31 colours, 523 single-pixel islands against a naive downscale's 5876)
+> is a technical success and an artistic failure: the architecture dissolves into mush, because the
+> painting's structure lives at a frequency 640×360 cannot hold. `--fidelity` (1280×720, drawn 1:1
+> on device pixels at 720p, no filtering) is what shipped.
+>
+> **This reverses two rulings, knowingly:** TD-073's "do not use the PNG as the main menu", and the
+> author's own "keep the Contract Board's pixel language on the title screen". Both were overridden
+> explicitly. `--register` remains one flag away if the register is ever wanted back.
 >
 > The author asked the decisive question — *does this ensure a close, almost 1:1 look to the
 > reference?* — and the answer was no. A ray-caster produces ordered variation; the reference's
