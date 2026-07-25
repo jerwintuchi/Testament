@@ -139,6 +139,14 @@ them as targets, not constraints.
 Flames are deliberately excluded: they are Layer 3, generated in-engine so each flickers
 independently.
 
+> **Shipped, and generated:** `client/assets/ui/gen_title_props.py` emits all four props (censer,
+> chandelier, candle rack, brazier) as anti-aliased signed-distance parts composited back to front.
+> **These are Python and not Aseprite on purpose**, and it is not a contradiction of TD-057: that
+> finding was measured at **17×22 px**, where a shape function cannot decide which pixel carries the
+> crossguard. At 140–520px in the painted register the job is *form* — cylinders, spheres, drip,
+> tarnish — and a hand-placed pixel would be resampled away. Nothing burns: the candles have cold
+> wicks and the brazier holds dead coals.
+
 ## Layer 2 — atmosphere overlays
 
 | File | Size | Alpha | Notes |

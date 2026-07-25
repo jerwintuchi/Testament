@@ -181,8 +181,21 @@ Layers: architecture (static), cloth (sway), hanging props (pendulum, randomized
 overlays (drift/breathe), seven fires with warm additive pools flickering out of step (Light2D can't
 reach Control — TD-047), real CPUParticles dust/embers/incense, and a camera life of 2px drift +
 1.004 breathing zoom. F9 leaves a **fully lit** still frame (captured). Asset list + per-item prompts
-in `specs/title-scene/asset-manifest.md`. **T255–T259 done; T260 (drop in art) waits on assets;
-T262 (audio) BLOCKED** — no audio assets, pipeline or sanctioned tool.
+in `specs/title-scene/asset-manifest.md`.
+
+**The art is in, and it is GENERATED** (author's call, 2026-07-25 — a deliberate retry of TD-072's
+recorded single-plate failure, logged in DECISION_LOG with why the retry is narrower: the plate holds
+no props and no baked fire, which is exactly what failed there). Four new generators:
+`gen_title_plate.py` (1920×1080 nave, camera imported from `gen_nave.py`, seeded per-bay variation so
+the two walls are not mirrors, near falls to silhouette because the foreground is lit in-engine),
+`gen_title_overlays.py` (dust/smoke/light-shaft, alpha-only so an additive `modulate` is an honest
+dimmer), `gen_title_banners.py` (three seeded standards, rod in the image since the rig sways from top
+centre), `gen_title_props.py` (censer/chandelier/candle rack/brazier as anti-aliased SDF parts —
+Python not Aseprite because TD-057's finding was measured at 17×22px, not at 140–520px painted).
+**11 of 18 slots filled; the 7 remaining are optional architecture overrides the plate carries.**
+`tools/title_assets.py` derives the slot list from `title_scene.gd` and fails if the manifest drifts
+from it — that drift was real and would have made authored art silently never appear.
+**T255–T261 done; T262 (audio) BLOCKED** — no audio assets, pipeline or sanctioned tool.
 
 Completed: **TD-070** — dead generated art deleted + the orphan signal made trustworthy. Removed 10
 files (`parch_live_*` incl. the four baked tilts, `foxing`, `board_placard`, `wall_v1`+`_n`), all

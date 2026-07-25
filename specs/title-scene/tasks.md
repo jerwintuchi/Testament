@@ -91,14 +91,34 @@
       second time after the first capture showed them out-saturating their own hall — the
       "pasted on" failure TD-059 spent a spec fixing for the board's banners.
 
-- [ ] T260 [R241 / V1] — Drop in the remaining assets per `asset-manifest.md` — props, vessels, and
-      the seven optional architecture overrides (**7 of 18 slots filled**). What is left is the
-      **Aseprite half** of the TD-057 split: censer, chandelier, candle rack, brazier — objects
-      where a pixel is a design decision and a shape function blobs.
-      **No code change** — each file simply replaces its blockout. Stage into `art/src/title/`,
-      then `python3 tools/title_assets.py --import`.
+- [x] T260e [R243 L2 / V2] — **The props, generated.** `client/assets/ui/gen_title_props.py` emits
+      the censer (chain to the top edge, pierced brass vessel, ruby panels), the chandelier (an iron
+      corona on three chains, twelve prickets), the candle rack (two ranks of tapers at differing
+      heights, wax runs clinging to the tray lip) and the brazier (riveted bowl, three legs, dead
+      coals). Anti-aliased signed-distance parts composited back to front — a hard alpha would crawl
+      the moment the rig scales it. **Python, not Aseprite, and not a contradiction of TD-057:** that
+      finding was measured at 17×22 px; at 140–520px in the painted register the job is form, and a
+      hand-placed pixel would be resampled away. Nothing burns (rule 6).
+      Test: **V2** — `--title-preview` captured. Dimmed after the first capture washed the candles
+      to near-white: an unlit asset in a torch-lit hall must be dark enough that the FIRE brightens
+      it. The same correction the banners needed.
 
-- [ ] T261 [R245, R247 / V4, V5] — Legibility pass; second integer scale; asset-map; suites; land.
+- [x] T260 [R241 / V1] — **Every non-optional slot is filled** (11 of 18; the remaining 7 are the
+      architecture overrides, which the plate carries — the manifest marks them optional). All of it
+      generated: `gen_title_plate` / `gen_title_overlays` / `gen_title_banners` / `gen_title_props`.
+      Author-painted art still replaces any slot by name via `art/src/title/` — the rig neither knows
+      nor cares which produced a file.
+      Test: **V1** — `python3 tools/title_assets.py --check` reports 11 of 18 with no contract
+      violation; `--title-preview` captured with every layer present.
+
+- [x] T261 [R245, R247 / V4, V5] — **Legibility pass; second integer scale; asset-map; suites.**
+      Captured at 1280×720 (logical 640×360) and 1920×1080 (logical 952×520): title, emblem and all
+      four options legible at both, no layer seam, plate undistorted. The second scale is what
+      **found** the R245 defect — at 952×520 "Quit" landed on the one bright patch in the hall — so
+      the apse was held down and the centre glow pool dimmed to 0.42 (it had been standing in for an
+      altar the plate now paints itself). `asset_map --selftest` + `--check`, `title_assets
+      --selftest`, `spec_status --check` all green. Suites untouched and green: server 362, shared
+      65, tools 7. Diff scoped to `client/ specs/ docs/` — no `src/**` change (R247).
 
 ## Blocked
 

@@ -199,19 +199,24 @@ def _floor(a, b, near, x, y):
 
 def _apse(a, b):
     """The far end: three tall lancets standing in the light, and a rose above them. The
-    composition's destination — the eye is walked down the nave to here."""
+    composition's destination — the eye is walked down the nave to here.
+
+    Held DOWN deliberately. This is the brightest thing in the frame and it sits dead centre,
+    where the menu's last option is read; at a second integer scale that put "Quit" on the one
+    bright patch in the hall. R245 asks the composition's centre to stay quiet, and the honest
+    fix is the environment answering for itself, not a scrim behind the UI."""
     base = A.ramp_shade("navestone", 0.13)
     # Three lancets, 1.5m apart, springing high: tall and narrow, so the far end reads as a
     # window and not as a lit doorway.
     if abs(b) < 2.4 and 9.0 < a < lancet(abs((b + 2.4) % 1.6 - 0.8), 0.62, 20.5):
         mull = abs(((b + 2.4) / 1.6) % 1.0 - 0.5)
-        base = A.lerp_rgb(GLASS, A.RAMP["parchment"][3], 0.32)
+        base = A.lerp_rgb(A.lerp_rgb(GLASS, A.RAMP["parchment"][3], 0.32), BLACK, 0.34)
         if mull > 0.38:
             base = A.over(base, A.RAMP["stone"][0], 0.74)          # the stone between lights
     else:
         rose = math.hypot(b / 1.30, (a - 27.0) / 1.30)
         if rose < 1.0:
-            base = A.lerp_rgb(GLASS, A.RAMP["gold"][2], 0.34)
+            base = A.lerp_rgb(A.lerp_rgb(GLASS, A.RAMP["gold"][2], 0.34), BLACK, 0.30)
             spoke = abs((math.atan2(a - 27.0, b) / math.pi * 6.0) % 1.0 - 0.5)
             if spoke > 0.34 or rose > 0.86:
                 base = A.over(base, A.RAMP["stone"][0], 0.70)      # tracery
@@ -243,7 +248,7 @@ def plate_px(x, y, w, h):
     depth = min(1.0, max(0.0, (dist - 18.0) / 70.0))
     base = A.over(base, HAZE, 0.31 * depth ** 1.5)       # aerial perspective, warm with smoke
     glow = _apseglow(fx, fy)
-    base = A.over(base, A.lerp_rgb(GLASS, A.RAMP["parchment"][2], 0.35), min(0.40, glow * 0.40))
+    base = A.over(base, A.lerp_rgb(GLASS, A.RAMP["parchment"][2], 0.35), min(0.30, glow * 0.30))
 
     # Deep shadow at the frame's edge, so the eye is driven down the nave and the corners stay
     # quiet under the UI.

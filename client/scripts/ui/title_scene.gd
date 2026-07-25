@@ -240,7 +240,11 @@ static func build(host: Control, reduced: bool) -> Control:
 
 	# ── Layer 3: light. Warm pools at every fire, flickering out of step. ──
 	for i in FIRES.size():
-		var g := _glow(root, FIRES[i], host.size)
+		# The centre fire stood in for a lit altar while the architecture was a blockout. The
+		# plate paints its own apse now, so that pool is redundant — and it landed exactly where
+		# the menu's last option is read (R245). Dimmed to a suggestion rather than deleted: the
+		# embers and the warmth down the nave still want a source there.
+		var g := _glow(root, FIRES[i], host.size, 0.42 if i == 6 else 1.0)
 		if not reduced:
 			_flicker(g, rng.randf_range(2.6, 4.2), rng.randf_range(0.0, TAU))
 
@@ -384,7 +388,7 @@ static func _additive() -> CanvasItemMaterial:
 	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	return m
 
-static func _glow(root: Control, at: Vector2, vp: Vector2) -> Control:
+static func _glow(root: Control, at: Vector2, vp: Vector2, energy: float = 1.0) -> Control:
 	# Light2D cannot reach Control nodes (TD-047), so a fire's pool is an additive radial sprite
 	# — the same call the board's torches make.
 	var g := TextureRect.new()
@@ -396,7 +400,7 @@ static func _glow(root: Control, at: Vector2, vp: Vector2) -> Control:
 	# 0.26, not the 0.34 the blockout wanted: these pools were tuned against a BLACK backdrop,
 	# and over a real plate that already carries its own warm distance they stacked into a wash
 	# the menu had to be read through (R245).
-	g.modulate = Color(1.0, 0.70, 0.34, 0.26)
+	g.modulate = Color(1.0, 0.70, 0.34, 0.26 * energy)
 	var r := vp.x * 0.095
 	g.size = Vector2(r * 2.0, r * 1.5)
 	g.position = Vector2(vp.x * at.x - r, vp.y * at.y - r * 0.75)
