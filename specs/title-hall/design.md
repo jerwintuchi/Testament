@@ -46,8 +46,9 @@ vault(x, z) = SPRING + min( √(R² − x²),  √(r² − (z − zc)²) )
 ```
 
 `SPRING` is the springing line (the height the vault leaves the wall, ≈22m — the clerestory head).
-A **pointedness** parameter reuses `gen_nave.lancet`'s two-centred construction so the profile can be
-Gothic rather than Roman; semicircular is the fallback and is already an improvement on a plane.
+The profile is **semicircular** (the author's ruling): radius `R = HALF_W` for the transverse barrel
+and `r = BAY/2` for the longitudinal, crowning at `SPRING + R`. No two-centred construction, so the
+maths above is the whole of it.
 
 **Intersection, without marching.** A ray-march at 640×360 would be 15M evaluations and take minutes.
 Instead the ray is walked **bay by bay** — it crosses at most ~8 — and inside each bay both barrels
@@ -80,9 +81,12 @@ World-space primitives, so they occlude and recede correctly:
 - **Candle stands** — thin vertical cylinders with a disc top; the tapers are the existing furniture
   sprites' idiom re-used in world space.
 - **Plaques** — flat quads on the aisle wall, slightly proud, bronze ramp.
-- **Statue in a niche** — a niche is a half-cylinder recess in the wall; the figure itself is the one
-  piece where a shape function will blob (TD-056/TD-057), so it is authored as a **small hand-placed
-  sprite** composited at its world position and depth, not ray-cast.
+- **The niche** — the author asked for it detailed, so it is carved architecture: a half-cylinder
+  recess (which shades round for free, like the piers), a moulded surround, a canopy over it, a
+  plinth under it, and the recess's own cast shadow. At 1280×720 the figure standing in it is
+  ~90px tall — enough that a robed silhouette in three tones resolves, where at 640×360 it would
+  have blobbed (TD-056/TD-057). It is modelled as a capsule-and-drapery primitive, not ray-cast
+  from a mesh.
 
 Culling: each bay holds a list of its own primitives, so a pixel only tests what its bay contains.
 
@@ -96,6 +100,27 @@ additions fix it without moving the camera:
    is where Reference A's brightest glass sits.
 2. **A west window behind the camera** is not visible, but its light is: a bright, cool wash on the
    near piers, banded, opposing the warm candlelight.
+
+## Resolution: 1280×720 (R258)
+
+The hall and its furnishings are authored at **1280×720** and drawn at the viewport's logical size.
+The path is what makes that crisp rather than blurry:
+
+```
+window 1280x720  →  PixelScale int_scale 2  →  logical 640x360
+plate: a 1280x720 texture drawn into a 640x360 logical rect, NEAREST
+Godot's canvas_items stretch rasterises at DEVICE resolution (1280x720)
+  →  one art pixel == one device pixel.  Exactly 1:1.
+```
+
+At 1440p (`int_scale 4`) it is a clean 1:2. **At odd scales it is not clean**: a 1920×1080 window at
+`int_scale 3` gives 1.5 device pixels per art pixel, so NEAREST doubles some columns and not others.
+That unevenness is the accepted price of a grain finer than the base resolution (R258), and it is
+worth naming here so nobody later "fixes" it by turning on filtering — which would undo the entire
+register.
+
+The **furniture** is re-authored at the same scale: what was 20–96px becomes 40–192px, which is
+where chain links, tracery bars and moulding profiles start to resolve at all.
 
 ## Shading
 
@@ -115,6 +140,22 @@ position with a radius and a strength; its contribution is `max(0, n·l̂) · fa
 stand lights the pier beside it and the floor under it, and nothing across the hall (R253). The sum
 is banded to an integer **before** it reaches the output, which is P131 and the reason no dithering
 is ever needed.
+
+## Density (R257) — reversing the gates
+
+The current generator suppresses detail in three places. Each is lifted, with the replacement stated
+so the reversal is deliberate rather than a swing to noise:
+
+| Gate today | Effect | Replacement |
+|---|---|---|
+| `course_visible()` + `dist > 12` | near piers carry **no coursing at all** | course whenever a bed projects ≥2px; at 1280×720 that reaches most of the nave |
+| `blk()` only when `dist > 17` | variation in one mid band | per-stone variation wherever coursing is drawn, at ±1 index |
+| ribs gated to the nearest bays | vault empties past bay two | ribs run the full length, **thinning** to 1px rather than switching off |
+
+And the content that actually carries Reference A's density is added: tracery bars in every window,
+chain links on every hanging lamp, moulding profiles and capitals on the arcade, plaque rows,
+furniture, and a patterned floor. **Detail must resolve into objects, not texture** — the test is
+the brief's own: it still reads at a glance from across a room.
 
 ## Age (R252)
 

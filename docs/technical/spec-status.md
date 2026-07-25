@@ -21,7 +21,6 @@ These are disagreements between what a spec says and what the tree contains.
 
 - **MISSING** — open tasks name 1 file(s) not in the tree: hall_geometry.py
 - **LIKELY-SHIPPED** — 1 open task(s) name only files that already exist — check whether the work shipped and the box was never ticked: T272
-- **STALE** — 8 open task(s), untouched for 1000000 days
 
 ## All specs
 
@@ -29,7 +28,7 @@ These are disagreements between what a spec says and what the tree contains.
 |---|---|---:|---:|---:|---|---|
 | `mobile-input` | 🟡 dormant | 0 | 10 | 0 | 2026-07-11 | MISSING |
 | `station-ui` | 🟡 dormant | 3 | 6 | 0 | 2026-07-24 | MISSING |
-| `title-hall` | 🟡 dormant | 0 | 8 | 0 | — | MISSING, LIKELY-SHIPPED, STALE |
+| `title-hall` | 🟡 dormant | 0 | 10 | 0 | 2026-07-25 | MISSING, LIKELY-SHIPPED |
 | `title-scene` | ⛔ blocked | 19 | 1 | 0 | 2026-07-25 | — |
 | `collegium-client` | 🟡 dormant | 6 | 1 | 0 | 2026-07-24 | — |
 | `nave-cathedral` | 🟡 dormant | 3 | 2 | 0 | 2026-07-23 | — |

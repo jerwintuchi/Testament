@@ -28,20 +28,29 @@
       Test: capture with lights on and `--lights-off`; every difference is local to a source. Plus
       an assertion that the light term's type is `int` at the point of use (P131).
 
-- [ ] T272 [R248, R249, R254, P130 / V1, V4] — **Re-render the plate on the new geometry.**
-      `gen_title_hall.py` keeps its material and banding discipline and drops every painted-curvature
-      hack (rib lines on a plane, shaft stripes on a wall).
-      Test: `A.assert_on_palette` passes; `--title-preview` captured at 1:1. **This is the slice the
-      author reviews before anything below is built.**
+- [ ] T272 [R248, R249, R254, R258, P130 / V1, V4] — **Re-render the plate on the new geometry, at
+      1280×720.** `gen_title_hall.py` keeps its material and banding discipline and drops every
+      painted-curvature hack (rib lines on a plane, shaft stripes on a wall). Authoring resolution
+      goes to 1280×720 so the grain is fine enough for the detail Phase B adds.
+      Test: `A.assert_on_palette` passes; `--title-preview` captured, and the capture is checked for
+      1:1 device mapping at `int_scale 2`. **This is the slice the author reviews before anything
+      below is built.**
 
-## Phase B — What the geometry makes possible
+## Phase B — Density and content
 
-- [ ] T273 [R250 / V2] — **Furnish the hall.** Tables, benches and candle stands as world-space
-      primitives along both aisles; memorial plaques on the aisle walls; a niche modelled for the
-      statue. Per-bay primitive lists so a pixel only tests its own bay.
+- [ ] T273a [R257 / V2] — **Lift the three detail gates.** Coursing on every lit stone where a bed
+      projects ≥2px (including the near piers, currently blank); per-stone variation across the whole
+      visible range; ribs the full length of the vault, thinning rather than switching off. Add the
+      arcade's moulding profiles and capitals.
+      Test: capture; the near piers carry visible masonry, and the vault reads as vaulted to the
+      sanctuary. The readability check is the brief's: it still resolves at a glance from a distance.
+
+- [ ] T273b [R250 / V2] — **Furnish the hall.** Tables, benches and candle stands as world-space
+      primitives along both aisles; memorial plaques on the aisle walls; a **detailed niche** — recess, moulded surround, canopy, plinth, cast shadow — with a robed
+      figure, which resolves at 1280×720. Per-bay primitive lists so a pixel only tests its own bay.
       Test: capture; furnishings recede correctly and occlude each other; the far nave stays quiet.
 
-- [ ] T274 [R251 / V2] — **Windows that read as windows.** The nearest bay on each side turns its
+- [ ] T274 [R251, R257 / V2] — **Windows that read as windows, with tracery.** The nearest bay on each side turns its
       window wall ~35° toward the viewer, carrying a full traceried window in the upper corners; a
       cool wash from the (unseen) west window opposes the warm candlelight.
       Test: capture; at least two windows show tracery rather than slivers.
@@ -51,6 +60,11 @@
       Test: capture; reads ancient and **maintained**, never ruined.
 
 ## Phase C — Landing it
+
+- [ ] T275b [R258 / V5] — **Re-author the furniture at 1280×720.** The banners, censer,
+      chandelier, racks and braziers double in size (20–96px → 40–192px), which is where chain links,
+      taper detail and iron work start to resolve.
+      Test: `assert_on_palette` on all nine; `title_assets --check` green.
 
 - [ ] T276 [R255, R256 / V5, V6] — **Legibility, contract, suites.** Captures at two integer scales
       with all four menu options legible; `title_assets --selftest` + `--check`; asset map

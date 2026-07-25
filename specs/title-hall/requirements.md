@@ -31,6 +31,8 @@
 - AC: the ceiling is a **groin vault** — the intersection of a transverse barrel across the nave and a
   longitudinal barrel along each bay — ray-cast as curved surfaces. No horizontal ceiling plane
   remains in the hall's geometry.
+- AC: the barrels are **semicircular** (the author's ruling), not two-centred. A barrel of radius
+  `HALF_W` springing at the clerestory head, crowning at `SPRING + HALF_W`.
 - AC: the vault's surface **descends to the springing line** at both walls, so the ceiling's boundary
   with the wall is a curve, not a horizontal line.
 - AC: the diagonal **ribs sit where the two barrels actually intersect** (the groins), and the webs
@@ -53,7 +55,10 @@
 *(the author's first-ranked gap)*
 
 - AC: wooden tables and candle stands stand along both aisles, in world space, receding correctly.
-- AC: at least one **statue in a niche** and a run of **memorial plaques** on the aisle walls.
+- AC: a **detailed niche** (the author's ruling): a modelled recess with a moulded surround, a
+  canopy above, a plinth below, and the recess's own shadow — a piece of carved architecture, not a
+  dark rectangle. It holds a robed figure, which the finer grain of R258 makes drawable.
+- AC: a run of **memorial plaques** on the aisle walls, with legible plate edges and fixings.
 - AC: detail concentrates at focal points; **large stone surfaces stay visually quiet** (the brief).
 - AC: furnishings are part of the hall's geometry, not screen-space decals — they occlude and are
   occluded correctly.
@@ -84,7 +89,7 @@
 
 ## R254 — The pixel register is unchanged (carried from TD-075)
 
-- AC: authored at **640×360**, drawn **1:1 through NEAREST**, no resampling at any stage.
+- AC: drawn through **NEAREST**, hard-edged, with no filtering anywhere in the path.
 - AC: every pixel is an Ash & Ember ramp entry; `A.assert_on_palette` passes.
 - AC: no anti-aliasing, no painterly texture, no per-pixel noise, no dithering. Variation is
   per-block or per-bay.
@@ -98,6 +103,39 @@
 
 - AC: no `src/**` change, no wire change. Asset map regenerated, `title_assets --check` green,
   suites green.
+
+## R257 — The hall is DENSE
+
+*(the author's report: "the details of pixels looks ugly … I need the hall to be more detailed")*
+
+The Contract Board's register was never the cap on detail — it fixes pixel **size**, not how much is
+in the frame, and Reference A is dense pixel art. What emptied the hall was three self-imposed gates
+plus missing content. This requirement reverses that.
+
+- AC: **coursed masonry is visible on every lit stone surface** where a course projects ≥2px,
+  including the near piers — which are the largest surfaces in frame and are currently blank.
+- AC: stone-to-stone tonal variation across the whole visible range, not only a mid-distance band.
+- AC: **ribs run the length of the vault**, not only the nearest bays, thinning with distance rather
+  than switching off.
+- AC: the objects Reference A's density actually comes from are present: window **tracery**, hanging
+  **chains**, arcade **mouldings and capitals**, **plaques**, furniture, floor patterning.
+- AC: "quiet" is applied as the brief states it — large **unlit** surfaces stay calm and detail
+  concentrates at focal points. It is not a licence to leave surfaces empty.
+- AC: the frame still reads at a glance from across a room (the brief's readability test). Density is
+  not noise: it must resolve into objects, not texture.
+
+## R258 — Authored at 1280×720 (the author's ruling)
+
+- AC: the hall and its furnishings are authored at **1280×720** — four times the pixels of the base
+  resolution to spend on detail, while staying hard-edged NEAREST pixel art on the Ash & Ember ramps.
+- AC: drawn at the viewport's logical size, which puts it at **1:1 device pixels** on a 720p window
+  (and 1:2 at 1440p) — the common cases the capture harness uses.
+- AC (stated honestly): at **odd** integer scales the mapping is 1.5 device pixels per art pixel, so
+  NEAREST will double some pixel columns and not others. That is the price of a grain finer than the
+  base resolution, and it is accepted deliberately.
+- AC: the hall's grain is therefore **half the Contract Board's**. Side by side the board reads
+  chunkier. This is a knowing amendment to "match the board exactly", made because the author asked
+  for more detail than 640×360 can hold.
 
 ---
 
