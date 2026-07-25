@@ -80,10 +80,21 @@
       through the left of the nave, smoke drifts under the vault; menu still legible; the F9 still
       frame keeps all three (they are textures, so reduced motion loses nothing).
 
-- [ ] T260 [R241 / V1] — Drop in the remaining assets per `asset-manifest.md` — cloth, props,
-      vessels, and the seven optional architecture overrides (**4 of 18 slots filled**). The
-      remaining art is the Aseprite half of TD-057 (censer, candle rack, chandelier, brazier) plus
-      the banners.
+- [x] T260d [R243 L2 / V2] — **The banners, generated.** `client/assets/ui/gen_title_banners.py`
+      emits all three standards in the **painted** register (340px wide, so smooth drape shading is
+      right where it would be wrong on the board's 64px cloth): woven crimson, baked folds that
+      wander as they fall, a ragged foot resolved per column as alpha, worn-through holes whose rims
+      dissolve into the weave, loose threads, and the Collegium device as a bone dye. Each banner is
+      **seeded separately** so the right one is "mirror-ish, not identical"; the **iron rod is in the
+      image** because the rig sways from top centre, so cloth and rod swing as one object.
+      Test: **V2** — `--title-preview` captured; the banners hang on the piers and sway. Faded a
+      second time after the first capture showed them out-saturating their own hall — the
+      "pasted on" failure TD-059 spent a spec fixing for the board's banners.
+
+- [ ] T260 [R241 / V1] — Drop in the remaining assets per `asset-manifest.md` — props, vessels, and
+      the seven optional architecture overrides (**7 of 18 slots filled**). What is left is the
+      **Aseprite half** of the TD-057 split: censer, chandelier, candle rack, brazier — objects
+      where a pixel is a design decision and a shape function blobs.
       **No code change** — each file simply replaces its blockout. Stage into `art/src/title/`,
       then `python3 tools/title_assets.py --import`.
 

@@ -106,6 +106,14 @@ them as targets, not constraints.
 > hanging from a dark iron rod. **Transparent background.** Lit softly and evenly, no strong
 > highlight. Painterly, dark fantasy.
 
+> **Shipped, and generated:** `client/assets/ui/gen_title_banners.py` — `gen_banner.py`'s idiom
+> re-cut for the hall in the **painted** register (these hang at 340px, so smooth drape shading is
+> right where it would be wrong on the board's 64px cloth). Each banner is **seeded separately**, so
+> the right one is "mirror-ish, not identical": fold phase, hem wear, holes and threads all come off
+> its own seed. The **iron rod is in the image**, because the rig sways from top centre — cloth and
+> rod swing as one object. The emblem is the same `board/collegium_logo.png`, printed as a bone dye
+> the weave shows through. Nothing is lit: folds are form, not light (the fires are in-engine).
+
 ## Layer 2 — hanging props
 
 | File | Size | Alpha | Notes |

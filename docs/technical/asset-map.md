@@ -47,7 +47,7 @@
 - **`board_header_n.png`** — produced-by: `client/assets/ui/gen_header.py`, `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`board_surface.gdshader`** — produced-by: — · consumed-by: `client/scripts/board/board_decor.gd` (load)
 - **`cobweb.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/contract_board.gd` (load)
-- **`collegium_logo.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_banner.py` (reads), `client/assets/ui/gen_emblems.py` (reads), `client/assets/ui/gen_normals.py` (reads), `client/scripts/main.gd` (load)
+- **`collegium_logo.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_banner.py` (reads), `client/assets/ui/gen_emblems.py` (reads), `client/assets/ui/gen_normals.py` (reads), `client/assets/ui/gen_title_banners.py` (reads), `client/scripts/main.gd` (load)
 - **`frame_v1.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`parch_flavor_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
@@ -73,6 +73,9 @@
 
 ### `client/assets/ui/title/`
 
+- **`banner_center.png`** — produced-by: `client/assets/ui/gen_title_banners.py` · consumed-by: —
+- **`banner_left.png`** — produced-by: `client/assets/ui/gen_title_banners.py` · consumed-by: —
+- **`banner_right.png`** — produced-by: `client/assets/ui/gen_title_banners.py` · consumed-by: —
 - **`dust_overlay.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
 - **`hall_plate.png`** — produced-by: `client/assets/ui/gen_title_plate.py` · consumed-by: —
 - **`light_shaft.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
@@ -98,6 +101,8 @@
   - loads: `_frame_v1_src.png`, `backing_v1.png`, `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `banner_v1.png`, `board_header.png`, `cobweb.png`, `collegium_logo.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `seal_collegium.png`, `spark.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `torch_flame.png`, `torch_glow.png`, `torch_sconce.png`, `votive.png`
 - **`client/assets/ui/gen_parch_v1.py`**
   - loads: `paper_band1.png`
+- **`client/assets/ui/gen_title_banners.py`**
+  - loads: `collegium_logo.png`
 - **`client/protocol/protocol.gd`**
   - loaded-by: `client/scripts/core/catalog.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scenes/main.tscn`**
@@ -182,6 +187,7 @@
 - **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_collegium.png`, `spark.png`, `torch_sconce.png`
 - **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_header_n.png`
 - **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`
+- **`client/assets/ui/gen_title_banners.py`** → `banner_center.png`, `banner_left.png`, `banner_right.png`
 - **`client/assets/ui/gen_title_overlays.py`** → `dust_overlay.png`, `light_shaft.png`, `smoke_overlay.png`
 - **`client/assets/ui/gen_title_plate.py`** → `hall_plate.png`
 
