@@ -1,11 +1,40 @@
 # Tasks — The Great Hall from curved geometry (TD-076)
 
-> **Status:** DRAFT — awaiting approval. Nothing here is started.
+> **STATUS: ROUTE CHANGED.** The hall is author-supplied art (R260/R261); Phases A0–C are PARKED.
+> The live work is Phase D, and it is small — the pipeline for this has existed since TD-073.
 > T# continues global from T268. Client render + generated art only; the named test is stated for
 > each task before any code is written (`spec-workflow.md`).
 >
 > Ordered so the author sees the fix for the reported defect **first**, in one reviewable slice,
 > before any of the enrichment work is spent on top of it.
+
+## Phase D — The supplied plate (LIVE)
+
+- [ ] T277 [R260 / V1] — **Land the plate.** `art/src/title/hall_plate.png` → validated, installed
+      and imported by `tools/title_assets.py --import`. Crop to 16:9 without distorting the
+      composition; no resampling beyond that.
+      Test: `--check` green; `--title-preview` captured.
+
+- [ ] T278 [R260 / V4] — **Register follows the art.** `_plate` draws a painted plate with a linear
+      filter rather than NEAREST, and the whole-pixel snapping that exists for pixel art is not
+      applied to it.
+      Test: capture at two integer scales; no shimmer, no half-pixel seam at the frame edge.
+
+- [ ] T279 [R261 / V2] — **Reconcile the props.** Either wire the author's matching prop art, or
+      disable the cloth/props/vessel layers because they are baked into the plate. The fire pools,
+      dust, smoke and rays stay live either way.
+      Test: capture; one register across the whole frame, and the animated layers that remain still
+      read as atmosphere.
+
+- [ ] T280 [R255, R256 / V5, V6] — **Land it.** Legibility at two scales; `title_assets --selftest`
+      + `--check`; asset map; suites; DECISION_LOG for the route change and for withdrawing TD-075's
+      pixel discipline from the title screen.
+
+---
+
+## PARKED — the procedural route
+
+*Kept as the record of the flat-plane finding and the camera measurement. Not started.*
 
 ## Phase A0 — The camera, measured (R259)
 

@@ -1,6 +1,18 @@
 # Requirements — The Great Hall, built from curved geometry (TD-076)
 
-> **Status:** DRAFT — awaiting the author's approval before any implementation.
+> **STATUS: ROUTE CHANGED — the hall is AUTHOR-SUPPLIED ART, not generated (R260).**
+>
+> The author asked the decisive question — *does this ensure a close, almost 1:1 look to the
+> reference?* — and the answer was no. A ray-caster produces ordered variation; the reference's
+> character is controlled irregularity, plus figurative carving no generator reaches. Structure was
+> always reproducible; likeness was not.
+>
+> So **Phases A0–C below are PARKED**, not deleted. They remain the record of a real finding (the
+> flat-plane defect, and the measurement that rejected its own bad fit), and the curved-geometry work
+> may still earn its place for in-game Collegium screens, where a generated environment is worth more
+> than a painted one. Nothing in them is started.
+>
+> The live requirement is **R260**.
 >
 > **Why this spec exists.** TD-075 moved the title screen to the Contract Board's pixel register,
 > and that part holds: 640×360, drawn 1:1 through NEAREST, every colour an Ash & Ember ramp entry.
@@ -25,6 +37,42 @@
 > **R248+**, **P129+**, **T269+**. To be logged as **TD-076** on approval.
 
 ---
+
+## R260 — The hall is author-supplied art, processed into the client
+
+- AC: the Great Hall arrives as an **author-generated image** — the only route that reaches the
+  likeness the author asked for, because the art *is* the reference rather than an approximation of
+  it.
+- AC: it is **architecture only**. Every element that must animate (banners, censers, candles,
+  braziers, smoke, dust, light) is layered over it, per the brief's own implementation philosophy.
+  Anything baked into the plate is frozen for good.
+- AC: **no UI is baked in** — no title, no menu, no logo. Those are rendered live, and inpainting
+  them out afterwards is the problem TD-073 already paid for once.
+- AC: it is processed by the existing pipeline (`tools/title_assets.py`), validated, installed and
+  imported, with **no code change** — the rig has taken `hall_plate.png` by that name since TD-073.
+- AC: the register follows the art. A painted plate is drawn with a **linear** filter, not NEAREST;
+  TD-075's pixel-art discipline applied to a hall that was going to be generated, and it does not
+  govern a painted one.
+- AC (the consequence, stated so it is chosen and not inherited): the title screen will **no longer
+  match the Contract Board's pixel craftsmanship**, which the original brief named as a success
+  criterion. The author has changed that ruling deliberately: *"don't include the art style for the
+  contract board anymore, just the great hall."*
+
+## R261 — The props match the plate, or they are not used
+
+- AC: the animated layers and the plate must share one visual register. Pixel-art banners over a
+  painted hall is the mismatch that would undo the point of supplying art at all.
+- AC: therefore either the author supplies **matching prop art** (transparent PNGs, same generator,
+  same lighting), or the props are **baked into the plate and their layers disabled** — trading the
+  sway, the pendulum and the drift for a coherent picture.
+- AC: whichever is chosen, the fire pools, dust, smoke and god-rays stay live. They are
+  art-independent and cost nothing in either arrangement.
+
+---
+
+## PARKED — the procedural route (R248–R259)
+
+*Kept as the record. Not started, not scheduled.*
 
 ## R248 — The vault is a curved shell, not a plane
 
