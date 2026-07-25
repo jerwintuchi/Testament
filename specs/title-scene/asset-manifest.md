@@ -1,18 +1,20 @@
-# Title Scene — Asset Manifest (TD-073, overhauled TD-075)
+# Title Scene — Asset Manifest (TD-073 → TD-075 → **TD-076, current**)
 
-> **The Contract Board is the visual authority.** Where the concept art (Reference A) and the board
-> (Reference B) disagree, the board wins — the author's ruling. Reference A gives composition,
-> camera, scale, mood and lighting; the board gives pixel density, palette, shading, readability and
-> craftsmanship. Nothing here is a matte painting.
+> **CURRENT: the hall is the author's painting.** After four procedural rebuilds the author ruled:
+> *"disregard the constraints and make the great hall almost 1:1 to the reference image."* The only
+> thing 1:1 with a painting is that painting, so `gen_title_matte.py` processes it into the client at
+> **1280×720**, drawn 1:1 on device pixels at a 720p window through NEAREST — no filtering anywhere.
 >
-> **Every asset is authored at the size it is displayed**, on the canonical 640×360 internal
-> resolution, and drawn 1:1 through NEAREST. That is the whole register decision: art authored at
-> 1920×1080 and squeezed into a 640×360 viewport through a LINEAR filter cannot match the board no
-> matter how it is shaded. The pipeline decides the register, not the brushwork.
+> **The prop layers stand down.** The painting contains its own banners, censers, candle stands and
+> braziers, so drawing ours would double every one. `PROPS_IN_PLATE` in `title_scene.gd` turns them
+> off; the files and the asset contract are untouched, one flag away.
 >
-> **Every pixel is an Ash & Ember ramp entry.** Each generator ends in `A.assert_on_palette`, the
-> same check the board's own art passes — which is what "matches the Contract Board" means in a form
-> a machine can verify.
+> **What still animates:** the fire pools (moved onto the painting's own lights), the dust, the
+> smoke and the god-ray. They are art-independent, which is why they survived the change of route.
+>
+> **The board's register no longer governs the title screen** — a deliberate reversal, recorded in
+> DECISION_LOG TD-076 along with the measured evidence for it. Every other surface in the game keeps
+> the pixel register untouched.
 >
 > **This file and the rig are checked against each other:** `python3 tools/title_assets.py --check`
 > derives the slot list from `title_scene.gd` and fails if the two disagree. The rig loads by exact
@@ -28,9 +30,10 @@ python3 tools/title_assets.py --import   # validate, install, and import into Go
 Or regenerate, from `client/assets/ui/`:
 
 ```bash
-python3 gen_title_hall.py        # the hall
-python3 gen_title_furniture.py   # banners, censer, chandelier, racks, braziers
-python3 gen_title_overlays.py    # dust, smoke, the god ray
+python3 gen_title_matte.py --fidelity   # the hall: the author's painting at 1280x720  [SHIPPED]
+python3 gen_title_matte.py --register   # the same painting down to the board's grain  [see below]
+python3 gen_title_overlays.py           # dust, smoke, the god ray
+python3 gen_title_furniture.py          # the pixel props — built, not currently drawn
 ```
 
 Then look at it: `"$GODOT" --path "$CLIENT" --quit-after 900 -- --capture=4 --title-preview`.
@@ -39,23 +42,31 @@ Then look at it: `"$GODOT" --path "$CLIENT" --quit-after 900 -- --capture=4 --ti
 
 ## The hall
 
-| File | Size | Alpha |
-|---|---|---|
-| `hall_plate.png` | 1280×720 | opaque |
+| File | Size | Alpha | Source |
+|---|---|---|---|
+| `hall_plate.png` | 1280×720 | opaque | `art/src/title/hall_plate_src.jpeg` via `gen_title_matte.py` |
 
-One **bespoke** plate. The brief is explicit: *"Do not attempt to convert the cathedral into
-reusable gameplay architecture."* The seven per-surface slices that used to layer over it are
-**retired** — only decorative foreground elements stay separate, and they stay separate because they
-**animate**, not because they might be reused.
+**Both treatments were built and captured rather than argued about**, and the losing one is kept
+because the evidence is the point:
 
-`gen_title_hall.py` ray-casts the hall through the camera TD-072 measured (hfov 105°), pitched up
-**21°** so the vault crowds the top and the sanctuary sits low, as Reference A composes it. The nave
-closes at 58m so the altar reads as a place you could walk to. Then it renders in pixel discipline:
-ramp indices only, light in **flat steps**, depth banded **per bay** so a change of tone lands on a
-pier edge, masonry joints gated by distance so large stone stays quiet, and no per-pixel noise
-anywhere.
+| | Result |
+|---|---|
+| `--register` | 640×360, on-palette, median + two mode passes: **31 colours, 523 single-pixel islands** against a naive downscale's 5876. A technical success and an artistic failure — the architecture dissolves, because the painting's structure lives at a frequency 640×360 cannot hold |
+| `--fidelity` | 1280×720, LANCZOS, drawn **1:1 on device pixels** at 720p. Reads as the painting itself. **Shipped** |
 
-## Cloth
+The 1:1 mapping is what keeps it crisp without filtering: at a 720p window `PixelScale` gives a
+640×360 logical viewport rendered at 1280×720 device pixels, so a 1280×720 texture drawn into the
+full-frame rect lands one art pixel per device pixel under NEAREST.
+
+**Retired with the procedural route:** `gen_title_hall.py`'s ray-cast plate and the seven per-surface
+architecture slices. `hall_geometry.py` is *kept* — its curved vault and cylindrical piers fixed a
+real flat-plane defect and carry tests a painted surface cannot pass, and it may serve an in-game
+Collegium screen where a generated environment is worth more than a painted one (TD-076).
+
+## Cloth — BUILT, NOT DRAWN
+
+*The painting contains its own. `PROPS_IN_PLATE = true` turns these off; the files and the contract
+stay, so restoring them is one flag.*
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
@@ -63,14 +74,14 @@ anywhere.
 | `banner_right.png` | 66×162 | yes | its own weave and wear — not a mirror |
 | `banner_center.png` | 26×62 | yes | small, deep, hung from the frame's top edge |
 
-## Hanging props
+## Hanging props — BUILT, NOT DRAWN
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
 | `censer.png` | 20×62 | yes | the chain runs to the **top edge**; hung twice |
 | `chandelier.png` | 44×30 | yes | an iron corona on three chains |
 
-## Fire vessels
+## Fire vessels — BUILT, NOT DRAWN
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
@@ -111,8 +122,14 @@ python3 tools/title_assets.py --selftest  # the rules themselves
 
 ## What happens to the concept art
 
-`art/src/collegium_hall_src.png` stays a **composition reference only** — never shipped, never
-displayed (TD-073, after it was tried as the background three times). The painted-register exception
-R242 granted the title screen is **withdrawn** by TD-075: the title screen is pixel art, like the
-board. Author-painted art can still replace any slot by name via `art/src/title/`, but it should be
-authored at the size in the table above, or it will not sit beside the board.
+**It ships.** `art/src/title/hall_plate_src.jpeg` is the hall. That reverses TD-073, which forbade
+using the PNG as the main menu after the author's "uncanny" verdict on an *earlier, different* image
+that had UI baked into it — and it reverses TD-075's ruling that the title screen keep the board's
+pixel language. Both reversals were explicit, and both are recorded in DECISION_LOG TD-076 with the
+captures that decided them.
+
+`art/src/collegium_hall_src.png` (the older piece) remains a composition reference only.
+
+Author art still replaces any slot by name via `art/src/title/` + `tools/title_assets.py --import`.
+For the **hall** the size is now free — it is a painting, and the fidelity path does not quantise it.
+For the **props**, if they are ever drawn again, the sizes in the tables above still apply.

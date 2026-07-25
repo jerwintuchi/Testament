@@ -1,6 +1,10 @@
 # Tasks — The Great Hall from curved geometry (TD-076)
 
-> **STATUS: PROCEDURAL ROUTE RESUMED** — the author asked for the plate to be generated after all,
+> **STATUS: CLOSED — the hall is the author's painting (TD-076).** Phase D shipped. The procedural
+> work below is marked SUPERSEDED in place, not deleted: the flat-plane defect it found was real and
+> `hall_geometry.py` still carries tests a painted surface cannot pass.
+>
+> *(historical)* **PROCEDURAL ROUTE RESUMED** — the author asked for the plate to be generated after all,
 > in the Contract Board's register. Phase A is UNPARKED and its geometry work is done; Phase D (the
 > supplied-plate path) stays available and unstarted, since the rig takes `hall_plate.png` by name
 > whoever produced it.
@@ -12,24 +16,24 @@
 
 ## Phase D — The supplied plate (LIVE)
 
-- [ ] T277 [R260 / V1] — **Land the plate.** `art/src/title/hall_plate.png` → validated, installed
+- [x] T277 [R260 / V1] — **Land the plate.** `art/src/title/hall_plate.png` → validated, installed
       and imported by `tools/title_assets.py --import`. Crop to 16:9 without distorting the
       composition; no resampling beyond that.
       Test: `--check` green; `--title-preview` captured.
 
-- [ ] T278 [R262 / V1, V4] — **`gen_title_matte.py`: down-register the supplied art.** Crop to 16:9,
+- [x] T278 [R262 / V1, V4] — **`gen_title_matte.py`: down-register the supplied art.** Crop to 16:9,
       BOX downsample to 640×360, median, quantise to Ash & Ember, then mode passes. NEAREST stays
       everywhere — the plate is brought into the register rather than given a softer filter.
       Test: the landed plate measures **<600 single-pixel islands, ≤34 colours, run-continuity
       ≥0.83** (naive downscale scores 5876 / 41 / 0.474 and fails), and `assert_on_palette` passes.
 
-- [ ] T279 [R261 / V2] — **Reconcile the props.** Either wire the author's matching prop art, or
+- [x] T279 [R261 / V2] — **Reconcile the props.** Either wire the author's matching prop art, or
       disable the cloth/props/vessel layers because they are baked into the plate. The fire pools,
       dust, smoke and rays stay live either way.
       Test: capture; one register across the whole frame, and the animated layers that remain still
       read as atmosphere.
 
-- [ ] T280 [R255, R256 / V5, V6] — **Land it.** Legibility at two scales; `title_assets --selftest`
+- [x] T280 [R255, R256 / V5, V6] — **Land it.** Legibility at two scales; `title_assets --selftest`
       + `--check`; asset map; suites; DECISION_LOG for the route change and for withdrawing TD-075's
       pixel discipline from the title screen.
 
@@ -41,7 +45,7 @@
 
 ## Phase A0 — The camera, measured (R259)
 
-- [ ] T268a [R259 / V1] — **Land `tools/measure_reference.py`.** Already written and run: it solves
+- [x] T268a [R259 / V1] — **Land `tools/measure_reference.py`.** Already written and run: it solves
       the camera from two vanishing points, and — the part that matters — **checks its own fits
       against the hall's symmetry and rejects them when they fail**. It has already rejected one bad
       cornice fit (intersection at fx −7.04) rather than handing back a plausible-looking wrong
@@ -49,7 +53,7 @@
       Test: run against Reference A; the zenith fit passes its symmetry check (fx 0.475 vs 0.5), the
       cornice fit is reported as rejected. Both are the current recorded results.
 
-- [ ] T268b [R259 / V1] — **Fit the camera and the hall's proportions.** One vanishing point is
+- [~] T268b **SUPERSEDED** (the camera fit is moot — the plate is the reference itself) — [R259 / V1] — **Fit the camera and the hall's proportions.** One vanishing point is
       recoverable, so the solve is under-determined; the zenith survives as the hard constraint
       `cot(P) = 6.832·TAN_V` and the rest is closed by minimising landmark error (vault crown fy
       0.335, lit far end fx 0.256–0.746, near piers to fx 0.329/0.669).
@@ -93,38 +97,43 @@
 
 ## Phase B — Density and content
 
-- [ ] T273a [R257 / V2] — **Lift the three detail gates.** Coursing on every lit stone where a bed
+- [~] T273a **SUPERSEDED** (density comes from the painting) — [R257 / V2] — **Lift the three detail gates.** Coursing on every lit stone where a bed
       projects ≥2px (including the near piers, currently blank); per-stone variation across the whole
       visible range; ribs the full length of the vault, thinning rather than switching off. Add the
       arcade's moulding profiles and capitals.
       Test: capture; the near piers carry visible masonry, and the vault reads as vaulted to the
       sanctuary. The readability check is the brief's: it still resolves at a glance from a distance.
 
-- [ ] T273b [R250 / V2] — **Furnish the hall.** Tables, benches and candle stands as world-space
+- [~] T273b **SUPERSEDED** (the painting has its own furniture, niche and plaques) — [R250 / V2] — **Furnish the hall.** Tables, benches and candle stands as world-space
       primitives along both aisles; memorial plaques on the aisle walls; a **detailed niche** — recess, moulded surround, canopy, plinth, cast shadow — with a robed
       figure, which resolves at 1280×720. Per-bay primitive lists so a pixel only tests its own bay.
       Test: capture; furnishings recede correctly and occlude each other; the far nave stays quiet.
 
-- [ ] T274 [R251, R257 / V2] — **Windows that read as windows, with tracery.** The nearest bay on each side turns its
+- [~] T274 **SUPERSEDED** (the painting has its own traceried windows) — [R251, R257 / V2] — **Windows that read as windows, with tracery.** The nearest bay on each side turns its
       window wall ~35° toward the viewer, carrying a full traceried window in the upper corners; a
       cool wash from the (unseen) west window opposes the warm candlelight.
       Test: capture; at least two windows show tracery rather than slivers.
 
-- [ ] T275 [R252 / V2] — **Age.** Chipped block corners, worn stair treads at the sanctuary, wax
+- [~] T275 **SUPERSEDED** (the painting has its own wear) — [R252 / V2] — **Age.** Chipped block corners, worn stair treads at the sanctuary, wax
       build-up at the candle stands, banded soot above every flame, a polished processional line.
       Test: capture; reads ancient and **maintained**, never ruined.
 
 ## Phase C — Landing it
 
-- [ ] T275b [R258 / V5] — **Re-author the furniture at 1280×720.** The banners, censer,
+- [~] T275b **SUPERSEDED** (the pixel furniture is built but not drawn (PROPS_IN_PLATE)) — [R258 / V5] — **Re-author the furniture at 1280×720.** The banners, censer,
       chandelier, racks and braziers double in size (20–96px → 40–192px), which is where chain links,
       taper detail and iron work start to resolve.
       Test: `assert_on_palette` on all nine; `title_assets --check` green.
 
-- [ ] T276 [R255, R256 / V5, V6] — **Legibility, contract, suites.** Captures at two integer scales
-      with all four menu options legible; `title_assets --selftest` + `--check`; asset map
-      regenerated + `--check`; server and shared suites green; diff scoped to `client/ specs/ docs/`.
-      Retire `gen_nave.py`, whose flat-plane `hit()` this spec replaces.
+- [x] T276 [R255, R256 / V5, V6] — **Legibility, contract, suites.** Captured at 1280×720 (logical
+      640×360) and 1920×1080 (logical 952×520): title, rule and all four options legible over the
+      painting at both. `title_assets --selftest` + `--check` green at 13 of 13; `asset_map
+      --selftest` + `--check` green; `spec_status --check` green. Suites untouched and green:
+      **server 362, shared 65, tools 7**. No `src/**` change (R256).
+      The asset map earned its keep here: it caught **two generators writing `hall_plate.png`** —
+      the retired procedural one would have silently clobbered the author's painting on any re-run.
+      `gen_title_hall.py` now writes only to an explicit `--out` path and claims no producer edge.
+      `gen_nave.py` is left in place; it is no longer on the title screen's path either way.
 
 ## Notes
 

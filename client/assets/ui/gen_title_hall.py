@@ -16,7 +16,14 @@ Detail is DENSE, though (R257). The version before this suppressed coursing on a
 12m, which left the biggest surfaces in the frame blank; here stone is coursed wherever a course is
 thick enough to see.
 
-Run from client/assets/ui/:  python3 gen_title_hall.py
+**This no longer produces a shipped asset (TD-076).** The hall is the author's painting, emitted by
+`gen_title_matte.py`. Left in place because it is the working demonstration of `hall_geometry.py` —
+the curved vault and cylindrical piers that fixed a real flat-plane defect, and which may earn their
+place in an in-game Collegium screen where a generated environment beats a painted one.
+
+It writes ONLY where you point it, so it cannot clobber the shipped plate:
+
+    python3 gen_title_hall.py --out /tmp/hall.png
 """
 import math
 import os
@@ -180,7 +187,17 @@ def px(x, y):
 
 
 if __name__ == "__main__":
-    os.makedirs(os.path.join(os.path.dirname(os.path.abspath(__file__)), "title"), exist_ok=True)
-    A.assert_on_palette(W, H, px, "title/hall_plate.png")
-    A.write_png("title/hall_plate.png", W, H, px)
-    print("gen_title_hall OK — the Great Hall from curved geometry, %dx%d, on-palette." % (W, H))
+    import sys
+    argv = sys.argv[1:]
+    if "--out" not in argv:
+        print(__doc__.strip().splitlines()[-1].strip())
+        print("refusing to write: the shipped hall_plate.png is the author's painting "
+              "(gen_title_matte.py). Pass --out <path> to render this one somewhere harmless.")
+        sys.exit(2)
+    out = argv[argv.index("--out") + 1]
+    A.assert_on_palette(W, H, px, out)
+    # A VARIABLE path on purpose: tools/asset_map.py derives producer edges from literals, and this
+    # generator must not claim an edge to hall_plate.png — two producers for one asset is how a
+    # shipped file gets silently overwritten (the crest_v1.png conflict TD-051 surfaced).
+    A.write_png(out, W, H, px)
+    print("gen_title_hall OK — %dx%d, on-palette -> %s" % (W, H, out))
