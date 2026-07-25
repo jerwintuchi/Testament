@@ -1,7 +1,9 @@
 # Tasks — The Great Hall from curved geometry (TD-076)
 
-> **STATUS: ROUTE CHANGED.** The hall is author-supplied art (R260/R261); Phases A0–C are PARKED.
-> The live work is Phase D, and it is small — the pipeline for this has existed since TD-073.
+> **STATUS: PROCEDURAL ROUTE RESUMED** — the author asked for the plate to be generated after all,
+> in the Contract Board's register. Phase A is UNPARKED and its geometry work is done; Phase D (the
+> supplied-plate path) stays available and unstarted, since the rig takes `hall_plate.png` by name
+> whoever produced it.
 > T# continues global from T268. Client render + generated art only; the named test is stated for
 > each task before any code is written (`spec-workflow.md`).
 >
@@ -54,7 +56,7 @@
       Test: the **same measurement code** run against our render reproduces each target within
       tolerance. The reference and the render are measured identically or the comparison is worthless.
 
-- [ ] T268c [R259 / V2] — **Model the aisles and the wet floor.** The arcade currently opens onto
+- [x] T268c [R259 / V2] — **Model the aisles and the wet floor.** The arcade currently opens onto
       black; in Reference A it opens into a lit aisle, and that is most of the depth. The floor
       reflects, via a second ray mirrored about the floor plane.
       Test: capture; the arches read as openings into a space, and standing objects appear beneath
@@ -62,7 +64,7 @@
 
 ## Phase A — The geometry (the reported defect)
 
-- [ ] T269 [R248, P129 / V1] — **`hall_geometry.py`: the camera and the curved vault.** Move the
+- [x] T269 [R248, P129 / V1] — **`hall_geometry.py`: the camera and the curved vault.** Move the
       measured camera out of `gen_nave.py`; add the groin vault as the intersection of a transverse
       and a longitudinal barrel, solved bay by bay as quadratics (no marching). `trace()` returns
       kind, world point, **unit normal**, distance.
@@ -70,12 +72,12 @@
       no rib, the surface normal's `x` component **changes sign** across the nave and its magnitude
       is monotonic to either side. A plane cannot satisfy that; a barrel does by construction.
 
-- [ ] T270 [R249, P129 / V1] — **Round piers.** Compound piers as a core cylinder plus engaged
+- [x] T270 [R249, P129 / V1] — **Round piers.** Compound piers as a core cylinder plus engaged
       colonnettes, ray-cast, with normals; the wall behind stays a plane.
       Test: `--selftest` — a scanline across one colonnette yields `n·L` rising then falling, and
       the rendered indices read dark → light → dark. Painted stripes cannot produce that order.
 
-- [ ] T271 [R253, P131 / V3] — **Lighting from normals, in world space.** Point lights with radius
+- [x] T271 [R253, P131 / V3] — **Lighting from normals, in world space.** Point lights with radius
       and strength; contribution `max(0, n·l̂)·falloff`, summed and **banded to an integer** before
       it reaches the output.
       Test: capture with lights on and `--lights-off`; every difference is local to a source. Plus

@@ -47,7 +47,7 @@
 - **`board_header_n.png`** — produced-by: `client/assets/ui/gen_header.py`, `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`board_surface.gdshader`** — produced-by: — · consumed-by: `client/scripts/board/board_decor.gd` (load)
 - **`cobweb.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/contract_board.gd` (load)
-- **`collegium_logo.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_banner.py` (reads), `client/assets/ui/gen_emblems.py` (reads), `client/assets/ui/gen_normals.py` (reads), `client/assets/ui/gen_title_furniture.py` (reads), `client/assets/ui/gen_title_hall.py` (reads), `client/scripts/main.gd` (load)
+- **`collegium_logo.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_banner.py` (reads), `client/assets/ui/gen_emblems.py` (reads), `client/assets/ui/gen_normals.py` (reads), `client/assets/ui/gen_title_furniture.py` (reads), `client/scripts/main.gd` (load)
 - **`frame_v1.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`frame_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`parch_flavor_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
@@ -108,8 +108,6 @@
 - **`client/assets/ui/gen_parch_v1.py`**
   - loads: `paper_band1.png`
 - **`client/assets/ui/gen_title_furniture.py`**
-  - loads: `collegium_logo.png`
-- **`client/assets/ui/gen_title_hall.py`**
   - loads: `collegium_logo.png`
 - **`client/protocol/protocol.gd`**
   - loaded-by: `client/scripts/core/catalog.gd` (preload), `client/scripts/main.gd` (preload)

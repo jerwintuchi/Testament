@@ -28,7 +28,7 @@ These are disagreements between what a spec says and what the tree contains.
 |---|---|---:|---:|---:|---|---|
 | `mobile-input` | 🟡 dormant | 0 | 10 | 0 | 2026-07-11 | MISSING |
 | `station-ui` | 🟡 dormant | 3 | 6 | 0 | 2026-07-24 | MISSING |
-| `title-hall` | 🟡 dormant | 0 | 17 | 0 | 2026-07-25 | MISSING, LIKELY-SHIPPED |
+| `title-hall` | 🟡 dormant | 4 | 13 | 0 | 2026-07-25 | MISSING, LIKELY-SHIPPED |
 | `title-scene` | ⛔ blocked | 19 | 1 | 0 | 2026-07-25 | — |
 | `collegium-client` | 🟡 dormant | 6 | 1 | 0 | 2026-07-24 | — |
 | `nave-cathedral` | 🟡 dormant | 3 | 2 | 0 | 2026-07-23 | — |
