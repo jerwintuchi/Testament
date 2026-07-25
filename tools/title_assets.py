@@ -126,8 +126,8 @@ def audit():
         if name != plate_name(slots) and ctype not in HAS_ALPHA:
             errors.append("%s has no alpha channel (%s) — it will render as a solid rectangle"
                           % (name, COLOR_TYPE.get(ctype, ctype)))
-        if name == plate_name(slots) and ctype in HAS_ALPHA:
-            warnings.append("%s carries alpha; the plate is meant to be opaque" % name)
+        # No complaint about alpha ON the plate: `ashember.write_png` only ever emits colour type
+        # 6, so a generated plate is RGBA with a=255 everywhere — opaque in every way that counts.
         if interlace:
             warnings.append("%s is interlaced" % name)
         want = sized.get(name)

@@ -50,6 +50,15 @@ The architecture can arrive **either way**, and the rig takes both. Start with t
 |---|---|---|
 | `hall_plate.png` | 1920×1080 | opaque |
 
+> **Shipped, and generated:** `client/assets/ui/gen_title_plate.py` emits this plate by ray-casting
+> the hall through the camera TD-072 measured (imported from `gen_nave.py`, not re-derived). It is a
+> deliberate retry of what TD-072 recorded as a failure, narrowed where that failed: the plate holds
+> **no props** (the class of thing that failed at small scale) and **no baked fire** (the light is
+> in-engine), so what is left is architecture — which the ray-caster was always good at. Regenerate
+> with `python3 gen_title_plate.py` from `client/assets/ui/`. Author-painted art still replaces it
+> by dropping a file of the same name into `art/src/title/`; the rig neither knows nor cares which
+> produced it.
+
 > A vast ancient Gothic cathedral interior, seen from floor level looking up the nave toward a
 > distant lit altar. Towering compound piers, ribbed vaults, stained glass high on both walls, worn
 > flagstone floor with a faded red carpet runner, weathered stone, centuries of soot and candle

@@ -51,10 +51,25 @@
       slots; a throwaway synthetic plate installed + imported + captured (`--title-preview`) shows
       the architecture blockouts replaced, undistorted, no edge seam, overlays still animating.
 
-- [ ] T260 [R241 / V1] — Drop in the authored assets per `asset-manifest.md`. **No code change** —
-      each file simply replaces its blockout. Then tune positions against the reference.
-      Blocked only on the art itself: stage into `art/src/title/`, then
-      `python3 tools/title_assets.py --import`.
+- [x] T260b [R241, R242 / V1, V3] — **The plate, generated** (author's call: *"generate the
+      hall_plate.png with the generators instead"*). `client/assets/ui/gen_title_plate.py` emits
+      1920×1080 by ray-casting the hall through the camera imported from `gen_nave.py`. This
+      **retries TD-072's recorded failure** and is narrower where it failed: no props (the class
+      that failed at small scale) and no baked fire (the light is in-engine), leaving architecture,
+      which the ray-caster was always good at. Symmetry — TD-072's third finding — is answered with
+      seeded per-bay variation: opening widths differ ±6% **between the two walls**, clerestory
+      panels vary in brightness and colour with some boarded, ashlar courses drift, weathering is
+      per bay and the left wall is grimier. The near falls to **silhouette** (inverting TD-072),
+      because the foreground is lit by fires that live in the engine, not in the plate.
+      DECISION_LOG 2026-07-25.
+      Test: **V1/V3** — `--title-preview` captured with the plate in place: architecture blockouts
+      replaced, undistorted, no seam; menu legible (the engine's glow pools were retuned 0.34→0.26,
+      having been set against a black backdrop); F9 reduced-motion still frame fully lit.
+
+- [ ] T260 [R241 / V1] — Drop in the remaining assets per `asset-manifest.md` — cloth, props,
+      vessels, overlays, and the seven optional architecture overrides (**1 of 18 slots filled**).
+      **No code change** — each file simply replaces its blockout. Stage into `art/src/title/`,
+      then `python3 tools/title_assets.py --import`.
 
 - [ ] T261 [R245, R247 / V4, V5] — Legibility pass; second integer scale; asset-map; suites; land.
 

@@ -393,7 +393,10 @@ static func _glow(root: Control, at: Vector2, vp: Vector2) -> Control:
 	g.stretch_mode = TextureRect.STRETCH_SCALE
 	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	g.material = _additive()
-	g.modulate = Color(1.0, 0.70, 0.34, 0.34)
+	# 0.26, not the 0.34 the blockout wanted: these pools were tuned against a BLACK backdrop,
+	# and over a real plate that already carries its own warm distance they stacked into a wash
+	# the menu had to be read through (R245).
+	g.modulate = Color(1.0, 0.70, 0.34, 0.26)
 	var r := vp.x * 0.095
 	g.size = Vector2(r * 2.0, r * 1.5)
 	g.position = Vector2(vp.x * at.x - r, vp.y * at.y - r * 0.75)

@@ -2588,3 +2588,41 @@ undistorted with no edge seam, and the cloth/prop/vessel/overlay blockouts still
 The validator raised both intended warnings on it (wrong size, carries alpha). The test plate was
 then deleted; `--check` is green at 0 of 18 slots filled, which is the correct state until art lands.
 Client render + tooling + docs; no `src/**` change.
+
+## 2026-07-25 — TD-073: the plate is generated after all — `gen_title_plate.py`, on the author's call
+
+**Why.** T260 was blocked waiting on painted art, and the author's instruction was to generate the
+plate with the generators instead. That is, plainly, a **retry of what TD-072 recorded as a
+failure** — a single procedurally generated plate, four passes, a structural ceiling. Recording it
+here so the retry is not mistaken for someone forgetting the entry.
+
+**Why it can work now, when it could not then.** The retry is narrower in exactly the two places
+TD-072 failed:
+
+* *"Small props at small scale."* TD-072's flame failed four times (box → cone → ball → box), the
+  same finding TD-057 recorded for the 17×22 medallion device. This plate carries **no props at
+  all** — no flame, no candle, no censer, no banner. Every one of them is a separate animated layer
+  over the plate in `title_scene.gd`, which is what the asset manifest already asked for. The
+  failure mode is absent because the content is absent.
+* *"Light as arithmetic."* TD-072 baked falloff over a **stepped, palette-locked ramp** and it
+  banded. Here the plate is lit by ambient and the distant apse only; all seven fires are in-engine
+  additive pools that flicker (TD-043). Nothing baked has to impersonate a light, the surface stays
+  in the painted register (R242 — no `quantize`, palette-lock retired in TD-046), and an ordered
+  dither keeps the long gradients smooth.
+
+TD-072's third finding — *symmetry and uniformity* — is the one that had to be answered by work
+rather than by scope. Every bay is seeded: opening widths vary ±6% and **differ between the two
+walls**, so the arcade is not a mirror; the clerestory's panels vary in brightness and colour with
+some lights boarded; ashlar course height drifts per bay; soot and salt weathering are per bay, and
+the left wall is grimier than the right. An analytic wall that repeats exactly is the tell.
+
+**Decided.** `client/assets/ui/gen_title_plate.py` **imports the camera from `gen_nave.py`** rather
+than re-deriving it (hfov 105°, pitch 15°, Chartres' 16m × 37m) — design.md always intended that,
+and it was the one part of the single-plate attempt that measured correct. One inversion matters:
+TD-072 lit the near brightly because its braziers were in the image. Here **the near falls to
+silhouette**, because in the finished scene the foreground is lit by real fires that are *not* in
+the plate. A plate that pre-lights its own foreground would be lit twice.
+
+**Not closed.** This does not retire the author-art path: dropping a painted `hall_plate.png` into
+`art/src/title/` still replaces the generated one, and the rig neither knows nor cares which
+produced it. The per-piece architecture overrides and every prop layer remain unauthored (T260).

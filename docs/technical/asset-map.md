@@ -71,6 +71,10 @@
 
 - **`panel.png`** — produced-by: — · consumed-by: `client/scripts/ui/popup_theme.gd` (load)
 
+### `client/assets/ui/title/`
+
+- **`hall_plate.png`** — produced-by: `client/assets/ui/gen_title_plate.py` · consumed-by: —
+
 ### `client/scenes/`
 
 - **`marker.tscn`** — produced-by: — · consumed-by: `client/scripts/world/space_view.gd` (preload)
@@ -175,6 +179,7 @@
 - **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_collegium.png`, `spark.png`, `torch_sconce.png`
 - **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_header_n.png`
 - **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`
+- **`client/assets/ui/gen_title_plate.py`** → `hall_plate.png`
 
 
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
