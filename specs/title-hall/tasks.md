@@ -15,10 +15,11 @@
       composition; no resampling beyond that.
       Test: `--check` green; `--title-preview` captured.
 
-- [ ] T278 [R260 / V4] — **Register follows the art.** `_plate` draws a painted plate with a linear
-      filter rather than NEAREST, and the whole-pixel snapping that exists for pixel art is not
-      applied to it.
-      Test: capture at two integer scales; no shimmer, no half-pixel seam at the frame edge.
+- [ ] T278 [R262 / V1, V4] — **`gen_title_matte.py`: down-register the supplied art.** Crop to 16:9,
+      BOX downsample to 640×360, median, quantise to Ash & Ember, then mode passes. NEAREST stays
+      everywhere — the plate is brought into the register rather than given a softer filter.
+      Test: the landed plate measures **<600 single-pixel islands, ≤34 colours, run-continuity
+      ≥0.83** (naive downscale scores 5876 / 41 / 0.474 and fails), and `assert_on_palette` passes.
 
 - [ ] T279 [R261 / V2] — **Reconcile the props.** Either wire the author's matching prop art, or
       disable the cloth/props/vessel layers because they are baked into the plate. The fire pools,

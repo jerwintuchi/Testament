@@ -19,7 +19,7 @@ These are disagreements between what a spec says and what the tree contains.
 
 ### `specs/title-hall/` — 🟡 dormant
 
-- **MISSING** — open tasks name 1 file(s) not in the tree: hall_geometry.py
+- **MISSING** — open tasks name 2 file(s) not in the tree: gen_title_matte.py, hall_geometry.py
 - **LIKELY-SHIPPED** — 3 open task(s) name only files that already exist — check whether the work shipped and the box was never ticked: T277, T268a, T272
 
 ## All specs

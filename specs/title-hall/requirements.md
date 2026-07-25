@@ -50,13 +50,38 @@
   them out afterwards is the problem TD-073 already paid for once.
 - AC: it is processed by the existing pipeline (`tools/title_assets.py`), validated, installed and
   imported, with **no code change** — the rig has taken `hall_plate.png` by that name since TD-073.
-- AC: the register follows the art. A painted plate is drawn with a **linear** filter, not NEAREST;
-  TD-075's pixel-art discipline applied to a hall that was going to be generated, and it does not
-  govern a painted one.
-- AC (the consequence, stated so it is chosen and not inherited): the title screen will **no longer
-  match the Contract Board's pixel craftsmanship**, which the original brief named as a success
-  criterion. The author has changed that ruling deliberately: *"don't include the art style for the
-  contract board anymore, just the great hall."*
+- AC: **NEAREST throughout, no linear filtering anywhere in the project** (the author's ruling,
+  reversing my previous line). The plate does not get a softer filter because it was painted; it
+  gets brought INTO the register instead.
+- AC: the title screen **keeps Testament's pixel-art language** and belongs to the same world as the
+  Contract Board. Grandeur comes from composition, lighting and atmosphere — *not* from pixel
+  density or painterly detail. It is a hand-crafted pixel-art matte painting, not a high-resolution
+  illustration, and it naturally uses larger, simpler forms because of its architectural scale.
+
+## R262 — The plate is DOWN-REGISTERED, and the result is measured
+
+A supplied image arrives high-resolution and painterly. Landing it in the board's register is a
+processing step with a real failure mode: a naive downscale-and-quantise produces speckle — every
+pixel a different value — which is precisely the "modern AI-generated pixel art" the brief forbids.
+Measured on Reference A:
+
+| Treatment | Colours | Run-continuity | **1px islands** |
+|---|---|---|---|
+| naive downscale + quantise | 41 | 0.474 | **5876** |
+| + median | 35 | 0.738 | 1518 |
+| + 2 mode passes | 30 | 0.836 | **492** |
+
+- AC: the pipeline is **crop to 16:9 → BOX downsample to 640×360 → median → quantise to Ash & Ember
+  → mode passes**. Mode, not median, for the final consolidation: it keeps boundaries hard while
+  flattening interiors, which is what a pixel artist's flat regions actually are.
+- AC (measurable): the landed plate has **fewer than 600 single-pixel islands**, **≤34 colours**, and
+  **run-continuity ≥ 0.83**. Single-pixel islands are the objective signature of the forbidden look —
+  a hand-placed pixel almost never sits alone.
+- AC: `A.assert_on_palette` passes, exactly as the board's own art does.
+- AC (the honest cost, so the source art is authored for it): consolidation destroys fine detail.
+  Tracery, chain links and carved profiles do not survive 640×360 whatever the filter. The source
+  should therefore be generated with **large, simple, strongly-silhouetted forms** — detail spent
+  below the register's reach is detail thrown away.
 
 ## R261 — The props match the plate, or they are not used
 
@@ -207,7 +232,15 @@ plus missing content. This requirement reverses that.
 - AC: the frame still reads at a glance from across a room (the brief's readability test). Density is
   not noise: it must resolve into objects, not texture.
 
-## R258 — Authored at 1280×720 (the author's ruling)
+## R258 — WITHDRAWN: the grain returns to 640×360
+
+*Superseded by the author: "ensure the generated hall plate already matches the pixel density and
+cluster size established by the Contract Board … not through higher pixel density."* The 1280×720
+ruling recorded below is reversed; the hall is authored at **640×360**, the board's own grain, and
+everything under R254 applies to it unchanged. Kept in place rather than deleted so the reversal is
+legible.
+
+### (superseded) Authored at 1280×720
 
 - AC: the hall and its furnishings are authored at **1280×720** — four times the pixels of the base
   resolution to spend on detail, while staying hard-edged NEAREST pixel art on the Ash & Ember ramps.
