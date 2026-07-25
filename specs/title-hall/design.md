@@ -18,6 +18,61 @@ Today's model, and what it can never express:
 | Walls | planes at `x = ±8` | colonnettes are stripes; nothing turns away from the light |
 | Piers | (not modelled) | — |
 
+## Phase A0 — the camera, measured against Reference A
+
+The camera in the tree is **inherited, not verified**: hfov 105°, pitch 15° (TD-072) was measured
+off the *previous* concept art, and TD-075 nudged the pitch to 21° by eye. Neither number has ever
+been checked against the image the author actually supplied.
+
+### What a two-vanishing-point solve would give
+
+For a camera on the nave's axis, pitched up by P, with half-height tangent `TAN_V`:
+
+```
+nave axis (0,0,1)  ->  fy_vp  = 0.5 + tan(P) / (2·TAN_V)
+world up  (0,1,0)  ->  fy_zen = 0.5 − cot(P) / (2·TAN_V)
+
+d1 = 2(fy_vp − 0.5),  d2 = 2(0.5 − fy_zen)
+    TAN_V = 1/√(d1·d2)          P = atan(√(d1/d2))
+```
+
+Two measurements, two unknowns, closed form. `tools/measure_reference.py` implements it.
+
+### What actually came back
+
+| | result |
+|---|---|
+| **Zenith** (verticals) | **fy −2.916** — Hough over near-vertical edges on both sides, and it passes its own symmetry check (intersection at fx 0.475 against an expected 0.5) |
+| **Nave VP** (runner) | **failed** — the runner is faded and broken; per-row red runs catch banner reflection on the wet flags more often than carpet |
+| **Nave VP** (cornices) | **rejected** — the left and right fits came back near-parallel (dy/dx −0.140 and −0.070), putting the intersection at fx −7.04. The symmetry check threw it out |
+
+So the solve is **under-determined**: one good vanishing point, two unknowns. The zenith survives as a
+**hard constraint** relating the two — `cot(P) = 6.832 · TAN_V` — and the remaining freedom is closed
+by fitting, not by guessing.
+
+### The fit
+
+Search `(pitch, hfov, nave half-width, vault springing, bay length)` to minimise the difference
+between the render's landmarks and the reference's, subject to the zenith constraint above:
+
+| Landmark | Target (Reference A) |
+|---|---|
+| vault crown | fy 0.335 |
+| lit far end spans | fx 0.256 … 0.746 |
+| near piers occupy out to | fx 0.329 / 0.669 |
+| zenith | fy −2.916 (hard constraint) |
+
+The same measurement code runs against **our own render**, so the check is symmetric: the numbers
+that describe the reference are computed the same way as the numbers that describe us. That is the
+whole point — "does the structure match?" stops being a matter of taste.
+
+### Two structural additions the fit will expose
+
+- **The aisles are modelled.** Today the arcade opens onto black. In Reference A you see *into* a
+  lit aisle, and that is a large part of why its depth reads and ours does not.
+- **The floor is wet.** A second ray mirrored about the floor plane, reflecting what stands on it —
+  cheap for a flat floor, and a strong part of the reference's character.
+
 ## Geometry
 
 A new module, `client/assets/ui/hall_geometry.py`, owns the hall's shape and nothing else. It

@@ -104,6 +104,41 @@
 - AC: no `src/**` change, no wire change. Asset map regenerated, `title_assets --check` green,
   suites green.
 
+## R259 — The structure matches Reference A, by measurement
+
+*(the author's request: reproduce the reference's interior structure, accessories aside)*
+
+- AC: the camera is **re-measured against Reference A**, not inherited. The camera in the tree
+  (hfov 105°, pitch 15°→21°) was measured off the *previous* concept art and has never been checked
+  against the image the author actually supplied.
+- AC: the hall's proportions, bay rhythm and storey heights are driven to match **measured
+  landmarks** from Reference A, and the render is checked back against those same numbers. "Does the
+  structure match?" becomes a comparison of figures, not of opinions.
+- AC: the aisles are **modelled**, so the arcade opens into a space rather than onto black. This is
+  a large part of the reference's depth and its absence is why the current hall reads shallow.
+- AC: the floor is **wet**, carrying a reflection of what stands on it — a second ray mirrored about
+  the floor plane.
+- AC (out of scope, stated so it is not expected): carved figurative detail, painterly per-stone
+  tonal variation, and the reference's specific late-Gothic net-vault rib pattern. The result is a
+  structural match in a cleaner graphic register, not a duplicate — which the brief asks for anyway
+  ("do NOT recreate this image pixel-for-pixel").
+
+### Landmarks measured so far
+
+| Landmark | Reference A | How |
+|---|---|---|
+| Zenith (verticals converge) | **fy −2.916** | Hough over near-vertical edges, both sides; symmetry-checked at fx 0.475 vs 0.5 |
+| Vault crown | fy 0.335 | darkest row, upper half |
+| Lit far end spans | fx 0.256 … 0.746 | brightest column band, middle third |
+| Near piers occupy to | fx 0.329 / 0.669 | darkest quartile columns at the edges |
+| Left/right symmetry | ratio 1.036 | mean column brightness per half |
+
+**The nave vanishing point could not be recovered automatically**, and that is recorded rather than
+papered over: the runner is too faded and broken for edge-fitting (per-row red runs catch banner
+reflection on the wet flags), and the receding cornices produced two near-parallel lines whose
+intersection landed at fx −7.04. The symmetry check rejected it. So R259 is satisfied by a
+**landmark fit**, not a closed-form two-point solve — see design.
+
 ## R257 — The hall is DENSE
 
 *(the author's report: "the details of pixels looks ugly … I need the hall to be more detailed")*

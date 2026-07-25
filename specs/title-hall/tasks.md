@@ -7,6 +7,29 @@
 > Ordered so the author sees the fix for the reported defect **first**, in one reviewable slice,
 > before any of the enrichment work is spent on top of it.
 
+## Phase A0 — The camera, measured (R259)
+
+- [ ] T268a [R259 / V1] — **Land `tools/measure_reference.py`.** Already written and run: it solves
+      the camera from two vanishing points, and — the part that matters — **checks its own fits
+      against the hall's symmetry and rejects them when they fail**. It has already rejected one bad
+      cornice fit (intersection at fx −7.04) rather than handing back a plausible-looking wrong
+      camera.
+      Test: run against Reference A; the zenith fit passes its symmetry check (fx 0.475 vs 0.5), the
+      cornice fit is reported as rejected. Both are the current recorded results.
+
+- [ ] T268b [R259 / V1] — **Fit the camera and the hall's proportions.** One vanishing point is
+      recoverable, so the solve is under-determined; the zenith survives as the hard constraint
+      `cot(P) = 6.832·TAN_V` and the rest is closed by minimising landmark error (vault crown fy
+      0.335, lit far end fx 0.256–0.746, near piers to fx 0.329/0.669).
+      Test: the **same measurement code** run against our render reproduces each target within
+      tolerance. The reference and the render are measured identically or the comparison is worthless.
+
+- [ ] T268c [R259 / V2] — **Model the aisles and the wet floor.** The arcade currently opens onto
+      black; in Reference A it opens into a lit aisle, and that is most of the depth. The floor
+      reflects, via a second ray mirrored about the floor plane.
+      Test: capture; the arches read as openings into a space, and standing objects appear beneath
+      themselves on the flags.
+
 ## Phase A — The geometry (the reported defect)
 
 - [ ] T269 [R248, P129 / V1] — **`hall_geometry.py`: the camera and the curved vault.** Move the

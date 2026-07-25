@@ -19,7 +19,7 @@ These are disagreements between what a spec says and what the tree contains.
 
 ### `specs/title-hall/` — 🟡 dormant
 
-- **MISSING** — open tasks name 1 file(s) not in the tree: hall_geometry.py
+- **MISSING** — open tasks name 2 file(s) not in the tree: tools/measure_reference.py, hall_geometry.py
 - **LIKELY-SHIPPED** — 1 open task(s) name only files that already exist — check whether the work shipped and the box was never ticked: T272
 
 ## All specs
@@ -28,7 +28,7 @@ These are disagreements between what a spec says and what the tree contains.
 |---|---|---:|---:|---:|---|---|
 | `mobile-input` | 🟡 dormant | 0 | 10 | 0 | 2026-07-11 | MISSING |
 | `station-ui` | 🟡 dormant | 3 | 6 | 0 | 2026-07-24 | MISSING |
-| `title-hall` | 🟡 dormant | 0 | 10 | 0 | 2026-07-25 | MISSING, LIKELY-SHIPPED |
+| `title-hall` | 🟡 dormant | 0 | 13 | 0 | 2026-07-25 | MISSING, LIKELY-SHIPPED |
 | `title-scene` | ⛔ blocked | 19 | 1 | 0 | 2026-07-25 | — |
 | `collegium-client` | 🟡 dormant | 6 | 1 | 0 | 2026-07-24 | — |
 | `nave-cathedral` | 🟡 dormant | 3 | 2 | 0 | 2026-07-23 | — |
