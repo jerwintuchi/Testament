@@ -57,8 +57,8 @@ const CENSER_FIRE_Y := 0.337      # the vessel hangs below the sprite's centre; 
 
 const CLOTH := [
 	# Banners hang ON the near piers, so they ride outward with them.
-	["banner_left.png",   Vector3(0.158, 0.330, 0.1031), 2.55, "Banner L"],
-	["banner_right.png",  Vector3(0.842, 0.322, 0.1031), 2.45, "Banner R"],
+	["banner_left.png",   Vector3(0.158, 0.330, 0.1469), 1.787, "Banner L"],
+	["banner_right.png",  Vector3(0.842, 0.322, 0.1453), 1.742, "Banner R"],
 	# The third hangs HIGH, small and deep. It used to sit at 0.360, squarely behind the title;
 	# the centre of this frame belongs to the UI (R245), and cloth reads better as depth than as a
 	# backdrop for lettering. Sized so its head meets the frame's top edge — it hangs from
@@ -69,8 +69,8 @@ const CLOTH := [
 const PROPS := [
 	# Censers hang inboard of the arcade, over the aisle — moved OUTBOARD from 0.383/0.617, where
 	# they flanked the title so closely they read as part of it.
-	["censer.png", Vector3(CENSER_LX, CENSER_Y, 0.0312), 3.10, "Censer"],
-	["censer.png", Vector3(CENSER_RX, CENSER_Y, 0.0312), 3.10, "Censer"],
+	["censer.png", Vector3(CENSER_LX, CENSER_Y, 0.0422), 2.296, "Censer"],
+	["censer.png", Vector3(CENSER_RX, CENSER_Y, 0.0422), 2.296, "Censer"],
 	["chandelier.png", Vector3(0.500, 0.140, 0.0688), 0.68, "Chandelier"],
 ]
 # The floor props are NOT mirrored, in two senses. Each is its own seeded variant — different
@@ -81,10 +81,10 @@ const PROPS := [
 # These lines are printed by `gen_title_props.py`, which owns the geometry — the width includes
 # the padding its shear needs, so the object still renders at the size the generator was asked for.
 const VESSELS := [
-	["candle_rack.png",   Vector3(0.1700, 0.8800, 0.1500), 0.573, "Candle rack"],
-	["candle_rack_b.png", Vector3(0.8350, 0.8720, 0.1375), 0.580, "Candle rack"],
-	["brazier.png",       Vector3(0.3400, 0.9150, 0.0703), 0.933, "Brazier"],
-	["brazier_b.png",     Vector3(0.6620, 0.9080, 0.0656), 0.929, "Brazier"],
+	["candle_rack.png",   Vector3(0.1700, 0.8800, 0.1641), 0.524, "Candle rack"],
+	["candle_rack_b.png", Vector3(0.8350, 0.8720, 0.1500), 0.531, "Candle rack"],
+	["brazier.png",       Vector3(0.3400, 0.9150, 0.0766), 0.857, "Brazier"],
+	["brazier_b.png",     Vector3(0.6620, 0.9080, 0.0703), 0.867, "Brazier"],
 ]
 const OVERLAYS := [
 	["light_shaft.png",   Vector3(0.400, 0.500, 0.4688), 1.20, "Light shaft"],

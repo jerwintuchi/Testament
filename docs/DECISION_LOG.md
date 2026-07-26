@@ -2744,3 +2744,37 @@ engine's pools land on it.
 generated props (authored at the 640 grain) are consequently *chunkier* than the hall they stand in.
 That mismatch is visible if looked for. Fixing it means re-authoring the props at twice the detail —
 not merely scaling them — which is real work and is not done.
+
+## 2026-07-25 — TD-076 addendum: the props lean again, to the base's own measured zenith
+
+**Why.** The author asked why the props do not sit in the hall's perspective, and whether that was
+deferred. Neither — it was a **regression**. The lean was built once (TD-073 T264, props sheared
+toward the zenith their floor position implies) and then silently dropped when the props were
+re-authored as pixel art in TD-075. No spec restored it, and nothing caught it, because nothing
+tests it.
+
+**The zenith is measured, not inherited.** `tools/measure_reference.py` run against the new base
+solved **both** vanishing points and passed its own symmetry check for the first time — the nave VP
+landed at **fx 0.500 exactly**, the zenith at **fy −6.768**. That implies a much longer lens than the
+old procedural camera (pitch 12.6°, hfov 49.4° against 21° / 105°), so the leans are gentle: **2–5°**,
+where the old hall wanted 13°. Reusing the previous camera's zenith would have tilted everything
+roughly three times too far.
+
+Each prop's shear falls out of where it stands rather than being chosen:
+
+| prop | lean | degrees |
+|---|---|---|
+| banners | ±0.083 | ±4.7° |
+| candle racks | +0.076 / −0.077 | ±4.3° |
+| censers | ±0.050 | ±2.9° |
+| braziers | +0.037 / −0.037 | ±2.1° |
+| banner_center, chandelier | 0 | dead centre — nothing to converge |
+
+The shear is applied as a **whole-pixel offset per row**, so the edge stair-steps: that is how pixel
+art draws a near-vertical line, and it keeps every pixel hard. `Grid` pads the image to hold it and
+the generator prints the widened rig fractions, so the object still renders at the size asked for.
+
+**Also:** the candle racks were toned down (the author's report). They were authored at nearly the
+value the engine's own pools add, so the two stacked into white bars in the corners. Toning them out
+entirely was an over-correction on the first pass — they read as wire frames — so the taper body sits
+one step back up. An unlit prop has to leave the fire somewhere to go.

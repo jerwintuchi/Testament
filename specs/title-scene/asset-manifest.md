@@ -79,29 +79,31 @@ Collegium screen where a generated environment is worth more than a painted one 
 
 *Drawn and animated again: the pixel-art base has no furniture of its own. Authored at **twice** the
 old pixel count at the same display size, so they sit on the hall's grain rather than reading as
-2×2 blocks against it.*
+2×2 blocks against it — and each is **sheared toward the hall's measured zenith** (fy −6.768, from
+`tools/measure_reference.py`, whose fit passed its own symmetry check). Sizes below include the
+padding that shear needs; `gen_title_furniture.py` prints the matching rig fractions.*
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `banner_left.png` | 132×336 | yes | hangs on the left pier, crest in bone dye |
-| `banner_right.png` | 132×324 | yes | its own weave and wear — not a mirror |
+| `banner_left.png` | 188×336 | yes | hangs on the left pier, crest in bone dye |
+| `banner_right.png` | 186×324 | yes | its own weave and wear — not a mirror |
 | `banner_center.png` | 52×124 | yes | small, deep, hung from the frame's top edge |
 
 ## Hanging props
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `censer.png` | 40×124 | yes | the chain runs to the **top edge**; hung twice |
+| `censer.png` | 54×124 | yes | the chain runs to the **top edge**; hung twice |
 | `chandelier.png` | 88×60 | yes | an iron corona on three chains |
 
 ## Fire vessels
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `candle_rack.png` | 192×110 | yes | tapers at varying heights; stands left |
-| `candle_rack_b.png` | 176×102 | yes | its own rack; stands right, further off |
-| `brazier.png` | 90×84 | yes | standing iron bowl, **no flame**; stands left |
-| `brazier_b.png` | 84×78 | yes | a different bowl; stands right, further off |
+| `candle_rack.png` | 210×110 | yes | tapers at varying heights; stands left |
+| `candle_rack_b.png` | 192×102 | yes | its own rack; stands right, further off |
+| `brazier.png` | 98×84 | yes | standing iron bowl, **no flame**; stands left |
+| `brazier_b.png` | 90×78 | yes | a different bowl; stands right, further off |
 
 **Nothing burns in the art.** Cold wicks, dead coals. Every flame in this scene is an in-engine
 additive pool that flickers out of step (TD-043); a baked hotspot would fight it.

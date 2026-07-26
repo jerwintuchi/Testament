@@ -49,11 +49,34 @@ def h(x, y, s=0):
     return ((n >> 8) % 1000) / 1000.0
 
 
-class Grid:
-    """A pixel canvas. Set pixels; there is no blending, ever."""
+# The hall's zenith, MEASURED off the base itself (tools/measure_reference.py: verticals converge
+# at fy -6.768, and that fit passed its own symmetry check — the nave VP landed at fx 0.500 exactly).
+# Every vertical in the picture leans toward it, so a prop drawn plumb reads as pasted onto the
+# image rather than standing in it. This lean existed once (TD-073 T264) and was lost when the props
+# were re-authored as pixel art; restoring it is the point of this pass.
+ZENITH_FY = -6.768
+FRAME_AR = 16.0 / 9.0
 
-    def __init__(self, w, hh):
+
+def lean_for(fx, foot_fy):
+    """Shear in px-per-px for a prop whose foot sits at (fx, foot_fy) in viewport fractions."""
+    return (0.5 - fx) / (foot_fy - ZENITH_FY) * FRAME_AR
+
+
+class Grid:
+    """A pixel canvas. Set pixels; there is no blending, ever.
+
+    A `lean` shears the readout: the foot stays where it was placed and only the height tilts,
+    which is what perspective does to a standing object. The offset is rounded to a WHOLE pixel per
+    row, so the edge stair-steps — which is how pixel art draws a near-vertical line anyway, and
+    keeps every pixel hard.
+    """
+
+    def __init__(self, w, hh, lean=0.0):
         self.w, self.h = w, hh
+        self.lean = lean
+        self.pad = int(abs(lean) * hh + 0.999)
+        self.img_w = w + 2 * self.pad
         self.px = [[NONE] * w for _ in range(hh)]
 
     def set(self, x, y, c):
@@ -80,7 +103,13 @@ class Grid:
                     self.set(x, y, c)
 
     def reader(self):
-        return lambda x, y: self.px[y][x]
+        if not self.lean:
+            return lambda x, y: self.px[y][x]
+
+        def read(x, y):
+            ox = x - self.pad - int(round(self.lean * (self.h - 1 - y)))
+            return self.px[y][ox] if 0 <= ox < self.w else NONE
+        return read
 
 
 def emblem(target_w):
@@ -109,8 +138,8 @@ def emblem(target_w):
 
 # ── Banners ──────────────────────────────────────────────────────────────────
 
-def banner(w, hh, seed, with_device=True):
-    g = Grid(w, hh)
+def banner(w, hh, seed, with_device=True, lean=0.0):
+    g = Grid(w, hh, lean)
     # The rod: iron with a lit top edge and two brackets, which only resolve at this grain.
     g.rect(0, 2, w - 1, 4, IRON_M)
     g.hline(1, 0, w - 1, IRON_L)
@@ -155,8 +184,8 @@ def banner(w, hh, seed, with_device=True):
 
 # ── Hanging props ────────────────────────────────────────────────────────────
 
-def censer(w=40, hh=124):
-    g = Grid(w, hh)
+def censer(w=40, hh=124, lean=0.0):
+    g = Grid(w, hh, lean)
     cx = w // 2
     # A chain with actual LINKS: two lit pixels, a gap, a dark pixel. At the old grain this was a
     # dotted line; here it reads as forged links.
@@ -190,8 +219,8 @@ def censer(w=40, hh=124):
     return g
 
 
-def chandelier(w=88, hh=60):
-    g = Grid(w, hh)
+def chandelier(w=88, hh=60, lean=0.0):
+    g = Grid(w, hh, lean)
     cx, cy = w // 2, 38
     for dx in (-32, 0, 32):
         for y in range(0, cy - 8):
@@ -216,8 +245,8 @@ def chandelier(w=88, hh=60):
 
 # ── Floor vessels ────────────────────────────────────────────────────────────
 
-def candle_rack(w=192, hh=110, seed=0):
-    g = Grid(w, hh)
+def candle_rack(w=192, hh=110, seed=0, lean=0.0):
+    g = Grid(w, hh, lean)
     tray = hh - 28
     g.rect(8, tray, w - 9, tray + 2, IRON_M)                    # the tray
     g.hline(tray, 8, w - 9, IRON_L)
@@ -235,11 +264,11 @@ def candle_rack(w=192, hh=110, seed=0):
         tall = 16 + int((hh - 52) * h(i, seed, 11))
         # A taper is now four pixels across: shade, body, light, and a rim — where at the old
         # grain it was a single bright column.
-        g.vline(x - 1, tray - tall, tray - 1, A.RAMP["parchment"][0])
-        g.vline(x, tray - tall, tray - 1, WAX_D)
-        g.vline(x + 1, tray - tall + 1, tray - 1, WAX_M)
-        g.set(x, tray - tall, WAX_L)
-        g.set(x + 1, tray - tall, WAX_D)
+        g.vline(x - 1, tray - tall, tray - 1, A.RAMP["navestone"][2])
+        g.vline(x, tray - tall, tray - 1, A.RAMP["navestone"][6])
+        g.vline(x + 1, tray - tall + 1, tray - 1, A.RAMP["parchment"][1])
+        g.set(x, tray - tall, WAX_M)
+        g.set(x + 1, tray - tall, A.RAMP["navestone"][6])
         g.vline(x, tray - tall - 3, tray - tall - 1, IRON_D)    # cold wick
         if h(i, seed, 31) > 0.6:                                # wax welded to its neighbour
             g.vline(x + 2, tray - int(tall * 0.3), tray - 1, WAX_D)
@@ -247,14 +276,14 @@ def candle_rack(w=192, hh=110, seed=0):
     for i in range(7):                                          # runs down the tray's lip
         x = 16 + int((w - 32) * h(i, seed, 23))
         drop = 3 + int(9 * h(i, seed, 29))
-        g.vline(x, tray + 3, tray + 3 + drop, WAX_D)
-        g.vline(x + 1, tray + 3, tray + 2 + drop, WAX_M)
-        g.set(x, tray + 3 + drop, WAX_M)                        # the bead at the bottom
+        g.vline(x, tray + 3, tray + 3 + drop, A.RAMP["navestone"][3])
+        g.vline(x + 1, tray + 3, tray + 2 + drop, A.RAMP["navestone"][5])
+        g.set(x, tray + 3 + drop, WAX_D)                        # the bead at the bottom
     return g
 
 
-def brazier(w=90, hh=84, seed=0):
-    g = Grid(w, hh)
+def brazier(w=90, hh=84, seed=0, lean=0.0):
+    g = Grid(w, hh, lean)
     cx, rim = w // 2, 28
     for dx in (-22, 0, 22):                                     # three legs, tapering
         for y in range(rim + 12, hh - 3):
@@ -280,38 +309,71 @@ def brazier(w=90, hh=84, seed=0):
 
 
 def emit(name, g):
-    A.assert_on_palette(g.w, g.h, g.reader(), name)
+    A.assert_on_palette(g.img_w, g.h, g.reader(), name)
     return g
+
+
+def write(path, g):
+    A.assert_on_palette(g.img_w, g.h, g.reader(), path)
+    return g
+
+
+# Where each piece stands, in viewport fractions: (fx, centre-y, the rig's width fraction). The
+# lean falls out of these — a prop's tilt is a consequence of where it is, not a style choice.
+STANDING = {
+    "banner_left":   (0.158, 0.330, 0.1031),
+    "banner_right":  (0.842, 0.322, 0.1031),
+    "banner_center": (0.500, 0.090, 0.0406),
+    "censer":        (0.300, 0.285, 0.0312),
+    "chandelier":    (0.500, 0.140, 0.0688),
+    "candle_rack":   (0.170, 0.880, 0.1500),
+    "candle_rack_b": (0.835, 0.872, 0.1375),
+    "brazier":       (0.340, 0.915, 0.0703),
+    "brazier_b":     (0.662, 0.908, 0.0656),
+}
+
+
+def lean_of(name, art_w, art_h):
+    fx, cy, wf = STANDING[name]
+    foot = cy + wf * FRAME_AR * (art_h / float(art_w)) * 0.5
+    return lean_for(fx, foot)
 
 
 def main():
     os.makedirs(os.path.join(os.path.dirname(os.path.abspath(__file__)), "title"), exist_ok=True)
-    bl = emit("banner_left", banner(132, 336, 1))
-    A.write_png("title/banner_left.png", bl.w, bl.h, bl.reader())
-    br = emit("banner_right", banner(132, 324, 2))
-    A.write_png("title/banner_right.png", br.w, br.h, br.reader())
-    bc = emit("banner_center", banner(52, 124, 3, with_device=False))
-    A.write_png("title/banner_center.png", bc.w, bc.h, bc.reader())
+    out = []
 
-    ce = emit("censer", censer())
-    A.write_png("title/censer.png", ce.w, ce.h, ce.reader())
-    ch = emit("chandelier", chandelier())
-    A.write_png("title/chandelier.png", ch.w, ch.h, ch.reader())
+    def put(name, path, g):
+        emit(name, g)
+        out.append((name, g))
+        return g
 
-    r1 = emit("candle_rack", candle_rack(seed=1))
-    A.write_png("title/candle_rack.png", r1.w, r1.h, r1.reader())
-    r2 = emit("candle_rack_b", candle_rack(w=176, hh=102, seed=2))
-    A.write_png("title/candle_rack_b.png", r2.w, r2.h, r2.reader())
-    b1 = emit("brazier", brazier(seed=3))
-    A.write_png("title/brazier.png", b1.w, b1.h, b1.reader())
-    b2 = emit("brazier_b", brazier(w=84, hh=78, seed=4))
-    A.write_png("title/brazier_b.png", b2.w, b2.h, b2.reader())
+    bl = put("banner_left", "x", banner(132, 336, 1, lean=lean_of("banner_left", 132, 336)))
+    A.write_png("title/banner_left.png", bl.img_w, bl.h, bl.reader())
+    br = put("banner_right", "x", banner(132, 324, 2, lean=lean_of("banner_right", 132, 324)))
+    A.write_png("title/banner_right.png", br.img_w, br.h, br.reader())
+    bc = put("banner_center", "x", banner(52, 124, 3, with_device=False))
+    A.write_png("title/banner_center.png", bc.img_w, bc.h, bc.reader())
 
-    print("gen_title_furniture OK — 9 pieces at the hall's grain, on-palette.")
-    print("  rig fractions (art_width / 1280, unchanged from before):")
-    for n, g in (("banner", bl), ("banner_c", bc), ("censer", ce), ("chandelier", ch),
-                 ("rack", r1), ("rack_b", r2), ("brazier", b1), ("brazier_b", b2)):
-        print("    %-11s %dx%-4d  %.4f" % (n, g.w, g.h, g.w / 1280.0))
+    ce = put("censer", "x", censer(lean=lean_of("censer", 40, 124)))
+    A.write_png("title/censer.png", ce.img_w, ce.h, ce.reader())
+    ch = put("chandelier", "x", chandelier())
+    A.write_png("title/chandelier.png", ch.img_w, ch.h, ch.reader())
+
+    r1 = put("candle_rack", "x", candle_rack(seed=1, lean=lean_of("candle_rack", 192, 110)))
+    A.write_png("title/candle_rack.png", r1.img_w, r1.h, r1.reader())
+    r2 = put("candle_rack_b", "x",
+             candle_rack(w=176, hh=102, seed=2, lean=lean_of("candle_rack_b", 176, 102)))
+    A.write_png("title/candle_rack_b.png", r2.img_w, r2.h, r2.reader())
+    b1 = put("brazier", "x", brazier(seed=3, lean=lean_of("brazier", 90, 84)))
+    A.write_png("title/brazier.png", b1.img_w, b1.h, b1.reader())
+    b2 = put("brazier_b", "x", brazier(w=84, hh=78, seed=4, lean=lean_of("brazier_b", 84, 78)))
+    A.write_png("title/brazier_b.png", b2.img_w, b2.h, b2.reader())
+
+    print("gen_title_furniture OK — 9 pieces, leaning to the hall's measured zenith, on-palette.")
+    print("  RIG FRACTIONS (art_width / 1280 — the shear padding widens them):")
+    for name, g in out:
+        print("    %-15s %3dx%-4d lean %+.4f   %.4f" % (name, g.img_w, g.h, g.lean, g.img_w / 1280.0))
 
 
 if __name__ == "__main__":
