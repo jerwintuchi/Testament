@@ -40,10 +40,11 @@ python3 tools/title_assets.py --import   # validate, install, and import into Go
 Or regenerate, from `client/assets/ui/`:
 
 ```bash
-python3 gen_title_matte.py --fidelity   # the hall: the author's painting at 1280x720  [SHIPPED]
-python3 gen_title_matte.py --register   # the same painting down to the board's grain  [see below]
+python3 gen_title_matte.py              # the hall: the pixel-art base at 1280x720   [SHIPPED]
+python3 gen_title_furniture.py          # banners, censer, chandelier, racks, braziers [SHIPPED]
 python3 gen_title_overlays.py           # dust, smoke, the god ray
-python3 gen_title_furniture.py          # the pixel props — built, not currently drawn
+python3 gen_title_matte.py --painting   # the earlier matte painting  (props baked in, frozen)
+python3 gen_title_matte.py --register   # any source down to the board's grain  [see below]
 ```
 
 Then look at it: `"$GODOT" --path "$CLIENT" --quit-after 900 -- --capture=4 --title-preview`.
@@ -54,15 +55,16 @@ Then look at it: `"$GODOT" --path "$CLIENT" --quit-after 900 -- --capture=4 --ti
 
 | File | Size | Alpha | Source |
 |---|---|---|---|
-| `hall_plate.png` | 1280×720 | opaque | `art/src/title/hall_plate_src.jpeg` via `gen_title_matte.py` |
+| `hall_plate.png` | 1280×720 | opaque | `art/src/title/hall_base_src.jpeg` via `gen_title_matte.py` |
 
-**Both treatments were built and captured rather than argued about**, and the losing one is kept
+**Every treatment was built and captured rather than argued about**, and the losing ones are kept
 because the evidence is the point:
 
 | | Result |
 |---|---|
-| `--register` | 640×360, on-palette, median + two mode passes: **31 colours, 523 single-pixel islands** against a naive downscale's 5876. A technical success and an artistic failure — the architecture dissolves, because the painting's structure lives at a frequency 640×360 cannot hold |
-| `--fidelity` | 1280×720, LANCZOS, drawn **1:1 on device pixels** at 720p. Reads as the painting itself. **Shipped** |
+| **(default)** | the pixel-art base: crop 3:2 → 16:9, scale once to 1280×720, grade warm. Architecture only, so the props animate. **Shipped** |
+| `--painting` | the earlier matte at 1280×720. Reads as the painting itself, but its furniture is baked in and frozen — the props had to stand down |
+| `--register` | 640×360, on-palette, median + two mode passes: **31 colours, 523 single-pixel islands** against a naive downscale's 5876. A technical success and an artistic failure — the architecture dissolves, because a painting's structure lives at a frequency 640×360 cannot hold |
 
 The 1:1 mapping is what keeps it crisp without filtering: at a 720p window `PixelScale` gives a
 640×360 logical viewport rendered at 1280×720 device pixels, so a 1280×720 texture drawn into the
@@ -133,7 +135,8 @@ python3 tools/title_assets.py --selftest  # the rules themselves
 
 ## What happens to the concept art
 
-**It ships.** `art/src/title/hall_plate_src.jpeg` is the hall. That reverses TD-073, which forbade
+**It ships.** `art/src/title/hall_base_src.jpeg` is the hall (`hall_plate_src.jpeg`, the earlier
+painting, remains behind `--painting`). That reverses TD-073, which forbade
 using the PNG as the main menu after the author's "uncanny" verdict on an *earlier, different* image
 that had UI baked into it — and it reverses TD-075's ruling that the title screen keep the board's
 pixel language. Both reversals were explicit, and both are recorded in DECISION_LOG TD-076 with the
@@ -142,5 +145,6 @@ captures that decided them.
 `art/src/collegium_hall_src.png` (the older piece) remains a composition reference only.
 
 Author art still replaces any slot by name via `art/src/title/` + `tools/title_assets.py --import`.
-For the **hall** the size is now free — it is a painting, and the fidelity path does not quantise it.
-For the **props**, if they are ever drawn again, the sizes in the tables above still apply.
+For the **hall**, supply 16:9 (or wider than 3:2 and expect a crop), at 1280×720 or above; it is not
+quantised. For the **props**, the sizes in the tables above are `1280 × the rig's fraction` — that is
+what puts them on the hall's grain.
