@@ -197,6 +197,31 @@ static). R242's painted-register exception is **withdrawn**. `tools/title_assets
 list from `title_scene.gd` and fails if the manifest drifts.
 **T255–T268 done; T262 (audio) BLOCKED** — no audio assets, pipeline or sanctioned tool.
 
+Completed: **`specs/title-polish/`** (TD-077) — title screen polish on the author's brief: parallax
+fog, a pixelised Cinzel, a laurel selection marker, and four scene additions. **COMPLETE (T281–T286,
+6 of 6, client render + generated art + tooling only).** **Fog** is the scene's only parallax —
+`gen_title_fog.py` emits three 1440×720 banded alpha banks drifting at 90/55/32s; the plate never
+moves (P132/R267), because moving *it* exposes the flatness while fog moving against **other fog**
+cannot. The first pass was ~4× too strong (additive white over a dark hall lifts the black floor
+everywhere → a milky film), so the alphas were quartered and a `nave(fx)` weight keeps fog off the
+**near piers**. Edge safety is a **test**: `title_assets --selftest` parses `FOG_OVERHANG` + each
+drift out of the rig and fails if a drift exceeds the half-overhang (proven by raising 38→48) — the
+failure is invisible in a still, appearing only as a seam sliding across the hall. **Cinzel is now
+no-AA project-wide** via `Cinzel.ttf.import` (not a runtime property, so no call site can opt back
+in); `fonts.gd`'s "deliberate AA exception" comment was **wrong** and is corrected — measured at 3×,
+the title gains cut-stone edges and 13px options stay readable. Board re-captured, not assumed:
+header improves, the tiny subordinate "Contract Board" line is slightly **chunkier** (recorded, ships),
+and the board's small text is the default sans and pixel-identical. **The marker** is one branch of
+the crest's laurel, mirrored for `\ word /`; its leaves are **hand-authored ASCII stamps** after five
+analytic passes failed (thorns → pods → fused mass → fishbone) — TD-057's finding again at 34×30 —
+with the rim **derived** by dilation. **Scene:** haze baked into `fog_far`, altar embers tuned up
+(+`damping`, since the altar sits under the menu column), three god-rays off **one** sheet breathing
+out of phase, an arrival stagger, and a version string read from `config/version`. Two latent bugs
+found: `--title-preview` was rebuilding the whole title screen just to inject a token (discarding the
+arrival, doubling every capture's work), and removing that exposed `--reduced-motion` being parsed
+*after* the first build — it had only ever worked via that unrelated flag's side effect. Slots 13 → 16.
+DECISION_LOG **TD-077**.
+
 Completed: **TD-070** — dead generated art deleted + the orphan signal made trustworthy. Removed 10
 files (`parch_live_*` incl. the four baked tilts, `foxing`, `board_placard`, `wall_v1`+`_n`), all
 superseded, **and** the generator lines that emitted them (`gen_detail`/`gen_structure`/

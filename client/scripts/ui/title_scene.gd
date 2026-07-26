@@ -88,10 +88,40 @@ const VESSELS := [
 	["brazier_b.png",     Vector3(0.6620, 0.9080, 0.0703), 0.867, "Brazier"],
 ]
 const OVERLAYS := [
-	["light_shaft.png",   Vector3(0.400, 0.500, 0.4688), 1.20, "Light shaft"],
 	["smoke_overlay.png", Vector3(0.500, 0.500, 1.000), 0.5625, "Smoke"],
 	["dust_overlay.png",  Vector3(0.500, 0.500, 1.000), 0.5625, "Dust"],
 ]
+
+# ── God rays: ONE sheet, three placements (R266) ─────────────────────────────
+# Light falls through the clerestory on both sides of the nave, not from a single window. That is
+# three rays, and it is deliberately not three assets: `light_shaft.png` is mirrored and rescaled
+# per placement. The dominant ray keeps its original position and strength; the other two are
+# narrower and dimmer, because a hall lit evenly from three directions has no direction at all.
+# Each breathes on its OWN period — rays pulsing together are the same tell as synchronised flicker.
+const RAY_TEX := "light_shaft.png"
+#                 cx, cy, w                     flip_h, opacity, breathe s
+const RAYS := [
+	[Vector3(0.400, 0.500, 0.4688), false, 0.20, 11.0],
+	[Vector3(0.700, 0.470, 0.3600), true,  0.13, 14.5],
+	[Vector3(0.235, 0.520, 0.3100), false, 0.10, 8.5],
+]
+
+# ── Fog: the scene's only parallax (R263, P132) ──────────────────────────────
+# The hall is a flat painted plate, so it has no depth to parallax. Moving the plate would expose
+# that at once — but moving fog against OTHER fog does not, because the only thing the eye can
+# compare is one bank to another. Three banks at three speeds is therefore the entire depth cue,
+# and not one of them touches the architecture.
+#
+# Each sheet is 1440x720 for a 1280-wide frame: the extra 160px is exactly the drift headroom, so a
+# leading edge can never walk into view and announce itself as a sheet.
+#
+#           file,           z,   opacity, tint,                        drift px, period s, breath s
+const FOG := [
+	["fog_far.png",  -60, 0.46, Color(1.00, 0.88, 0.70), 22.0, 90.0, 41.0],
+	["fog_mid.png",  -52, 0.36, Color(0.96, 0.92, 0.86), 30.0, 55.0, 29.0],
+	["fog_near.png", -33, 0.32, Color(0.90, 0.90, 0.92), 38.0, 32.0, 19.0],
+]
+const FOG_OVERHANG := 0.125            # 1440/1280 - 1: how much wider the sheets are than the frame
 
 # Where fire burns. Layer 3 — these exist whether or not the vessel art has arrived.
 const FIRES := [
@@ -166,6 +196,49 @@ static func _plate(host: Control, tex: Texture2D, vp: Vector2) -> Control:
 	return t
 
 
+## One fog bank: a sheet wider than the frame, drifting horizontally at its own speed with a slower
+## vertical breath. Missing art is simply skipped — a blockout panel would fog the whole screen and
+## hide everything a blockout exists to let you check.
+static func _fog(root: Control, e: Array, vp: Vector2, reduced: bool, phase: float) -> Control:
+	var tex := _tex(e[0])
+	if tex == null:
+		return null
+	var t := TextureRect.new()
+	t.texture = tex
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	# NEAREST, like everything else on this screen: the sheets are authored at 1440x720 so that at a
+	# 720p window they land one art pixel per device pixel, and their bands stay hard edges.
+	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.material = _additive()
+	t.modulate = Color(e[3].r, e[3].g, e[3].b, e[2])
+	var w := roundf(vp.x * (1.0 + FOG_OVERHANG))
+	t.size = Vector2(w, vp.y)
+	var home := Vector2(roundf((vp.x - w) * 0.5), 0.0)
+	t.position = home
+	t.z_index = int(e[1])
+	root.add_child(t)
+	if reduced:
+		return t                      # still, and fully present: reduced motion loses nothing (P134)
+
+	var drift: float = e[4]
+	var per: float = e[5]
+	# Horizontal: the parallax itself. Amplitude stays inside the overhang, so no edge ever enters
+	# the frame however long the screen is left running.
+	var hx := t.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	hx.tween_interval(per * (phase / TAU) * 0.5)     # seeded apart: banks in step read as one sheet
+	hx.tween_property(t, "position:x", home.x + drift, per * 0.5)
+	hx.tween_property(t, "position:x", home.x - drift, per * 0.5)
+	hx.tween_property(t, "position:x", home.x, 0.0)
+	# Vertical: a slow breath, a fraction of the horizontal, so the bank lifts and settles.
+	var vy := t.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var lift: float = maxf(2.0, drift * 0.16)
+	vy.tween_property(t, "position:y", home.y - lift, float(e[6]) * 0.5)
+	vy.tween_property(t, "position:y", home.y, float(e[6]) * 0.5)
+	return t
+
+
 static func _blockout(tint: Color, label: String, size: Vector2) -> Control:
 	# A flat panel with a hairline edge and its name on it. Obvious at a glance that it is a
 	# stand-in, while still occupying exactly the footprint the real asset will.
@@ -229,6 +302,10 @@ static func build(host: Control, reduced: bool) -> Control:
 				_pendulum(n2, rng.randf_range(3.4, 4.6), rng.randf_range(0.0, TAU))
 		for e in VESSELS:
 			_layer(root, e, -40, C_VESSEL)
+	# ── Layer 2b: fog. The only thing in this scene that parallaxes (R263). ──
+	for i in FOG.size():
+		_fog(root, FOG[i], host.size, reduced, rng.randf_range(0.0, TAU))
+
 	for e in OVERLAYS:
 		var n3 := _layer(root, e, -30, C_OVERLAY)
 		# Full-frame overlays as SOLID blockout panels fog the whole screen and hide the layers
@@ -238,10 +315,19 @@ static func build(host: Control, reduced: bool) -> Control:
 		if _tex(e[0]) != null:
 			n3.material = _additive()
 		if not reduced:
-			if e[0].begins_with("light_shaft"):
-				_breathe(n3, rng.randf_range(9.0, 13.0))
-			else:
-				_drift(n3, rng.randf_range(40.0, 70.0))
+			_drift(n3, rng.randf_range(40.0, 70.0))
+
+	# Three rays off one sheet, each with its own width, side and breath.
+	for r in RAYS:
+		var ray := _layer(root, [RAY_TEX, r[0], 1.20, "Light shaft"], -31, C_OVERLAY)
+		var has_art := _tex(RAY_TEX) != null
+		ray.modulate.a = 0.05 if not has_art else float(r[2])
+		if has_art:
+			ray.material = _additive()
+			if ray is TextureRect:
+				(ray as TextureRect).flip_h = bool(r[1])
+		if not reduced:
+			_breathe(ray, float(r[3]))
 
 	# ── Layer 3: light. Warm pools at every fire, flickering out of step. ──
 	for i in FIRES.size():
@@ -304,18 +390,27 @@ static func _dust(root: Control, vp: Vector2) -> void:
 
 static func _embers(root: Control, at: Vector2, vp: Vector2, salt: int) -> void:
 	# Rising off each fire. Few, small, warm — the only particles allowed to be noticed.
-	var p := _particles(root, 7, 4.2, -26)
+	# Tuned UP for the sanctuary (R266): with the six vessel fires gone this is the one fire left in
+	# the frame, and at the old count it threw two or three sparks a second into the brightest part
+	# of the picture, where they simply vanished. More of them, living longer and climbing further,
+	# so the altar reads as burning rather than merely lit.
+	var p := _particles(root, 16, 5.6, -26)
 	p.position = Vector2(vp.x * at.x, vp.y * at.y)
 	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	p.emission_rect_extents = Vector2(vp.x * 0.028, vp.y * 0.006)
+	p.emission_rect_extents = Vector2(vp.x * 0.040, vp.y * 0.008)
 	p.direction = Vector2(0.1 * (1 if salt % 2 == 0 else -1), -1)
-	p.spread = 18.0
-	p.gravity = Vector2(0, -9.0)
-	p.initial_velocity_min = 4.0
-	p.initial_velocity_max = 11.0
+	p.spread = 30.0
+	p.gravity = Vector2(0, -11.0)
+	p.initial_velocity_min = 5.0
+	p.initial_velocity_max = 14.0
+	# The altar sits directly below the menu column, so an undamped ember climbs straight through
+	# the last option (R245). Damping caps the climb where a widened spread has already thinned the
+	# stream, and it is what a cooling ember does anyway — it does not coast.
+	p.damping_min = 2.4
+	p.damping_max = 5.0
 	p.scale_amount_min = 0.014        # ~2px
-	p.scale_amount_max = 0.036        # ~5px
-	p.color = Color(1.0, 0.66, 0.28, 0.45)
+	p.scale_amount_max = 0.040        # ~5px
+	p.color = Color(1.0, 0.64, 0.26, 0.62)
 
 static func _incense(root: Control, at: Vector2, vp: Vector2) -> void:
 	# Smoke off a censer: slower and larger than embers, and colder, so the two never read as

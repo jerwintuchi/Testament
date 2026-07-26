@@ -198,6 +198,35 @@ def report(rows, errors, warnings, slots):
     return filled
 
 
+def fog_headroom():
+    """The fog banks are the only layers that MOVE, so they are the only ones that can walk their
+    own edge into the frame. Each sheet is wider than the viewport by `FOG_OVERHANG`, and half that
+    overhang sits on each side; a bank may drift up to that half and no further.
+
+    Checked here rather than trusted, because the failure is invisible in a still capture and only
+    shows up as a hard vertical seam sliding across the hall some seconds after the screen loads —
+    and the obvious future edit (raise the drift so the parallax reads more) is exactly what breaks
+    it. Returns (logical_frame_width, half_overhang_px, [(name, drift), ...]).
+    """
+    src = open(RIG, encoding="utf-8").read()
+    m = re.search(r"const FOG_OVERHANG\s*:=\s*([0-9.]+)", src)
+    if not m:
+        return None
+    overhang = float(m.group(1))
+    block = re.search(r"const FOG\s*:=\s*\[(.*?)\n\]", src, re.S)
+    banks = []
+    if block:
+        for line in block.group(1).splitlines():
+            row = re.search(r'"([A-Za-z0-9_]+\.png)"[^]]*?\]', line)
+            if not row:
+                continue
+            nums = re.findall(r"(-?\d+\.\d+)", line[row.end(1):])
+            if len(nums) >= 4:
+                banks.append((row.group(1), float(nums[-3])))   # drift, period, breath
+    frame = 640.0                       # the internal resolution (TD-042)
+    return frame, frame * overhang * 0.5, banks
+
+
 def selftest():
     """Assert the RULES, not any particular finding — the spec_status.py convention."""
     slots = rig_slots()
@@ -212,8 +241,18 @@ def selftest():
         ROOT, "client", "assets", "ui", "board", "board_header.png"))
     assert (w, h) == (204, 38) and depth == 8 and ctype == 6 and interlace == 0, \
         "probe() must read a known PNG's IHDR: got %dx%d depth=%d type=%d" % (w, h, depth, ctype)
+    fog = fog_headroom()
+    assert fog is not None, "FOG_OVERHANG must be derivable from the rig"
+    frame, half, banks = fog
+    assert len(banks) == 3, "three fog banks expected, parsed %d" % len(banks)
+    for name, drift in banks:
+        assert drift <= half, (
+            "%s drifts %.1fpx but only %.1fpx of overhang sits on each side — its edge would "
+            "enter the frame. Widen the sheets in gen_title_fog.py (and FOG_OVERHANG) or cut the "
+            "drift." % (name, drift, half))
     assert rig_slots() == slots, "parsing must be deterministic"
-    print("selftest: OK")
+    print("selftest: OK  (fog headroom %.0fpx; drifts %s)"
+          % (half, ", ".join("%s %.0f" % (n.split("_")[1][:-4], d) for n, d in banks)))
     return 0
 
 

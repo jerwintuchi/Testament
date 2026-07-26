@@ -115,6 +115,7 @@ var _wood_sb: StyleBox            # Contract Board panel skin — the carved 9-s
 var _board_frame: NinePatchRect   # carved frame overlay, shader-lit; tracks the popup rect (TD-047)
 var _stone_bg: TextureRect        # tiled stone/mortar surround, dim; Contract Board only
 var _reduced_motion: bool = false # settings toggle (F9 in playtest): freeze flicker, pin glow to peak
+var _title_arrived := false       # the title's arrival flourish plays once per launch, not per visit
 var _popup_tween: Tween           # the open/close animation, tracked so it can be killed on re-entry
 var _prompt: Label                # bottom-center "Press E — <Station>"
 var _popup_dim: ColorRect         # full-rect input blocker + dimmer behind the popup
@@ -351,7 +352,23 @@ func _ready() -> void:
 	# so a board built for one resolution never lingers over-sized in another.
 	get_viewport().size_changed.connect(_on_viewport_resized)
 
+	# Force the F9 reduced-motion lever on BEFORE the first screen is built, so an unattended
+	# capture can verify L5 (glow pinned to peak, flame frozen) without input injection. This has
+	# to precede `_show_title()`: it used to sit after it and was only honoured because
+	# `--title-preview` happened to rebuild the title afterwards — a real dependency on an
+	# unrelated flag's side effect, which broke the moment that rebuild was removed (T285).
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--reduced-motion"):
+		_reduced_motion = true
+
 	_reconnect_token = _load_token()
+	# `-- --title-preview` fakes a reconnect token so `Return to your expedition` — which only
+	# exists when there IS an expedition to return to — is capturable unattended. Display only: the
+	# token is never sent. It is set HERE, before the first build, rather than deferred into a
+	# second `_show_title()`; the second build discarded the first one's arrival flourish (T285) and
+	# made every title capture construct the whole scene twice for nothing.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--title-preview"):
+		# --no-token captures the 3-option form even when a real token happens to be on disk.
+		_reconnect_token = "" if OS.get_cmdline_user_args().has("--no-token") else "preview-token"
 	_net.open(_server_url())
 	_show_title()
 
@@ -359,10 +376,6 @@ func _ready() -> void:
 	# server and no walking, so the board's art can be iterated against a screenshot
 	# (DebugCapture). Render-only — it fabricates a *display* snapshot, never game state,
 	# and no intent is ever sent from it. Debug builds only.
-	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--reduced-motion"):
-		# Force the F9 reduced-motion lever on at startup so an unattended capture can
-		# verify L5 (glow pinned to peak, flame frozen) without input injection.
-		_reduced_motion = true
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--board-preview"):
 		call_deferred("_board_preview")
 	# `-- --lobby-preview` shows the WAITING lobby over a fixture Collegium, so the walkable
@@ -371,16 +384,9 @@ func _ready() -> void:
 	# state, and nothing is ever sent from it.
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--lobby-preview"):
 		call_deferred("_lobby_preview")
-	# `-- --title-preview` re-shows the title with a fake reconnect token, so `Return to your
-	# expedition` — which only exists when there is an expedition to return to — is capturable
-	# unattended. Display-only: the token is never sent, the preview just proves the layout.
-	# (This supersedes TD-071 Phase B's `--menu-preview`: Phase D made the first screen the
-	# title, and moved the name/code plates behind `--setup-create` / `--setup-join`.)
-	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--title-preview"):
-		# display only — never sent from the preview; --no-token captures the 3-option form even
-		# when a real token happens to be on disk.
-		_reconnect_token = "" if OS.get_cmdline_user_args().has("--no-token") else "preview-token"
-		call_deferred("_show_title")
+	# `--title-preview` is handled ABOVE, before the first `_show_title()`. (It supersedes TD-071
+	# Phase B's `--menu-preview`: Phase D made the first screen the title, and moved the name/code
+	# plates behind `--setup-create` / `--setup-join`.)
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--setup-create"):
 		call_deferred("_show_room_setup", "create")
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--setup-join"):
@@ -769,6 +775,51 @@ func _show_title() -> void:
 	# Whichever option is listed first takes it, which is the recovery path when there is one.
 	(first if first != null else fresh).grab_focus.call_deferred()
 
+	_title_version()
+	_title_arrival(col)
+
+# The build, bottom-right, dim enough to be furniture. Read from `application/config/version` in
+# project.godot (which mirrors the workspace package.json) rather than written here, so the corner
+# of the menu cannot quietly drift from what the repo says the build is (R266).
+# NOTE: project.godot is a Godot ConfigFile — comments there start with `;`, not `#`. A `#` line
+# silently breaks the section it sits in, which is how this setting first read back as empty.
+func _title_version() -> void:
+	var v := str(ProjectSettings.get_setting("application/config/version", ""))
+	if v == "":
+		return
+	var l := Label.new()
+	l.text = "v" + v
+	l.add_theme_font_size_override("font_size", 7)
+	l.add_theme_color_override("font_color", Color(0.78, 0.70, 0.54, 0.62))
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Anchors AND offsets, with a margin. `set_anchors_preset` alone leaves the offsets at zero, so
+	# the label collapses into the corner at zero size and never draws — the same trap the title
+	# rig's own comment records for FULL_RECT.
+	l.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 6)
+	# Parented to the ENVIRONMENT, not to `_root` or the host: `_root` is the menu column and would
+	# put a version string into the layout flow, while the host outlives the title screen — the
+	# environment is freed on the way out (`_clear_title`), so the string leaves with it.
+	_title_env.add_child(l)
+
+# Arrival: the screen settles in rather than appearing all at once (R266). It runs ONCE per launch
+# — coming back to the title from a room replays the hall, not the ceremony, because a flourish you
+# have already seen on the way in reads as a stutter on the way back.
+func _title_arrival(col: VBoxContainer) -> void:
+	if _reduced_motion or _title_arrived:
+		return
+	_title_arrived = true
+	# Every direct child, in column order: device, title, rule, then the options. The invisible
+	# spacers are included and cost nothing — filtering them out needs a rule about which children
+	# "count", and such a rule is exactly what silently stops matching after the next layout edit.
+	var i := 0
+	for c: Control in col.get_children():
+		var to := c.modulate.a
+		c.modulate.a = 0.0
+		var t := c.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		t.tween_interval(0.10 + 0.075 * i)
+		t.tween_property(c, "modulate:a", to, 0.42)
+		i += 1
+
 # One title choice: gilt Cinzel on the nave, no button chrome — the screen is an image, and a
 # row of stone-and-gold buttons would turn it back into a dialog. The SELECTED option is marked by
 # a gilt sigil either side of it rather than by a focus rectangle, for the same reason.
@@ -776,7 +827,7 @@ func _title_option(host: Node, text: String, on_pressed: Callable) -> Button:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	row.add_theme_constant_override("separation", 7)
+	row.add_theme_constant_override("separation", 5)
 
 	var left := _menu_sigil(true)
 	var b := Button.new()
@@ -796,11 +847,27 @@ func _title_option(host: Node, text: String, on_pressed: Callable) -> Button:
 	b.pressed.connect(on_pressed)
 	var right := _menu_sigil(false)
 
-	# The sigils keep their space when unlit, so marking an option never shifts the lettering.
+	# The sigils keep their space when unlit, so marking an option never shifts the lettering
+	# (P133). They EASE rather than snap: at 34x30 an instant appearance reads as a glitch, and
+	# arrowing down a menu snapping four of them on and off reads as flicker. Each tween is stored
+	# on the node so a fast keyboard scroll kills the previous one instead of racing it.
+	var fade := func(n: Control, to: float) -> void:
+		# `has_meta` first: `get_meta(key, default)` still logs an error for a missing key, which
+		# would print four times on every focus change.
+		if n.has_meta("fade"):
+			var prev := n.get_meta("fade") as Tween
+			if prev != null and prev.is_valid():
+				prev.kill()
+		var t := n.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		t.tween_property(n, "modulate:a", to, 0.12)
+		n.set_meta("fade", t)
 	var mark := func(on: bool) -> void:
 		var a := 1.0 if on else 0.0
-		left.modulate.a = a
-		right.modulate.a = a
+		fade.call(left, a)
+		fade.call(right, a)
+		# The selected line warms a step as well. The sigils say WHICH; the warmth says it is live.
+		b.add_theme_color_override("font_color",
+			Color(1.0, 0.92, 0.66) if on else Color(0.86, 0.74, 0.46))
 	b.focus_entered.connect(func(): mark.call(true))
 	b.focus_exited.connect(func(): mark.call(false))
 	b.mouse_entered.connect(func(): b.grab_focus())
@@ -811,14 +878,18 @@ func _title_option(host: Node, text: String, on_pressed: Callable) -> Button:
 	host.add_child(row)
 	return b
 
-# The mark itself: gilt, hard-edged, drawn 1:1 on device pixels like everything else on this screen.
+# The mark itself: one branch of the Collegium's laurel, gilt and hard-edged, drawn 1:1 on device
+# pixels like everything else on this screen. The art is the RIGHT branch; the left is it mirrored,
+# so the pair opens outward around the word the way the crest's wreath opens around the blade.
 func _menu_sigil(pointing_right: bool) -> TextureRect:
 	var s := TextureRect.new()
 	s.texture = load("res://assets/ui/shared/menu_sigil.png") as Texture2D
 	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	s.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	s.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	s.custom_minimum_size = Vector2(10, 10)
+	# 17x15 LOGICAL for 34x30 of art: at a 720p window PixelScale renders the 640x360 viewport into
+	# 1280x720 device pixels, so half the art's size on this side of the scale is 1:1 on that one.
+	s.custom_minimum_size = Vector2(17, 15)
 	s.flip_h = pointing_right          # the art points right; the LEFT copy is the mirrored one
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	s.mouse_filter = Control.MOUSE_FILTER_IGNORE

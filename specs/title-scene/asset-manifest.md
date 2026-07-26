@@ -52,6 +52,7 @@ Or regenerate, from `client/assets/ui/`:
 python3 gen_title_matte.py              # the hall: the pixel-art base at 1280x720   [SHIPPED]
 python3 gen_title_furniture.py          # banners, censer, chandelier, racks, braziers [SHIPPED]
 python3 gen_title_overlays.py           # dust, smoke, the god ray
+python3 gen_title_fog.py                # the three parallax fog banks           [SHIPPED]
 python3 gen_title_matte.py --painting   # the earlier matte painting  (props baked in, frozen)
 python3 gen_title_matte.py --register   # any source down to the board's grain  [see below]
 ```
@@ -116,6 +117,20 @@ padding that shear needs; `gen_title_furniture.py` prints the matching rig fract
 
 **Nothing burns in the art.** Cold wicks, dead coals. Every flame in this scene is an in-engine
 additive pool that flickers out of step (TD-043); a baked hotspot would fight it.
+
+## Fog (the scene's only parallax — TD-077)
+
+| File | Size | Alpha | Notes |
+|---|---|---|---|
+| `fog_far.png` | 1440×720 | yes | thin and high, plus the sanctuary's warm depth haze |
+| `fog_mid.png` | 1440×720 | yes | the working bank across the nave |
+| `fog_near.png` | 1440×720 | yes | heavy ground fog over the flags, the fastest of the three |
+
+**1440 wide for a 1280 frame on purpose.** Each bank drifts up to ±38 logical px; at frame width the
+leading edge would walk into view and announce itself as a sheet, so the extra 160px is exactly that
+headroom. The hall is a flat plate with no depth to parallax — moving *it* would expose that — but
+moving fog against **other fog** cannot, because the only thing the eye can compare is one bank to
+another. That is the whole depth cue, and it never touches the architecture (P132).
 
 ## Atmosphere overlays
 

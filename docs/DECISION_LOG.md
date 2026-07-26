@@ -2806,3 +2806,80 @@ Two details that matter more than they look: the sigils **keep their space when 
 an option never shifts the lettering; and hovering an option **grabs focus** rather than lighting a
 second mark, so exactly one choice is ever marked. The first option takes the mark on arrival — the
 recovery path when there is one — because an unmarked menu reads as art that failed to load.
+
+## 2026-07-26 — TD-077: the title screen gains depth, a hard register, and the Collegium's laurel
+
+**Why.** The author signed off the stripped title screen and asked for four things: parallax smoke to
+sell a 3D space, a pixelised Cinzel *if it stays readable*, a larger selection marker "that reflects
+the Collegium brand", and a set of scene improvements to choose from. Spec'd as `specs/title-polish/`
+(R263–R268, P132–P134, T281–T286) and approved before building.
+
+**Parallax without moving the plate.** The hall is one flat painted plate, so it has no depth to
+parallax, and R246/R267 stand: moving *it* exposes the flatness (and at 1:1 device pixels a sub-pixel
+move resamples every pixel while an integer move visibly jumps). But moving fog against **other fog**
+cannot expose anything, because the only thing the eye can compare is one bank to another. So three
+banded alpha sheets at 1440×720 drift at 90 / 55 / 32s, and that *is* the depth cue (P132).
+
+Two findings worth keeping:
+
+* **The strength ceiling is set by contrast, not by how much fog reads.** The first pass was ~4× too
+  strong. Additive white over a hall this dark lifts the black floor across the whole frame, so it
+  read as a milky film laid over the picture and the deep contrast that makes the scene work was
+  simply gone. Alongside the cut, a `nave(fx)` weight keeps fog off the **near piers** — the closest
+  thing in the frame, and the worst of the wash.
+* **Edge safety is a test, not a comment.** Each sheet is wider than the frame by exactly the drift
+  headroom, and `title_assets --selftest` now parses `FOG_OVERHANG` and every bank's drift out of the
+  rig and fails if a drift exceeds the half-overhang (verified to fail by raising one 38 → 48). The
+  failure is invisible in a still — it appears only as a hard seam sliding across the hall seconds
+  after load — and "raise the drift so the parallax reads more" is precisely the future edit that
+  causes it.
+
+**Cinzel joins the no-AA register, project-wide.** `Cinzel.ttf.import` now sets `antialiasing=0` and
+`subpixel_positioning=0`. Done in the **import**, not as a runtime property, so every load of the face
+is affected and no call site can opt back in by accident. `fonts.gd` had recorded the AA as a
+deliberate exception on the grounds that "its fine serifs shatter at this size"; captured before and
+after at 3×, **that does not hold** — the title gains cut-stone edges and the 13px options are sharper
+and fully readable.
+
+The Contract Board was re-captured rather than assumed safe, and the verdict is reported with its one
+caveat: Cinzel on the board is only the header, "THE COLLEGIUM" improves, and the subordinate
+"Contract Board" line — the smallest Cinzel in the game — comes out slightly **chunkier**, its stems a
+shade irregular. It stays legible and now matches the register around it, so it ships; that line is
+the one place the old exception had a point. The board's small text (legend, status, keyhints) is the
+default sans and is pixel-identical.
+
+**The marker is one branch of the order's laurel, and its leaves are hand-placed.** The crest's wreath
+is two branches meeting at the base and opening outward around the sword; the UI draws one and mirrors
+it, giving the author's sketch `\ word /`. Five analytic passes were spent trying to draw the leaves
+with a shape function and each failed differently — thin lenses read as **thorns**, fat ones as
+**pods**, long ones **fused into a single gilt mass**, and spacing them until they stopped fusing left
+a **fishbone**. That is TD-057's finding arriving again at 34×30: *a shape function samples a curve; it
+cannot decide which pixel carries the leaf.* So the leaves are ASCII stamps and only their placement is
+computed. The **rim is derived** — every empty pixel touching gold — because at four pixels across
+only a dark edge separates two overlapping leaves, and a dilation cannot be forgotten on one leaf and
+not another.
+
+**Scene work, all without a new asset slot.** Depth haze is baked into `fog_far` (it *is* fog); the
+altar embers are tuned up, since with the six vessel fires gone it is the only fire in frame and was
+throwing sparks into the brightest part of the picture where they vanished; and there are three god
+rays off **one** sheet, mirrored and rescaled per placement, each breathing on its own period —
+because rays pulsing together are the same tell as synchronised flicker. The embers then needed
+`damping`: the altar sits directly below the menu column, so a livelier undamped ember climbs straight
+through the last option. Damping caps the climb where the widened spread has already thinned the
+stream, which is also what a cooling ember does.
+
+**Two bugs the arrival sequence uncovered, both older than it.** `--title-preview` had been deferring
+a **second** `_show_title()` purely to inject its fake reconnect token, so the arrival flourish played
+on a build that was immediately discarded — and every title capture had been constructing the whole
+scene twice for nothing. Setting the token before the first build removed the rebuild, which then
+exposed what it had been masking: `--reduced-motion` was parsed *after* `_show_title()`, so the title
+only ever honoured it because that unrelated flag happened to rebuild the screen afterwards. A real
+dependency on a side effect, invisible while both were present.
+
+Also recorded because it cost time: `project.godot` is a Godot **ConfigFile**, where comments start
+with `;`. A `#` comment silently breaks the section it sits in — which is why `config/version` first
+read back as an empty string.
+
+**Containment.** Client render, generated art, docs and tooling only. No `src/**` change and no wire
+change (R268). Suites green: server 362, shared 65, tools 7. `asset_map` and `spec_status` selftest +
+check green, `title_assets --check` at 16 of 16 slots. Captured at both integer scales.
