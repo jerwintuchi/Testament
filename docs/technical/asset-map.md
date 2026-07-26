@@ -69,6 +69,7 @@
 
 ### `client/assets/ui/shared/`
 
+- **`menu_sigil.png`** — produced-by: `client/assets/ui/gen_menu_sigil.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`panel.png`** — produced-by: — · consumed-by: `client/scripts/ui/popup_theme.gd` (load)
 
 ### `client/assets/ui/title/`
@@ -158,7 +159,7 @@
 - **`client/scripts/core/station_names.gd`**
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/world/space_view.gd` (preload)
 - **`client/scripts/main.gd`**
-  - loads: `collegium_logo.png`, `frame_v1.png`, `stone_tile.png`, `player.tscn`
+  - loads: `collegium_logo.png`, `frame_v1.png`, `stone_tile.png`, `menu_sigil.png`, `player.tscn`
   - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `contract_board.gd`, `notice.gd`, `notice_card.gd`, `notice_reader.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `station_names.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `room_scroll.gd`, `title_scene.gd`, `widgets.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/ui/fonts.gd`**
@@ -192,6 +193,7 @@
 - **`client/assets/ui/gen_banner.py`** → `banner_v1.png`, `banner_v1_n.png`
 - **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_collegium.png`, `spark.png`, `torch_sconce.png`
 - **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_header_n.png`
+- **`client/assets/ui/gen_menu_sigil.py`** → `menu_sigil.png`
 - **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`
 - **`client/assets/ui/gen_title_furniture.py`** → `banner_center.png`, `banner_left.png`, `banner_right.png`, `brazier.png`, `brazier_b.png`, `candle_rack.png`, `candle_rack_b.png`, `censer.png`, `chandelier.png`
 - **`client/assets/ui/gen_title_matte.py`** → `hall_plate.png`
@@ -214,6 +216,6 @@
 - `client/scripts/board/board_decor.gd:56` — `load/preload normal_path`
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
-- `client/scripts/main.gd:1505` — `load/preload path`
-- `client/scripts/main.gd:1509` — `load/preload normal_path`
-- `client/scripts/ui/title_scene.gd:108` — `load/preload p`
+- `client/scripts/main.gd:1544` — `load/preload path`
+- `client/scripts/main.gd:1548` — `load/preload normal_path`
+- `client/scripts/ui/title_scene.gd:106` — `load/preload p`

@@ -6,9 +6,18 @@
 > bottom: the vault has headroom, the floor and altar steps do not), scaled once to 1280×720, and
 > graded warm along the navestone ramp because Testament is not grey.
 >
-> **It is architecture only, and that is why it wins.** No banners, censers, candle stands or
-> braziers in the image, so every one of those layers ANIMATES again — `PROPS_IN_PLATE = false`.
-> The painting had its furniture frozen into it.
+> **The props are now OFF** (`PROPS_IN_PLATE = true`), on the author's call: the title screen is the
+> hall and the UI and nothing else. The banners, censers, chandelier, racks and braziers keep their
+> art, their tables and their place in the asset contract, so this is one flag to reverse — but the
+> only mark above the lettering is the Collegium device, drawn by the UI itself.
+>
+> **What remains alive:** the sanctuary's own warm pool, drifting dust, a thread of smoke from the
+> altar, and the god-ray. The six pools that stood on the removed vessels went with them — a glow
+> over empty stone is worse than no glow — and the incense went with the censers that made it.
+>
+> **The selected menu option is marked by a gilt sigil either side of it** (`shared/menu_sigil.png`,
+> `gen_menu_sigil.py`), which replaced the focus rectangle: a box drawn round gilt lettering turned
+> an image back into a dialog.
 >
 > *(superseded)* **the hall is the author's painting.** After four procedural rebuilds the author ruled:
 > *"disregard the constraints and make the great hall almost 1:1 to the reference image."* The only

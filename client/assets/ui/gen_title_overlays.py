@@ -111,7 +111,7 @@ def _fbm(x, y, salt):
 # starts nowhere in particular is the tell that it was drawn, not lit — which makes this table a
 # MIRROR of `title_scene.gd`'s CENSER_LX / CENSER_RX / CENSER_FIRE_Y. Move a censer there and this
 # must follow, or the hall smokes from a spot where nothing hangs.
-PLUMES = ((0.292, 0.404, 1.00), (0.708, 0.404, 0.92), (0.500, 0.560, 0.55))
+PLUMES = ((0.500, 0.560, 0.70),)
 
 
 def smoke_px(x, y):

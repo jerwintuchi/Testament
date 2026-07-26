@@ -25,10 +25,11 @@ const PLATE := "hall_plate.png"
 
 # The plate is a painting that already contains the hall's furniture, so our prop layers would
 # double it. They stay in the tables (and in the asset contract) but are not drawn.
-# FALSE again (TD-076): the pixel-art base is architecture only — no banners, censers, candle
-# stands or braziers in the image — so the layers that animate are drawn once more. This is the
-# whole reason that base beats the painting, which had its furniture frozen into it.
-const PROPS_IN_PLATE := false
+# TRUE again, on the author's call: the title screen is the hall and the UI, and nothing else. The
+# banners, censers, chandelier, racks and braziers are all switched off — the only mark above the
+# lettering is the Collegium device, drawn by the UI itself. Their art, their tables and the asset
+# contract are untouched, so this is one flag to reverse.
+const PROPS_IN_PLATE := true
 
 # Blockout palette — deliberately flat and unmistakably provisional. Nobody should mistake this
 # for finished art, which is the whole point of a blockout.
@@ -96,9 +97,6 @@ const OVERLAYS := [
 const FIRES := [
 	# These track VESSELS: a fire burns on a vessel, so moving one and not the other leaves a
 	# warm pool hanging over empty floor.
-	Vector2(0.170, 0.856), Vector2(0.835, 0.849),
-	Vector2(0.340, 0.893), Vector2(0.662, 0.887),
-	Vector2(CENSER_LX, CENSER_FIRE_Y), Vector2(CENSER_RX, CENSER_FIRE_Y),
 	Vector2(0.500, 0.845),
 ]
 
@@ -261,8 +259,9 @@ static func build(host: Control, reduced: bool) -> Control:
 		_dust(root, host.size)
 		for i in FIRES.size():
 			_embers(root, FIRES[i], host.size, i)
-		_incense(root, Vector2(CENSER_LX, CENSER_FIRE_Y), host.size)
-		_incense(root, Vector2(CENSER_RX, CENSER_FIRE_Y), host.size)
+		if not PROPS_IN_PLATE:                # incense rises off censers; with none, none rises
+			_incense(root, Vector2(CENSER_LX, CENSER_FIRE_Y), host.size)
+			_incense(root, Vector2(CENSER_RX, CENSER_FIRE_Y), host.size)
 
 	# No camera life. The brief is explicit: "The architecture itself remains static. Only
 	# atmospheric elements should move." A 2px drift also resampled a plate that must stay on

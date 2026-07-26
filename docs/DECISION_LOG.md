@@ -2778,3 +2778,31 @@ the generator prints the widened rig fractions, so the object still renders at t
 value the engine's own pools add, so the two stacked into white bars in the corners. Toning them out
 entirely was an over-correction on the first pass — they read as wire frames — so the taper body sits
 one step back up. An unlit prop has to leave the fire somewhere to go.
+
+## 2026-07-25 — TD-076 addendum: the title screen is the hall and the UI, and a sigil marks the choice
+
+**Why.** The author's call, after seeing the furnished version: strip the props entirely, keep only
+the Collegium device above the title, and mark the selected option with a sigil either side of it.
+
+**Decided.** `PROPS_IN_PLATE` back to `true` — the banners, censers, chandelier, racks and braziers
+are switched off. Their art, their tables and their slots in the asset contract are untouched, so
+the flag reverses it; nothing was deleted for a decision that might swing back.
+
+Two things had to follow the props out, and neither is cosmetic:
+
+* **Six of the seven fire pools.** They existed to sit *on* the vessels. With the vessels gone they
+  would light empty stone, which reads worse than no light at all. The sanctuary's pool stays,
+  because the hall has an altar there.
+* **The censers' incense.** Smoke rising from nothing is the same failure. `gen_title_overlays.py`
+  now bakes one plume, from the sanctuary, instead of three.
+
+**The sigil replaces the focus ring.** `gen_menu_sigil.py` emits a 20×20 gilt lozenge with a bar
+running toward the word it marks — the Contract Board's ornament vocabulary (brass line, dot finials,
+chevroned diamond), not a game-UI arrow. It is authored at the hall's grain and drawn NEAREST like
+everything else on the screen. The old `Widgets.focus_ring()` is gone from this menu: a rectangle
+drawn round gilt Cinzel turned an image back into a dialog, which is the thing R232 exists to stop.
+
+Two details that matter more than they look: the sigils **keep their space when unlit**, so marking
+an option never shifts the lettering; and hovering an option **grabs focus** rather than lighting a
+second mark, so exactly one choice is ever marked. The first option takes the mark on arrival — the
+recovery path when there is one — because an unmarked menu reads as art that failed to load.

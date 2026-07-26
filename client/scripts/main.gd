@@ -754,20 +754,31 @@ func _show_title() -> void:
 	# The recovery path is listed FIRST and only when there is something live to return to —
 	# never a dead option (R232). Canon I7 keeps expedition state ephemeral, so this rejoins a
 	# running expedition; it is not a save-game load.
+	var first: Button = null
 	if _reconnect_token != "":
-		_title_option(col, "Return to your expedition", func():
+		first = _title_option(col, "Return to your expedition", func():
 			if _net.is_open():
 				_awaiting_resume = true
 				_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
 			else:
 				_set_status("still connecting, try again in a moment"))
-	_title_option(col, "New Expedition", func(): _show_room_setup("create"))
+	var fresh := _title_option(col, "New Expedition", func(): _show_room_setup("create"))
 	_title_option(col, "Join Expedition", func(): _show_room_setup("join"))
 	_title_option(col, "Quit", func(): get_tree().quit())
+	# Something is always marked: an unselected menu would read as the sigils having failed to load.
+	# Whichever option is listed first takes it, which is the recovery path when there is one.
+	(first if first != null else fresh).grab_focus.call_deferred()
 
 # One title choice: gilt Cinzel on the nave, no button chrome — the screen is an image, and a
-# row of stone-and-gold buttons would turn it back into a dialog.
-func _title_option(host: Node, text: String, on_pressed: Callable) -> void:
+# row of stone-and-gold buttons would turn it back into a dialog. The SELECTED option is marked by
+# a gilt sigil either side of it rather than by a focus rectangle, for the same reason.
+func _title_option(host: Node, text: String, on_pressed: Callable) -> Button:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	row.add_theme_constant_override("separation", 7)
+
+	var left := _menu_sigil(true)
 	var b := Button.new()
 	b.text = text
 	b.flat = true
@@ -780,11 +791,39 @@ func _title_option(host: Node, text: String, on_pressed: Callable) -> void:
 	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		b.add_theme_color_override(st, Color(0.86, 0.74, 0.46) if st == "font_color" else Color(1.0, 0.92, 0.66))
 	var empty := StyleBoxEmpty.new()
-	for st in ["normal", "hover", "pressed", "disabled"]:
+	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
 		b.add_theme_stylebox_override(st, empty)
-	b.add_theme_stylebox_override("focus", Widgets.focus_ring())
 	b.pressed.connect(on_pressed)
-	host.add_child(b)
+	var right := _menu_sigil(false)
+
+	# The sigils keep their space when unlit, so marking an option never shifts the lettering.
+	var mark := func(on: bool) -> void:
+		var a := 1.0 if on else 0.0
+		left.modulate.a = a
+		right.modulate.a = a
+	b.focus_entered.connect(func(): mark.call(true))
+	b.focus_exited.connect(func(): mark.call(false))
+	b.mouse_entered.connect(func(): b.grab_focus())
+
+	row.add_child(left)
+	row.add_child(b)
+	row.add_child(right)
+	host.add_child(row)
+	return b
+
+# The mark itself: gilt, hard-edged, drawn 1:1 on device pixels like everything else on this screen.
+func _menu_sigil(pointing_right: bool) -> TextureRect:
+	var s := TextureRect.new()
+	s.texture = load("res://assets/ui/shared/menu_sigil.png") as Texture2D
+	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	s.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	s.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	s.custom_minimum_size = Vector2(10, 10)
+	s.flip_h = pointing_right          # the art points right; the LEFT copy is the mirrored one
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	s.modulate.a = 0.0
+	return s
 
 # ── Room setup ──────────────────────────────────────────────────────────────
 # One screen deeper than the title: the plate that actually asks for what its path needs
