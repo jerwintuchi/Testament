@@ -348,21 +348,22 @@ PIL-read from `collegium_logo.png`; `wax_seal.gd` de-Origin-keyed, R124 faint/fi
 untouched). Debug capture flags: `--reader` suppresses click-off dismiss (stray-click gotcha),
 `--reader-foot`, `--sealed`.
 
-Active spec: **`specs/title-air/`** (TD-078) — the altar goes **cold** and the flat fog becomes
-**volumetric**. The author's read on TD-077's three drifting fog *sheets* is that the hall still looks
-2D — correctly: a sliding image is lateral parallax, and real depth needs motion *toward the viewer*,
-which a plane cannot fake. So the sheets are retired and replaced by three `CPUParticles2D` banks
-whose emitters sit **at the hall's vanishing point** with `radial_accel` outward — near rushes past
-and grows, far *converges* into the distance, so the banks differ in the **direction** of travel, not
-only its speed. The altar loses its glow pool, its haze and its embers; only the plate's painted light
-remains. **First spec written under `.claude/rules/performance.md`**, so the budget is in the
-requirements and is a tool (`title_assets --budget`), not a comment: ≤120 particles, ≤3 full-frame
-additive layers, ≤2.5 screens of fill, zero per-frame script. Findings it surfaced but did not cause:
-the screen currently runs **5** full-frame additive layers; **dust is drawn twice** (a sheet AND 46
-particles) since T260c; the **god-rays are invisible** (sheet peak alpha 34/255 × rig 0.20 × breathe
-= 6.8/255) while costing more fill than every particle combined; and
-`gen_title_furniture.ZENITH_FY` holds the **source-space** zenith (-6.768) where the crop-corrected
-value is **-8.148** — dormant only because the props are switched off. **T287–T294, none started.**
+Completed: **`specs/title-air/`** (TD-078) — the altar goes **cold** and the fog becomes
+**volumetric**. TD-077's three drifting fog *sheets* were lateral parallax (planes sliding past
+planes); depth in a static frame needs motion **toward** the viewer, which a plane cannot fake. So the
+sheets are retired and the air is three `CPUParticles2D` banks emitted **at the hall's vanishing
+point** with `radial_accel` outward — near rushes past and grows, far **converges** — so the banks
+differ in the *direction* of travel, not only its speed, at zero per-frame cost (P135). The altar
+loses its glow pool, embers and haze; only the plate's painted light remains. **First spec under
+`.claude/rules/performance.md`:** `title_assets --budget` enforces ≤120 particles / ≤3 full-frame
+additive layers / ≤2.5 screens of fill and matched the design's hand-computed table exactly.
+The VP is **derived** — the measured `fy 0.8651` is the *uncropped* value; the plate's crop makes it
+**0.898**, and the selftest re-derives it from the generator's crop box. **Findings it surfaced but
+did not cause:** the screen ran **5** full-frame additive layers against a ceiling of 3; **dust was
+drawn twice** (sheet + particles) since T260c; the **god rays were invisible** (34/255 sheet × 0.20 ×
+breathe = 6.8/255) while costing more fill than every particle combined — now one ray at 0.55 (18/255)
+for half the cost; and **`gen_title_furniture.ZENITH_FY` is the source-space zenith (-6.768) where the
+crop-corrected value is -8.148**, dormant only because the props are switched off. **T287–T294 done.**
 
 @specs/title-air/requirements.md
 @specs/title-air/design.md

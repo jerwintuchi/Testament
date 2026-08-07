@@ -2883,3 +2883,66 @@ read back as an empty string.
 **Containment.** Client render, generated art, docs and tooling only. No `src/**` change and no wire
 change (R268). Suites green: server 362, shared 65, tools 7. `asset_map` and `spec_status` selftest +
 check green, `title_assets --check` at 16 of 16 slots. Captured at both integer scales.
+
+## 2026-07-26 — TD-078: the altar goes cold, and the air becomes volumetric
+
+**Why.** Two author notes on the finished TD-077 screen: remove the bright orange glow on the altar,
+and make the fog read as **3D depth** rather than 2D layers. Also the first spec written under the
+new performance canon (`.claude/rules/performance.md`), so the budget is in the requirements and is
+a tool, not a comment.
+
+**The altar is cold.** The additive glow pool, the sanctuary embers and the warm haze baked into
+`fog_far` are all gone; the only light at the arch is the light the plate paints. `FIRES`, `_glow`,
+`_embers`, `_flicker`, `_incense` and `_drift` are **deleted**, not switched off.
+
+**Sheets could not get there, and it is worth saying why.** TD-077's three drifting fog sheets are
+lateral parallax — planes sliding past planes. Depth in a static frame comes from motion **toward the
+viewer**: things growing, accelerating, leaving the frame. That is the one cue a flat plane cannot
+fake, and it is what was missing. So the sheets are retired and the air is three `CPUParticles2D`
+banks whose emitters sit **at the hall's vanishing point**, with `radial_accel` pushing particles
+outward from it — positive for near (rushes past and grows), **negative** for far (converges into the
+distance). The banks differ in the *direction* of travel, not only its speed, and none of it costs a
+frame callback: an emitter at the VP with a radial accel **is** the effect (P135).
+
+**The vanishing point is derived, and the obvious number is wrong.** `measure_reference.py` reports
+the nave VP at `fy 0.8651` — on the **uncropped** source. `gen_title_matte.py` crops the plate at
+y=110 of 1024 to a height of 864, so the rig wants **0.8980**. Those are ~24 logical px apart:
+plausible in a still, visibly wrong the moment anything moves along it. `title_assets --selftest`
+now re-derives it from the generator's own crop box, so a future re-crop fails loudly instead of
+quietly skewing the air.
+
+**The budget is a tool.** `title_assets --budget` parses the bank table, the dust emitter and the ray
+table out of the rig and enforces ≤120 particles, ≤3 full-frame additive layers and ≤2.5 screens of
+additive fill (fill is a *ratio*, so it is computed in logical units and holds identically at 720p
+and 1080p). It matched the design's hand-computed table exactly on its first run. A still capture
+cannot show a frame cost, which is the whole reason this is a check and not a paragraph.
+
+**Four findings this spec surfaced but did not cause:**
+
+* The screen was running **five** full-frame additive layers against a ceiling of three.
+* **Dust was being drawn twice** — `dust_overlay.png` *and* `_dust()`'s 46 particles — since T260c.
+* The **god rays were invisible**: the sheet peaks at alpha 34/255 (only ~9% of it reaches that), the
+  rig multiplied by 0.20/0.13/0.10, and `_breathe` took another 35% — a peak add of **6.8/255** over
+  a hall whose own stone varies by more. They were simultaneously the most expensive thing in the
+  frame at ~0.95 screens of fill, more than every particle combined. Resolved by deleting the two
+  flanking rays and raising the dominant one to **0.55**, chosen *from the sheet's alpha* rather than
+  by eye: an 18/255 peak, at half the old cost. Setting an opacity without reading the asset's alpha
+  is exactly how this happened.
+* `gen_title_furniture.ZENITH_FY` is `-6.768`, the **source-space** zenith used against display
+  fractions — the crop-corrected value is **-8.148**, so every prop's shear leans against a zenith
+  ~20% too close. Dormant only because `PROPS_IN_PLATE` switches the props off; turning them back on
+  would ship a wrong lean. Recorded, not fixed here — this spec touches no prop.
+
+**Two corrections found by looking, not by reasoning.** `direction = Vector2(0, 0)` gives the initial
+velocity no direction at all, so the particles sat on the emitter and crept out on `radial_accel`
+alone — a real bug, invisible in the code review, obvious in the capture. And the first visible pass
+read as distinct **blobs** rather than fog: fog comes from *overlapping* soft shapes, so the banks
+went bigger and fainter at the same counts. Fill rose 1.39 → 1.92 and stayed inside the ceiling —
+the budget paid for the fix rather than blocking it, which is the argument for setting it generously
+and early.
+
+**Containment.** Client render + tooling only; no `src/**` or wire change. 11 asset files deleted.
+Suites green (server 362, shared 65, tools 7). Asset map, manifest, registry and `title_assets`
+(`--selftest`, `--check` at 11 of 11, `--budget`) all green. Pre-existing advisories left alone:
+`title/title_fire.gdshader` is an orphan that predates this work, and `gen_nave.py` still declares a
+write to a `title/nave.png` that is not on disk.

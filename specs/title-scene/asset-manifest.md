@@ -51,8 +51,7 @@ Or regenerate, from `client/assets/ui/`:
 ```bash
 python3 gen_title_matte.py              # the hall: the pixel-art base at 1280x720   [SHIPPED]
 python3 gen_title_furniture.py          # banners, censer, chandelier, racks, braziers [SHIPPED]
-python3 gen_title_overlays.py           # dust, smoke, the god ray
-python3 gen_title_fog.py                # the three parallax fog banks           [SHIPPED]
+python3 gen_title_overlays.py           # the god ray (dust + smoke retired, TD-078)
 python3 gen_title_matte.py --painting   # the earlier matte painting  (props baked in, frozen)
 python3 gen_title_matte.py --register   # any source down to the board's grain  [see below]
 ```
@@ -118,32 +117,33 @@ padding that shear needs; `gen_title_furniture.py` prints the matching rig fract
 **Nothing burns in the art.** Cold wicks, dead coals. Every flame in this scene is an in-engine
 additive pool that flickers out of step (TD-043); a baked hotspot would fight it.
 
-## Fog (the scene's only parallax — TD-077)
+## The air — no longer an asset at all (TD-078)
 
-| File | Size | Alpha | Notes |
-|---|---|---|---|
-| `fog_far.png` | 1440×720 | yes | thin and high, plus the sanctuary's warm depth haze |
-| `fog_mid.png` | 1440×720 | yes | the working bank across the nave |
-| `fog_near.png` | 1440×720 | yes | heavy ground fog over the flags, the fastest of the three |
+**Retired:** `fog_far.png`, `fog_mid.png`, `fog_near.png`, `dust_overlay.png`, `smoke_overlay.png`,
+and `gen_title_fog.py` with them.
 
-**1440 wide for a 1280 frame on purpose.** Each bank drifts up to ±38 logical px; at frame width the
-leading edge would walk into view and announce itself as a sheet, so the extra 160px is exactly that
-headroom. The hall is a flat plate with no depth to parallax — moving *it* would expose that — but
-moving fog against **other fog** cannot, because the only thing the eye can compare is one bank to
-another. That is the whole depth cue, and it never touches the architecture (P132).
+The fog was three drifting **sheets**. A sheet sliding sideways is lateral parallax — planes moving
+past planes — and it read as exactly that: flat. Depth in a static frame needs motion *toward the
+viewer*, which a plane cannot fake. So the air is now three `CPUParticles2D` banks emitted **at the
+hall's vanishing point**, and it ships as **code, not art**: there is nothing here to author.
+
+`dust_overlay.png` went because dust was being drawn **twice** — that sheet *and* `_dust()`'s
+particles — since T260c. `smoke_overlay.png` went because it was a plume rising off an altar that is
+now cold, the same failure TD-076 removed the censers' incense for.
 
 ## Atmosphere overlays
 
 | File | Size | Alpha | Notes |
 |---|---|---|---|
-| `dust_overlay.png` | 640×360 | yes | motes as **whole pixels**, 1px and the odd 2×2 |
-| `smoke_overlay.png` | 640×360 | yes | incense off the censers, in four alpha steps |
-| `light_shaft.png` | 300×360 | yes | one god ray, **three flat bands** |
+| `light_shaft.png` | 300×360 | yes | one god ray, **three flat bands**; placed three times by the rig |
 
 Greyscale-white with the whole image in the **alpha channel**, so under the rig's additive blend the
 sheet's contribution is exactly its alpha. Banded, never smooth: a continuous falloff needs dithering
-to survive, and dithering is what the brief rules out. The frame's centre is thinned — the menu is
-read there (R245).
+to survive, and dithering is what the brief rules out.
+
+> **Its peak alpha is 34/255**, and the rig multiplies by a further 0.20/0.13/0.10. That is why the
+> rays are invisible on screen (TD-078 R275) while costing more fill than every particle combined —
+> a number to check before setting any opacity against this sheet.
 
 ---
 

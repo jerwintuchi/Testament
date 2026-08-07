@@ -13,11 +13,13 @@ between them, and the installer that puts a validated file where the rig will fi
     python3 tools/title_assets.py             install art/src/title/*.png -> client/assets/ui/title/
     python3 tools/title_assets.py --check     report only; exit 1 on a contract violation
     python3 tools/title_assets.py --selftest  assert the parsing rules (the named test)
+    python3 tools/title_assets.py --budget    compute + enforce the atmosphere budget (R272)
     python3 tools/title_assets.py --import    install, then run Godot's importer over the client
 
 Nothing here generates art: painted source art is copied byte-for-byte, because re-encoding a
 painted matte through a pixel-art generator is exactly the register mistake TD-055 warns about.
 """
+import math
 import os
 import re
 import shutil
@@ -198,33 +200,112 @@ def report(rows, errors, warnings, slots):
     return filled
 
 
-def fog_headroom():
-    """The fog banks are the only layers that MOVE, so they are the only ones that can walk their
-    own edge into the frame. Each sheet is wider than the viewport by `FOG_OVERHANG`, and half that
-    overhang sits on each side; a bank may drift up to that half and no further.
+MATTE = os.path.join(ROOT, "client", "assets", "ui", "gen_title_matte.py")
 
-    Checked here rather than trusted, because the failure is invisible in a still capture and only
-    shows up as a hard vertical seam sliding across the hall some seconds after the screen loads —
-    and the obvious future edit (raise the drift so the parallax reads more) is exactly what breaks
-    it. Returns (logical_frame_width, half_overhang_px, [(name, drift), ...]).
+# The measured nave vanishing point, on the UNCROPPED source (tools/measure_reference.py).
+VP_SRC_FY = 0.8651
+SRC_H = 1024
+
+# Budget ceilings (R272, mobile-first). They live here, beside the numbers they bound, so the
+# check cannot be satisfied by editing a comment.
+MAX_PARTICLES = 120
+MAX_FULLFRAME = 3
+MAX_FILL_SCREENS = 2.5
+LOGICAL_W, LOGICAL_H = 640.0, 360.0        # TD-042; fill is a RATIO, so it holds at any device res
+
+
+def check_vp():
+    """Re-derive the nave VP from the plate's crop box and assert the rig agrees (T289/P137).
+
+    The measurement is taken on the uncropped source; `gen_title_matte.py` crops before scaling, so
+    the rig's fraction is NOT the measured one. Getting this wrong puts the vanishing point ~24
+    logical px off — invisible in a still, and visibly wrong the moment the air moves along it. A
+    future re-crop of the plate must therefore fail here rather than quietly skew the air.
+    """
+    m = re.search(r"\.crop\(\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)\)",
+                  open(MATTE, encoding="utf-8").read())
+    assert m, "could not read the plate's crop box out of gen_title_matte.py"
+    top, bottom = int(m.group(2)), int(m.group(4))
+    want = (VP_SRC_FY * SRC_H - top) / float(bottom - top)
+    got = re.search(r"const NAVE_VP\s*:=\s*Vector2\(([0-9.]+),\s*([0-9.]+)\)",
+                    open(RIG, encoding="utf-8").read())
+    assert got, "NAVE_VP must be derivable from the rig"
+    have = float(got.group(2))
+    assert abs(have - want) < 0.002, (
+        "NAVE_VP.y is %.4f but the plate's crop (%d..%d of %d) puts the measured nave VP at %.4f. "
+        "Either the plate was re-cropped and the rig was not updated, or the constant was set by "
+        "eye." % (have, top, bottom, SRC_H, want))
+    return want
+
+
+def budget():
+    """Compute and enforce the atmosphere budget (R272, performance canon P3).
+
+    Fill is the fraction of the screen covered by additive blending each frame, summed over every
+    particle and overlay. It is a RATIO, so it is computed in logical units and holds identically at
+    720p and 1080p — which is the point: the cost is paid at device resolution, but the ratio is not.
+    A still capture cannot show a frame cost, so if this is not a test it is a comment.
     """
     src = open(RIG, encoding="utf-8").read()
-    m = re.search(r"const FOG_OVERHANG\s*:=\s*([0-9.]+)", src)
-    if not m:
-        return None
-    overhang = float(m.group(1))
-    block = re.search(r"const FOG\s*:=\s*\[(.*?)\n\]", src, re.S)
-    banks = []
-    if block:
-        for line in block.group(1).splitlines():
-            row = re.search(r'"([A-Za-z0-9_]+\.png)"[^]]*?\]', line)
-            if not row:
+    screen = LOGICAL_W * LOGICAL_H
+    rows, particles, fill, fullframe = [], 0, 0.0, 0
+
+    block = re.search(r"const BANKS\s*:=\s*\[(.*?)\n\]", src, re.S)
+    assert block, "BANKS must be derivable from the rig"
+    for line in block.group(1).splitlines():
+        n = re.findall(r"(-?\d+\.?\d*)", line.split("Color")[0])
+        if len(n) < 2 or not line.strip().startswith("["):
+            continue
+        count, radius = int(float(n[0])), float(n[1])
+        area = math.pi * radius * radius
+        particles += count
+        fill += count * area / screen
+        rows.append(("bank r=%.0f" % radius, count, count * area / screen))
+
+    d = re.search(r"_particles\(root,\s*(\d+),.*?scale_amount_max\s*=\s*([0-9.]+)", src, re.S)
+    if d:
+        count, smax = int(d.group(1)), float(d.group(2))
+        area = math.pi * (smax * 128.0 * 0.5) ** 2
+        particles += count
+        fill += count * area / screen
+        rows.append(("dust", count, count * area / screen))
+
+    rays = re.search(r"const RAYS\s*:=\s*\[(.*?)\n\]", src, re.S)
+    if rays:
+        for line in rays.group(1).splitlines():
+            v = re.search(r"Vector3\(([0-9.]+),\s*([0-9.]+),\s*([0-9.]+)\)", line)
+            if not v:
                 continue
-            nums = re.findall(r"(-?\d+\.\d+)", line[row.end(1):])
-            if len(nums) >= 4:
-                banks.append((row.group(1), float(nums[-3])))   # drift, period, breath
-    frame = 640.0                       # the internal resolution (TD-042)
-    return frame, frame * overhang * 0.5, banks
+            w = float(v.group(3)) * LOGICAL_W
+            h = w * 1.20                      # the ray sheet's aspect, as the rig builds it
+            fill += (w * h) / screen
+            rows.append(("god ray w=%.0f" % w, 1, (w * h) / screen))
+
+    for lit in re.findall(r'\["([a-z_]+\.png)",\s*Vector3\([0-9.]+,\s*[0-9.]+,\s*([0-9.]+)\)', src):
+        if float(lit[1]) >= 1.0:
+            fullframe += 1
+            fill += 1.0
+            rows.append((lit[0], 1, 1.0))
+
+    print("%sAtmosphere budget%s%s  (mobile-first, R272)%s" % (BOLD, OFF, DIM, OFF))
+    for name, count, f in rows:
+        print("  %-18s x%-4d %6.3f screens" % (name, count, f))
+    bad = []
+    def line(label, got, ceil, fmt="%d"):
+        ok = got <= ceil
+        if not ok:
+            bad.append(label)
+        print("  %s%-22s %s / %s%s" % (GRN if ok else RED, label,
+              fmt % got, fmt % ceil, OFF))
+    print()
+    line("live particles", particles, MAX_PARTICLES)
+    line("full-frame additive", fullframe, MAX_FULLFRAME)
+    line("additive fill", fill, MAX_FILL_SCREENS, "%.2f")
+    if bad:
+        print("%sover budget: %s%s" % (RED, ", ".join(bad), OFF))
+        return 1
+    print("%swithin budget%s" % (GRN, OFF))
+    return 0
 
 
 def selftest():
@@ -241,24 +322,17 @@ def selftest():
         ROOT, "client", "assets", "ui", "board", "board_header.png"))
     assert (w, h) == (204, 38) and depth == 8 and ctype == 6 and interlace == 0, \
         "probe() must read a known PNG's IHDR: got %dx%d depth=%d type=%d" % (w, h, depth, ctype)
-    fog = fog_headroom()
-    assert fog is not None, "FOG_OVERHANG must be derivable from the rig"
-    frame, half, banks = fog
-    assert len(banks) == 3, "three fog banks expected, parsed %d" % len(banks)
-    for name, drift in banks:
-        assert drift <= half, (
-            "%s drifts %.1fpx but only %.1fpx of overhang sits on each side — its edge would "
-            "enter the frame. Widen the sheets in gen_title_fog.py (and FOG_OVERHANG) or cut the "
-            "drift." % (name, drift, half))
+    vp = check_vp()
     assert rig_slots() == slots, "parsing must be deterministic"
-    print("selftest: OK  (fog headroom %.0fpx; drifts %s)"
-          % (half, ", ".join("%s %.0f" % (n.split("_")[1][:-4], d) for n, d in banks)))
+    print("selftest: OK  (nave VP fy %.4f, re-derived from the plate's crop)" % vp)
     return 0
 
 
 def main(argv):
     if "--selftest" in argv:
         return selftest()
+    if "--budget" in argv:
+        return budget()
     check = "--check" in argv
     slots = rig_slots()
     if not check:

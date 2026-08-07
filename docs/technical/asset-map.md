@@ -72,10 +72,6 @@
 - **`menu_sigil.png`** — produced-by: `client/assets/ui/gen_menu_sigil.py` · consumed-by: `client/scripts/main.gd` (load)
 - **`panel.png`** — produced-by: — · consumed-by: `client/scripts/ui/popup_theme.gd` (load)
 
-### `client/assets/ui/`
-
-- **`title`** — produced-by: `client/assets/ui/gen_title_fog.py` · consumed-by: —
-
 ### `client/assets/ui/title/`
 
 - **`banner_center.png`** — produced-by: `client/assets/ui/gen_title_furniture.py` · consumed-by: —
@@ -87,10 +83,8 @@
 - **`candle_rack_b.png`** — produced-by: `client/assets/ui/gen_title_furniture.py` · consumed-by: —
 - **`censer.png`** — produced-by: `client/assets/ui/gen_title_furniture.py` · consumed-by: —
 - **`chandelier.png`** — produced-by: `client/assets/ui/gen_title_furniture.py` · consumed-by: —
-- **`dust_overlay.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
 - **`hall_plate.png`** — produced-by: `client/assets/ui/gen_title_matte.py` · consumed-by: —
 - **`light_shaft.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
-- **`smoke_overlay.png`** — produced-by: `client/assets/ui/gen_title_overlays.py` · consumed-by: —
 
 ### `client/scenes/`
 
@@ -199,18 +193,14 @@
 - **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_header_n.png`
 - **`client/assets/ui/gen_menu_sigil.py`** → `menu_sigil.png`
 - **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`
-- **`client/assets/ui/gen_title_fog.py`** → `title`
 - **`client/assets/ui/gen_title_furniture.py`** → `banner_center.png`, `banner_left.png`, `banner_right.png`, `brazier.png`, `brazier_b.png`, `candle_rack.png`, `candle_rack_b.png`, `censer.png`, `chandelier.png`
 - **`client/assets/ui/gen_title_matte.py`** → `hall_plate.png`
-- **`client/assets/ui/gen_title_overlays.py`** → `dust_overlay.png`, `light_shaft.png`, `smoke_overlay.png`
+- **`client/assets/ui/gen_title_overlays.py`** → `light_shaft.png`
 
 
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
 
 - `client/assets/ui/_src/_proto_board.png`
-- `client/assets/ui/title/fog_far.png`
-- `client/assets/ui/title/fog_mid.png`
-- `client/assets/ui/title/fog_near.png`
 - `client/assets/ui/title/title_fire.gdshader`
 
 
@@ -226,4 +216,4 @@
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/main.gd:1615` — `load/preload path`
 - `client/scripts/main.gd:1619` — `load/preload normal_path`
-- `client/scripts/ui/title_scene.gd:136` — `load/preload p`
+- `client/scripts/ui/title_scene.gd:153` — `load/preload p`

@@ -13,9 +13,10 @@
 ## Layer 2  cloth        banners: slow sway
 ##          props        censers/chains: pendulum, randomized phase
 ##          vessels      candle racks, braziers (art carries NO flame — fire is Layer 3)
-##          overlays     dust / smoke / light shafts, additive
-## Layer 3  light        warm glow per fire, flicker out of step
-## The architecture never moves at all (TD-075): only cloth, props, fire and air do.
+##          rays         three god-ray placements off one sheet, additive
+## Layer 3  air          three particle banks emitted AT the vanishing point (TD-078) — the
+##                       scene's whole depth cue. The altar is cold: no glow, no embers, no haze.
+## The architecture never moves at all (TD-075): only cloth, rays and air do.
 extends RefCounted
 
 const DIR := "res://assets/ui/title/"
@@ -47,10 +48,10 @@ const C_EDGE := Color(0.52, 0.48, 0.40, 0.65)
 # cathedral into reusable gameplay architecture." The seven per-surface slices that used to layer
 # over it are retired — only decorative foreground elements stay separate, and they stay separate
 # because they ANIMATE, not because they might be reused.
-# The censer's position is read in FOUR places — the prop itself, its glow pool, its incense
-# emitter, and (in Python) the plume baked into `smoke_overlay.png`. Three of those are here, so
-# they are one constant: moving a censer and leaving its own smoke rising from where it used to
-# hang is exactly the kind of drift that survives a playtest unnoticed.
+# The censer's position was once read in four places (prop, glow pool, incense emitter, and the
+# plume baked into `smoke_overlay.png`). Three of those are now retired with the cold altar, so the
+# constant survives only for the prop itself — kept because `PROPS_IN_PLATE` is one flag away from
+# drawing the censers again.
 const CENSER_LX := 0.300
 const CENSER_RX := 0.700
 const CENSER_Y := 0.285
@@ -87,47 +88,63 @@ const VESSELS := [
 	["brazier.png",       Vector3(0.3400, 0.9150, 0.0766), 0.857, "Brazier"],
 	["brazier_b.png",     Vector3(0.6620, 0.9080, 0.0703), 0.867, "Brazier"],
 ]
-const OVERLAYS := [
-	["smoke_overlay.png", Vector3(0.500, 0.500, 1.000), 0.5625, "Smoke"],
-	["dust_overlay.png",  Vector3(0.500, 0.500, 1.000), 0.5625, "Dust"],
-]
+# RETIRED (TD-078): `dust_overlay.png` and `smoke_overlay.png`. Dust was being drawn TWICE — as a
+# static sheet AND as `_dust()`'s particles — since T260c, and the smoke was a plume rising off an
+# altar that is now cold, which is the same failure TD-076 removed the censers' incense for. Both
+# were full-frame additive layers, and the budget (R272) allows three; the screen was running five.
 
 # ── God rays: ONE sheet, three placements (R266) ─────────────────────────────
-# Light falls through the clerestory on both sides of the nave, not from a single window. That is
-# three rays, and it is deliberately not three assets: `light_shaft.png` is mirrored and rescaled
-# per placement. The dominant ray keeps its original position and strength; the other two are
-# narrower and dimmer, because a hall lit evenly from three directions has no direction at all.
-# Each breathes on its OWN period — rays pulsing together are the same tell as synchronised flicker.
+# ONE ray, and it is actually visible — which the three before it were not (R275/TD-078).
+#
+# `light_shaft.png` peaks at alpha 34/255, and only ~9% of the sheet reaches even that. The rig was
+# then multiplying by 0.20 / 0.13 / 0.10 and `_breathe` took another 35% off, so the brightest of the
+# three added **6.8/255** — under 3%, over a hall whose own stone varies by more. They were invisible
+# AND they were the most expensive thing in the frame: ~0.95 screens of fill, more than every
+# particle combined.
+#
+# So: the two narrow flanking rays are deleted, and the dominant one is raised to a contribution
+# computed from the sheet's own alpha rather than set by eye — 34 x 0.55 = an 18/255 peak. A hall
+# lit evenly from three directions has no direction at all anyway; one shaft says where the light
+# comes from, and costs half of what three invisible ones did.
 const RAY_TEX := "light_shaft.png"
 #                 cx, cy, w                     flip_h, opacity, breathe s
 const RAYS := [
-	[Vector3(0.400, 0.500, 0.4688), false, 0.20, 11.0],
-	[Vector3(0.700, 0.470, 0.3600), true,  0.13, 14.5],
-	[Vector3(0.235, 0.520, 0.3100), false, 0.10, 8.5],
+	[Vector3(0.400, 0.500, 0.4688), false, 0.55, 11.0],
 ]
 
-# ── Fog: the scene's only parallax (R263, P132) ──────────────────────────────
-# The hall is a flat painted plate, so it has no depth to parallax. Moving the plate would expose
-# that at once — but moving fog against OTHER fog does not, because the only thing the eye can
-# compare is one bank to another. Three banks at three speeds is therefore the entire depth cue,
-# and not one of them touches the architecture.
+# ── The air: three particle banks, and the scene's whole depth cue (R270/R271) ───────────────
 #
-# Each sheet is 1440x720 for a 1280-wide frame: the extra 160px is exactly the drift headroom, so a
-# leading edge can never walk into view and announce itself as a sheet.
+# This REPLACES three drifting fog sheets (TD-077). A sheet sliding sideways is lateral parallax —
+# planes moving past planes — and it read as exactly that: flat. Depth in a static frame comes from
+# motion TOWARD the viewer, things growing and accelerating and leaving the frame, because that is
+# the one cue a flat plane physically cannot fake.
 #
-#           file,           z,   opacity, tint,                        drift px, period s, breath s
-const FOG := [
-	["fog_far.png",  -60, 0.46, Color(1.00, 0.88, 0.70), 22.0, 90.0, 41.0],
-	["fog_mid.png",  -52, 0.36, Color(0.96, 0.92, 0.86), 30.0, 55.0, 29.0],
-	["fog_near.png", -33, 0.32, Color(0.90, 0.90, 0.92), 38.0, 32.0, 19.0],
-]
-const FOG_OVERHANG := 0.125            # 1440/1280 - 1: how much wider the sheets are than the frame
+# So the emitters sit AT the hall's vanishing point and `radial_accel` pushes particles outward from
+# it. Near rushes past the camera and grows; far has a NEGATIVE accel and converges into the
+# distance. The banks differ in the DIRECTION of travel, not only its speed — and it costs no
+# per-frame script (P135), because an emitter placed at the VP with a radial accel IS the effect.
 
-# Where fire burns. Layer 3 — these exist whether or not the vessel art has arrived.
-const FIRES := [
-	# These track VESSELS: a fire burns on a vessel, so moving one and not the other leaves a
-	# warm pool hanging over empty floor.
-	Vector2(0.500, 0.845),
+# The nave's vanishing point, in viewport fractions — DERIVED, not eyeballed (P137).
+# `tools/measure_reference.py` solves the hall's camera and reports the nave VP at fy 0.8651, but
+# that is measured on the UNCROPPED source. `gen_title_matte.py` crops the plate at (0, 110, 1536,
+# 974) before scaling, so:
+#
+#     fy 0.8651  ->  (0.8651 * 1024 - 110) / 864  =  0.8980
+#     fx 0.500   ->  unchanged (the crop is full width)
+#
+# The raw 0.8651 would put the VP ~24 logical px above where the architecture actually converges:
+# plausible in a still, and visibly wrong the moment anything moves along it. `title_assets
+# --selftest` re-derives this from the generator's crop box, so a future re-crop cannot leave the
+# air converging on the wrong point.
+const NAVE_VP := Vector2(0.500, 0.898)
+
+# ONE ordered table, near to far (P136). Every channel that can carry depth carries it; a depth cue
+# split across three functions drifts the moment one of them is tuned.
+#         count, radius(logical), accel_min, accel_max, life, alpha, tint,                    z
+const BANKS := [
+	[18, 48.0,  16.0,  26.0,  7.0, 0.100, Color(0.86, 0.88, 0.94), -20],   # near — rushes past
+	[26, 30.0,   3.0,   8.0, 13.0, 0.072, Color(0.92, 0.90, 0.86), -45],   # mid
+	[30, 14.0,  -3.0,  -1.0, 26.0, 0.048, Color(0.96, 0.90, 0.78), -62],   # far — converges
 ]
 
 
@@ -196,49 +213,6 @@ static func _plate(host: Control, tex: Texture2D, vp: Vector2) -> Control:
 	return t
 
 
-## One fog bank: a sheet wider than the frame, drifting horizontally at its own speed with a slower
-## vertical breath. Missing art is simply skipped — a blockout panel would fog the whole screen and
-## hide everything a blockout exists to let you check.
-static func _fog(root: Control, e: Array, vp: Vector2, reduced: bool, phase: float) -> Control:
-	var tex := _tex(e[0])
-	if tex == null:
-		return null
-	var t := TextureRect.new()
-	t.texture = tex
-	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	# NEAREST, like everything else on this screen: the sheets are authored at 1440x720 so that at a
-	# 720p window they land one art pixel per device pixel, and their bands stay hard edges.
-	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	t.material = _additive()
-	t.modulate = Color(e[3].r, e[3].g, e[3].b, e[2])
-	var w := roundf(vp.x * (1.0 + FOG_OVERHANG))
-	t.size = Vector2(w, vp.y)
-	var home := Vector2(roundf((vp.x - w) * 0.5), 0.0)
-	t.position = home
-	t.z_index = int(e[1])
-	root.add_child(t)
-	if reduced:
-		return t                      # still, and fully present: reduced motion loses nothing (P134)
-
-	var drift: float = e[4]
-	var per: float = e[5]
-	# Horizontal: the parallax itself. Amplitude stays inside the overhang, so no edge ever enters
-	# the frame however long the screen is left running.
-	var hx := t.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	hx.tween_interval(per * (phase / TAU) * 0.5)     # seeded apart: banks in step read as one sheet
-	hx.tween_property(t, "position:x", home.x + drift, per * 0.5)
-	hx.tween_property(t, "position:x", home.x - drift, per * 0.5)
-	hx.tween_property(t, "position:x", home.x, 0.0)
-	# Vertical: a slow breath, a fraction of the horizontal, so the bank lifts and settles.
-	var vy := t.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	var lift: float = maxf(2.0, drift * 0.16)
-	vy.tween_property(t, "position:y", home.y - lift, float(e[6]) * 0.5)
-	vy.tween_property(t, "position:y", home.y, float(e[6]) * 0.5)
-	return t
-
-
 static func _blockout(tint: Color, label: String, size: Vector2) -> Control:
 	# A flat panel with a hairline edge and its name on it. Obvious at a glance that it is a
 	# stand-in, while still occupying exactly the footprint the real asset will.
@@ -302,20 +276,13 @@ static func build(host: Control, reduced: bool) -> Control:
 				_pendulum(n2, rng.randf_range(3.4, 4.6), rng.randf_range(0.0, TAU))
 		for e in VESSELS:
 			_layer(root, e, -40, C_VESSEL)
-	# ── Layer 2b: fog. The only thing in this scene that parallaxes (R263). ──
-	for i in FOG.size():
-		_fog(root, FOG[i], host.size, reduced, rng.randf_range(0.0, TAU))
-
-	for e in OVERLAYS:
-		var n3 := _layer(root, e, -30, C_OVERLAY)
-		# Full-frame overlays as SOLID blockout panels fog the whole screen and hide the layers
-		# underneath, which defeats the point of a blockout. Real art is mostly transparent, so
-		# the stand-in is barely there; it exists to prove position and motion, not coverage.
-		n3.modulate.a = 0.05 if _tex(e[0]) == null else 0.20
-		if _tex(e[0]) != null:
-			n3.material = _additive()
-		if not reduced:
-			_drift(n3, rng.randf_range(40.0, 70.0))
+	# ── Layer 2b: the air. Three particle banks, and the scene's whole depth cue (R270/R271). ──
+	# The altar is COLD (R269): no glow pool, no embers, no haze. The only light at the sanctuary
+	# is the light the plate paints, which is the point — it is a lit end to a dark nave, not a
+	# bloom. `FIRES`, `_glow`, `_embers` and `_flicker` are deleted, not switched off.
+	for i in BANKS.size():
+		_bank(root, BANKS[i], host.size, reduced)
+	_dust(root, host.size, reduced)
 
 	# Three rays off one sheet, each with its own width, side and breath.
 	for r in RAYS:
@@ -328,26 +295,6 @@ static func build(host: Control, reduced: bool) -> Control:
 				(ray as TextureRect).flip_h = bool(r[1])
 		if not reduced:
 			_breathe(ray, float(r[3]))
-
-	# ── Layer 3: light. Warm pools at every fire, flickering out of step. ──
-	for i in FIRES.size():
-		# The centre fire stood in for a lit altar while the architecture was a blockout. The
-		# plate paints its own apse now, so that pool is redundant — and it landed exactly where
-		# the menu's last option is read (R245). Dimmed to a suggestion rather than deleted: the
-		# embers and the warmth down the nave still want a source there.
-		var g := _glow(root, FIRES[i], host.size, 0.42 if i == 6 else 1.0)
-		if not reduced:
-			_flicker(g, rng.randf_range(2.6, 4.2), rng.randf_range(0.0, TAU))
-
-	# ── Layer 4: atmosphere. Real particles, not placeholders — they need no art, so they are
-	#    finished work regardless of what the blockout is standing in for.
-	if not reduced:
-		_dust(root, host.size)
-		for i in FIRES.size():
-			_embers(root, FIRES[i], host.size, i)
-		if not PROPS_IN_PLATE:                # incense rises off censers; with none, none rises
-			_incense(root, Vector2(CENSER_LX, CENSER_FIRE_Y), host.size)
-			_incense(root, Vector2(CENSER_RX, CENSER_FIRE_Y), host.size)
 
 	# No camera life. The brief is explicit: "The architecture itself remains static. Only
 	# atmospheric elements should move." A 2px drift also resampled a plate that must stay on
@@ -372,10 +319,11 @@ static func _particles(root: Control, amount: int, life: float, z: int) -> CPUPa
 	root.add_child(p)
 	return p
 
-static func _dust(root: Control, vp: Vector2) -> void:
-	# Motes hanging in the whole volume, barely moving. Large and very dim: this is the air of
-	# the room, not weather.
-	var p := _particles(root, 46, 26.0, -28)
+static func _dust(root: Control, vp: Vector2, reduced: bool) -> void:
+	# Motes hanging in the whole volume, barely moving: the air of the room, not weather.
+	# 46 -> 28 (R272): the three banks ARE the air now, and a static `dust_overlay.png` sheet was
+	# drawing the same thing a second time until TD-078 retired it.
+	var p := _particles(root, 28, 26.0, -28)
 	p.position = Vector2(vp.x * 0.5, vp.y * 0.55)
 	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	p.emission_rect_extents = Vector2(vp.x * 0.52, vp.y * 0.46)
@@ -387,46 +335,56 @@ static func _dust(root: Control, vp: Vector2) -> void:
 	p.scale_amount_min = 0.022        # ~3px
 	p.scale_amount_max = 0.070        # ~9px
 	p.color = Color(0.98, 0.88, 0.68, 0.10)
+	if reduced:
+		p.speed_scale = 0.0            # frozen, not absent (R273/P134)
 
-static func _embers(root: Control, at: Vector2, vp: Vector2, salt: int) -> void:
-	# Rising off each fire. Few, small, warm — the only particles allowed to be noticed.
-	# Tuned UP for the sanctuary (R266): with the six vessel fires gone this is the one fire left in
-	# the frame, and at the old count it threw two or three sparks a second into the brightest part
-	# of the picture, where they simply vanished. More of them, living longer and climbing further,
-	# so the altar reads as burning rather than merely lit.
-	var p := _particles(root, 16, 5.6, -26)
-	p.position = Vector2(vp.x * at.x, vp.y * at.y)
-	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	p.emission_rect_extents = Vector2(vp.x * 0.040, vp.y * 0.008)
-	p.direction = Vector2(0.1 * (1 if salt % 2 == 0 else -1), -1)
-	p.spread = 30.0
-	p.gravity = Vector2(0, -11.0)
-	p.initial_velocity_min = 5.0
-	p.initial_velocity_max = 14.0
-	# The altar sits directly below the menu column, so an undamped ember climbs straight through
-	# the last option (R245). Damping caps the climb where a widened spread has already thinned the
-	# stream, and it is what a cooling ember does anyway — it does not coast.
-	p.damping_min = 2.4
-	p.damping_max = 5.0
-	p.scale_amount_min = 0.014        # ~2px
-	p.scale_amount_max = 0.040        # ~5px
-	p.color = Color(1.0, 0.64, 0.26, 0.62)
 
-static func _incense(root: Control, at: Vector2, vp: Vector2) -> void:
-	# Smoke off a censer: slower and larger than embers, and colder, so the two never read as
-	# the same effect.
-	var p := _particles(root, 9, 13.0, -27)
-	p.position = Vector2(vp.x * at.x, vp.y * at.y)
-	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	p.emission_rect_extents = Vector2(vp.x * 0.010, vp.y * 0.004)
-	p.direction = Vector2(0.35, -1)
-	p.spread = 30.0
-	p.gravity = Vector2(1.6, -5.0)
-	p.initial_velocity_min = 2.0
-	p.initial_velocity_max = 5.0
-	p.scale_amount_min = 0.16         # smoke IS large — but 20px, not 400
-	p.scale_amount_max = 0.34
-	p.color = Color(0.86, 0.82, 0.74, 0.035)
+## One depth bank of air. The emitter sits AT the hall's vanishing point and `radial_accel` drives
+## each particle away from it, so near-bank motes rush outward past the camera while far-bank ones
+## (negative accel) fall back toward the distance. That single property is the whole 3D read, and it
+## runs in the particle system's own simulation — no `_process`, no `_draw` (P135).
+static func _bank(root: Control, e: Array, vp: Vector2, reduced: bool) -> CPUParticles2D:
+	var count := int(e[0])
+	var radius: float = e[1]
+	var life: float = e[4]
+	var p := _particles(root, count, life, int(e[7]))
+	p.position = Vector2(vp.x * NAVE_VP.x, vp.y * NAVE_VP.y)
+	# Born in a small pocket at the vanishing point, not across the frame: air that appears in the
+	# distance and comes toward you is the effect; air that appears everywhere is a fog sheet again.
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = vp.x * 0.06
+	# A ZERO direction gives the initial velocity no direction at all, so particles sat on the
+	# emitter and crept out on `radial_accel` alone. `spread = 180` off any unit vector is a full
+	# circle, which is what "outward from the VP" needs.
+	p.direction = Vector2(0, -1)
+	p.spread = 180.0
+	p.gravity = Vector2.ZERO               # this is air in a still room; nothing falls
+	p.initial_velocity_min = 1.0
+	p.initial_velocity_max = 4.0
+	p.radial_accel_min = e[2]
+	p.radial_accel_max = e[3]
+	# `_radial()` is a 128px texture, so a scale of 1.0 is a 128px blob. The bank's radius is in
+	# logical px, hence the divide — the first title pass blew the frame to white by forgetting it.
+	p.scale_amount_min = (radius * 0.7) / 128.0
+	p.scale_amount_max = (radius * 1.3) / 128.0
+	# Grow over life: a mote approaching the camera gets bigger. This is the second half of the
+	# depth cue, and like the first it is a built-in curve rather than per-frame code.
+	var grow := Curve.new()
+	grow.add_point(Vector2(0.0, 0.35))
+	grow.add_point(Vector2(1.0, 1.0))
+	p.scale_amount_curve = grow
+	# Fade in and out so nothing pops at birth or death.
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1, 1, 1, 0.0))
+	ramp.set_color(1, Color(1, 1, 1, 0.0))
+	ramp.add_point(0.25, Color(1, 1, 1, 1.0))
+	ramp.add_point(0.70, Color(1, 1, 1, 1.0))
+	p.color_ramp = ramp
+	var tint: Color = e[6]
+	p.color = Color(tint.r, tint.g, tint.b, e[5])
+	if reduced:
+		p.speed_scale = 0.0            # frozen, fully present, fully lit (R273/P134)
+	return p
 
 
 # ── Animations ───────────────────────────────────────────────────────────────
@@ -455,19 +413,6 @@ static func _breathe(n: Control, period: float) -> void:
 	t.tween_property(n, "modulate:a", a * 0.65, period * 0.5)
 	t.tween_property(n, "modulate:a", a, period * 0.5)
 
-static func _drift(n: Control, period: float) -> void:
-	var y := n.position.y
-	var t := n.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	t.tween_property(n, "position:y", y - 14.0, period * 0.5)
-	t.tween_property(n, "position:y", y, period * 0.5)
-
-static func _flicker(n: Control, period: float, phase: float) -> void:
-	var a := n.modulate.a
-	var t := n.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	t.tween_interval(phase * 0.08)
-	t.tween_property(n, "modulate:a", a * 0.70, period * 0.37)
-	t.tween_property(n, "modulate:a", a * 1.05, period * 0.29)
-	t.tween_property(n, "modulate:a", a, period * 0.34)
 
 
 # ── Light ────────────────────────────────────────────────────────────────────
@@ -476,26 +421,6 @@ static func _additive() -> CanvasItemMaterial:
 	var m := CanvasItemMaterial.new()
 	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	return m
-
-static func _glow(root: Control, at: Vector2, vp: Vector2, energy: float = 1.0) -> Control:
-	# Light2D cannot reach Control nodes (TD-047), so a fire's pool is an additive radial sprite
-	# — the same call the board's torches make.
-	var g := TextureRect.new()
-	g.texture = _radial()
-	g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	g.stretch_mode = TextureRect.STRETCH_SCALE
-	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	g.material = _additive()
-	# 0.26, not the 0.34 the blockout wanted: these pools were tuned against a BLACK backdrop,
-	# and over a real plate that already carries its own warm distance they stacked into a wash
-	# the menu had to be read through (R245).
-	g.modulate = Color(1.0, 0.70, 0.34, 0.26 * energy)
-	var r := vp.x * 0.095
-	g.size = Vector2(r * 2.0, r * 1.5)
-	g.position = Vector2(vp.x * at.x - r, vp.y * at.y - r * 0.75)
-	g.z_index = -35
-	root.add_child(g)
-	return g
 
 static var _radial_cache: GradientTexture2D = null
 
