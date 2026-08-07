@@ -29,6 +29,17 @@ static func _variant(tx: int, ty: int, n: int) -> int:
 	return (h >> 11) % n
 const MARKER := preload("res://scenes/marker.tscn")
 
+# A station is an OBJECT, not a coloured square with its name floating over it (TD-081 T313/T314).
+# The proximity prompt already reads "Press E: <Station>" on approach, so a permanent caption in the
+# default sans was the same information twice, in the wrong typeface, never switched off. An object
+# you can recognise does not need one — and if it does, the object is wrong.
+# Anything without art here (the field's nodes) still falls back to the labelled marker.
+const STATION_ART := {
+	"CONTRACT_BOARD": "res://assets/ui/stations/contract_board.png",
+	"QUARTERMASTER": "res://assets/ui/stations/quartermaster.png",
+	"DEPLOY_GATE": "res://assets/ui/stations/deploy_gate.png",
+}
+
 # ── Lighting (TD-081 T312) ───────────────────────────────────────────────────
 # `SpaceView` is a Node2D, so Light2D genuinely reaches it — TD-047's "lights don't work" finding is
 # about CONTROL nodes and was over-applied for four specs (TD-083). This is the bible's lighting
@@ -42,9 +53,9 @@ const MARKER := preload("res://scenes/marker.tscn")
 # darkens the lit pools too and defeats the rig; darkening the ambient deepens only what no lamp
 # reaches, so contrast goes UP and the stone stays readable where light falls (author's call after
 # T312: the intermediate near-black passes had the right mood but lost the floor entirely).
-const DARK := Color(0.32, 0.28, 0.26)     # what the hall looks like away from every flame
+const DARK := Color(0.25, 0.22, 0.20)     # what the hall looks like away from every flame
 const LIGHT_WARM := Color(1.0, 0.76, 0.45)
-const LIGHT_ENERGY := 1.20
+const LIGHT_ENERGY := 0.90
 const LIGHT_REACH := 6.5                  # in tiles, to the edge of the falloff
 const MAX_LIGHTS := 6                     # the budget ceiling (R298); asserted, not hoped for
 
@@ -157,10 +168,23 @@ func _place_markers(markers: Array) -> void:
 	for c in _markers.get_children():
 		c.queue_free()
 	for m in markers:
-		var node := MARKER.instantiate()
-		node.position = Vector2(int(m["x"]) * TILE + TILE * 0.5, int(m["y"]) * TILE + TILE * 0.5)
-		var label := node.get_node_or_null("Kind")
-		if label:
-			# The player never reads the wire's enum: DEPLOY_GATE renders "Deploy Gate" (R224).
-			label.text = StationNames.of(str(m["kind"]))
-		_markers.add_child(node)
+		var kind := str(m["kind"])
+		var art: String = STATION_ART.get(kind, "")
+		var tex := load(art) as Texture2D if art != "" and ResourceLoader.exists(art) else null
+		if tex != null:
+			var sp := Sprite2D.new()
+			sp.texture = tex
+			sp.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			# Anchor the object's FOOT to the bottom of its tile: it stands in the room the way the
+			# Seeker does, rather than floating centred on a grid square.
+			sp.offset = Vector2(0, -tex.get_height() * 0.5)
+			sp.position = Vector2(int(m["x"]) * TILE + TILE * 0.5, int(m["y"]) * TILE + TILE)
+			_markers.add_child(sp)
+		else:
+			var node := MARKER.instantiate()
+			node.position = Vector2(int(m["x"]) * TILE + TILE * 0.5, int(m["y"]) * TILE + TILE * 0.5)
+			var label := node.get_node_or_null("Kind")
+			if label:
+				# The player never reads the wire's enum: DEPLOY_GATE renders "Deploy Gate" (R224).
+				label.text = StationNames.of(kind)
+			_markers.add_child(node)

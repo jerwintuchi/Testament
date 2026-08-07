@@ -81,17 +81,33 @@
 
 ## Phase B — The stations
 
-- [ ] T313 [R295 / V3] — **Stations become objects.** Per-kind scenes replacing the gold
+- [x] T313 [R295 / V3] — **Stations become objects.** Per-kind scenes replacing the gold
       `Polygon2D`: the **Contract Board** (reusing the art that already exists — a top-down view of it
       against the north wall is most of the work), the **Quartermaster**'s counter, the **Deploy
       Gate**. Each lit footprint matches `STATION_RADIUS`, so what you see is where the action is
       legal.
-      Test: **V3** — captured; each is recognisable with its label removed.
+      **Shipped** via `gen_stations.py`: a notice wall quoting the full-screen board's silhouette
+      (timber carcass, backing, six uneven pinned writs), a counter with crates and hanging kit, and
+      an iron gate in a stone arch — the only station that is a threshold rather than furniture.
+      Each is an **upright object** anchored by its foot to the bottom of its tile, because this hall
+      is top-down but its sprites are front-facing (the Seeker is), so a station stands in the room
+      the way the Seeker does rather than floating centred on a grid square.
+      **A correction to T312's lesson, learned by blowing them out:** "authored at full-light value"
+      is not "authored at the top of the ramp". Every station has its own lamp standing on it, so art
+      drawn at maximum brightness has nowhere for the light to push and goes white. They sit
+      **mid-ramp** — readable in ambient, with headroom left for the lamp — and the rig's energy came
+      down to 0.90 to meet them.
+      Test: **V3** — captured; the gate, the counter and the notice wall are each recognisable
+      without any caption.
 
-- [ ] T314 [R295, R296 / V3] — **Retire the floating labels.** `Press E: <Station>` already names the
+- [x] T314 [R295, R296 / V3] — **Retire the floating labels.** `Press E: <Station>` already names the
       station on approach, so a permanent white sans caption is a second naming of the same thing in
       the wrong typeface. Delete it; move the prompt to Cinzel.
-      Test: **V3** — captured at distance (no captions) and on approach (the prompt names it).
+      **Done with T313**, because the per-kind sprite replaced `marker.tscn` wholesale and the label
+      lived inside it. `marker.tscn` survives as the fallback for anything without art — the field's
+      nodes still use it — so nothing regressed there.
+      Test: **V3** — captured: no captions anywhere, and walking up to the board still raises
+      `Press E: Contract Board`.
 
 ## Phase C — Air and finish
 

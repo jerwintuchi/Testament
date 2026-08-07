@@ -73,6 +73,10 @@
 - **`menu_sigil.png`** — produced-by: `client/assets/ui/gen_menu_sigil.py` · consumed-by: `client/scripts/ui/widgets.gd` (load)
 - **`panel.png`** — produced-by: — · consumed-by: `client/scripts/ui/popup_theme.gd` (load)
 
+### `client/assets/ui/`
+
+- **`stations`** — produced-by: `client/assets/ui/gen_stations.py` · consumed-by: —
+
 ### `client/assets/ui/title/`
 
 - **`banner_center.png`** — produced-by: `client/assets/ui/gen_title_furniture.py` · consumed-by: —
@@ -198,6 +202,7 @@
 - **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_header_n.png`
 - **`client/assets/ui/gen_menu_sigil.py`** → `menu_sigil.png`
 - **`client/assets/ui/gen_normals.py`** → `backing_v1_n.png`, `banner_v1_n.png`, `board_header_n.png`, `frame_v1.png`, `frame_v1_n.png`, `stone_tile_n.png`
+- **`client/assets/ui/gen_stations.py`** → `stations`
 - **`client/assets/ui/gen_title_furniture.py`** → `banner_center.png`, `banner_left.png`, `banner_right.png`, `brazier.png`, `brazier_b.png`, `candle_rack.png`, `candle_rack_b.png`, `censer.png`, `chandelier.png`
 - **`client/assets/ui/gen_title_matte.py`** → `hall_plate.png`
 
@@ -205,6 +210,9 @@
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
 
 - `client/assets/ui/_src/_proto_board.png`
+- `client/assets/ui/stations/contract_board.png`
+- `client/assets/ui/stations/deploy_gate.png`
+- `client/assets/ui/stations/quartermaster.png`
 - `client/assets/ui/title/title_air.gdshader`
 
 
@@ -223,3 +231,4 @@
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
 - `client/scripts/ui/writ_form.gd:137` — `load/preload PARCH`
+- `client/scripts/world/space_view.gd:173` — `load/preload art`
