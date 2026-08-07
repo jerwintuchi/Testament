@@ -117,33 +117,22 @@ padding that shear needs; `gen_title_furniture.py` prints the matching rig fract
 **Nothing burns in the art.** Cold wicks, dead coals. Every flame in this scene is an in-engine
 additive pool that flickers out of step (TD-043); a baked hotspot would fight it.
 
-## The air — no longer an asset at all (TD-078)
+## The air — not an asset at all (TD-078 → TD-079)
 
 **Retired:** `fog_far.png`, `fog_mid.png`, `fog_near.png`, `dust_overlay.png`, `smoke_overlay.png`,
-and `gen_title_fog.py` with them.
+`light_shaft.png`, and the generators `gen_title_fog.py` and `gen_title_overlays.py` with them.
 
-The fog was three drifting **sheets**. A sheet sliding sideways is lateral parallax — planes moving
-past planes — and it read as exactly that: flat. Depth in a static frame needs motion *toward the
-viewer*, which a plane cannot fake. So the air is now three `CPUParticles2D` banks emitted **at the
-hall's vanishing point**, and it ships as **code, not art**: there is nothing here to author.
+The atmosphere is **one shader on the plate** — `client/assets/ui/title/title_air.gdshader`. Ground
+haze, atmospheric perspective, god rays, the altar's emphasis and the slow breath of the light are
+all computed in a single pass on a quad that is rasterised every frame anyway, so they cost ALU and
+**zero additional fill**. The layers they replaced cost ~1.4 screens of additive blending between
+them; the measured budget went from 102 particles / 1.44 screens to **34 / 0.00**.
 
-`dust_overlay.png` went because dust was being drawn **twice** — that sheet *and* `_dust()`'s
-particles — since T260c. `smoke_overlay.png` went because it was a plume rising off an altar that is
-now cold, the same failure TD-076 removed the censers' incense for.
+That is also why there is nothing to author here. Fog was pictures; air is maths.
 
-## Atmosphere overlays
-
-| File | Size | Alpha | Notes |
-|---|---|---|---|
-| `light_shaft.png` | 300×360 | yes | one god ray, **three flat bands**; placed three times by the rig |
-
-Greyscale-white with the whole image in the **alpha channel**, so under the rig's additive blend the
-sheet's contribution is exactly its alpha. Banded, never smooth: a continuous falloff needs dithering
-to survive, and dithering is what the brief rules out.
-
-> **Its peak alpha is 34/255**, and the rig multiplies by a further 0.20/0.13/0.10. That is why the
-> rays are invisible on screen (TD-078 R275) while costing more fill than every particle combined —
-> a number to check before setting any opacity against this sheet.
+**Dust survives as particles**, at two depths, because dust is not fog — it is the one thing in the
+room that should still resolve as individual specks. It drifts rather than rises (a negative gravity
+reads as heat or smoke, which is what this hall is not).
 
 ---
 

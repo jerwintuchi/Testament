@@ -365,9 +365,24 @@ breathe = 6.8/255) while costing more fill than every particle combined — now 
 for half the cost; and **`gen_title_furniture.ZENITH_FY` is the source-space zenith (-6.768) where the
 crop-corrected value is -8.148**, dormant only because the props are switched off. **T287–T294 done.**
 
-@specs/title-air/requirements.md
-@specs/title-air/design.md
-@specs/title-air/tasks.md
+Completed: **`specs/title-atmosphere/`** (TD-079) — a **polish pass**: the composition is untouched
+(menu, type, logo, background, spacing) and no props were added. The whole atmosphere moved onto
+**one shader on the plate** (`title_air.gdshader`) — ground haze, atmospheric perspective, god rays,
+altar emphasis and the light's breath on a quad that is rasterised every frame anyway, so they cost
+ALU and **zero fill**. Budget **102 particles / 1.44 screens → 34 / 0.00**. Depth has no buffer, so
+distance from the derived VP is the proxy (saturation falls, blacks lift more than highlights; no
+blur). **Nothing animates geometry** — intensity only — and it is measured: over 8s the frame changes
+**1.30** against the plate's own texture grain of **24.65**, i.e. 19× less. Rays **measured** at
+25/255 peak over 16.4% of frame (the retired sheet's were 6.8 and invisible). Dust **drifts** at two
+depths instead of rising. Selection: 175ms, a 9s/14% idle breath, label **+12%** (was +23%). **No
+camera breath** — the plate is 1:1 NEAREST, so a sub-pixel move shimmers (R284, the brief's "if
+appropriate" answered). **Godot trap recorded:** in a `canvas_item` shader `COLOR` already holds
+`texture(TEXTURE,UV) * modulate`; sampling again and multiplying squares the image — a 5× luminance
+loss, found by bisecting against an un-shaded baseline. **T295–T303 done.**
+
+@specs/title-atmosphere/requirements.md
+@specs/title-atmosphere/design.md
+@specs/title-atmosphere/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

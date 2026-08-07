@@ -93,37 +93,6 @@ const VESSELS := [
 # altar that is now cold, which is the same failure TD-076 removed the censers' incense for. Both
 # were full-frame additive layers, and the budget (R272) allows three; the screen was running five.
 
-# ── God rays: ONE sheet, three placements (R266) ─────────────────────────────
-# ONE ray, and it is actually visible — which the three before it were not (R275/TD-078).
-#
-# `light_shaft.png` peaks at alpha 34/255, and only ~9% of the sheet reaches even that. The rig was
-# then multiplying by 0.20 / 0.13 / 0.10 and `_breathe` took another 35% off, so the brightest of the
-# three added **6.8/255** — under 3%, over a hall whose own stone varies by more. They were invisible
-# AND they were the most expensive thing in the frame: ~0.95 screens of fill, more than every
-# particle combined.
-#
-# So: the two narrow flanking rays are deleted, and the dominant one is raised to a contribution
-# computed from the sheet's own alpha rather than set by eye — 34 x 0.55 = an 18/255 peak. A hall
-# lit evenly from three directions has no direction at all anyway; one shaft says where the light
-# comes from, and costs half of what three invisible ones did.
-const RAY_TEX := "light_shaft.png"
-#                 cx, cy, w                     flip_h, opacity, breathe s
-const RAYS := [
-	[Vector3(0.400, 0.500, 0.4688), false, 0.55, 11.0],
-]
-
-# ── The air: three particle banks, and the scene's whole depth cue (R270/R271) ───────────────
-#
-# This REPLACES three drifting fog sheets (TD-077). A sheet sliding sideways is lateral parallax —
-# planes moving past planes — and it read as exactly that: flat. Depth in a static frame comes from
-# motion TOWARD the viewer, things growing and accelerating and leaving the frame, because that is
-# the one cue a flat plane physically cannot fake.
-#
-# So the emitters sit AT the hall's vanishing point and `radial_accel` pushes particles outward from
-# it. Near rushes past the camera and grows; far has a NEGATIVE accel and converges into the
-# distance. The banks differ in the DIRECTION of travel, not only its speed — and it costs no
-# per-frame script (P135), because an emitter placed at the VP with a radial accel IS the effect.
-
 # The nave's vanishing point, in viewport fractions — DERIVED, not eyeballed (P137).
 # `tools/measure_reference.py` solves the hall's camera and reports the nave VP at fy 0.8651, but
 # that is measured on the UNCROPPED source. `gen_title_matte.py` crops the plate at (0, 110, 1536,
@@ -133,19 +102,17 @@ const RAYS := [
 #     fx 0.500   ->  unchanged (the crop is full width)
 #
 # The raw 0.8651 would put the VP ~24 logical px above where the architecture actually converges:
-# plausible in a still, and visibly wrong the moment anything moves along it. `title_assets
+# plausible in a still, and visibly wrong the moment anything is placed against it. `title_assets
 # --selftest` re-derives this from the generator's crop box, so a future re-crop cannot leave the
-# air converging on the wrong point.
+# air hanging off the wrong point. The shader reads it too — depth has no buffer here, so distance
+# from the VP IS the depth proxy.
 const NAVE_VP := Vector2(0.500, 0.898)
 
-# ONE ordered table, near to far (P136). Every channel that can carry depth carries it; a depth cue
-# split across three functions drifts the moment one of them is tuned.
-#         count, radius(logical), accel_min, accel_max, life, alpha, tint,                    z
-const BANKS := [
-	[18, 48.0,  16.0,  26.0,  7.0, 0.100, Color(0.86, 0.88, 0.94), -20],   # near — rushes past
-	[26, 30.0,   3.0,   8.0, 13.0, 0.072, Color(0.92, 0.90, 0.86), -45],   # mid
-	[30, 14.0,  -3.0,  -1.0, 26.0, 0.048, Color(0.96, 0.90, 0.78), -62],   # far — converges
-]
+# RETIRED (TD-079): the three `CPUParticles2D` fog banks and the `light_shaft.png` overlay. The
+# author's brief — "replace obvious fog particles with cathedral air", "no looping clouds", "no
+# smoke-like motion" — and all of it now lives in `title_air.gdshader` on the plate, at no fill cost.
+# Dust survives, because dust is not fog: it is the one thing in the room that should still be
+# individually visible.
 
 
 static func _tex(file: String) -> Texture2D:
@@ -209,6 +176,18 @@ static func _plate(host: Control, tex: Texture2D, vp: Vector2) -> Control:
 	t.size = vp
 	t.position = Vector2.ZERO
 	t.z_index = -64
+	# THE AIR RIDES THE PLATE (TD-079). Ground haze, atmospheric perspective, god rays, the altar's
+	# emphasis and the slow breath of the light are all one shader pass on a quad that is rasterised
+	# every frame anyway — so they cost ALU and no additional fill, where the particle banks and the
+	# ray sheet they replace cost ~1.4 screens of blending between them (P138). It samples 1:1 under
+	# this node's own NEAREST filter and only modulates colour, so the plate is never resampled.
+	var sh := load(DIR + "title_air.gdshader") as Shader
+	if sh != null:
+		var m := ShaderMaterial.new()
+		m.shader = sh
+		m.set_shader_parameter("vp_uv", NAVE_VP)
+		m.set_shader_parameter("aspect", vp.x / maxf(1.0, vp.y))
+		t.material = m
 	host.add_child(t)
 	return t
 
@@ -276,25 +255,10 @@ static func build(host: Control, reduced: bool) -> Control:
 				_pendulum(n2, rng.randf_range(3.4, 4.6), rng.randf_range(0.0, TAU))
 		for e in VESSELS:
 			_layer(root, e, -40, C_VESSEL)
-	# ── Layer 2b: the air. Three particle banks, and the scene's whole depth cue (R270/R271). ──
-	# The altar is COLD (R269): no glow pool, no embers, no haze. The only light at the sanctuary
-	# is the light the plate paints, which is the point — it is a lit end to a dark nave, not a
-	# bloom. `FIRES`, `_glow`, `_embers` and `_flicker` are deleted, not switched off.
-	for i in BANKS.size():
-		_bank(root, BANKS[i], host.size, reduced)
+	# ── Layer 2b: the air. It is in the PLATE'S SHADER now (TD-079), not in this tree. ──
+	# What remains here is dust, at two depths — the only atmosphere that should still resolve as
+	# individual specks rather than as air.
 	_dust(root, host.size, reduced)
-
-	# Three rays off one sheet, each with its own width, side and breath.
-	for r in RAYS:
-		var ray := _layer(root, [RAY_TEX, r[0], 1.20, "Light shaft"], -31, C_OVERLAY)
-		var has_art := _tex(RAY_TEX) != null
-		ray.modulate.a = 0.05 if not has_art else float(r[2])
-		if has_art:
-			ray.material = _additive()
-			if ray is TextureRect:
-				(ray as TextureRect).flip_h = bool(r[1])
-		if not reduced:
-			_breathe(ray, float(r[3]))
 
 	# No camera life. The brief is explicit: "The architecture itself remains static. Only
 	# atmospheric elements should move." A 2px drift also resampled a plate that must stay on
@@ -319,73 +283,42 @@ static func _particles(root: Control, amount: int, life: float, z: int) -> CPUPa
 	root.add_child(p)
 	return p
 
+## Dust hanging in centuries-old air (R279).
+##
+## It DRIFTS; it does not rise. The old field pushed everything upward on a negative gravity, which
+## reads as heat or smoke — the two things this hall is not. Now gravity is essentially nil, the
+## spread is full, and the drift is a whisper of horizontal draught, so motes wander instead of
+## streaming. Two emitters at different depths give the parallax: the near one is larger, faster and
+## fainter; the far one is small, slower and slightly brighter because it sits in the lit distance.
 static func _dust(root: Control, vp: Vector2, reduced: bool) -> void:
-	# Motes hanging in the whole volume, barely moving: the air of the room, not weather.
-	# 46 -> 28 (R272): the three banks ARE the air now, and a static `dust_overlay.png` sheet was
-	# drawing the same thing a second time until TD-078 retired it.
-	var p := _particles(root, 28, 26.0, -28)
-	p.position = Vector2(vp.x * 0.5, vp.y * 0.55)
-	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	p.emission_rect_extents = Vector2(vp.x * 0.52, vp.y * 0.46)
-	p.direction = Vector2(0.25, -1)
-	p.spread = 26.0
-	p.gravity = Vector2(1.2, -2.4)         # a whisper of a draught
-	p.initial_velocity_min = 1.0
-	p.initial_velocity_max = 3.5
-	p.scale_amount_min = 0.022        # ~3px
-	p.scale_amount_max = 0.070        # ~9px
-	p.color = Color(0.98, 0.88, 0.68, 0.10)
-	if reduced:
-		p.speed_scale = 0.0            # frozen, not absent (R273/P134)
-
-
-## One depth bank of air. The emitter sits AT the hall's vanishing point and `radial_accel` drives
-## each particle away from it, so near-bank motes rush outward past the camera while far-bank ones
-## (negative accel) fall back toward the distance. That single property is the whole 3D read, and it
-## runs in the particle system's own simulation — no `_process`, no `_draw` (P135).
-static func _bank(root: Control, e: Array, vp: Vector2, reduced: bool) -> CPUParticles2D:
-	var count := int(e[0])
-	var radius: float = e[1]
-	var life: float = e[4]
-	var p := _particles(root, count, life, int(e[7]))
-	p.position = Vector2(vp.x * NAVE_VP.x, vp.y * NAVE_VP.y)
-	# Born in a small pocket at the vanishing point, not across the frame: air that appears in the
-	# distance and comes toward you is the effect; air that appears everywhere is a fog sheet again.
-	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	p.emission_sphere_radius = vp.x * 0.06
-	# A ZERO direction gives the initial velocity no direction at all, so particles sat on the
-	# emitter and crept out on `radial_accel` alone. `spread = 180` off any unit vector is a full
-	# circle, which is what "outward from the VP" needs.
-	p.direction = Vector2(0, -1)
-	p.spread = 180.0
-	p.gravity = Vector2.ZERO               # this is air in a still room; nothing falls
-	p.initial_velocity_min = 1.0
-	p.initial_velocity_max = 4.0
-	p.radial_accel_min = e[2]
-	p.radial_accel_max = e[3]
-	# `_radial()` is a 128px texture, so a scale of 1.0 is a 128px blob. The bank's radius is in
-	# logical px, hence the divide — the first title pass blew the frame to white by forgetting it.
-	p.scale_amount_min = (radius * 0.7) / 128.0
-	p.scale_amount_max = (radius * 1.3) / 128.0
-	# Grow over life: a mote approaching the camera gets bigger. This is the second half of the
-	# depth cue, and like the first it is a built-in curve rather than per-frame code.
-	var grow := Curve.new()
-	grow.add_point(Vector2(0.0, 0.35))
-	grow.add_point(Vector2(1.0, 1.0))
-	p.scale_amount_curve = grow
-	# Fade in and out so nothing pops at birth or death.
-	var ramp := Gradient.new()
-	ramp.set_color(0, Color(1, 1, 1, 0.0))
-	ramp.set_color(1, Color(1, 1, 1, 0.0))
-	ramp.add_point(0.25, Color(1, 1, 1, 1.0))
-	ramp.add_point(0.70, Color(1, 1, 1, 1.0))
-	p.color_ramp = ramp
-	var tint: Color = e[6]
-	p.color = Color(tint.r, tint.g, tint.b, e[5])
-	if reduced:
-		p.speed_scale = 0.0            # frozen, fully present, fully lit (R273/P134)
-	return p
-
+	#          count, life, scale_min, scale_max, alpha,  drift,  z
+	var depths := [
+		[16, 54.0, 0.030, 0.055, 0.055, 1.5, -26],   # near: bigger, faster, fainter
+		[18, 78.0, 0.014, 0.026, 0.075, 0.7, -58],   # far: small, slower, in the lit distance
+	]
+	for d in depths:
+		var p := _particles(root, int(d[0]), float(d[1]), int(d[6]))
+		p.position = Vector2(vp.x * 0.5, vp.y * 0.52)
+		p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+		p.emission_rect_extents = Vector2(vp.x * 0.54, vp.y * 0.48)
+		# No preferred direction and no gravity: this is still air, not a draught with an agenda.
+		p.direction = Vector2(1, 0)
+		p.spread = 180.0
+		p.gravity = Vector2(float(d[5]) * 0.35, -float(d[5]) * 0.12)
+		p.initial_velocity_min = 0.2
+		p.initial_velocity_max = float(d[5])
+		p.scale_amount_min = float(d[2])
+		p.scale_amount_max = float(d[3])
+		# Opacity varies per mote, and each fades up and away rather than blinking in.
+		var ramp := Gradient.new()
+		ramp.set_color(0, Color(1, 1, 1, 0.0))
+		ramp.set_color(1, Color(1, 1, 1, 0.0))
+		ramp.add_point(0.22, Color(1, 1, 1, 1.0))
+		ramp.add_point(0.74, Color(1, 1, 1, 1.0))
+		p.color_ramp = ramp
+		p.color = Color(0.98, 0.92, 0.78, float(d[4]))
+		if reduced:
+			p.speed_scale = 0.0
 
 # ── Animations ───────────────────────────────────────────────────────────────
 # All LOW amplitude on purpose: the brief is Elden Ring, not an animated wallpaper. Every one is

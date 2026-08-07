@@ -851,23 +851,38 @@ func _title_option(host: Node, text: String, on_pressed: Callable) -> Button:
 	# (P133). They EASE rather than snap: at 34x30 an instant appearance reads as a glitch, and
 	# arrowing down a menu snapping four of them on and off reads as flicker. Each tween is stored
 	# on the node so a fast keyboard scroll kills the previous one instead of racing it.
-	var fade := func(n: Control, to: float) -> void:
+	var kill := func(n: Control, key: String) -> void:
 		# `has_meta` first: `get_meta(key, default)` still logs an error for a missing key, which
 		# would print four times on every focus change.
-		if n.has_meta("fade"):
-			var prev := n.get_meta("fade") as Tween
+		if n.has_meta(key):
+			var prev := n.get_meta(key) as Tween
 			if prev != null and prev.is_valid():
 				prev.kill()
+	# The Collegium setting its seal on the chosen action: 175ms, inside the brief's 150-200ms, and
+	# then an idle breath so the mark is never quite static. Both tweens are held on the node so a
+	# fast keyboard scroll kills its predecessor instead of racing it.
+	var fade := func(n: Control, to: float) -> void:
+		kill.call(n, "fade")
+		kill.call(n, "breathe")
 		var t := n.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		t.tween_property(n, "modulate:a", to, 0.12)
+		t.tween_property(n, "modulate:a", to, 0.175)
 		n.set_meta("fade", t)
+		if to <= 0.0:
+			return
+		# Extremely gentle: a 14% swing over nine seconds. If you can see it happen, it is too much.
+		var br := n.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		br.tween_interval(0.175)
+		br.tween_property(n, "modulate:a", 0.86, 4.5)
+		br.tween_property(n, "modulate:a", 1.0, 4.5)
+		n.set_meta("breathe", br)
 	var mark := func(on: bool) -> void:
 		var a := 1.0 if on else 0.0
 		fade.call(left, a)
 		fade.call(right, a)
-		# The selected line warms a step as well. The sigils say WHICH; the warmth says it is live.
+		# The selected line warms, but only just: +12% luminance, inside the brief's 10-15%. It was
+		# +23%, which read as a highlight rather than as emphasis.
 		b.add_theme_color_override("font_color",
-			Color(1.0, 0.92, 0.66) if on else Color(0.86, 0.74, 0.46))
+			Color(0.96, 0.83, 0.52) if on else Color(0.86, 0.74, 0.46))
 	b.focus_entered.connect(func(): mark.call(true))
 	b.focus_exited.connect(func(): mark.call(false))
 	b.mouse_entered.connect(func(): b.grab_focus())

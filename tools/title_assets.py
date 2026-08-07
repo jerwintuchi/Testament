@@ -239,64 +239,59 @@ def check_vp():
 
 
 def budget():
-    """Compute and enforce the atmosphere budget (R272, performance canon P3).
+    """Compute and enforce the atmosphere budget (R272/R285, performance canon P3).
 
-    Fill is the fraction of the screen covered by additive blending each frame, summed over every
-    particle and overlay. It is a RATIO, so it is computed in logical units and holds identically at
-    720p and 1080p — which is the point: the cost is paid at device resolution, but the ratio is not.
-    A still capture cannot show a frame cost, so if this is not a test it is a comment.
+    Fill is the fraction of the screen covered by additive blending each frame. It is a RATIO, so it
+    is computed in logical units and holds identically at 720p and 1080p — which is the point: the
+    cost is paid at device resolution, the ratio is not.
+
+    TD-079 moved the haze, the god rays, the atmospheric perspective and the light's breath into a
+    shader on the PLATE. That quad is rasterised every frame whether or not a shader is attached, so
+    those effects add **no fill at all** — they cost ALU. The tool says so explicitly rather than
+    silently omitting them, because "it is free" is exactly the sort of claim that should be visible
+    where the numbers are.
     """
     src = open(RIG, encoding="utf-8").read()
     screen = LOGICAL_W * LOGICAL_H
     rows, particles, fill, fullframe = [], 0, 0.0, 0
 
-    block = re.search(r"const BANKS\s*:=\s*\[(.*?)\n\]", src, re.S)
-    assert block, "BANKS must be derivable from the rig"
-    for line in block.group(1).splitlines():
-        n = re.findall(r"(-?\d+\.?\d*)", line.split("Color")[0])
-        if len(n) < 2 or not line.strip().startswith("["):
-            continue
-        count, radius = int(float(n[0])), float(n[1])
-        area = math.pi * radius * radius
-        particles += count
-        fill += count * area / screen
-        rows.append(("bank r=%.0f" % radius, count, count * area / screen))
-
-    d = re.search(r"_particles\(root,\s*(\d+),.*?scale_amount_max\s*=\s*([0-9.]+)", src, re.S)
-    if d:
-        count, smax = int(d.group(1)), float(d.group(2))
-        area = math.pi * (smax * 128.0 * 0.5) ** 2
-        particles += count
-        fill += count * area / screen
-        rows.append(("dust", count, count * area / screen))
-
-    rays = re.search(r"const RAYS\s*:=\s*\[(.*?)\n\]", src, re.S)
-    if rays:
-        for line in rays.group(1).splitlines():
-            v = re.search(r"Vector3\(([0-9.]+),\s*([0-9.]+),\s*([0-9.]+)\)", line)
-            if not v:
+    # Dust: the only particles left, declared as a depth table inside `_dust`.
+    dust = re.search(r"var depths\s*:=\s*\[(.*?)\n\t\]", src, re.S)
+    if dust:
+        for line in dust.group(1).splitlines():
+            n = re.findall(r"(-?\d+\.?\d*)", line)
+            if len(n) < 7 or not line.strip().startswith("["):
                 continue
-            w = float(v.group(3)) * LOGICAL_W
-            h = w * 1.20                      # the ray sheet's aspect, as the rig builds it
-            fill += (w * h) / screen
-            rows.append(("god ray w=%.0f" % w, 1, (w * h) / screen))
+            count, smax = int(float(n[0])), float(n[3])
+            area = math.pi * (smax * 128.0 * 0.5) ** 2
+            particles += count
+            fill += count * area / screen
+            rows.append(("dust d=%d" % int(float(n[6])), count, count * area / screen))
 
+    # Any remaining full-frame-or-wider additive sheet.
     for lit in re.findall(r'\["([a-z_]+\.png)",\s*Vector3\([0-9.]+,\s*[0-9.]+,\s*([0-9.]+)\)', src):
         if float(lit[1]) >= 1.0:
             fullframe += 1
             fill += 1.0
             rows.append((lit[0], 1, 1.0))
 
-    print("%sAtmosphere budget%s%s  (mobile-first, R272)%s" % (BOLD, OFF, DIM, OFF))
+    shader = "title_air.gdshader" in src
+
+    print("%sAtmosphere budget%s%s  (mobile-first / browser-first, R272 + R285)%s"
+          % (BOLD, OFF, DIM, OFF))
     for name, count, f in rows:
         print("  %-18s x%-4d %6.3f screens" % (name, count, f))
+    if shader:
+        print("  %-18s %s  %6.3f screens  %s(rides the plate's own quad)%s"
+              % ("title_air shader", "  ", 0.0, DIM, OFF))
     bad = []
+
     def line(label, got, ceil, fmt="%d"):
         ok = got <= ceil
         if not ok:
             bad.append(label)
-        print("  %s%-22s %s / %s%s" % (GRN if ok else RED, label,
-              fmt % got, fmt % ceil, OFF))
+        print("  %s%-22s %s / %s%s" % (GRN if ok else RED, label, fmt % got, fmt % ceil, OFF))
+
     print()
     line("live particles", particles, MAX_PARTICLES)
     line("full-frame additive", fullframe, MAX_FULLFRAME)

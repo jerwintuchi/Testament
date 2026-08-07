@@ -2946,3 +2946,66 @@ Suites green (server 362, shared 65, tools 7). Asset map, manifest, registry and
 (`--selftest`, `--check` at 11 of 11, `--budget`) all green. Pre-existing advisories left alone:
 `title/title_fire.gdshader` is an orphan that predates this work, and `gen_nave.py` still declares a
 write to a `title/nave.png` that is not on disk.
+
+## 2026-07-26 — TD-079: the whole atmosphere moves onto one quad
+
+**Why.** A polish pass on the author's brief: the Collegium is the last bastion — ancient, sacred,
+solemn, immense, quiet. Reduce motion until the hall is almost frozen. Improve ambience with
+**shader-driven** effects rather than props. Testament is browser-first.
+
+**The plate was the cheapest surface in the scene and nothing was using it.** It is a `CanvasItem`
+covering the frame, rasterised every frame whether or not a shader is attached. So ground haze,
+atmospheric perspective, god rays, altar emphasis and the light's breath all moved into
+`title_air.gdshader` on that quad, where they cost ALU and **zero additional fill** — replacing three
+particle fog banks and a `light_shaft.png` overlay that were *additional* blended coverage. Measured:
+**102 particles / 1.44 screens of fill → 34 / 0.00**. Taking "favor shaders" literally paid for
+itself several times over.
+
+**Depth with no depth buffer.** A painted plate has no depth information, but it has a derived
+vanishing point (TD-078, crop-corrected to `fy 0.898`). Distance from it is the proxy: near the VP is
+far down the nave, the frame edge is the near piers. That scalar drives the atmospheric perspective
+(saturation falls, blacks lift *more than highlights* — haze raises the floor, it does not brighten
+everything) and the altar's emphasis. No blur: blur needs a second sample set and reads as a lens
+defect rather than as air.
+
+**Two rules keep it from reading as active.** Nothing moves — every animated term varies in
+*intensity* only, so rays never sweep and haze never rolls. And the plate is never resampled: the
+shader reads its own `COLOR` and writes it back. Measured over 8 seconds, the frame's mean per-pixel
+change is **1.30** against the plate's own pixel-to-pixel texture variation of **24.65** — the screen
+changes **19× less than its own grain**, which is "almost frozen" in a form that can be checked.
+
+**A Godot semantics trap, recorded so it is not hit again.** In a `canvas_item` shader, `COLOR` on
+entry **already holds** `texture(TEXTURE, UV) * modulate`. Sampling again and multiplying by `COLOR`
+squares the image. On a hall this dark that cost a factor of **5** in mean luminance (37.2 → 7.6) and
+looked exactly like "the shader destroyed the plate". It was found by bisecting — detaching the
+material put the un-shaded baseline at 35.8, which proved the shader was the cause rather than the
+fog that had just been deleted. Read `COLOR`, write `COLOR`: correct, and one texture fetch cheaper.
+
+**Then it was too bright**, which is the subtler failure. The first working pass lifted mean
+luminance 27% over the un-shaded plate: the distance receded properly and the hall stopped being
+dark. Dark is the brief. Halving the lift and haze settled it at +18%.
+
+**Rays measured rather than chosen.** TD-078's lesson was three rays shipped invisible because an
+opacity was set without reading what it multiplied. These were differenced with `ray_strength` at 0
+and at its shipped value: **peak add 25/255 over 16.4% of the frame**, against the old sheet's 6.8.
+
+**Dust drifts; it does not rise.** The old field pushed everything upward on a negative gravity,
+which reads as heat or smoke — the two things this hall is not. Gravity is now near nil with full
+spread, at two depths whose difference *is* the parallax.
+
+**The selection mark becomes the Collegium's seal.** 175 ms transition, a 9-second 14% idle breath,
+and the selected label at **+12%** luminance, measured — down from +23%, which read as a highlight
+rather than as emphasis. A slide was dropped on purpose: the sprigs live in an `HBoxContainer` that
+reassigns child positions on every layout pass, and the brief says "fade *or* slide".
+
+**No camera breath, and this is a decision.** The brief asks for a sub-pixel camera breath *"if
+appropriate"*. It is not: the plate is drawn 1:1 through `NEAREST`, so a sub-pixel move resamples
+every pixel of a pixel-art image and shimmers, while an integer move visibly jumps. TD-075 and
+TD-077 both removed camera drift for exactly this. The light breathes instead — same intent, no
+cost, nothing broken.
+
+**Also retired:** `title_fire.gdshader`, an orphan from the TD-073 matte era that found bright pixels
+and treated them as flame. Confirmed unreferenced in HEAD before deleting.
+
+**Containment.** Client render only; no `src/**` or wire change. Composition untouched — menu layout,
+typography, logo placement, background and spacing all come out unchanged, and no props were added.
