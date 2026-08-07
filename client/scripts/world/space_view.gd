@@ -55,7 +55,11 @@ const STATION_ART := {
 # T312: the intermediate near-black passes had the right mood but lost the floor entirely).
 const DARK := Color(0.25, 0.22, 0.20)     # what the hall looks like away from every flame
 const LIGHT_WARM := Color(1.0, 0.76, 0.45)
-const LIGHT_ENERGY := 0.90
+# 0.45, not 0.90. A 2D light ADDS, so at the core it was contributing ~230 to a channel: the dark
+# floor has the headroom to take that, but anything already bright does not — the Seeker's skin
+# clipped straight to orange and read as a glowing character. The floor still lights well because it
+# is dark (it has all the headroom in the room); the cap exists for everything that is not.
+const LIGHT_ENERGY := 0.45
 const LIGHT_REACH := 6.5                  # in tiles, to the edge of the falloff
 const MAX_LIGHTS := 6                     # the budget ceiling (R298); asserted, not hoped for
 
@@ -113,7 +117,9 @@ func _light_space(grid: Dictionary, markers: Array) -> void:
 	var w := int(grid.get("width", 0))
 	var h := int(grid.get("height", 0))
 	var centre := Vector2(w * TILE * 0.5, h * TILE * 0.5)
-	var at: Array[Vector2] = [centre]
+	# The atrium lamp is offset off the spawn tile. It sat 8px from it, so the player materialised
+	# inside the light's core — a lamp stands beside you, not on your head.
+	var at: Array[Vector2] = [centre + Vector2(0, TILE * -2.0)]
 	for m in markers:
 		at.append(Vector2(int(m["x"]) * TILE + TILE * 0.5, int(m["y"]) * TILE + TILE * 0.5))
 	# The walk: halfway between the atrium and the two furthest stations, so crossing the hall

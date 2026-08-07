@@ -99,6 +99,14 @@
       down to 0.90 to meet them.
       Test: **V3** — captured; the gate, the counter and the notice wall are each recognisable
       without any caption.
+      **Then the Seeker glowed** (author: "is the character light glow intentional?"). It was not.
+      Two causes, one general: the atrium lamp sat **8px from the spawn tile**, so the player
+      materialised inside its core; and more fundamentally a 2D light **adds**, so at energy 0.90 the
+      core contributed ~230 to a channel and the Seeker's skin clipped straight to orange. The dark
+      floor has the headroom to absorb that; anything already bright does not. Energy 0.90 → **0.45**
+      and the atrium lamp moved two tiles off the spawn — a lamp stands beside you, not on your head.
+      Seeker peak **248 → 192**, mean **125 → 69**; the floor still lights, because being dark is
+      exactly what gives it the headroom.
 
 - [x] T314 [R295, R296 / V3] — **Retire the floating labels.** `Press E: <Station>` already names the
       station on approach, so a permanent white sans caption is a second naming of the same thing in
