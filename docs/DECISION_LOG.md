@@ -3087,3 +3087,49 @@ most visible unfinished thing in the game and the obvious next pass.
 **Containment.** Client render + routing only. No `src/**` change and no wire change: `CREATE_ROOM`
 and `JOIN_ROOM` go out with the same payloads as before, and the server remains the only authority on
 whether a room exists (P140).
+
+## 2026-08-07 — TD-082: the display name persists, but the backend work is authority, not storage
+
+**The question** (author, during TD-080/081): should the display name be persisted at the backend
+level, or trivially not persisted since the expedition is transient?
+
+**Neither, as posed — and the framing is worth correcting because it will come up again.** The
+expedition's transience is not an argument against persisting the name; it is *the other half of the
+same decision*. **TD-006** already drew the line: persist identity, cosmetics, Collegium rank,
+customization and career stats; everything about an expedition, including the session Archive, is
+ephemeral and lives in server memory only. A display name is **identity**. It sits squarely in the
+one category that persists, and the room being ephemeral is precisely why that category exists.
+
+**But "persists" is not "persist it server-side now."** There is no account layer to put it in:
+`src/server/src/` is `bootstrap`, `collegium`, `incarnate`, `rng`, `rooms`, `site`, and nothing
+outside tests writes to disk. The ROADMAP already owns this as **Phase 7 — Persistence & account
+layer**, whose stated goal is verbatim *"identity persists; expeditions stay ephemeral."* We are
+nominally in Phase 5. Building a persistence tier to hold one string would mean inventing Phase 7's
+infrastructure early and inventing it badly — a real account layer is forced by identity and auth
+questions that a display name alone does not ask.
+
+**Decided: keep the client-side file until Phase 7.** `user://display-name.txt` (TD-080) is not
+persistence in the TD-006 sense — it is a local convenience so the player does not retype their name
+every session. It matches canon's intent at zero infrastructure cost, which is what a stand-in
+should do. When Phase 7 lands, the name moves to the account layer and the local file becomes a
+cache, not a source of truth.
+
+**The actual backend-level issue is not storage — it is authority.** Today the server *trusts* the
+name. `sanitizeDisplayName` validates **shape only**: it must be a string, non-empty, ≤32 characters,
+with control characters stripped. It never asks whether the sender owns that name. So names are not
+unique, not reserved, and any client may present any name on `CREATE_ROOM` or `JOIN_ROOM`.
+
+To be exact about what that is and is not: it is **not** a violation of **I2**, which requires the
+payload be validated before any state mutation — it is, and malformed input is rejected. It is an
+**authorization** gap, and it is one that only an account layer can close.
+
+**So Phase 7's correct move is not "also store the name."** It is that the server should **derive**
+`displayName` from the authenticated session and stop reading it from the payload at all. That is the
+moment the field should leave the wire entirely. Recorded here so Phase 7 inherits the reasoning
+rather than re-deriving it, and so the obvious-but-wrong version ("add a names table") is not the
+first thing reached for.
+
+**Consequence for the open change-your-name affordance** (left open by TD-080, listed in
+`specs/collegium-hall/`): building it now is cheap — it rewrites a local file — and it is not wasted
+work when Phase 7 arrives. It becomes an account operation instead of a file write; the UI affordance
+does not move. So the architecture does not argue against adding it whenever the author wants it.
