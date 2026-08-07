@@ -3033,3 +3033,57 @@ of change that quietly breaks "almost frozen", so the measurement was re-run: mo
 is 70% more motion than before, and that is the budget being spent, not free.
 
 Budget: 34 → **60 particles / 0.18 screens of fill**, both far inside their ceilings.
+
+## 2026-07-26 — TD-080: creating an expedition stops being a form
+
+**Why.** The author, on the room-setup screens: *"it doesn't belong to the current theme based on the
+title screen"* — and then the structural call: *"the create room should be the actual in-game, player
+in collegium not another ui. the join expedition should be the only one that should have a dedicated
+ui scene."*
+
+**The create path was a deletion.** `ROOM_CREATED` already routed to the lobby, and the lobby already
+*is* the walkable Collegium — the form was the only thing standing between the title screen and the
+game. New Expedition now sends `CREATE_ROOM` and the player is standing in the Collegium. Verified
+against a live server, not asserted: `phase=WAITING grid=24x16, bodies=1`, the Seeker between the
+Quartermaster and the Deploy Gate, nothing in between.
+
+**The name is the one thing that could not be deleted.** `CREATE_ROOM` needs a `displayName` and
+there is no field left to read it from, so it comes from `user://display-name.txt` — which is
+legitimate because a display name is **identity**, the one category canon lets us persist (TD-006).
+First run, and only first run, one rite asks for it. That is stated in the requirements rather than
+hidden, because it is the single place R287 cannot be absolute: a named player cannot be created
+without a name.
+
+**Join becomes a writ.** Aged parchment — the Contract Board's own, reused as an *asset* rather than
+as a code dependency on `board/`, since a writ and a notice are the same material and a second
+parchment would be two things to keep in sync. Ink captions, **ruled lines instead of boxes** (a box
+is the thing that reads as a form control), Cinzel throughout, actions marked by the laurel. Gone:
+the purple-navy panel (a colour that appears nowhere else in Testament), the yellow frame with corner
+studs, the filled brown buttons, the default sans, and the brick-and-banner backdrop that was a
+different room from the one the player was standing in.
+
+**The laurel moved to `Widgets`.** Two screens mark focus with it now, so it is shared visual
+language rather than something the title owns; `main.gd`'s `_menu_sigil` delegates, so there is
+exactly one.
+
+**The hall is kept alive rather than rebuilt.** `_clear()` gained a `keep_env` flag: the writ is laid
+over the *same* hall the player was just looking at, so a rebuild would cost a full scene
+construction and flicker at exactly the moment continuity matters. Keeping it is cheaper *and*
+better, and it is why the transition can be a plain 250ms crossfade.
+
+**Two Godot layout facts, each of which cost a pass.** `_root` is a `VBoxContainer` inside a
+`ScrollContainer`, so an absolutely-positioned, absolutely-sized sheet is stretched full-width on
+every layout pass — the content was shoved to one side and the actions fell off the bottom. The writ
+is now a NinePatchRect behind a MarginContainer, so the *content* drives the height and the deckled
+tear survives because only the middle stretches. And a child's own `SHRINK_CENTER` does not centre it
+there; a centred `VBox` host does, which is what the title's column had been doing all along.
+
+**Found, and deliberately not fixed here: the destination is a greybox.** Making the create path
+instant puts the finished Great Hall directly against flat grey tiles, a visible grid and white
+system labels. That contrast was previously hidden behind a form. It is not a regression from this
+change — the Collegium was always like that, the form was just in front of it — but it is now the
+most visible unfinished thing in the game and the obvious next pass.
+
+**Containment.** Client render + routing only. No `src/**` change and no wire change: `CREATE_ROOM`
+and `JOIN_ROOM` go out with the same payloads as before, and the server remains the only authority on
+whether a room exists (P140).

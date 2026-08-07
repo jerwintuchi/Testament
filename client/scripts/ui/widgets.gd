@@ -75,3 +75,26 @@ static func h1(host: Node, text: String) -> void:
 	l.text = text
 	l.add_theme_font_size_override("font_size", 17)
 	host.add_child(l)
+
+
+## The Collegium's laurel, one branch, marking a chosen action (TD-077, shared by TD-080).
+## The art is the RIGHT branch; the left is it mirrored, so the pair opens outward around the word
+## the way the crest's wreath opens around the blade. Starts unlit and KEEPS ITS SPACE, so marking
+## an option never shifts the lettering (P133).
+##
+## Lives here rather than in either caller because both the title menu and the join writ mark focus
+## with it — it is shared visual language, and a second copy would drift.
+static func laurel(pointing_right: bool) -> TextureRect:
+	var s := TextureRect.new()
+	s.texture = load("res://assets/ui/shared/menu_sigil.png") as Texture2D
+	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	s.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	s.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	# 17x15 LOGICAL for 34x30 of art: at a 720p window PixelScale renders the 640x360 viewport into
+	# 1280x720 device pixels, so half the art's size on this side of the scale is 1:1 on that one.
+	s.custom_minimum_size = Vector2(17, 15)
+	s.flip_h = pointing_right          # the art points right; the LEFT copy is the mirrored one
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	s.modulate.a = 0.0
+	return s

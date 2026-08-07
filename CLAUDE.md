@@ -385,9 +385,26 @@ almost-invisible fog motes to hint at volume. T297's "almost frozen" was **re-me
 (motion 1.30 → 2.23 vs the plate's grain 22.21 — still 10× under). Budget 34 → 60 particles / 0.18
 screens.
 
-@specs/title-atmosphere/requirements.md
-@specs/title-atmosphere/design.md
-@specs/title-atmosphere/tasks.md
+Active spec: **`specs/expedition-entry/`** (TD-080) — **creating an expedition stops being a form.**
+On the author's ruling: *"create room should be the actual in-game, player in collegium not another
+ui; join expedition should be the only one with a dedicated ui scene."* New Expedition now sends
+`CREATE_ROOM` from the title and the player lands in the walkable Collegium — mostly a **deletion**,
+since `ROOM_CREATED` already routed to the lobby and the lobby already *is* the Collegium. Verified
+against a **live server** (`phase=WAITING grid=24x16, bodies=1`). The **name** is the one thing that
+could not be deleted (`CREATE_ROOM` needs a `displayName`): taken from `user://display-name.txt` —
+legitimate because a name is *identity* (TD-006) — and asked exactly once, first run, in the same
+writ idiom. **Join is a writ**: the board's own parchment, ink captions, ruled lines instead of boxes,
+Cinzel, laurel-marked actions; the purple panel, studded yellow frame, filled buttons, sans and
+brick-and-banner backdrop are gone. The **laurel moved to `Widgets.laurel`** (two screens speak it).
+`_clear(keep_env)` holds the hall alive so the transition is a plain 250ms crossfade rather than a
+rebuild. **T305–T309 done.**
+**Found, not fixed:** the Collegium the player now lands in is a **greybox** — flat grey tiles, a
+visible grid, white system labels — and removing the form put the finished Great Hall directly
+against it. Not a regression; the form was simply in front of it. The obvious next pass.
+
+@specs/expedition-entry/requirements.md
+@specs/expedition-entry/design.md
+@specs/expedition-entry/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

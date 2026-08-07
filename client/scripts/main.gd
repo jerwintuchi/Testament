@@ -26,6 +26,7 @@ const PopupTheme = preload("res://scripts/ui/popup_theme.gd")   # the station po
 const RiteBanner = preload("res://scripts/ui/rite_banner.gd")   # the CONTRACT SEALED ceremony overlay
 const Widgets = preload("res://scripts/ui/widgets.gd")          # shared label/rule/engraved builders
 const TitleScene = preload("res://scripts/ui/title_scene.gd")   # the title's layered environment
+const WritForm = preload("res://scripts/ui/writ_form.gd")       # the join / name writ (TD-080)
 const RoomScroll = preload("res://scripts/ui/room_scroll.gd")   # the lobby's toggleable roster
 const StationNames = preload("res://scripts/core/station_names.gd")  # station kind -> player-facing name
 
@@ -387,10 +388,18 @@ func _ready() -> void:
 	# `--title-preview` is handled ABOVE, before the first `_show_title()`. (It supersedes TD-071
 	# Phase B's `--menu-preview`: Phase D made the first screen the title, and moved the name/code
 	# plates behind `--setup-create` / `--setup-join`.)
-	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--setup-create"):
-		call_deferred("_show_room_setup", "create")
+	# `--setup-create` is retired with the screen it opened (TD-080): New Expedition creates the
+	# room and enters the Collegium, so there is nothing to capture between the two.
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--setup-join"):
-		call_deferred("_show_room_setup", "join")
+		call_deferred("_show_join")
+	# The name rite is first-run only, so it is otherwise uncapturable once a name is on disk.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--name-rite"):
+		call_deferred("_show_name_rite")
+	# `--new-expedition` presses New Expedition for us, so the ONE behaviour this spec exists for —
+	# no screen between the title and the Collegium — can be verified unattended. It needs a live
+	# server; without one the client reports "still connecting", which is the honest result.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--new-expedition"):
+		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
 
 # Fixture board: EIGHT contracts' worth of ContractIntel (canonical BOARD_SIZE=8, TD-045),
 # the exact shape the server's `toContractIntel` puts on the wire (contractId, tier, origin,
@@ -768,8 +777,11 @@ func _show_title() -> void:
 				_net.send_message(Protocol.RECONNECT, {"token": _reconnect_token})
 			else:
 				_set_status("still connecting, try again in a moment"))
-	var fresh := _title_option(col, "New Expedition", func(): _show_room_setup("create"))
-	_title_option(col, "Join Expedition", func(): _show_room_setup("join"))
+	# New Expedition is NOT a screen (R287, the author's call): it creates the room and puts you in
+	# the Collegium. `ROOM_CREATED` already routes to the lobby and the lobby already IS the walkable
+	# Collegium, so this is a deletion — the form was the only thing standing in the way.
+	var fresh := _title_option(col, "New Expedition", func(): _begin_new_expedition())
+	_title_option(col, "Join Expedition", func(): _show_join())
 	_title_option(col, "Quit", func(): get_tree().quit())
 	# Something is always marked: an unselected menu would read as the sigils having failed to load.
 	# Whichever option is listed first takes it, which is the recovery path when there is one.
@@ -893,99 +905,107 @@ func _title_option(host: Node, text: String, on_pressed: Callable) -> Button:
 	host.add_child(row)
 	return b
 
-# The mark itself: one branch of the Collegium's laurel, gilt and hard-edged, drawn 1:1 on device
-# pixels like everything else on this screen. The art is the RIGHT branch; the left is it mirrored,
-# so the pair opens outward around the word the way the crest's wreath opens around the blade.
+# The mark itself now lives in `Widgets.laurel` — the join writ marks focus with the same branch,
+# so it is shared language rather than a thing this file owns (TD-080).
 func _menu_sigil(pointing_right: bool) -> TextureRect:
-	var s := TextureRect.new()
-	s.texture = load("res://assets/ui/shared/menu_sigil.png") as Texture2D
-	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	s.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	s.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	# 17x15 LOGICAL for 34x30 of art: at a 720p window PixelScale renders the 640x360 viewport into
-	# 1280x720 device pixels, so half the art's size on this side of the scale is 1:1 on that one.
-	s.custom_minimum_size = Vector2(17, 15)
-	s.flip_h = pointing_right          # the art points right; the LEFT copy is the mirrored one
-	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	s.modulate.a = 0.0
-	return s
+	return Widgets.laurel(pointing_right)
 
 # ── Room setup ──────────────────────────────────────────────────────────────
 # One screen deeper than the title: the plate that actually asks for what its path needs
 # (R233). "create" wants only a name; "join" wants a name and a Room code.
-func _show_room_setup(mode: String) -> void:
-	_setup_mode = mode
-	_show_menu()
+## New Expedition: no screen at all (R287). The name is IDENTITY and lives on disk (TD-006), so the
+## only thing that can stop us is not having one yet — and that is asked exactly once, ever.
+func _begin_new_expedition() -> void:
+	var who := _load_name()
+	if who == "":
+		_show_name_rite()
+		return
+	if not _require_connection():
+		return
+	_pending_join = true
+	_net.send_message(Protocol.CREATE_ROOM, {"displayName": who})
 
-func _show_menu() -> void:
+## First run only: one writ asking who you are. Deliberately the same object as the join screen, so
+## it reads as the Collegium taking your name rather than as a settings dialog.
+func _show_name_rite() -> void:
 	_screen = Screen.MENU
 	_world.visible = false
-	_clear()
-	_menu_bg.visible = true
-	BoardDecor.add_torches(_menu_stone, get_viewport_rect().size, _reduced_motion)
-	var joining := _setup_mode == "join"
-
+	_clear(true)                       # the hall stays; we never left it
+	if not is_instance_valid(_title_env):
+		_title_env = TitleScene.build(_title_host, _reduced_motion)
 	var vp := get_viewport_rect().size
-	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(0, vp.y * 0.14)
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.add_child(spacer)
+	var top := Control.new()
+	top.custom_minimum_size = Vector2(0, vp.y * 0.20)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(top)
+	# The writ is centred the way the title's own column is: `_root` sits inside a ScrollContainer,
+	# so a child's own SHRINK_CENTER does not settle it — a centred VBox host does.
+	var host := VBoxContainer.new()
+	host.alignment = BoxContainer.ALIGNMENT_CENTER
+	host.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_root.add_child(host)
+	var w := WritForm.build(host, vp, "THE COLLEGIUM", [["YOUR NAME", "your name", ""]])
+	_name_input = w["edits"][0]
+	var col: VBoxContainer = w["column"]
+	WritForm.action(col, "Take the name", func():
+		var who := _name_input.text.strip_edges()
+		if who == "":
+			_set_status("the Collegium needs a name to enter you in its roll")
+			_name_input.grab_focus()
+			return
+		_save_name(who)
+		_begin_new_expedition())
+	WritForm.action(col, "Back", func(): _show_title())
+	WritForm.arrive(w["sheet"], _reduced_motion)
+	_name_input.grab_focus.call_deferred()
 
-	var plate := PanelContainer.new()
-	plate.theme = _ui_theme
-	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	plate.custom_minimum_size = Vector2(vp.x * 0.46, 0)
-	_root.add_child(plate)
-
-	var pad := MarginContainer.new()
-	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
-		pad.add_theme_constant_override(side, 10)
-	plate.add_child(pad)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 5)
-	pad.add_child(col)
-
-	col.add_child(Widgets.engraved_line("JOIN EXPEDITION" if joining else "NEW EXPEDITION",
-		15, Color(0.86, 0.72, 0.42), 700))
-	col.add_child(Widgets.hrule(Color(0.42, 0.28, 0.16, 0.7)))
-
-	col.add_child(_menu_caption("YOUR NAME"))
-	_name_input = _reparent_to(_make_line_edit("your name", _load_name()), col)
-	_name_input.add_theme_font_size_override("font_size", MENU_FS)
-
-	if joining:
-		col.add_child(_menu_gap(3))
-		col.add_child(_menu_caption("ROOM CODE"))
-		_code_input = _reparent_to(_make_line_edit("e.g. ABC234", ""), col)
-		_code_input.add_theme_font_size_override("font_size", MENU_FS)
-		col.add_child(_menu_gap(3))
-		_menu_action(col, "Join Room", func():
-			var who := _claim_name()
-			if who == "":
-				return
-			var code := _code_input.text.strip_edges().to_upper()
-			if code == "":
-				_set_status("enter a room code to join")
-				return
-			if not _require_connection():
-				return
-			_pending_join = true
-			_net.send_message(Protocol.JOIN_ROOM, {"code": code, "displayName": who}))
-	else:
-		col.add_child(_menu_gap(3))
-		_menu_action(col, "Create Room", func():
-			var who := _claim_name()
-			if who == "":
-				return
-			if not _require_connection():
-				return
-			_pending_join = true
-			_net.send_message(Protocol.CREATE_ROOM, {"displayName": who}))
-
-	col.add_child(_menu_gap(3))
-	col.add_child(Widgets.hrule(Color(0.42, 0.28, 0.16, 0.45)))
-	_menu_action(col, "Back", func(): _show_title())
+## Join Expedition: the ONE dedicated scene (the author's ruling), and it is a writ on the hall.
+func _show_join() -> void:
+	_screen = Screen.MENU
+	_setup_mode = "join"
+	_world.visible = false
+	_clear(true)                       # the hall stays behind it — no rebuild, no flicker (R290)
+	if not is_instance_valid(_title_env):
+		_title_env = TitleScene.build(_title_host, _reduced_motion)
+	var vp := get_viewport_rect().size
+	var top := Control.new()
+	top.custom_minimum_size = Vector2(0, vp.y * 0.20)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(top)
+	# The writ is centred the way the title's own column is: `_root` sits inside a ScrollContainer,
+	# so a child's own SHRINK_CENTER does not settle it — a centred VBox host does.
+	var host := VBoxContainer.new()
+	host.alignment = BoxContainer.ALIGNMENT_CENTER
+	host.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_root.add_child(host)
+	var w := WritForm.build(host, vp, "JOIN EXPEDITION", [
+		["YOUR NAME", "your name", _load_name()],
+		["ROOM CODE", "e.g. ABC234", ""],
+	])
+	_name_input = w["edits"][0]
+	_code_input = w["edits"][1]
+	var col: VBoxContainer = w["column"]
+	var join := func():
+		var who := _name_input.text.strip_edges()
+		if who == "":
+			_set_status("enter your name first")
+			_name_input.grab_focus()
+			return
+		var code := _code_input.text.strip_edges().to_upper()
+		if code == "":
+			_set_status("enter a room code to join")
+			_code_input.grab_focus()
+			return
+		if not _require_connection():
+			return
+		_save_name(who)
+		_pending_join = true
+		_net.send_message(Protocol.JOIN_ROOM, {"code": code, "displayName": who})
+	WritForm.action(col, "Present the writ", join)
+	WritForm.action(col, "Back", func(): _show_title())
+	WritForm.arrive(w["sheet"], _reduced_motion)
+	_code_input.text_submitted.connect(func(_t: String): join.call())
+	_name_input.grab_focus.call_deferred()
 
 # Menu control type size. The plate is budgeted to fit 360 logical px without scrolling: at the
 # theme default (~17) the fields alone overflowed and the Resume block fell off the bottom.
@@ -1007,9 +1027,6 @@ func _fit_nave() -> void:
 	_nave.position = ((vp - _nave.size) * 0.5).floor()
 
 # A small gilt section caption above a control group.
-func _menu_caption(text: String) -> Control:
-	return Widgets.card_label(text, 8, Color(0.62, 0.50, 0.31), false, false)
-
 func _menu_gap(h: int) -> Control:
 	var g := Control.new()
 	g.custom_minimum_size = Vector2(0, h)
@@ -1039,16 +1056,6 @@ func _require_connection() -> bool:
 	_set_status("✝ " + msg)
 	_show_toast("✝ " + msg)   # top-centre: the status line is small, quiet and easy to miss
 	return false
-
-func _claim_name() -> String:
-	var who := _name_input.text.strip_edges() if is_instance_valid(_name_input) else ""
-	if who == "":
-		_set_status("enter your name first")
-		if is_instance_valid(_name_input):
-			_name_input.grab_focus()
-		return ""
-	_save_name(who)
-	return who
 
 func _show_lobby() -> void:
 	_screen = Screen.LOBBY
@@ -1132,7 +1139,7 @@ func _show_testament() -> void:
 	_label("")
 	_button("Return to the Collegium", func():
 		_reset_session()
-		_show_menu())
+		_show_title())
 
 func _show_reconnecting() -> void:
 	_screen = Screen.RECONNECTING
@@ -1143,7 +1150,7 @@ func _show_reconnecting() -> void:
 		_label("No expedition to return to.")
 		_button("Back to menu", func():
 			_reset_session()
-			_show_menu())
+			_show_title())
 	else:
 		_label("Your party holds your place. Reconnect to resume.")
 		_button("Reconnect", func():
@@ -1151,7 +1158,7 @@ func _show_reconnecting() -> void:
 			_net.open(_server_url()))
 		_button("Abandon (back to menu)", func():
 			_reset_session()
-			_show_menu()
+			_show_title()
 			_net.open(_server_url()))
 
 # ── Walkable world ───────────────────────────────────────────────────────────
@@ -1770,7 +1777,10 @@ func _load_token() -> String:
 
 # ── UI builders ──────────────────────────────────────────────────────────────
 
-func _clear() -> void:
+## `keep_env` holds the title's environment alive across a screen change (TD-080). The join writ is
+## laid over the SAME hall the player was just looking at, so rebuilding it would cost a full scene
+## construction and produce a visible flicker at the one moment we are trying to make continuous.
+func _clear(keep_env: bool = false) -> void:
 	for child in _root.get_children():
 		child.queue_free()
 	if is_instance_valid(_status):
@@ -1783,7 +1793,7 @@ func _clear() -> void:
 		_room_scroll.visible = false     # LOBBY turns it back on
 	if is_instance_valid(_nave_bg):
 		_nave_bg.visible = false
-	if is_instance_valid(_title_env):
+	if is_instance_valid(_title_env) and not keep_env:
 		_title_env.queue_free()      # the title's tweens must not outlive the screen
 		_title_env = null
 
