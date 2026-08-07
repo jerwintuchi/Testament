@@ -3133,3 +3133,46 @@ first thing reached for.
 `specs/collegium-hall/`): building it now is cheap — it rewrites a local file — and it is not wasted
 work when Phase 7 arrives. It becomes an account operation instead of a file write; the UI affordance
 does not move. So the architecture does not argue against adding it whenever the author wants it.
+
+## 2026-08-07 — TD-083: Light2D works in the world layer; TD-047 was about Control only
+
+**The experiment** (T310, run before anything was built on the assumption). TD-047 recorded that a
+`PointLight2D` cranked to energy 8 changed **nothing** on the Contract Board, and every lighting
+decision since has been shaped by it: the board's torches are additive sprites, the title screen's
+fires are additive radials, and TD-079 put a whole atmosphere into a shader partly because "Light2D
+can't reach it". That belief was on its way to becoming "Light2D doesn't work in Testament".
+
+It is false, and the distinction is the **node type, not the screen**. `SpaceView` and `_world` are
+`Node2D`s. TD-047's finding is about **Control** nodes, which 2D lights genuinely do not reach.
+
+**Measured.** One `PointLight2D` — energy 2.0, warm, at the Collegium's spawn atrium — against an
+otherwise identical frame:
+
+```
+peak channel delta   244 / 255
+mean delta            33.21
+pixels changed >= 8   70.4% of the frame
+```
+
+The floor takes a warm falloff, the Seeker sprite is lit, and the Deploy Gate marker brightens. Not
+a marginal result that needed interpreting.
+
+**So the world layer gets real lighting** — real falloff, real normal-mapped relief, and a hall that
+is genuinely dark between its sources. This is the bible's lighting pillar (TD-043) satisfied
+*literally* for the first time rather than approximated, and it is **cheaper** than the additive
+fake: one `PointLight2D` costs less than a large additive quad.
+
+```
+world layer (Node2D)  ->  Light2D. Use it.            <- the Collegium, the field
+Control UI            ->  additive sprites + shader.  <- the board, the title (TD-047)
+```
+
+**The experiment also surfaced the missing half.** There is no `CanvasModulate` in the scene, so
+CanvasItems render at their authored value and a light can only **add**. The lit capture is a bright
+hall with a brighter pool in it — not a dark hall with light carved out of it. "Genuinely dark
+between sources" needs the base pulled down by a dark `CanvasModulate` with the lights restoring it
+locally. One node, and it is the difference between *lighting* a room and *brightening part of* one.
+
+**Why this is recorded as its own entry.** An inherited false belief is more expensive than an
+unknown, because nobody re-tests it — TD-047 is correct and was being over-applied for four specs.
+The rule to carry forward is the boundary line above, not "lights don't work".

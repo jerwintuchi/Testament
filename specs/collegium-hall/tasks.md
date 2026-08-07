@@ -5,13 +5,24 @@
 
 ## Phase A — Light and stone
 
-- [ ] T310 [R293, P142 / V1] — **Prove `Light2D` reaches the world layer, before building on it.**
+- [x] T310 [R293, P142 / V1] — **Prove `Light2D` reaches the world layer, before building on it.**
       `SpaceView` is a `Node2D`, so it should — but TD-047 recorded the opposite for Control and that
       finding has shaped every lighting decision since. Drop one `PointLight2D` into the Collegium and
       capture with and without it.
       Test: **V1** — two captures; if the lit one differs, the premise of this whole spec holds and
       the result is written into the DECISION_LOG as the correction to "Light2D doesn't work in
       Testament". If it does not differ, **stop** and re-plan Phase A around the additive technique.
+      **RESULT: it works, decisively.** One `PointLight2D` (energy 2.0, warm, at the spawn atrium)
+      against an otherwise identical frame: **peak channel delta 244/255, mean 33.21, 70.4% of the
+      frame changed**. The tiles take a warm falloff, the Seeker sprite is lit, and the Deploy Gate
+      marker brightens. TD-047's finding is confirmed as being about **Control nodes only**; the
+      world layer was never subject to it. Recorded as **TD-083**.
+      **And it surfaced the missing half:** there is no `CanvasModulate`, so a light can only *add* —
+      the lit capture is a bright hall with a brighter pool in it, not a dark hall with light carved
+      from it. R293's "genuinely dark between sources" needs a dark `CanvasModulate` under the
+      lights. One node, folded into T312.
+      Kept behind `--light-test` until T312 ships the real rig, since until then there is no other
+      way to re-verify this.
 
 - [ ] T311 [R294, P144 / V2] — **`gen_collegium_tiles.py`.** Four floor variants (worn flags, mortar,
       chipped corners), two wall cells reading as the base of a wall from above, and a threshold cell

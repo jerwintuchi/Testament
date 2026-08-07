@@ -216,8 +216,8 @@
 - `client/scripts/board/board_decor.gd:56` — `load/preload normal_path`
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
-- `client/scripts/main.gd:1637` — `load/preload path`
-- `client/scripts/main.gd:1641` — `load/preload normal_path`
+- `client/scripts/main.gd:1665` — `load/preload path`
+- `client/scripts/main.gd:1669` — `load/preload normal_path`
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
 - `client/scripts/ui/writ_form.gd:137` — `load/preload PARCH`

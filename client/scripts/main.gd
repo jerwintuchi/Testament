@@ -400,6 +400,34 @@ func _ready() -> void:
 	# server; without one the client reports "still connecting", which is the honest result.
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--new-expedition"):
 		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
+	# T310 (TD-081): the experiment the whole Collegium plan rests on. TD-047 found that a
+	# PointLight2D at energy 8 changed NOTHING on the Contract Board, and every lighting decision
+	# since has been shaped by that. But `_world` is a Node2D, not a Control — so the finding may
+	# not apply here at all. One light, captured with and against, before anything is built on the
+	# assumption.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--light-test"):
+		get_tree().create_timer(2.2).timeout.connect(_light_test)
+
+## T310: drop ONE PointLight2D into the world layer and see whether the tiles take it.
+func _light_test() -> void:
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.set_color(1, Color(1, 1, 1, 0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 256
+	tex.height = 256
+	var l := PointLight2D.new()
+	l.texture = tex
+	l.energy = 2.0
+	l.color = Color(1.0, 0.78, 0.45)
+	# The Collegium is 24x16 tiles of 16px; the spawn atrium is tile (12, 8).
+	l.position = Vector2(12 * 16 + 8, 8 * 16 + 8)
+	_world.add_child(l)
+	_log("light-test: PointLight2D added to _world at %s" % l.position)
 
 # Fixture board: EIGHT contracts' worth of ContractIntel (canonical BOARD_SIZE=8, TD-045),
 # the exact shape the server's `toContractIntel` puts on the wire (contractId, tier, origin,

@@ -50,6 +50,13 @@ chosen by `hash(x, y)` — deterministic (P144), so every client sees the same h
 Lights: one per station (3), one at the spawn atrium, and two along the walk between them. Six, at
 the ceiling of R298, warm, with generous falloff and a dark middle distance.
 
+**A `CanvasModulate` is required, and T310 proved why.** There is none in the scene today, so the
+tiles render at their authored value everywhere and a `Light2D` can only *add* — the T310 capture is
+a bright hall with a brighter pool in it, not a dark hall with light carved out of it. "Genuinely
+dark between sources" (R293) therefore needs the base scene pulled down by a dark `CanvasModulate`
+first, with the lights restoring it locally. That is one node, and it is the difference between
+lighting the hall and merely brightening part of it.
+
 ### Phase B — The stations become objects
 
 `marker.tscn` is replaced per kind. The Contract Board's art **already exists** and is the single
