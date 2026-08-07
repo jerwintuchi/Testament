@@ -38,9 +38,13 @@ const MARKER := preload("res://scenes/marker.tscn")
 # light can only ADD, which gives a bright hall with a brighter pool in it rather than a dark hall
 # with light carved out of it. It affects this CanvasLayer only, so the HUD (its own layers) is
 # untouched.
-const DARK := Color(0.48, 0.43, 0.40)     # what the hall looks like away from every flame
+# The AMBIENT is the knob for "how dark is this hall", never the texture. Darkening the diffuse
+# darkens the lit pools too and defeats the rig; darkening the ambient deepens only what no lamp
+# reaches, so contrast goes UP and the stone stays readable where light falls (author's call after
+# T312: the intermediate near-black passes had the right mood but lost the floor entirely).
+const DARK := Color(0.32, 0.28, 0.26)     # what the hall looks like away from every flame
 const LIGHT_WARM := Color(1.0, 0.76, 0.45)
-const LIGHT_ENERGY := 1.05
+const LIGHT_ENERGY := 1.20
 const LIGHT_REACH := 6.5                  # in tiles, to the edge of the falloff
 const MAX_LIGHTS := 6                     # the budget ceiling (R298); asserted, not hoped for
 

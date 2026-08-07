@@ -70,6 +70,14 @@
       (`mini(MAX_LIGHTS, …)`, 6); T316 turns it into a check that can fail.
       **Honest caveat:** the pools are still fairly even, and final light tuning is better done after
       T313 — the gold marker squares blow out under any light and distort the read while judging it.
+      **Darkened on the author's note** ("the floor was darker earlier — dark aesthetic vibes").
+      Measured first, because the premise turned out to be wrong: the lit hall was *already* darker
+      than the unlit T311 floor everywhere (29/39/30 against a flat 49/51/52), so what was remembered
+      as darker was one of the **intermediate** T312 passes — the near-black ones walked back because
+      the flagstone detail vanished. The knob for "how dark is this hall" is the **ambient, never the
+      texture**: darkening the diffuse darkens the lit pools too and defeats the rig, while darkening
+      the ambient deepens only what no lamp reaches. `DARK` 0.48 → **0.32** with energy 1.05 → 1.20 —
+      far corner **19.2**, near a lamp **26.0**, and the joints still read where light falls.
 
 ## Phase B — The stations
 
