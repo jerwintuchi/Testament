@@ -62,11 +62,13 @@ const LIGHT_WARM := Color(1.0, 0.76, 0.45)
 const LIGHT_ENERGY := 0.45
 const LIGHT_REACH := 6.5                  # in tiles, to the edge of the falloff
 const MAX_LIGHTS := 6                     # the budget ceiling (R298); asserted, not hoped for
+const DUST_COUNT := 24                    # well inside the 60-particle ceiling
 
 @onready var _tiles: TileMapLayer = $Tiles
 @onready var _markers: Node2D = $Markers
 @onready var _lights: Node2D = $Lights
 @onready var _modulate: CanvasModulate = $Modulate
+@onready var _dust_root: Node2D = $Dust
 
 var _grid: Dictionary = {}
 
@@ -75,6 +77,7 @@ func set_space(grid: Dictionary, markers: Array) -> void:
 	_grid = grid
 	_paint_tiles(grid)
 	_light_space(grid, markers)
+	_dust(grid)
 	_place_markers(markers)
 
 ## Pixel extent of the current grid — used to clamp the camera.
@@ -138,6 +141,49 @@ func _light_space(grid: Dictionary, markers: Array) -> void:
 		l.texture_scale = (LIGHT_REACH * 2.0 * TILE) / 256.0
 		l.position = at[i]
 		_lights.add_child(l)
+
+
+## Dust hanging in the hall's air (R297). Same grammar as the title screen's: it DRIFTS rather than
+## rising — a negative gravity reads as heat or smoke, which is what this room is not — it is slow
+## enough to be noticed only after a moment, and its opacity varies per mote so the field is
+## near-invisible except where a lamp finds it.
+##
+## Unlike the title's, this one is a WORLD object, so the lights reach it: a mote is dim in the dark
+## and catches the light when it drifts through a pool, which is the whole reason to put it here
+## rather than over the top as a UI overlay.
+func _dust(grid: Dictionary) -> void:
+	for n in _dust_root.get_children():
+		n.queue_free()
+	if OS.get_cmdline_user_args().has("--lights-off"):
+		return
+	var w := int(grid.get("width", 0)) * TILE
+	var h := int(grid.get("height", 0)) * TILE
+	var p := CPUParticles2D.new()
+	p.texture = _light_tex()
+	p.amount = DUST_COUNT
+	p.lifetime = 46.0
+	p.lifetime_randomness = 0.6
+	p.preprocess = 46.0                  # the air is already in motion when the hall opens
+	p.randomness = 0.7
+	p.position = Vector2(w * 0.5, h * 0.5)
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(w * 0.5, h * 0.5)
+	p.direction = Vector2(1, 0)
+	p.spread = 180.0                     # no preferred direction: still air, not a draught
+	p.gravity = Vector2(0.6, -0.25)
+	p.initial_velocity_min = 0.2
+	p.initial_velocity_max = 1.4
+	p.scale_amount_min = 0.006           # ~1px off the 128px radial
+	p.scale_amount_max = 0.018
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1, 1, 1, 0.0))
+	ramp.set_color(1, Color(1, 1, 1, 0.0))
+	ramp.add_point(0.25, Color(1, 1, 1, 1.0))
+	ramp.add_point(0.72, Color(1, 1, 1, 1.0))
+	p.color_ramp = ramp
+	p.color = Color(0.96, 0.90, 0.76, 0.30)
+	p.z_index = 2                        # above the floor, below nothing that matters
+	_dust_root.add_child(p)
 
 
 ## The lamp's falloff, built once. A deterministic generator rebuilt per space change is exactly the

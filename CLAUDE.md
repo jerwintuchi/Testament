@@ -402,9 +402,24 @@ rebuild. **T305–T309 done.**
 visible grid, white system labels — and removing the form put the finished Great Hall directly
 against it. Not a regression; the form was simply in front of it. The obvious next pass.
 
-@specs/expedition-entry/requirements.md
-@specs/expedition-entry/design.md
-@specs/expedition-entry/tasks.md
+Completed: **`specs/collegium-hall/`** (TD-081) — the Collegium stops being a greybox. It was a
+32×16 tileset of **four colours**, three identical gold squares with sans labels, and **no light at
+all**. Now: an authored flagstone atlas (4 variants + under-wall + 3 walls) in **`navestone`**, the
+nave's own ashlar, so this room and the title screen are the same building; **six real `Light2D`s**
+over a `CanvasModulate` (the premise tested first — **TD-083**: lights reach the world layer, TD-047
+was about Control only); stations as **objects** with the floating labels retired (`Press E:` already
+names them); and drifting dust the lamps actually catch. **Three lessons about lit-scene authoring,
+each learned by getting it wrong:** art drawn to look right *unlit* is darkened twice; but
+"full-light value" is not "top of the ramp", or a lamp standing on it blows it white; and a 2D light
+*adds*, so brightness is a budget — at energy 0.90 the Seeker clipped to orange and read as a glowing
+character. **Darkness is the ambient, never the texture.** Budget is a tool
+(`tools/world_budget.py`): ≤6 lights, ≤60 particles, plus structural checks that the loop clamps,
+that no `_process` appears, and that no full-frame additive layer cancels the modulate — each proven
+to bite against a broken copy. **T310–T317 done.** Layout stays server-owned; no `src/**` change.
+
+@specs/collegium-hall/requirements.md
+@specs/collegium-hall/design.md
+@specs/collegium-hall/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

@@ -13,6 +13,8 @@ tile_set = ExtResource("2_tiles")
 
 [node name="Lights" type="Node2D" parent="."]
 
+[node name="Dust" type="Node2D" parent="."]
+
 ; Darkens this CanvasLayer so the Light2Ds carve light out of a dark hall rather than merely adding
 ; to a bright one (TD-083). Its colour is set from the script, so `--lights-off` can neutralise it.
 [node name="Modulate" type="CanvasModulate" parent="."]

@@ -119,15 +119,29 @@
 
 ## Phase C — Air and finish
 
-- [ ] T315 [R297, R296 / V4] — **Dust, at the title's density.** Drifting in the lit volume only, at
+- [x] T315 [R297, R296 / V4] — **Dust, at the title's density.** Drifting in the lit volume only, at
       the title screen's slowness. No fog banks, no rolling smoke (TD-079's ruling holds).
-      Test: **V4** — captured beside the title screen: same palette, same darkness, same restraint.
+      **24 motes**, drifting rather than rising (a negative gravity reads as heat or smoke, which is
+      what this room is not), slow enough to be noticed only after a moment, opacity varying per
+      mote. Unlike the title's, this dust is a **world** object, so the lamps reach it: a mote is
+      dim in the dark and catches the light when it drifts through a pool — which is the whole
+      reason to put it in the world rather than over the top as a UI overlay.
+      Test: **V4** — captured; the motes read near the lit atrium and vanish in the dark hall.
 
-- [ ] T316 [R298 / V5] — **Make the budget a check.** Lights, particles, additive layers and
+- [x] T316 [R298 / V5] — **Make the budget a check.** Lights, particles, additive layers and
       per-frame work read out of the world scene and enforced, in the shape of `title_assets
       --budget`. **Proven to fail** by exceeding a ceiling.
+      **Shipped as `tools/world_budget.py`** — its own tool rather than a flag on `title_assets`,
+      which is the *title's* referee. It enforces ≤6 lights and ≤60 particles, and three structural
+      checks that a numeric ceiling alone cannot cover: that the light loop actually **clamps** to
+      `MAX_LIGHTS` (the constant is decoration otherwise), that `space_view` grows **no `_process`**,
+      and that nothing introduces a **full-frame additive layer**, which would cancel the
+      `CanvasModulate` the whole rig rests on.
+      Its `--selftest` asserts the shipped rig passes **and that every check bites** — each is
+      re-run against a deliberately broken copy of the source, because a check that cannot fail is a
+      comment. Current: 6/6 lights, 24/60 particles, all three structural checks ok.
 
-- [ ] T317 [R299 / V6] — **Land it.** No `src/**` change; maps, registry and manifest regenerated;
+- [x] T317 [R299 / V6] — **Land it.** No `src/**` change; maps, registry and manifest regenerated;
       suites green; diff scoped. DECISION_LOG **TD-081**, including the `Light2D`-in-`world/` finding
       as an explicit correction to the inherited belief.
 

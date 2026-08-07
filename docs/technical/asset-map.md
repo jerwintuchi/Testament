@@ -231,4 +231,4 @@
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
 - `client/scripts/ui/writ_form.gd:137` — `load/preload PARCH`
-- `client/scripts/world/space_view.gd:179` — `load/preload art`
+- `client/scripts/world/space_view.gd:225` — `load/preload art`

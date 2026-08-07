@@ -3176,3 +3176,61 @@ locally. One node, and it is the difference between *lighting* a room and *brigh
 **Why this is recorded as its own entry.** An inherited false belief is more expensive than an
 unknown, because nobody re-tests it — TD-047 is correct and was being over-applied for four specs.
 The rule to carry forward is the boundary line above, not "lights don't work".
+
+## 2026-08-07 — TD-081: the Collegium stops being a greybox
+
+**Why.** TD-080 made the create path instant, which put the finished Great Hall directly against the
+Collegium's flat grey tiles — and this is the screen the player actually spends time in.
+
+**What was there:** `tiles.png`, 32×16, **four colours** — one flat floor cell, one flat wall cell,
+the complete art of the hall. Three stations sharing one 12×12 gold `Polygon2D` and a white sans
+`Label`. No light in the scene at all.
+
+**Lighting (T310/T312).** The premise was tested before anything was built on it and is recorded
+separately as **TD-083**: `Light2D` reaches the world layer, and TD-047's "lights don't work" is
+about **Control** nodes only. Six `PointLight2D`s now hang from positions derived from the snapshot,
+over a `CanvasModulate` — without which a light can only *add*, giving a bright hall with a brighter
+pool rather than a dark hall with light carved from it.
+
+**Three lessons about authoring for a lit scene, each learned by getting it wrong:**
+
+1. **Art drawn to look right *unlit* is darkened twice.** T311's flagstones were authored to read
+   correctly with no lighting; under the modulate they landed nearly black. The diffuse is what the
+   surface looks like *with a lamp on it*, and the darkness is the rig's job.
+2. **But "full-light value" is not "the top of the ramp".** The stations were then authored bright,
+   and since each has a lamp standing on it, they had nowhere to push and blew to white. Mid-ramp,
+   with headroom, is the target.
+3. **A 2D light adds, so brightness is a budget.** At energy 0.90 the core contributed ~230 to a
+   channel and the Seeker's skin clipped to orange — he read as a *glowing character*, which the
+   author rightly queried. The dark floor can absorb an addition that large precisely *because* it is
+   dark; anything already bright cannot. Energy 0.45.
+
+**The floor (T311) needed three passes and the diagnosis was wrong twice.** Avoiding joints entirely
+— for fear of redrawing the debug grid — gave noisy rubble, which is also the per-pixel noise TD-075
+forbids. Small wear patches read as pebbles lying on the floor. A large stepped diagonal read as a
+decorative tiled pattern. The correction: **a flagstone floor *is* a grid of joints**; what separates
+it from a debug grid is that the **stones vary**, not that the joints are hidden. And with seven ramp
+steps, a whole step across part of a 16px tile is enormous contrast, so variation belongs
+flag-to-flag, with the detail budget spent on a crack and a chipped corner.
+
+**Stations became objects (T313/T314)** — a notice wall quoting the full-screen board's silhouette, a
+counter with crates and hanging kit, an iron gate in a stone arch. Upright, anchored by the foot to
+their tile, because this hall is top-down but its sprites are front-facing. **The floating labels
+went with them**: `Press E: <Station>` already names the station on approach, so a permanent caption
+in the default sans was the same information twice, in the wrong typeface, never switched off. An
+object you can recognise does not need one — and if it does, the object is wrong. `marker.tscn`
+survives as the fallback, so the field's nodes are unchanged.
+
+**Darkness is the ambient, never the texture** (the author asked twice for a deeper hall). Darkening
+the diffuse darkens the lit pools too and defeats the rig; darkening the ambient deepens only what no
+lamp reaches, so contrast rises and the stone stays readable where light falls. `DARK` 0.48 → 0.25.
+
+**The budget is a tool** (`tools/world_budget.py`): ≤6 lights, ≤60 particles, plus three structural
+checks a number cannot cover — that the light loop actually **clamps** to its own constant, that
+`space_view` grows no `_process`, and that nothing adds a full-frame additive layer, which would
+cancel the `CanvasModulate` everything rests on. Its `--selftest` re-runs each check against a
+deliberately broken copy of the source, because a check that cannot fail is a comment.
+
+**Containment.** Client render + generated art + tooling only. The layout stays server-owned — grid,
+spawn and station coordinates are untouched, and the client draws what the snapshot says (I1/P143).
+No `src/**` change.
