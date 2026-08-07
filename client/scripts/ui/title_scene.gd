@@ -292,9 +292,15 @@ static func _particles(root: Control, amount: int, life: float, z: int) -> CPUPa
 ## fainter; the far one is small, slower and slightly brighter because it sits in the lit distance.
 static func _dust(root: Control, vp: Vector2, reduced: bool) -> void:
 	#          count, life, scale_min, scale_max, alpha,  drift,  z
+	# The third row is FOG, not dust: big, very slow, and almost too faint to see. The author's
+	# note was "much more, but not too much — just to hint that it exists", and that is the whole
+	# spec for it. The shader owns the actual atmosphere (TD-079); these only give the air something
+	# to catch, so the volume is hinted rather than drawn.
+	#          count, life, scale_min, scale_max, alpha, drift,  z
 	var depths := [
-		[16, 54.0, 0.030, 0.055, 0.055, 1.5, -26],   # near: bigger, faster, fainter
-		[18, 78.0, 0.014, 0.026, 0.075, 0.7, -58],   # far: small, slower, in the lit distance
+		[18, 54.0, 0.030, 0.055, 0.055, 1.5, -26],   # near dust: bigger, faster, fainter
+		[22, 78.0, 0.014, 0.026, 0.075, 0.7, -58],   # far dust: small, slower, in the lit distance
+		[20, 96.0, 0.220, 0.400, 0.042, 0.5, -40],   # fog motes: large, near-invisible, barely move
 	]
 	for d in depths:
 		var p := _particles(root, int(d[0]), float(d[1]), int(d[6]))

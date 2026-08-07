@@ -56,7 +56,7 @@ These are disagreements between what a spec says and what the tree contains.
 | `seal-refresh` | ✅ done | 3 | 0 | 0 | 2026-07-21 | — |
 | `seal-rite` | ✅ done | 6 | 0 | 0 | 2026-07-21 | — |
 | `title-air` | ✅ done | 8 | 0 | 0 | 2026-08-07 | — |
-| `title-atmosphere` | ✅ done | 9 | 0 | 0 | — | — |
+| `title-atmosphere` | ✅ done | 10 | 0 | 0 | 2026-08-07 | — |
 | `title-polish` | ✅ done | 6 | 0 | 0 | 2026-07-26 | — |
 | `writ-format` | ✅ done | 6 | 0 | 0 | 2026-07-21 | — |
 | `notice-board` | ⚪ closed | 12 | 0 | 1 | 2026-07-24 | — |

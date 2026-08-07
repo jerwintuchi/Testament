@@ -378,7 +378,12 @@ depths instead of rising. Selection: 175ms, a 9s/14% idle breath, label **+12%**
 camera breath** — the plate is 1:1 NEAREST, so a sub-pixel move shimmers (R284, the brief's "if
 appropriate" answered). **Godot trap recorded:** in a `canvas_item` shader `COLOR` already holds
 `texture(TEXTURE,UV) * modulate`; sampling again and multiplying squares the image — a 5× luminance
-loss, found by bisecting against an un-shaded baseline. **T295–T303 done.**
+loss, found by bisecting against an un-shaded baseline. **T295–T303 done.** **T304 (author's follow-up):** darker — a **vignette** does most of it (deepening
+the edges also sharpens the altar as focal point), mean luma **42.23 → 33.52**, now below the
+un-shaded plate's 35.83 — plus a deliberate **partial reversal** of R277: 20 large, very slow,
+almost-invisible fog motes to hint at volume. T297's "almost frozen" was **re-measured, not assumed**
+(motion 1.30 → 2.23 vs the plate's grain 22.21 — still 10× under). Budget 34 → 60 particles / 0.18
+screens.
 
 @specs/title-atmosphere/requirements.md
 @specs/title-atmosphere/design.md

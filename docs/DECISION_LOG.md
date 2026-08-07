@@ -3009,3 +3009,27 @@ and treated them as flame. Confirmed unreferenced in HEAD before deleting.
 
 **Containment.** Client render only; no `src/**` or wire change. Composition untouched — menu layout,
 typography, logo placement, background and spacing all come out unchanged, and no props were added.
+
+## 2026-07-26 — TD-079 addendum: darker, and a hint of fog
+
+**Why.** The author, after seeing TD-079 running: make the Collegium's lighting darker, and bring
+back some floating fog particles — "much more, but not too much, just to hint that it exists."
+
+**Darker comes mostly from a vignette**, not from turning the atmosphere down. The lifts came down
+too (`air_lift` 0.17→0.095, haze 0.075→0.052, altar 0.055→0.042), but the vignette is what does the
+work, and it does two jobs with one term: deepening the frame's edges while leaving the sanctuary
+alone makes the hall darker *and* makes the altar read more clearly as the focal point. Mean
+luminance **42.23 → 33.52** — now below the un-shaded plate's own 35.83 rather than above it.
+
+**The fog hint is a deliberate partial reversal.** R277 said "replace obvious fog particles with
+cathedral air", and that still describes the architecture — the shader owns the atmosphere. But the
+author wants particles hinting at volume, so a third row joins the dust depth table: 20 large,
+very slow, almost-invisible motes. Kept faint enough that they read as air catching light rather
+than as the fog banks TD-079 removed.
+
+**The property from T297 was re-verified rather than assumed.** Adding particles is exactly the kind
+of change that quietly breaks "almost frozen", so the measurement was re-run: motion over 8s went
+**1.30 → 2.23** against the plate's own grain of 22.21. Still 10× below it, so R278 holds — but it
+is 70% more motion than before, and that is the budget being spent, not free.
+
+Budget: 34 → **60 particles / 0.18 screens of fill**, both far inside their ceilings.

@@ -33,14 +33,14 @@ uniform float aspect = 1.7777;          // so UV distance is round, not squashed
 // falls. Blur would cost a second sample set and read as a lens defect rather than as air.
 uniform vec3  air_col   : source_color = vec3(0.60, 0.56, 0.50);
 uniform float air_reach = 0.62;         // UV radius over which the effect falls to nothing
-uniform float air_lift  = 0.17;         // how far the far distance moves toward `air_col`
+uniform float air_lift  = 0.095;         // how far the far distance moves toward `air_col`
 uniform float air_desat = 0.28;         // saturation lost at maximum distance
 
 // ── ground haze (R277) ──────────────────────────────────────────────────────
 // A band of standing air low in the frame. It does not roll or loop; it breathes, barely.
 uniform float haze_y      = 0.88;       // where the band sits
 uniform float haze_soft   = 0.30;       // how far it reaches up the frame
-uniform float haze_amount = 0.075;
+uniform float haze_amount = 0.052;
 
 // ── god rays (R280) ─────────────────────────────────────────────────────────
 // Each ray hangs from an upper window, WIDENS as it descends, and dies before the floor. Soft
@@ -53,8 +53,15 @@ uniform float ray_strength = 0.085;
 uniform vec3  ray_col : source_color = vec3(1.00, 0.94, 0.80);
 
 // ── the altar, and the breath (R281) ────────────────────────────────────────
-uniform float altar_lift = 0.055;       // emphasis, NOT a glow: no edge should be findable
+uniform float altar_lift = 0.042;       // emphasis, NOT a glow: no edge should be findable
 uniform float altar_r    = 0.30;
+// A vignette, which is where most of the extra darkness comes from. It deepens the frame's edges
+// without touching the sanctuary, so the hall gets darker AND the altar reads more clearly as the
+// focal point — one term doing both jobs. Souls-like, and free: it rides the same pass.
+uniform float vig_amount = 0.44;
+uniform float vig_in     = 0.16;
+uniform float vig_out    = 1.02;   // ~the corner distance in aspect-corrected UV
+
 uniform float breath_amp = 0.040;       // +-4%, inside the brief's 3-5%
 uniform float breath_hz  = 0.0092;      // ~109s cycle: long enough to never read as a pulse
 
@@ -112,6 +119,10 @@ void fragment() {
 	// ── the altar: emphasis with no findable edge ──
 	float altar = 1.0 - smoothstep(0.0, altar_r, dist);
 	col += air_col * altar * altar * altar_lift;
+
+	// ── vignette: the frame's edges fall away, the sanctuary does not ──
+	vec2 vc = vec2((UV.x - 0.5) * aspect, UV.y - 0.5);
+	col *= 1.0 - vig_amount * smoothstep(vig_in, vig_out, length(vc));
 
 	// ── the breath: one slow cycle over the whole image ──
 	col *= 1.0 + breath_amp * sin(TIME * breath_hz * 6.2831853);

@@ -64,6 +64,23 @@
       since the altar went cold and confirmed unreferenced in HEAD before deleting.
       All checks green; suites untouched; diff scoped. DECISION_LOG **TD-079**.
 
+- [x] T304 [R278, R281, R282 / V1, V2] — **Darker, and a hint of fog** (author's note after seeing
+      it running). Two changes, both inside the existing pass.
+      **Darker:** `air_lift` 0.17→0.095, `haze_amount` 0.075→0.052, `altar_lift` 0.055→0.042, plus a
+      **vignette** (0.44 over a wide falloff) — which is where most of the darkness comes from and
+      which does two jobs at once, since deepening the frame's edges while leaving the sanctuary
+      alone makes the altar read *more* clearly as the focal point. Mean luminance **42.23 → 33.52**,
+      now below the un-shaded plate's own 35.83 rather than above it.
+      **A hint of fog:** a third row in the dust depth table — 20 motes, large (28–51px), very slow,
+      alpha 0.042. Deliberately almost-invisible: the brief was "much more, but not too much, just to
+      hint that it exists", and the shader still owns the actual atmosphere. This is a **partial
+      reversal** of R277's "replace obvious fog particles with cathedral air", made on the author's
+      say-so and kept subtle enough that the two do not fight.
+      Test: **V1** captured; **V2 re-run because adding particles could have broken the property
+      certified in T297** — motion over 8s went 1.30 → **2.23** against the plate's grain of 22.21,
+      so the screen still changes **10× less than its own noise** and R278 holds. Budget 34 → **60
+      particles / 0.18 screens**, both far inside their ceilings.
+
 ## Not in this pass, by instruction
 
 - **No new props.** No banners, censers, statues or candles: the hall is a clean architectural
