@@ -348,9 +348,25 @@ PIL-read from `collegium_logo.png`; `wax_seal.gd` de-Origin-keyed, R124 faint/fi
 untouched). Debug capture flags: `--reader` suppresses click-off dismiss (stray-click gotcha),
 `--reader-foot`, `--sealed`.
 
-@specs/title-scene/requirements.md
-@specs/title-scene/design.md
-@specs/title-scene/tasks.md
+Active spec: **`specs/title-air/`** (TD-078) — the altar goes **cold** and the flat fog becomes
+**volumetric**. The author's read on TD-077's three drifting fog *sheets* is that the hall still looks
+2D — correctly: a sliding image is lateral parallax, and real depth needs motion *toward the viewer*,
+which a plane cannot fake. So the sheets are retired and replaced by three `CPUParticles2D` banks
+whose emitters sit **at the hall's vanishing point** with `radial_accel` outward — near rushes past
+and grows, far *converges* into the distance, so the banks differ in the **direction** of travel, not
+only its speed. The altar loses its glow pool, its haze and its embers; only the plate's painted light
+remains. **First spec written under `.claude/rules/performance.md`**, so the budget is in the
+requirements and is a tool (`title_assets --budget`), not a comment: ≤120 particles, ≤3 full-frame
+additive layers, ≤2.5 screens of fill, zero per-frame script. Findings it surfaced but did not cause:
+the screen currently runs **5** full-frame additive layers; **dust is drawn twice** (a sheet AND 46
+particles) since T260c; the **god-rays are invisible** (sheet peak alpha 34/255 × rig 0.20 × breathe
+= 6.8/255) while costing more fill than every particle combined; and
+`gen_title_furniture.ZENITH_FY` holds the **source-space** zenith (-6.768) where the crop-corrected
+value is **-8.148** — dormant only because the props are switched off. **T287–T294, none started.**
+
+@specs/title-air/requirements.md
+@specs/title-air/design.md
+@specs/title-air/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't
@@ -427,6 +443,7 @@ Completed Phase 4 specs:
 @.claude/rules/spec-workflow.md
 @.claude/rules/netcode-invariants.md
 @.claude/rules/code-structure.md
+@.claude/rules/performance.md
 
 ## Local Tooling (Godot, screenshots, server)
 

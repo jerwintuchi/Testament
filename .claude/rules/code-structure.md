@@ -145,6 +145,10 @@ File structure has ~zero runtime cost (scripts compile once). Performance comes 
 
 If a change is slow, look at the rebuild scope and per-frame work — not the file tree.
 
+**This section is expanded by `performance.md`, which is canon:** performance is a *standing
+requirement* on game UI, mechanics and the loop — budgeted in the spec before the thing is built,
+not tuned after it looks right.
+
 ## S7 — Tie-in to the spec workflow
 
 Structure does not replace `spec-workflow.md`; it constrains it:
