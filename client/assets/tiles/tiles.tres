@@ -1,9 +1,17 @@
 [gd_resource type="TileSet" format=3 uid="uid://djevm15bu6caj"]
 
 [ext_resource type="Texture2D" uid="uid://yj5bxg2vyfsl" path="res://assets/tiles/tiles.png" id="1_k6pw8"]
+[ext_resource type="Texture2D" path="res://assets/tiles/tiles_n.png" id="2_norm"]
+
+; A CanvasTexture, not the PNG directly: it is what carries a NORMAL map alongside the diffuse, so
+; the Light2D rig (TD-081 T312) lights the flagstones with relief instead of flatly. Both halves are
+; emitted from one height field by gen_collegium_tiles.py, so they cannot disagree.
+[sub_resource type="CanvasTexture" id="CanvasTexture_0"]
+diffuse_texture = ExtResource("1_k6pw8")
+normal_texture = ExtResource("2_norm")
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_0"]
-texture = ExtResource("1_k6pw8")
+texture = SubResource("CanvasTexture_0")
 0:0/0 = 0
 1:0/0 = 0
 2:0/0 = 0

@@ -47,10 +47,29 @@
       Test: **V2** — the hall mock and an in-engine capture show no grid seam and no visible repeat
       across the 22-tile span; the generator re-runs **byte-identical** (md5 unchanged).
 
-- [ ] T312 [R293, R298 / V1, V5] — **Light the hall.** Six `PointLight2D`s — one per station, one at
+- [x] T312 [R293, R298 / V1, V5] — **Light the hall.** Six `PointLight2D`s — one per station, one at
       the spawn atrium, two along the walk — warm, generous falloff, genuinely dark between them. The
       `TileMapLayer` takes a `normal_map` so the stone has relief.
-      Test: **V1** — `--lights-off` visibly removes them; **V5** — the budget check passes at ≤6.
+      **Shipped:** six `PointLight2D`s placed from the snapshot (one per station, one over the
+      central atrium, two on the walk at 55% toward the furthest stations — so crossing the hall
+      passes through light rather than one unbroken dark middle), plus the `CanvasModulate` T310
+      found to be the missing half. The `TileSet` texture became a **`CanvasTexture`** carrying
+      diffuse + normal together, which is what lets the flagstones take the light with relief. The
+      lamp falloff is memoized (S6/TD-064) rather than rebuilt per space change.
+      **Three tuning corrections, each found by capture:**
+      (1) at strength 5.0 the normal map made the **joints glow** — molten mortar, not stone — so it
+      is 2.2, set by looking at the lit hall rather than at the normal map;
+      (2) the first rig was **far too dark**, and the cause is worth keeping: the tiles from T311
+      were authored to look right **unlit**, so the modulate darkened them a second time and they
+      landed nearly black. Art for a lit scene must be authored at **full-light value** — the diffuse
+      is what stone looks like with a lamp on it, and the darkness is the rig's job. T311's bases
+      moved up a step and the wall face with them;
+      (3) energy and reach then traded against ambient until the pools read as sources.
+      Test: **V1** — `--lights-off` differs by **peak 245/255, mean 42.2**, and neutralises the
+      modulate so the unlit control is a true one. **V5** — the ceiling is enforced *by construction*
+      (`mini(MAX_LIGHTS, …)`, 6); T316 turns it into a check that can fail.
+      **Honest caveat:** the pools are still fairly even, and final light tuning is better done after
+      T313 — the gold marker squares blow out under any light and distort the read while judging it.
 
 ## Phase B — The stations
 

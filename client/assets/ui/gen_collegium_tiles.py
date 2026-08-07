@@ -49,12 +49,17 @@ NS = A.RAMP["navestone"]          # 0 darkest … 6 lightest
 # flag-to-flag, which is what a stone floor actually looks like; the detail budget goes on a crack
 # and a chipped corner instead.
 #
+# AUTHORED AT FULL-LIGHT VALUE, not at the value the hall should look. T312 put a CanvasModulate
+# under the lights, so anything authored to read correctly UNLIT is then darkened a second time and
+# lands nearly black. The diffuse is what the stone looks like with a lamp on it; the darkness is
+# the rig's job, not the texture's.
+#
 #   base tone index, crack?, chipped corner?
 FLOORS = [
-    (2, False, False),
     (3, False, False),
-    (2, True, False),
-    (3, False, True),
+    (4, False, False),
+    (3, True, False),
+    (4, False, True),
 ]
 
 
@@ -92,22 +97,22 @@ def wall_px(v):
     Three variants whose coursing is offset, so the border is not one extruded block."""
     def px(x, y):
         if y == 0:
-            i = 5                                   # the very top edge, brightest
+            i = 6                                   # the very top edge, brightest
         elif y < 5:
-            i = 4                                   # the top of the wall
+            i = 5                                   # the top of the wall
         elif y < 7:
-            i = 3                                   # the turn into shadow
+            i = 4                                   # the turn into shadow
         else:
-            i = 1                                   # the face
+            i = 2                                   # the face
 
         if y >= 7:
             if y == 10 + v:                         # one course line across the face
-                i = 0
+                i = 1
             phase = 0 if y < 10 + v else 4          # blocks break bond above and below it
             if (x + v * 3 + phase) % 8 == 0:
-                i = 0
+                i = 1
         elif y < 5 and (x + v * 3) % 8 == 0:
-            i = 3                                   # joints on the crown too, or it reads as paint
+            i = 4                                   # joints on the crown too, or it reads as paint
         return NS[i] + (255,)
     return px
 
@@ -142,7 +147,10 @@ def main():
         for x in range(W):
             r, g, b, _a = px(x, y)
             lum[y * W + x] = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
-    A.write_png("../tiles/tiles_n.png", W, H, _normal_pixel(W, H, lum, 5.0))
+    A.write_png("../tiles/tiles_n.png", W, H, _normal_pixel(W, H, lum, 2.2))
+    # 2.2, not 5.0: at 5.0 the joints caught the lights hard enough to GLOW, which reads as molten
+    # mortar rather than as stone with relief. The strength is a lighting decision, so it was set by
+    # looking at the lit hall, not at the normal map.
 
     print("gen_collegium_tiles OK — %dx%d atlas (4 floor, 1 under-wall, 3 wall) + normal map."
           % (W, H))

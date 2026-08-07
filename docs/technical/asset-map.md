@@ -24,7 +24,7 @@
 
 - **`tiles.png`** — produced-by: `client/assets/ui/gen_collegium_tiles.py` · consumed-by: `client/assets/tiles/tiles.tres` (ext_resource)
 - **`tiles.tres`** — produced-by: — · consumed-by: `client/scenes/space_view.tscn` (ext_resource)
-- **`tiles_n.png`** — produced-by: `client/assets/ui/gen_collegium_tiles.py` · consumed-by: —
+- **`tiles_n.png`** — produced-by: `client/assets/ui/gen_collegium_tiles.py` · consumed-by: `client/assets/tiles/tiles.tres` (ext_resource)
 
 ### `client/assets/ui/_src/`
 
@@ -96,7 +96,7 @@
 ## Scripts — loads / preloads / loaded-by
 
 - **`client/assets/tiles/tiles.tres`**
-  - loads: `tiles.png`
+  - loads: `tiles.png`, `tiles_n.png`
   - loaded-by: `client/scenes/space_view.tscn` (ext_resource)
 - **`client/assets/ui/gen_banner.py`**
   - loads: `collegium_logo.png`
