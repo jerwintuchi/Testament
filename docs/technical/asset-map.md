@@ -22,8 +22,9 @@
 
 ### `client/assets/tiles/`
 
-- **`tiles.png`** — produced-by: — · consumed-by: `client/assets/tiles/tiles.tres` (ext_resource)
+- **`tiles.png`** — produced-by: `client/assets/ui/gen_collegium_tiles.py` · consumed-by: `client/assets/tiles/tiles.tres` (ext_resource)
 - **`tiles.tres`** — produced-by: — · consumed-by: `client/scenes/space_view.tscn` (ext_resource)
+- **`tiles_n.png`** — produced-by: `client/assets/ui/gen_collegium_tiles.py` · consumed-by: —
 
 ### `client/assets/ui/_src/`
 
@@ -192,6 +193,7 @@
 ## Generators — writes
 
 - **`client/assets/ui/gen_banner.py`** → `banner_v1.png`, `banner_v1_n.png`
+- **`client/assets/ui/gen_collegium_tiles.py`** → `tiles.png`, `tiles_n.png`
 - **`client/assets/ui/gen_emblems.py`** → `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `seal_collegium.png`, `spark.png`, `torch_sconce.png`
 - **`client/assets/ui/gen_header.py`** → `board_header.png`, `board_header_n.png`
 - **`client/assets/ui/gen_menu_sigil.py`** → `menu_sigil.png`

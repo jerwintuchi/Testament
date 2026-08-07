@@ -24,12 +24,28 @@
       Kept behind `--light-test` until T312 ships the real rig, since until then there is no other
       way to re-verify this.
 
-- [ ] T311 [R294, P144 / V2] — **`gen_collegium_tiles.py`.** Four floor variants (worn flags, mortar,
+- [x] T311 [R294, P144 / V2] — **`gen_collegium_tiles.py`.** Four floor variants (worn flags, mortar,
       chipped corners), two wall cells reading as the base of a wall from above, and a threshold cell
       so floor-meets-wall is not a butt seam. 16×16, `NEAREST`, `assert_on_palette`.
       Plus `tiles_n.png` from the same height field, the `gen_normals` idiom.
-      Test: **V2** — captured: no grid seam, no visible repeat across the 22-tile span; a second run
-      of the generator is byte-identical.
+      **Shipped as a 64×32 atlas** — 4 flagstone variants, 1 flag-under-a-wall (carrying the shadow
+      the wall casts down), 3 wall variants — plus `tiles_n.png` from the diffuse's own luminance,
+      Sobelled through `gen_normals._normal_pixel` so the convention cannot drift from the board's.
+      Palette is **`navestone`**, the warm ashlar authored for the nave: this room *is* the Hall of
+      Petitions, seen from above instead of down its axis, which is what makes it the same building
+      as the title screen. `space_view` picks variants from a hash of the tile's own coordinates —
+      two players in the same room must be standing on the same floor (P144).
+      **Three passes failed first, and the diagnosis was wrong twice:**
+      (1) avoiding joints entirely for fear of redrawing the grid gave **noisy rubble** — and
+      per-pixel noise is what TD-075 forbids outright;
+      (2) small wear patches read as **pebbles lying on the floor** — objects, not stone;
+      (3) a large stepped diagonal read as a **decorative tiled pattern**.
+      The correction: a flagstone floor *is* a grid of joints — the difference from a debug grid is
+      that the **stones vary**, not that the joints are hidden. With only seven ramp steps, a whole
+      step across part of a 16px tile is enormous contrast, far more than worn stone has, so
+      variation moved **flag-to-flag** and the detail budget went to a crack and a chipped corner.
+      Test: **V2** — the hall mock and an in-engine capture show no grid seam and no visible repeat
+      across the 22-tile span; the generator re-runs **byte-identical** (md5 unchanged).
 
 - [ ] T312 [R293, R298 / V1, V5] — **Light the hall.** Six `PointLight2D`s — one per station, one at
       the spawn atrium, two along the walk — warm, generous falloff, genuinely dark between them. The
