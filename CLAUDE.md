@@ -417,9 +417,25 @@ character. **Darkness is the ambient, never the texture.** Budget is a tool
 that no `_process` appears, and that no full-frame additive layer cancels the modulate — each proven
 to bite against a broken copy. **T310–T317 done.** Layout stays server-owned; no `src/**` change.
 
-@specs/collegium-hall/requirements.md
-@specs/collegium-hall/design.md
-@specs/collegium-hall/tasks.md
+Completed: **`specs/options/`** (TD-084) — an Options entry on the title, opening **the same writ**
+as the join screen (a settings screen that looked like one would undo four specs). **The name is
+changeable**, closing the gap TD-080 left; it reads/writes the *same* `display-name.txt` through the
+same two functions (P145 — one source of truth), refuses empty (P140 holds), and does **not** rename
+you inside a room you are already in (the server owns lobby membership; anything else is a wire
+change). Settings persist via `core/settings.gd` (`ConfigFile`), loaded **before the first screen** so
+reduced motion is honoured from the first frame; the name keeps its **own** file, since the one value
+the game cannot start without must not depend on config parsing. **Reduced motion** stops being an
+undocumented F9 key and F9 now persists what it toggles. **Volume is real, not a prop** — it drives
+the master bus and says `(no sound ships yet)`, T262 being blocked. Two first-pass corrections: the
+toggle shipped **invisible** (emptying styleboxes removes chrome from actions, but leaves a checkbox
+with nothing to see) and the slider was a **stock Godot widget on parchment**, now an ink hairline
+with a diamond grabber. Also fixed `connected`/`v0.0.1` overlapping in the corner. **T318–T322 done.**
+*Unverified:* the round-trip **save** — an unattended capture cannot click, so changing the name and
+seeing it in a lobby needs a human.
+
+@specs/options/requirements.md
+@specs/options/design.md
+@specs/options/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

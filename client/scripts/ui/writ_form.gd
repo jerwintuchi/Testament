@@ -25,8 +25,34 @@ const INK := Color(0.16, 0.12, 0.07)          # iron-gall on paper
 const INK_DIM := Color(0.30, 0.24, 0.15)
 const RULE := Color(0.34, 0.26, 0.15, 0.55)
 
+## The slider's grabber: a small inked diamond, drawn once. The board's ornament scrollbar already
+## uses a chevroned diamond for exactly this job, so the vocabulary is the project's, not Godot's.
+static var _diamond_cache: ImageTexture = null
+
+static func _diamond() -> ImageTexture:
+	if _diamond_cache != null:
+		return _diamond_cache
+	var n := 7
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var mid := n / 2
+	for y in n:
+		for x in n:
+			var d: int = absi(x - mid) + absi(y - mid)
+			if d <= mid:
+				img.set_pixel(x, y, INK if d == mid else INK_DIM)
+	_diamond_cache = ImageTexture.create_from_image(img)
+	return _diamond_cache
+
+
 ## A blank vertical spacer. A Label with empty text would also occupy space, but it carries a font,
 ## a colour and a minimum height it does not need — this is the thing it actually is.
+static func gap(host: Node, px: int) -> Control:
+	var c := _gap(px)
+	host.add_child(c)
+	return c
+
+
 static func _gap(px: int) -> Control:
 	var c := Control.new()
 	c.custom_minimum_size = Vector2(0, px)
@@ -69,6 +95,105 @@ static func _field(host: Node, caption: String, placeholder: String, value: Stri
 	rule.custom_minimum_size = Vector2(0, 1)
 	host.add_child(rule)
 	return e
+
+
+## A setting the player marks or leaves blank. Drawn as a box the Collegium would inspect — an
+## empty square, or one struck through in ink — rather than as an engine checkbox, so a settings row
+## belongs to the same document as everything else on the sheet.
+static func toggle(host: Node, caption: String, on: bool, changed: Callable) -> Button:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 7)
+
+	var box := Button.new()
+	box.toggle_mode = true
+	box.button_pressed = on
+	box.custom_minimum_size = Vector2(11, 11)
+	box.focus_mode = Control.FOCUS_ALL
+	# An INKED BOX, not an empty one. Emptying every stylebox (the trick that removes chrome from the
+	# actions) leaves a checkbox with nothing to see at all — the first pass shipped a label with an
+	# invisible control beside it.
+	var square := StyleBoxFlat.new()
+	square.bg_color = Color(0, 0, 0, 0)
+	square.border_color = INK_DIM
+	square.set_border_width_all(1)
+	square.content_margin_left = 2
+	square.content_margin_right = 2
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		box.add_theme_stylebox_override(st, square)
+	var focus_box := StyleBoxFlat.new()
+	focus_box.bg_color = Color(0, 0, 0, 0)
+	focus_box.border_color = INK
+	focus_box.set_border_width_all(1)
+	box.add_theme_stylebox_override("focus", focus_box)
+	box.add_theme_font_size_override("font_size", 11)
+	var bf := Fonts.cinzel(700)
+	if bf != null:
+		box.add_theme_font_override("font", bf)
+	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		box.add_theme_color_override(st, INK)
+	var draw_mark := func() -> void:
+		box.text = "X" if box.button_pressed else ""
+	draw_mark.call()
+	box.toggled.connect(func(v: bool):
+		draw_mark.call()
+		changed.call(v))
+	row.add_child(box)
+
+	var lab := Label.new()
+	lab.text = caption
+	lab.add_theme_font_size_override("font_size", 10)
+	lab.add_theme_color_override("font_color", INK)
+	var f := Fonts.cinzel(500)
+	if f != null:
+		lab.add_theme_font_override("font", f)
+	lab.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(lab)
+	host.add_child(row)
+	return box
+
+
+## A measured quantity. The rule below it is the same rule the text fields sit on, so a slider reads
+## as a mark made along a line rather than as an engine widget dropped onto parchment.
+static func slider(host: Node, caption: String, value: float, changed: Callable) -> HSlider:
+	var cap := Label.new()
+	cap.text = caption
+	cap.add_theme_font_size_override("font_size", 7)
+	cap.add_theme_color_override("font_color", INK_DIM)
+	var cf := Fonts.cinzel(600)
+	if cf != null:
+		cap.add_theme_font_override("font", cf)
+	host.add_child(cap)
+
+	var sl := HSlider.new()
+	sl.min_value = 0.0
+	sl.max_value = 1.0
+	sl.step = 0.05
+	sl.value = value
+	sl.custom_minimum_size = Vector2(0, 12)
+	# Godot's default slider is a grey trough with a white puck — the single most "engine widget
+	# dropped onto parchment" thing that could sit on this sheet. Restyled to ink: a hairline track,
+	# a filled portion in ink, and a small inked diamond for the grabber.
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(RULE.r, RULE.g, RULE.b, 0.5)
+	track.content_margin_top = 1
+	track.content_margin_bottom = 1
+	sl.add_theme_stylebox_override("slider", track)
+	var filled := StyleBoxFlat.new()
+	filled.bg_color = INK_DIM
+	sl.add_theme_stylebox_override("grabber_area", filled)
+	sl.add_theme_stylebox_override("grabber_area_highlight", filled)
+	var pip := _diamond()
+	sl.add_theme_icon_override("grabber", pip)
+	sl.add_theme_icon_override("grabber_highlight", pip)
+	sl.add_theme_icon_override("grabber_disabled", pip)
+	sl.value_changed.connect(changed)
+	host.add_child(sl)
+
+	var rule := ColorRect.new()
+	rule.color = RULE
+	rule.custom_minimum_size = Vector2(0, 1)
+	host.add_child(rule)
+	return sl
 
 
 ## An action on the writ: Cinzel, unfilled, with the laurel marking focus — the title screen's own

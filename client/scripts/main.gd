@@ -27,6 +27,7 @@ const RiteBanner = preload("res://scripts/ui/rite_banner.gd")   # the CONTRACT S
 const Widgets = preload("res://scripts/ui/widgets.gd")          # shared label/rule/engraved builders
 const TitleScene = preload("res://scripts/ui/title_scene.gd")   # the title's layered environment
 const WritForm = preload("res://scripts/ui/writ_form.gd")       # the join / name writ (TD-080)
+const Settings = preload("res://scripts/core/settings.gd")      # persisted options (TD-084)
 const RoomScroll = preload("res://scripts/ui/room_scroll.gd")   # the lobby's toggleable roster
 const StationNames = preload("res://scripts/core/station_names.gd")  # station kind -> player-facing name
 
@@ -117,6 +118,7 @@ var _board_frame: NinePatchRect   # carved frame overlay, shader-lit; tracks the
 var _stone_bg: TextureRect        # tiled stone/mortar surround, dim; Contract Board only
 var _reduced_motion: bool = false # settings toggle (F9 in playtest): freeze flicker, pin glow to peak
 var _title_arrived := false       # the title's arrival flourish plays once per launch, not per visit
+var _settings: Settings           # persisted options (TD-084); loaded once at boot
 var _popup_tween: Tween           # the open/close animation, tracked so it can be killed on re-entry
 var _prompt: Label                # bottom-center "Press E — <Station>"
 var _popup_dim: ColorRect         # full-rect input blocker + dimmer behind the popup
@@ -353,6 +355,12 @@ func _ready() -> void:
 	# so a board built for one resolution never lingers over-sized in another.
 	get_viewport().size_changed.connect(_on_viewport_resized)
 
+	# Settings before the first screen: reduced motion has to be true from the FIRST build, not
+	# applied after one has already been made with animation in it.
+	_settings = Settings.load_from_disk() as Settings
+	_settings.apply_audio()
+	_reduced_motion = _settings.reduced_motion
+
 	# Force the F9 reduced-motion lever on BEFORE the first screen is built, so an unattended
 	# capture can verify L5 (glow pinned to peak, flame frozen) without input injection. This has
 	# to precede `_show_title()`: it used to sit after it and was only honoured because
@@ -393,6 +401,8 @@ func _ready() -> void:
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--setup-join"):
 		call_deferred("_show_join")
 	# The name rite is first-run only, so it is otherwise uncapturable once a name is on disk.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--options"):
+		call_deferred("_show_options")
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--name-rite"):
 		call_deferred("_show_name_rite")
 	# `--new-expedition` presses New Expedition for us, so the ONE behaviour this spec exists for —
@@ -810,6 +820,7 @@ func _show_title() -> void:
 	# Collegium, so this is a deletion — the form was the only thing standing in the way.
 	var fresh := _title_option(col, "New Expedition", func(): _begin_new_expedition())
 	_title_option(col, "Join Expedition", func(): _show_join())
+	_title_option(col, "Options", func(): _show_options())
 	_title_option(col, "Quit", func(): get_tree().quit())
 	# Something is always marked: an unselected menu would read as the sigils having failed to load.
 	# Whichever option is listed first takes it, which is the recovery path when there is one.
@@ -835,7 +846,11 @@ func _title_version() -> void:
 	# Anchors AND offsets, with a margin. `set_anchors_preset` alone leaves the offsets at zero, so
 	# the label collapses into the corner at zero size and never draws — the same trap the title
 	# rig's own comment records for FULL_RECT.
+	# Lifted clear of the connection status, which is also anchored bottom-right — they overlapped
+	# (R305, spotted while capturing the join writ).
 	l.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 6)
+	l.offset_top -= 13
+	l.offset_bottom -= 13
 	# Parented to the ENVIRONMENT, not to `_root` or the host: `_root` is the menu column and would
 	# put a version string into the layout flow, while the host outlives the title screen — the
 	# environment is freed on the way out (`_clear_title`), so the string leaves with it.
@@ -986,6 +1001,57 @@ func _show_name_rite() -> void:
 	WritForm.action(col, "Back", func(): _show_title())
 	WritForm.arrive(w["sheet"], _reduced_motion)
 	_name_input.grab_focus.call_deferred()
+
+## Options: the same writ as everything else, because a settings screen that looked like a settings
+## screen would undo four specs of work. The NAME is the point of it — TD-080 asks once and then
+## leaves it on disk with no way to change it — and the rest is deliberately thin.
+func _show_options() -> void:
+	_screen = Screen.MENU
+	_world.visible = false
+	_clear(true)                       # the hall stays; we never left it
+	if not is_instance_valid(_title_env):
+		_title_env = TitleScene.build(_title_host, _reduced_motion)
+	var vp := get_viewport_rect().size
+	var top := Control.new()
+	top.custom_minimum_size = Vector2(0, vp.y * 0.16)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(top)
+	var host := VBoxContainer.new()
+	host.alignment = BoxContainer.ALIGNMENT_CENTER
+	host.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_root.add_child(host)
+
+	var w := WritForm.build(host, vp, "OPTIONS", [["YOUR NAME", "your name", _load_name()]])
+	var name_field: LineEdit = w["edits"][0]
+	var col: VBoxContainer = w["column"]
+
+	WritForm.gap(col, 6)
+	WritForm.toggle(col, "Reduced motion", _reduced_motion, func(v: bool):
+		_reduced_motion = v
+		_settings.reduced_motion = v
+		_settings.save())
+	# Real, not a prop: it drives the master bus and persists. There is simply nothing to hear yet —
+	# the game ships no audio (T262 is blocked on there being no sanctioned audio tool), and a
+	# slider that silently did nothing would be worse than one that is honest about it.
+	WritForm.gap(col, 6)
+	WritForm.slider(col, "VOLUME  (no sound ships yet)", _settings.volume, func(v: float):
+		_settings.volume = v
+		_settings.apply_audio()
+		_settings.save())
+
+	WritForm.action(col, "Set it down", func():
+		var who := name_field.text.strip_edges()
+		if who == "":
+			# The same refusal the first-run rite makes: P140 must not weaken because there is now a
+			# second way to set the name.
+			_set_status("the Collegium needs a name to enter you in its roll")
+			name_field.grab_focus()
+			return
+		_save_name(who)
+		_show_title())
+	WritForm.action(col, "Back", func(): _show_title())
+	WritForm.arrive(w["sheet"], _reduced_motion)
+	name_field.grab_focus.call_deferred()
 
 ## Join Expedition: the ONE dedicated scene (the author's ruling), and it is a writ on the hall.
 func _show_join() -> void:
@@ -1227,6 +1293,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Reduced-motion toggle (playtest lever L5): freeze torch flicker, pin the glow
 		# to peak brightness. Motion is atmosphere only — the static board loses no info.
 		_reduced_motion = not _reduced_motion
+		# The key and the setting are the same thing; letting them disagree would mean the options
+		# screen shows something the game is not doing.
+		if _settings != null:
+			_settings.reduced_motion = _reduced_motion
+			_settings.save()
 		_log("reduced_motion=%s" % _reduced_motion)
 		if _menu_open and _popup_kind == "CONTRACT_BOARD":
 			_rebuild_popup_body()

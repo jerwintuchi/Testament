@@ -3234,3 +3234,63 @@ deliberately broken copy of the source, because a check that cannot fail is a co
 **Containment.** Client render + generated art + tooling only. The layout stays server-owned — grid,
 spawn and station coordinates are untouched, and the client draws what the snapshot says (I1/P143).
 No `src/**` change.
+
+## 2026-08-07 — TD-084: options, and taking your name back
+
+**Why.** TD-080 asks for a display name once and then leaves it on disk with no way to change it. The
+author asked for an options screen to fix that, with volume and the rest as placeholders "just to
+give way for the player to change name".
+
+**It is the same writ.** The join screen established a Collegium document as how this game asks the
+player for something — parchment over the hall, ink captions, ruled lines instead of boxes, Cinzel,
+laurel-marked actions. Options is that object with different rows, because a settings screen that
+looked like a settings screen would undo four specs of work in one step.
+
+Two row types were added, and both needed a correction on the first pass:
+
+* **The toggle shipped invisible.** Emptying every stylebox is the trick that removes chrome from the
+  *actions*; applied to a checkbox it leaves nothing to see at all. It is now an inked square, struck
+  through with an X.
+* **The slider was a stock Godot widget dropped onto parchment** — a grey trough and a white puck,
+  the single most out-of-place thing that could sit on that sheet. Restyled to a hairline track, an
+  ink-filled portion, and a small inked **diamond**, which is the board's own ornament vocabulary
+  (`ornament_scrollbar` already uses one for the same job).
+
+**The name has exactly one home** (P145). Options reads and writes the same
+`user://display-name.txt` the create path uses, through the same two functions. A display name with
+two sources of truth is a bug waiting for the moment they disagree. It refuses an empty name with the
+first-run rite's own message, so **P140** — no route to `CREATE_ROOM` without a name — does not
+weaken now that a second way to set one exists. And it does **not** rename you inside a room you are
+already in: the server owns lobby membership, and anything else would be a wire change.
+
+**Settings persist, and that is legitimate under TD-006** — identity, cosmetics and *customization*
+survive; nothing about an expedition does. A volume level and a motion preference are customization.
+`ConfigFile` at `user://settings.cfg`, loaded **before the first screen is built**, so reduced motion
+is honoured from the first frame rather than applied to a screen already constructed with animation
+in it. A missing file is the first launch — the common case, not an edge one — so it returns defaults
+silently.
+
+**The name deliberately keeps its own file.** Folding it into the config would make the one value the
+game cannot start without depend on config parsing succeeding: a strictly worse failure mode for no
+gain.
+
+**Reduced motion stopped being a debug key.** It already existed as F9 and already worked; shipping a
+settings screen while leaving the game's one accessibility control undocumented would be strange. F9
+now persists what it toggles, or the screen would show something the game is not doing.
+
+**Volume is real rather than a prop.** The author asked for a placeholder, but a slider that moves and
+does nothing is worse than one that is honest, and wiring it was two lines: it drives the master bus
+and persists. It is labelled `(no sound ships yet)` because the game ships no audio — T262 is blocked
+on there being no sanctioned audio tool — and the player should not have to discover that by turning
+it up. No other placeholder rows were invented: an options screen full of dead controls is a promise
+the game has not made.
+
+**Also fixed:** `connected` and `v0.0.1` were both anchored bottom-right and overlapped. Found while
+capturing the join writ, not by looking for it.
+
+**Honest limits, recorded rather than glossed.** The load path is proven end to end — a settings file
+was planted on disk with `reduced_motion=true` and the screen came up with the box inked. The
+slider's grabber could not be isolated from the caption text by pixel measurement, so volume's load
+rides the same three lines rather than having its own capture; and the **round-trip save is
+unverified**, because an unattended capture cannot click. Changing the name and confirming it in a
+lobby needs a human.
