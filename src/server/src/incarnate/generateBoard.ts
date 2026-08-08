@@ -9,9 +9,9 @@ import { generateContract } from './generateContract.js';
 export const BOARD_SIZE = 8;
 
 // v1 board tier. Collegium Rank gates tier (docs/systems/contracts.md, TD-012);
-// until Rank exists the whole board is APPRENTICE. The tier is per-entry data, so
+// until Rank exists the whole board is VIGIL. The tier is per-entry data, so
 // raising or mixing it later is a data change, not a shape change.
-const BOARD_TIER: Tier = 'APPRENTICE';
+const BOARD_TIER: Tier = 'VIGIL';
 
 // The Contract Board: a seeded pool of contracts the party browses and picks from
 // ("the board is free, the rank is the gate", contracts.md). Pure and

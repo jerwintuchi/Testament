@@ -15,3 +15,5 @@ __pycache__/
 
 # Dev-only Godot frame captures (docs/technical/dev-environment.md)
 client/.captures/
+
+.claude/settings.local.json

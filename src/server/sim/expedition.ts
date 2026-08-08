@@ -9,7 +9,7 @@
 // material previewed for a decision (TD-093's re-authored lexicon), clearly marked so
 // nobody mistakes it for shipped behaviour.
 //
-//   pnpm exec tsx sim/expedition.ts [--seed=x] [--tier=JOURNEYMAN] [--party=2] [--prose]
+//   pnpm exec tsx sim/expedition.ts [--seed=x] [--tier=INTERDICT] [--party=2] [--prose]
 //
 // TD-092 / TD-093.
 
@@ -75,7 +75,7 @@ const NAMES = ['Aldric', 'Wren', 'Hald', 'Bede'];
 const arg = (k: string, d: string) =>
   (process.argv.find(a => a.startsWith(`--${k}=`))?.split('=')[1]) ?? d;
 const SEED   = arg('seed', 'ashfen-1');
-const TIER   = arg('tier', 'JOURNEYMAN') as Tier;
+const TIER   = arg('tier', 'INTERDICT') as Tier;
 const PARTY  = Number(arg('party', '2'));
 const PROSE  = process.argv.includes('--prose');
 

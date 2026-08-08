@@ -23,7 +23,7 @@ export function generateTraitRoll(rng: Rng, tier: Tier): TraitRoll {
     frailty: rng.pick(FRAILTY_VALUES),
     tell:    rng.pick(TELL_VALUES),
   };
-  if (tier === 'JOURNEYMAN' || tier === 'MASTER') {
+  if (tier === 'INTERDICT' || tier === 'ANATHEMA') {
     // R326/P150 — a thing is never warded against what it is frail to. This makes an
     // AMBIENT channel (Stress-mark, read by a lens) a falsifiable prediction about a
     // PROBE-GATED one (Reaction): "Stress-mark says salt, so don't waste the salt probe."
@@ -36,7 +36,7 @@ export function generateTraitRoll(rng: Rng, tier: Tier): TraitRoll {
     roll.ward        = rng.pick(WARD_VALUES.filter(w => w !== roll.frailty));
     roll.disposition = rng.pick(DISPOSITION_VALUES);
   }
-  if (tier === 'MASTER') {
+  if (tier === 'ANATHEMA') {
     roll.riteKey = rng.pick(RITE_KEY_VALUES);
   }
   return roll;

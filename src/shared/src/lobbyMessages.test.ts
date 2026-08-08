@@ -62,11 +62,11 @@ describe('RoomDeployingPayload', () => {
       targetName: 'The Ashen Warden',
       siteName: 'The Collapsed Chancel',
       primaryVerb: 'INVESTIGATE',
-      tier: 'APPRENTICE',
+      tier: 'VIGIL',
     };
     const payload: RoomDeployingPayload = { contract };
     expect(payload.contract.contractId).toBe('c-001');
-    expect(payload.contract.tier).toBe('APPRENTICE');
+    expect(payload.contract.tier).toBe('VIGIL');
     expect(Object.keys(payload.contract)).not.toContain('traitRoll');
     expect(Object.keys(payload.contract)).not.toContain('expeditionSeed');
     expect(Object.keys(payload.contract).sort()).toEqual(

@@ -53,19 +53,19 @@ static func preamble(intel: Dictionary) -> String:
 # charge reads routine and a high one reads frightened; the player weighs the fear,
 # never a meter. Slots from intel only; seeded off contractId (deterministic, P110).
 const PLEA := {
-	"APPRENTICE": [
+	"VIGIL": [
 		"A small unquiet thing; we would know its name.",
 		"It has done no great harm yet. We would keep it so.",
 		"The signs are faint, but they do not fade.",
 		"An oddness only — but oddness, unattended, festers.",
 	],
-	"JOURNEYMAN": [
+	"INTERDICT": [
 		"The parish keeps indoors past vespers now. This is beyond us.",
 		"It grows bolder by the week. We cannot say what stays it.",
 		"Livestock first. Then the sexton's boy. We fear what is next.",
 		"Our own rites have failed twice. We will not try a third.",
 	],
-	"MASTER": [
+	"ANATHEMA": [
 		"Two wardens went to look. Neither returned. We beg haste.",
 		"We have sealed the road and pray it holds. Come armed and shriven.",
 		"Whole households gone silent. None will speak its name aloud.",
@@ -74,7 +74,7 @@ const PLEA := {
 }
 
 static func plea(intel: Dictionary) -> String:
-	var frames: Array = PLEA.get(str(intel.get("tier", "APPRENTICE")), PLEA["APPRENTICE"])
+	var frames: Array = PLEA.get(str(intel.get("tier", "VIGIL")), PLEA["VIGIL"])
 	var h := absi((str(intel.get("contractId", "")) + "|plea").hash())
 	return str(frames[h % frames.size()])
 

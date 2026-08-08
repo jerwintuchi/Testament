@@ -21,7 +21,7 @@ import { AMBIENT_AXES, ACTIVE_AXES } from '../src/incarnate/types.js';
 import { createRng, hashSeed } from '../src/rng/seeded.js';
 
 const RUNS = Number(process.argv.find(a => a.startsWith('--runs='))?.split('=')[1] ?? '5000');
-const TIERS: Tier[] = ['APPRENTICE', 'JOURNEYMAN', 'MASTER'];
+const TIERS: Tier[] = ['VIGIL', 'INTERDICT', 'ANATHEMA'];
 const SIZES = [1, 2, 3, 4];
 const STIMULI: Stimulus[] = ['FLAME', 'COLD', 'SALT', 'LIGHT'];
 const AXIS_CHANNEL: Record<string, Channel> = {
@@ -76,7 +76,10 @@ for (const tier of TIERS) {
     let probesLaw = 0, probesNone = 0, wardRuns = 0;
 
     for (let i = 0; i < RUNS; i++) {
-      const seed = `sweep-${tier}-${party}-${i}`;
+      // Seed off the tier's INDEX, never its name: seeding on the name made this
+      // harness's own output shift under TD-094's rename, which briefly looked like a
+      // rebalance (P159). The sample must depend on the game, not on spelling.
+      const seed = `sweep-${TIERS.indexOf(tier)}-${party}-${i}`;
       const c = generateContract(createRng(hashSeed(seed)), tier, 'c', seed);
       const t = c.traitRoll;
       const ambient = deriveAmbientSigns(t, tier);
@@ -170,7 +173,7 @@ for (const tier of TIERS) {
 // R336: a party-wide bound on READING instruments (lenses + kits), set so that no
 // party can ever read every channel. Blindness guaranteed; its location chosen.
 console.log(`\n── THE INSTRUMENT ALLOWANCE (specs/preparation R336) ${'─'.repeat(25)}\n`);
-console.log(`  At MASTER: 6 questions live. Answering all six needs 5 lenses + prism + a kit.`);
+console.log(`  At ANATHEMA: 6 questions live. Answering all six needs 5 lenses + prism + a kit.`);
 console.log(`  "Max answerable" = best case over every way to split M instruments.\n`);
 console.log(`  M    max questions answerable   party of 1   2    3    4    verdict`);
 console.log(`  ${'─'.repeat(74)}`);

@@ -26,7 +26,7 @@ export function channelsForTier(tier: Tier): Channel[] {
 }
 
 // Gear is not filtered by tier relevance: packing a Cantor's Ear for an
-// Apprentice hunt reads nothing — a wasted slot is the player's own bad bet.
+// Vigil hunt reads nothing — a wasted slot is the player's own bad bet.
 export function perceivedChannelsFor(bag: ItemId[], isSolo: boolean, tier: Tier): Channel[] {
   if (isSolo) return channelsForTier(tier);
   const carried = new Set<Channel>();

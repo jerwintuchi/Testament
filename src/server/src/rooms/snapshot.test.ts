@@ -11,7 +11,7 @@ import { COLLEGIUM } from '../collegium/collegium.js';
 
 const STUB_CONTRACT_RECORD: ContractRecord = {
   contractId:     'c-001',
-  tier:           'APPRENTICE',
+  tier:           'VIGIL',
   origin:         'SIN',
   requester:      { name: 'Aldis Vane', role: 'Reliquary-Steward', place: 'Ashfen' },
   targetName:     'The Ashen Warden',
@@ -78,7 +78,7 @@ describe('toSnapshot', () => {
     // Exactly the ContractIntel keys — nothing more crosses the wire (I3/I5).
     expect(snap.board[0]).toEqual({
       contractId:  'c-001',
-      tier:        'APPRENTICE',
+      tier:        'VIGIL',
       origin:      'SIN',
       requester:   { name: 'Aldis Vane', role: 'Reliquary-Steward', place: 'Ashfen' },
       targetName:  'The Ashen Warden',
@@ -168,7 +168,7 @@ describe('buildFieldSnapshot', () => {
     const archive = new SessionArchive();
     const snap = buildFieldSnapshot(makeFieldRoom(), archive, 'p1');
     expect(snap?.signs).toBeDefined();
-    expect(snap?.signs.length).toBe(3);  // Apprentice tier: 3 signs
+    expect(snap?.signs.length).toBe(3);  // Vigil tier: 3 signs
     expect(snap?.signs.map(s => s.channel)).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN']);
     for (const sign of snap!.signs) {
       expect(Object.keys(sign).sort()).toEqual(['channel', 'token']);
@@ -200,7 +200,7 @@ describe('buildFieldSnapshot', () => {
     const room = makeFieldRoom();
     room.contract = {
       ...STUB_CONTRACT_RECORD,
-      tier: 'JOURNEYMAN',
+      tier: 'INTERDICT',
       traitRoll: { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE', ward: 'COLD', disposition: 'STALKER' },
     };
     const snap = buildFieldSnapshot(room, archive, 'p1');

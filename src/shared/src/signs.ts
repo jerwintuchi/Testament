@@ -17,7 +17,7 @@ export type Sign = {
   token:   SignToken;
 };
 
-export type Tier = 'APPRENTICE' | 'JOURNEYMAN' | 'MASTER';
+export type Tier = 'VIGIL' | 'INTERDICT' | 'ANATHEMA';
 
 // A stimulus the party can apply with a probe (present flame, cold, salt, light).
 // Client-chosen party behavior — carries no trait semantics; the server-only

@@ -4,9 +4,44 @@
       "Bash(git *)",
       "Bash(pnpm *)",
       "Bash(npx *)",
-      "Bash(node *)"
+      "Bash(node *)",
+
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(find *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(stat *)",
+      "Bash(file *)",
+      "Bash(basename *)",
+      "Bash(dirname *)",
+      "Bash(realpath *)",
+      "Bash(echo *)",
+      "Bash(pwd)",
+      "Bash(cd *)",
+      "Bash(mkdir *)",
+
+      "Bash(sed *)",
+      "Bash(awk *)",
+      "Bash(cut *)",
+      "Bash(tr *)",
+      "Bash(jq *)",
+      "Bash(column *)",
+
+      "Bash(python3 tools/*)",
+      "Bash(python3 /home/jerwin/projects/Testament/tools/*)"
     ],
-    "deny": []
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)"
+    ]
   },
   "hooks": {
     "PostToolUse": [

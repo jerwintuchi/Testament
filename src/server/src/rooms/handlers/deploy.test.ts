@@ -82,12 +82,12 @@ describe('handleDeploy', () => {
     // signs is present and is an array.
     const signs = payload['signs'] as Array<Record<string, unknown>>;
     expect(Array.isArray(signs)).toBe(true);
-    expect(signs.length).toBe(3);  // Apprentice tier: RESIDUE, STRESS_MARK, OMEN
+    expect(signs.length).toBe(3);  // Vigil tier: RESIDUE, STRESS_MARK, OMEN
     // Each sign has exactly channel and token.
     for (const sign of signs) {
       expect(Object.keys(sign).sort()).toEqual(['channel', 'token']);
     }
-    // Signs channels are correct for Apprentice tier.
+    // Signs channels are correct for Vigil tier.
     expect(signs.map(s => s['channel'])).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN']);
     // No axis value literal in JSON output.
     const json = JSON.stringify(signs);
@@ -113,7 +113,7 @@ describe('handleDeploy', () => {
     const room = mgr.getRoomBySocketId('host')!;
     room.contract = {
       ...room.contract!,
-      tier: 'JOURNEYMAN',
+      tier: 'INTERDICT',
       traitRoll: { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE', ward: 'COLD', disposition: 'STALKER' },
     };
     const { fn: emitTo, calls: emitToCalls } = makeEmitTo();
@@ -133,7 +133,7 @@ describe('handleDeploy', () => {
     handleDeploy('host', mgr, store, () => {}, emitTo, noBroadcast);
 
     const payload = emitToCalls[0]?.[2] as { signs: Array<{ channel: string }>; perceivedChannels: string[] };
-    // Apprentice tier: ambient RESIDUE, STRESS_MARK, OMEN + probe-gated REACTION.
+    // Vigil tier: ambient RESIDUE, STRESS_MARK, OMEN + probe-gated REACTION.
     expect(payload.perceivedChannels).toEqual(['RESIDUE', 'STRESS_MARK', 'REACTION', 'OMEN']);
     expect(payload.signs.map(s => s.channel)).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN']);
   });
@@ -385,7 +385,7 @@ describe('handleDeploy — isSolo counts LISTED players (A7, known defect)', () 
 
     handleDeploy('host', mgr, store, () => {}, emitTo, noBroadcast);
 
-    // channelsForTier adds REACTION unconditionally, even at Apprentice where
+    // channelsForTier adds REACTION unconditionally, even at Vigil where
     // deriveReaction can only ever return no-reaction.
     const started = calls.find(([, t]) => t === 'FIELD_STARTED')![2] as { perceivedChannels: string[] };
     expect(started.perceivedChannels).toEqual(['RESIDUE', 'STRESS_MARK', 'REACTION', 'OMEN']);

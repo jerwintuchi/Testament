@@ -19,7 +19,7 @@ const _badVerb: PrimaryVerb = 'OBSERVE';
 // T45(b): ContractIntel satisfies its shape.
 const _intel = {
   contractId:  'abc-123',
-  tier:        'APPRENTICE' as Tier,
+  tier:        'VIGIL' as Tier,
   origin:      'SIN' as Origin,
   requester:   { name: 'Aldis Vane', role: 'Reliquary-Steward', place: 'Ashfen' },
   targetName:  'The Ashen Warden',
@@ -43,7 +43,7 @@ describe('ContractIntel', () => {
   it('has exactly 7 fields', () => {
     const intel: ContractIntel = {
       contractId:  'test-id',
-      tier:        'JOURNEYMAN',
+      tier:        'INTERDICT',
       origin:      'BELIEF',
       requester:   { name: 'Sister Wren', role: 'Parish-Priest', place: 'Gall' },
       targetName:  'The Weeping Mire',
@@ -58,7 +58,7 @@ describe('ContractIntel', () => {
   it('does not allow expeditionSeed (structural type check — see compile-time assertion above)', () => {
     // Runtime enforcement: no seed field on a plain ContractIntel object.
     const intel: ContractIntel = {
-      contractId: 'x', tier: 'MASTER', origin: 'RELIC',
+      contractId: 'x', tier: 'ANATHEMA', origin: 'RELIC',
       requester: { name: '', role: 'penitent', place: 'Low Fen' },
       targetName: 'Y', siteName: 'Z', primaryVerb: 'CAPTURE',
     };

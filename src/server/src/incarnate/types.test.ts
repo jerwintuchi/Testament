@@ -10,46 +10,46 @@ const _minimalRoll = {
   tell:    'LUNGE',
 } satisfies TraitRoll;
 
-// Optional fields are not required (compile-time: Apprentice roll is valid without ward etc.)
-const _apprenticeRoll: TraitRoll = { aspect: 'FROST', frailty: 'COLD', tell: 'SWEEP' };
+// Optional fields are not required (compile-time: Vigil roll is valid without ward etc.)
+const _vigilRoll: TraitRoll = { aspect: 'FROST', frailty: 'COLD', tell: 'SWEEP' };
 
 describe('ACTIVE_AXES', () => {
-  it('APPRENTICE has exactly 3 axes', () => {
-    expect(ACTIVE_AXES.APPRENTICE).toHaveLength(3);
+  it('VIGIL has exactly 3 axes', () => {
+    expect(ACTIVE_AXES.VIGIL).toHaveLength(3);
   });
 
-  it('JOURNEYMAN has exactly 5 axes', () => {
-    expect(ACTIVE_AXES.JOURNEYMAN).toHaveLength(5);
+  it('INTERDICT has exactly 5 axes', () => {
+    expect(ACTIVE_AXES.INTERDICT).toHaveLength(5);
   });
 
-  it('MASTER has exactly 6 axes', () => {
-    expect(ACTIVE_AXES.MASTER).toHaveLength(6);
+  it('ANATHEMA has exactly 6 axes', () => {
+    expect(ACTIVE_AXES.ANATHEMA).toHaveLength(6);
   });
 
-  it('every axis appears exactly once in MASTER', () => {
-    const masterAxes = ACTIVE_AXES.MASTER;
+  it('every axis appears exactly once in ANATHEMA', () => {
+    const masterAxes = ACTIVE_AXES.ANATHEMA;
     const unique = new Set(masterAxes);
     expect(unique.size).toBe(masterAxes.length);
   });
 
-  it('APPRENTICE axes are a strict subset of MASTER axes', () => {
-    const masterSet = new Set<TraitAxis>(ACTIVE_AXES.MASTER);
-    for (const axis of ACTIVE_AXES.APPRENTICE) {
+  it('VIGIL axes are a strict subset of ANATHEMA axes', () => {
+    const masterSet = new Set<TraitAxis>(ACTIVE_AXES.ANATHEMA);
+    for (const axis of ACTIVE_AXES.VIGIL) {
       expect(masterSet.has(axis)).toBe(true);
     }
-    expect(ACTIVE_AXES.APPRENTICE.length).toBeLessThan(ACTIVE_AXES.MASTER.length);
+    expect(ACTIVE_AXES.VIGIL.length).toBeLessThan(ACTIVE_AXES.ANATHEMA.length);
   });
 
-  it('JOURNEYMAN axes are a strict subset of MASTER axes and a superset of APPRENTICE', () => {
-    const masterSet = new Set<TraitAxis>(ACTIVE_AXES.MASTER);
-    const apprenticeSet = new Set<TraitAxis>(ACTIVE_AXES.APPRENTICE);
-    for (const axis of ACTIVE_AXES.JOURNEYMAN) {
+  it('INTERDICT axes are a strict subset of ANATHEMA axes and a superset of VIGIL', () => {
+    const masterSet = new Set<TraitAxis>(ACTIVE_AXES.ANATHEMA);
+    const vigilSet = new Set<TraitAxis>(ACTIVE_AXES.VIGIL);
+    for (const axis of ACTIVE_AXES.INTERDICT) {
       expect(masterSet.has(axis)).toBe(true);
     }
-    for (const axis of ACTIVE_AXES.APPRENTICE) {
-      expect(ACTIVE_AXES.JOURNEYMAN).toContain(axis);
+    for (const axis of ACTIVE_AXES.VIGIL) {
+      expect(ACTIVE_AXES.INTERDICT).toContain(axis);
     }
-    expect(ACTIVE_AXES.JOURNEYMAN.length).toBeGreaterThan(apprenticeSet.size);
-    expect(ACTIVE_AXES.JOURNEYMAN.length).toBeLessThan(ACTIVE_AXES.MASTER.length);
+    expect(ACTIVE_AXES.INTERDICT.length).toBeGreaterThan(vigilSet.size);
+    expect(ACTIVE_AXES.INTERDICT.length).toBeLessThan(ACTIVE_AXES.ANATHEMA.length);
   });
 });

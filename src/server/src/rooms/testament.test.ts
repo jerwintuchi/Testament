@@ -10,7 +10,7 @@ const CONTRACT: ContractRecord = {
   targetName:     'The Ashen Warden',
   siteName:       'The Collapsed Chancel',
   primaryVerb:    'INVESTIGATE',
-  tier:           'APPRENTICE',
+  tier:           'VIGIL',
   expeditionSeed: 'test-seed-uuid',
   traitRoll:      { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE' },
 };

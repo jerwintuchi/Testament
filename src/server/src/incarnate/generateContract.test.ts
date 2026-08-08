@@ -21,35 +21,35 @@ const SITE_NAMES    = [
 describe('generateContract', () => {
   it('determinism: same seed → same output (P18/R44)', () => {
     const seed = hashSeed('contract-determinism');
-    const a = generateContract(createRng(seed), 'APPRENTICE', 'c-001', 'seed-a');
-    const b = generateContract(createRng(seed), 'APPRENTICE', 'c-001', 'seed-a');
+    const a = generateContract(createRng(seed), 'VIGIL', 'c-001', 'seed-a');
+    const b = generateContract(createRng(seed), 'VIGIL', 'c-001', 'seed-a');
     expect(a).toEqual(b);
   });
 
   it('targetName falls within the authored pool', () => {
     for (let i = 0; i < 20; i++) {
-      const { targetName } = generateContract(createRng(hashSeed(`t-${i}`)), 'APPRENTICE', `c-${i}`, `s-${i}`);
+      const { targetName } = generateContract(createRng(hashSeed(`t-${i}`)), 'VIGIL', `c-${i}`, `s-${i}`);
       expect(TARGET_NAMES).toContain(targetName);
     }
   });
 
   it('siteName falls within the authored pool', () => {
     for (let i = 0; i < 20; i++) {
-      const { siteName } = generateContract(createRng(hashSeed(`s-${i}`)), 'APPRENTICE', `c-${i}`, `s-${i}`);
+      const { siteName } = generateContract(createRng(hashSeed(`s-${i}`)), 'VIGIL', `c-${i}`, `s-${i}`);
       expect(SITE_NAMES).toContain(siteName);
     }
   });
 
   it('primaryVerb falls within the 4 PrimaryVerb literals', () => {
     for (let i = 0; i < 20; i++) {
-      const { primaryVerb } = generateContract(createRng(hashSeed(`v-${i}`)), 'JOURNEYMAN', `c-${i}`, `s-${i}`);
+      const { primaryVerb } = generateContract(createRng(hashSeed(`v-${i}`)), 'INTERDICT', `c-${i}`, `s-${i}`);
       expect(PRIMARY_VERBS).toContain(primaryVerb);
     }
   });
 
   it('asserts an origin within the 3 Origin literals (a claim, not the roll)', () => {
     for (let i = 0; i < 20; i++) {
-      const { origin } = generateContract(createRng(hashSeed(`o-${i}`)), 'APPRENTICE', `c-${i}`, `s-${i}`);
+      const { origin } = generateContract(createRng(hashSeed(`o-${i}`)), 'VIGIL', `c-${i}`, `s-${i}`);
       expect(ORIGINS).toContain(origin);
     }
   });
@@ -58,7 +58,7 @@ describe('generateContract', () => {
     let sawNamed = false;
     let sawAnon = false;
     for (let i = 0; i < 40; i++) {
-      const { requester } = generateContract(createRng(hashSeed(`req-${i}`)), 'APPRENTICE', `c-${i}`, `s-${i}`);
+      const { requester } = generateContract(createRng(hashSeed(`req-${i}`)), 'VIGIL', `c-${i}`, `s-${i}`);
       expect(requester.role.length).toBeGreaterThan(0);
       expect(requester.place.length).toBeGreaterThan(0);
       if (requester.name === '') sawAnon = true; else sawNamed = true;
@@ -67,8 +67,8 @@ describe('generateContract', () => {
     expect(sawAnon).toBe(true);
   });
 
-  it('embedded traitRoll is tier-correct (Apprentice has no ward/disposition/riteKey)', () => {
-    const contract = generateContract(createRng(hashSeed('tier-check')), 'APPRENTICE', 'c', 's');
+  it('embedded traitRoll is tier-correct (Vigil has no ward/disposition/riteKey)', () => {
+    const contract = generateContract(createRng(hashSeed('tier-check')), 'VIGIL', 'c', 's');
     const keys = Object.keys(contract.traitRoll);
     expect(keys).toContain('aspect');
     expect(keys).toContain('frailty');
@@ -78,8 +78,8 @@ describe('generateContract', () => {
     expect(keys).not.toContain('riteKey');
   });
 
-  it('embedded traitRoll is Master-complete for Master tier', () => {
-    const contract = generateContract(createRng(hashSeed('master-check')), 'MASTER', 'c', 's');
+  it('embedded traitRoll is Anathema-complete for Anathema tier', () => {
+    const contract = generateContract(createRng(hashSeed('anathema-check')), 'ANATHEMA', 'c', 's');
     const keys = Object.keys(contract.traitRoll);
     expect(keys).toContain('ward');
     expect(keys).toContain('disposition');
@@ -97,7 +97,7 @@ describe('generateContract', () => {
 
 describe('toContractIntel', () => {
   it('returns exactly 7 keys — no expeditionSeed or traitRoll (P17/R48/P64)', () => {
-    const contract = generateContract(createRng(hashSeed('strip-test')), 'APPRENTICE', 'c-001', 'seed-xyz');
+    const contract = generateContract(createRng(hashSeed('strip-test')), 'VIGIL', 'c-001', 'seed-xyz');
     const intel = toContractIntel(contract);
     const keys = Object.keys(intel).sort();
     expect(keys).toEqual(['contractId', 'origin', 'primaryVerb', 'requester', 'siteName', 'targetName', 'tier']);
@@ -106,10 +106,10 @@ describe('toContractIntel', () => {
   });
 
   it('preserves contractId, tier, origin, requester, targetName, siteName, primaryVerb', () => {
-    const contract = generateContract(createRng(hashSeed('preserve-test')), 'JOURNEYMAN', 'my-id', 'my-seed');
+    const contract = generateContract(createRng(hashSeed('preserve-test')), 'INTERDICT', 'my-id', 'my-seed');
     const intel = toContractIntel(contract);
     expect(intel.contractId).toBe('my-id');
-    expect(intel.tier).toBe('JOURNEYMAN');
+    expect(intel.tier).toBe('INTERDICT');
     expect(['BELIEF', 'SIN', 'RELIC']).toContain(intel.origin);
     expect(typeof intel.requester.role).toBe('string');
     expect(typeof intel.requester.place).toBe('string');

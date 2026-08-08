@@ -25,7 +25,7 @@ function makeEmitTo(): { fn: EmitToFn; calls: Array<[string, string, unknown]> }
   return { fn: (sid, t, p) => calls.push([sid, t, p]), calls };
 }
 
-// Creates a solo room, walks it to FIELD phase, and pins a JOURNEYMAN contract
+// Creates a solo room, walks it to FIELD phase, and pins a INTERDICT contract
 // with ward COLD so reaction outcomes are deterministic. The solo host perceives
 // all channels (P27) and packs all four probe kits, so their probes are always legal.
 const ALL_KITS = ['censer-of-embers', 'phial-of-hoarfrost', 'consecrated-salt', 'lantern-of-the-creed'];
@@ -40,7 +40,7 @@ function setupFieldRoom() {
   handleAcceptContract('host', mgr, () => {}, () => {});
   room.contract = {
     ...room.contract!,
-    tier: 'JOURNEYMAN',
+    tier: 'INTERDICT',
     traitRoll: { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE', ward: 'COLD', disposition: 'STALKER' },
   };
   room.players[0]!.bag = [...ALL_KITS];

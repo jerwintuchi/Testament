@@ -5,7 +5,7 @@ import { deriveSigns, deriveAmbientSigns } from './deriveSigns.js';
 import type { TraitRoll } from './types.js';
 import type { Tier } from '@testament/shared';
 
-// A full Master roll used as base fixture.
+// A full Anathema roll used as base fixture.
 const FULL_ROLL: TraitRoll = {
   aspect:      'EMBER',
   frailty:     'FLAME',
@@ -25,33 +25,33 @@ const AXIS_VALUE_LITERALS = [
 ];
 
 describe('deriveSigns', () => {
-  it('Apprentice: returns exactly 3 signs with channels RESIDUE, STRESS_MARK, OMEN', () => {
-    const signs = deriveSigns(FULL_ROLL, 'APPRENTICE');
+  it('Vigil: returns exactly 3 signs with channels RESIDUE, STRESS_MARK, OMEN', () => {
+    const signs = deriveSigns(FULL_ROLL, 'VIGIL');
     expect(signs).toHaveLength(3);
     expect(signs.map(s => s.channel)).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN']);
   });
 
-  it('Journeyman: returns exactly 5 signs adding REACTION and SPOOR', () => {
-    const signs = deriveSigns(FULL_ROLL, 'JOURNEYMAN');
+  it('Interdict: returns exactly 5 signs adding REACTION and SPOOR', () => {
+    const signs = deriveSigns(FULL_ROLL, 'INTERDICT');
     expect(signs).toHaveLength(5);
     expect(signs.map(s => s.channel)).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN', 'REACTION', 'SPOOR']);
   });
 
-  it('Master: returns exactly 6 signs adding LITURGY', () => {
-    const signs = deriveSigns(FULL_ROLL, 'MASTER');
+  it('Anathema: returns exactly 6 signs adding LITURGY', () => {
+    const signs = deriveSigns(FULL_ROLL, 'ANATHEMA');
     expect(signs).toHaveLength(6);
     expect(signs.map(s => s.channel)).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN', 'REACTION', 'SPOOR', 'LITURGY']);
   });
 
   it('every Sign has exactly the keys channel and token (P12)', () => {
-    const signs = deriveSigns(FULL_ROLL, 'MASTER');
+    const signs = deriveSigns(FULL_ROLL, 'ANATHEMA');
     for (const sign of signs) {
       expect(Object.keys(sign).sort()).toEqual(['channel', 'token']);
     }
   });
 
   it('JSON output contains no axis value literals (R40)', () => {
-    const json = JSON.stringify(deriveSigns(FULL_ROLL, 'MASTER'));
+    const json = JSON.stringify(deriveSigns(FULL_ROLL, 'ANATHEMA'));
     for (const literal of AXIS_VALUE_LITERALS) {
       expect(json).not.toContain(`"${literal}"`);
       expect(json).not.toContain(`:${literal}`);
@@ -59,55 +59,55 @@ describe('deriveSigns', () => {
   });
 
   it('same inputs produce identical output (stability — P15)', () => {
-    const a = deriveSigns(FULL_ROLL, 'JOURNEYMAN');
-    const b = deriveSigns(FULL_ROLL, 'JOURNEYMAN');
+    const a = deriveSigns(FULL_ROLL, 'INTERDICT');
+    const b = deriveSigns(FULL_ROLL, 'INTERDICT');
     expect(a).toEqual(b);
   });
 
   it('different trait values produce different tokens', () => {
     const rollA: TraitRoll = { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE' };
     const rollB: TraitRoll = { aspect: 'FROST', frailty: 'COLD',  tell: 'SWEEP' };
-    const signsA = deriveSigns(rollA, 'APPRENTICE');
-    const signsB = deriveSigns(rollB, 'APPRENTICE');
+    const signsA = deriveSigns(rollA, 'VIGIL');
+    const signsB = deriveSigns(rollB, 'VIGIL');
     expect(signsA).not.toEqual(signsB);
   });
 
   it('throws a descriptive error when a lexicon entry is missing', () => {
     const badRoll: TraitRoll = { aspect: 'INVALID' as 'EMBER', frailty: 'FLAME', tell: 'LUNGE' };
-    expect(() => deriveSigns(badRoll, 'APPRENTICE')).toThrow(/lexicon missing entry/);
+    expect(() => deriveSigns(badRoll, 'VIGIL')).toThrow(/lexicon missing entry/);
   });
 });
 
 describe('deriveAmbientSigns (T55)', () => {
   it('never emits a REACTION-channel sign at any tier (P22)', () => {
-    const tiers: Tier[] = ['APPRENTICE', 'JOURNEYMAN', 'MASTER'];
+    const tiers: Tier[] = ['VIGIL', 'INTERDICT', 'ANATHEMA'];
     for (const tier of tiers) {
       const signs = deriveAmbientSigns(FULL_ROLL, tier);
       expect(signs.every(s => s.channel !== 'REACTION')).toBe(true);
     }
   });
 
-  it('Apprentice: 3 signs — RESIDUE, STRESS_MARK, OMEN', () => {
-    const signs = deriveAmbientSigns(FULL_ROLL, 'APPRENTICE');
+  it('Vigil: 3 signs — RESIDUE, STRESS_MARK, OMEN', () => {
+    const signs = deriveAmbientSigns(FULL_ROLL, 'VIGIL');
     expect(signs.map(s => s.channel)).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN']);
   });
 
-  it('Journeyman: 4 signs — adds SPOOR, not REACTION', () => {
-    const signs = deriveAmbientSigns(FULL_ROLL, 'JOURNEYMAN');
+  it('Interdict: 4 signs — adds SPOOR, not REACTION', () => {
+    const signs = deriveAmbientSigns(FULL_ROLL, 'INTERDICT');
     expect(signs.map(s => s.channel)).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN', 'SPOOR']);
   });
 
-  it('Master: 5 signs — adds LITURGY, not REACTION', () => {
-    const signs = deriveAmbientSigns(FULL_ROLL, 'MASTER');
+  it('Anathema: 5 signs — adds LITURGY, not REACTION', () => {
+    const signs = deriveAmbientSigns(FULL_ROLL, 'ANATHEMA');
     expect(signs.map(s => s.channel)).toEqual(['RESIDUE', 'STRESS_MARK', 'OMEN', 'SPOOR', 'LITURGY']);
   });
 
   it('same inputs produce identical output (determinism)', () => {
-    expect(deriveAmbientSigns(FULL_ROLL, 'MASTER')).toEqual(deriveAmbientSigns(FULL_ROLL, 'MASTER'));
+    expect(deriveAmbientSigns(FULL_ROLL, 'ANATHEMA')).toEqual(deriveAmbientSigns(FULL_ROLL, 'ANATHEMA'));
   });
 
   it('JSON output contains no axis value literals (R40)', () => {
-    const json = JSON.stringify(deriveAmbientSigns(FULL_ROLL, 'MASTER'));
+    const json = JSON.stringify(deriveAmbientSigns(FULL_ROLL, 'ANATHEMA'));
     for (const literal of AXIS_VALUE_LITERALS) {
       expect(json).not.toContain(`"${literal}"`);
     }

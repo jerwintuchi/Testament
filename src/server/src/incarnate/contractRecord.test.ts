@@ -6,7 +6,7 @@ import type { ContractIntel } from '@testament/shared';
 // T46(a): ContractRecord is assignable from ContractIntel + server-only fields.
 const _record = {
   contractId:     'c-001',
-  tier:           'APPRENTICE',
+  tier:           'VIGIL',
   origin:         'SIN',
   requester:      { name: 'Aldis Vane', role: 'Reliquary-Steward', place: 'Ashfen' },
   targetName:     'The Ashen Warden',
@@ -20,7 +20,7 @@ describe('ContractRecord', () => {
   it('includes all ContractIntel fields plus expeditionSeed and traitRoll', () => {
     const record: ContractRecord = {
       contractId:     'test-id',
-      tier:           'MASTER',
+      tier:           'ANATHEMA',
       origin:         'RELIC',
       requester:      { name: 'Proctor Hald', role: 'Proctor', place: 'Gall' },
       targetName:     'The Frost Penitent',
@@ -44,7 +44,7 @@ describe('ContractRecord', () => {
     // ContractRecord has expeditionSeed and traitRoll — ContractIntel does not.
     // This test ensures a ContractRecord cannot be assigned to ContractIntel without stripping.
     const record: ContractRecord = {
-      contractId: 'c', tier: 'APPRENTICE', origin: 'BELIEF',
+      contractId: 'c', tier: 'VIGIL', origin: 'BELIEF',
       requester: { name: '', role: 'penitent', place: 'Low Fen' },
       targetName: 't', siteName: 's',
       primaryVerb: 'CAPTURE', expeditionSeed: 'e',

@@ -52,7 +52,7 @@ describe('handleAcceptContract', () => {
     expect(payload.contract).toBeDefined();
     expect(Object.keys(payload.contract)).not.toContain('traitRoll');
     expect(Object.keys(payload.contract)).not.toContain('expeditionSeed');
-    expect(payload.contract['tier']).toBe('APPRENTICE');
+    expect(payload.contract['tier']).toBe('VIGIL');
     // server-side room.contract has the traitRoll
     const room = mgr.getRoomBySocketId('host')!;
     expect(room.contract?.traitRoll).toBeDefined();

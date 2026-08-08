@@ -13,9 +13,9 @@ const DISPOSITION_VALUES = ['STALKER', 'AMBUSHER', 'TERRITORIAL', 'FRENZIED'] as
 const RITE_KEY_VALUES    = ['PENANCE', 'IMMOLATION', 'INTERMENT', 'SILENCE'] as const;
 
 describe('generateTraitRoll', () => {
-  it('Apprentice roll has aspect, frailty, tell and no optional axes', () => {
-    const rng = createRng(hashSeed('apprentice-test'));
-    const roll = generateTraitRoll(rng, 'APPRENTICE');
+  it('Vigil roll has aspect, frailty, tell and no optional axes', () => {
+    const rng = createRng(hashSeed('vigil-test'));
+    const roll = generateTraitRoll(rng, 'VIGIL');
     const keys = Object.keys(roll);
     expect(keys).toContain('aspect');
     expect(keys).toContain('frailty');
@@ -25,18 +25,18 @@ describe('generateTraitRoll', () => {
     expect(keys).not.toContain('riteKey');
   });
 
-  it('Journeyman roll adds ward and disposition, still no riteKey', () => {
-    const rng = createRng(hashSeed('journeyman-test'));
-    const roll = generateTraitRoll(rng, 'JOURNEYMAN');
+  it('Interdict roll adds ward and disposition, still no riteKey', () => {
+    const rng = createRng(hashSeed('interdict-test'));
+    const roll = generateTraitRoll(rng, 'INTERDICT');
     const keys = Object.keys(roll);
     expect(keys).toContain('ward');
     expect(keys).toContain('disposition');
     expect(keys).not.toContain('riteKey');
   });
 
-  it('Master roll has all six fields', () => {
-    const rng = createRng(hashSeed('master-test'));
-    const roll = generateTraitRoll(rng, 'MASTER');
+  it('Anathema roll has all six fields', () => {
+    const rng = createRng(hashSeed('anathema-test'));
+    const roll = generateTraitRoll(rng, 'ANATHEMA');
     const keys = Object.keys(roll);
     expect(keys).toContain('aspect');
     expect(keys).toContain('frailty');
@@ -48,14 +48,14 @@ describe('generateTraitRoll', () => {
 
   it('determinism: same seed + tier → same roll (P15/R36)', () => {
     const seed = hashSeed('determinism-seed');
-    const rollA = generateTraitRoll(createRng(seed), 'MASTER');
-    const rollB = generateTraitRoll(createRng(seed), 'MASTER');
+    const rollA = generateTraitRoll(createRng(seed), 'ANATHEMA');
+    const rollB = generateTraitRoll(createRng(seed), 'ANATHEMA');
     expect(rollA).toEqual(rollB);
   });
 
   it('different seeds produce different rolls (probabilistic)', () => {
-    const rollA = generateTraitRoll(createRng(hashSeed('seed-alpha')), 'MASTER');
-    const rollB = generateTraitRoll(createRng(hashSeed('seed-beta')), 'MASTER');
+    const rollA = generateTraitRoll(createRng(hashSeed('seed-alpha')), 'ANATHEMA');
+    const rollB = generateTraitRoll(createRng(hashSeed('seed-beta')), 'ANATHEMA');
     // With 4^6 = 4096 possibilities, collision probability is ~0.024%; accept the test.
     expect(rollA).not.toEqual(rollB);
   });
@@ -63,7 +63,7 @@ describe('generateTraitRoll', () => {
   it('all generated values fall within v1 enum sets — checked across 20 seeds', () => {
     for (let i = 0; i < 20; i++) {
       const rng = createRng(hashSeed(`value-check-${i}`));
-      const roll = generateTraitRoll(rng, 'MASTER');
+      const roll = generateTraitRoll(rng, 'ANATHEMA');
       expect(ASPECT_VALUES).toContain(roll.aspect);
       expect(FRAILTY_VALUES).toContain(roll.frailty);
       expect(TELL_VALUES).toContain(roll.tell);
@@ -77,7 +77,7 @@ describe('generateTraitRoll', () => {
   describe('ward !== frailty (R326)', () => {
     it('never rolls a ward equal to the frailty — across 300 seeds, both rolling tiers', () => {
       for (let i = 0; i < 300; i++) {
-        for (const tier of ['JOURNEYMAN', 'MASTER'] as const) {
+        for (const tier of ['INTERDICT', 'ANATHEMA'] as const) {
           const roll = generateTraitRoll(createRng(hashSeed(`ward-frailty-${tier}-${i}`)), tier);
           expect(roll.ward).not.toBe(roll.frailty);
         }
@@ -87,7 +87,7 @@ describe('generateTraitRoll', () => {
     it('still reaches every ward value — the rule must not bias toward one (P150)', () => {
       const seen = new Set<string>();
       for (let i = 0; i < 300; i++) {
-        seen.add(generateTraitRoll(createRng(hashSeed(`ward-spread-${i}`)), 'MASTER').ward!);
+        seen.add(generateTraitRoll(createRng(hashSeed(`ward-spread-${i}`)), 'ANATHEMA').ward!);
       }
       expect([...seen].sort()).toEqual([...WARD_VALUES].sort());
     });
@@ -95,7 +95,7 @@ describe('generateTraitRoll', () => {
     it('pairs every frailty with all three of its permitted wards (no dead combination)', () => {
       const pairs = new Set<string>();
       for (let i = 0; i < 2000; i++) {
-        const roll = generateTraitRoll(createRng(hashSeed(`ward-pairs-${i}`)), 'MASTER');
+        const roll = generateTraitRoll(createRng(hashSeed(`ward-pairs-${i}`)), 'ANATHEMA');
         pairs.add(`${roll.frailty}->${roll.ward}`);
       }
       // 4 frailties x 3 permitted wards each = 12 reachable combinations.
@@ -103,7 +103,7 @@ describe('generateTraitRoll', () => {
     });
 
     it('determinism survives the filtered pick — same seed, same roll (I3, P151)', () => {
-      for (const tier of ['APPRENTICE', 'JOURNEYMAN', 'MASTER'] as const) {
+      for (const tier of ['VIGIL', 'INTERDICT', 'ANATHEMA'] as const) {
         const a = generateTraitRoll(createRng(hashSeed('determinism-probe')), tier);
         const b = generateTraitRoll(createRng(hashSeed('determinism-probe')), tier);
         expect(a).toEqual(b);
@@ -112,9 +112,9 @@ describe('generateTraitRoll', () => {
 
     it('consumes exactly one draw for the ward, so the stream keeps its shape (P151)', () => {
       // A rejection loop would consume a variable number of draws and shift riteKey,
-      // which is drawn after the ward. Same seed at MASTER must reproduce riteKey too.
+      // which is drawn after the ward. Same seed at ANATHEMA must reproduce riteKey too.
       const rng = createRng(hashSeed('stream-shape'));
-      const roll = generateTraitRoll(rng, 'MASTER');
+      const roll = generateTraitRoll(rng, 'ANATHEMA');
       // Draw order is aspect, frailty, tell, ward, disposition, riteKey — six picks.
       const control = createRng(hashSeed('stream-shape'));
       for (let i = 0; i < 6; i++) control.float();

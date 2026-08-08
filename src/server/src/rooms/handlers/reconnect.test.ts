@@ -74,7 +74,7 @@ describe('handleReconnect', () => {
     const room = mgr.getRoomBySocketId('host')!;
     room.phase = 'FIELD';
     room.contract = {
-      contractId: 'c-001', tier: 'JOURNEYMAN', origin: 'RELIC',
+      contractId: 'c-001', tier: 'INTERDICT', origin: 'RELIC',
       requester: { name: 'Proctor Hald', role: 'Proctor', place: 'Gall' },
       targetName: 'T', siteName: 'S', primaryVerb: 'INVESTIGATE',
       expeditionSeed: 'seed-1',

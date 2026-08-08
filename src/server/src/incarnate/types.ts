@@ -21,15 +21,15 @@ export type TraitRoll = {
 };
 
 export const ACTIVE_AXES: Record<Tier, ReadonlyArray<TraitAxis>> = {
-  APPRENTICE: ['ASPECT', 'FRAILTY', 'TELL'],
-  JOURNEYMAN: ['ASPECT', 'FRAILTY', 'TELL', 'WARD', 'DISPOSITION'],
-  MASTER:     ['ASPECT', 'FRAILTY', 'TELL', 'WARD', 'DISPOSITION', 'RITE_KEY'],
+  VIGIL: ['ASPECT', 'FRAILTY', 'TELL'],
+  INTERDICT: ['ASPECT', 'FRAILTY', 'TELL', 'WARD', 'DISPOSITION'],
+  ANATHEMA:     ['ASPECT', 'FRAILTY', 'TELL', 'WARD', 'DISPOSITION', 'RITE_KEY'],
 };
 
 // Axes whose signs ship ambiently in FIELD_STARTED / FieldSnapshot. WARD is
 // excluded at every tier: the REACTION channel is probe-gated (R58, TD-025).
 export const AMBIENT_AXES: Record<Tier, ReadonlyArray<TraitAxis>> = {
-  APPRENTICE: ['ASPECT', 'FRAILTY', 'TELL'],
-  JOURNEYMAN: ['ASPECT', 'FRAILTY', 'TELL', 'DISPOSITION'],
-  MASTER:     ['ASPECT', 'FRAILTY', 'TELL', 'DISPOSITION', 'RITE_KEY'],
+  VIGIL: ['ASPECT', 'FRAILTY', 'TELL'],
+  INTERDICT: ['ASPECT', 'FRAILTY', 'TELL', 'DISPOSITION'],
+  ANATHEMA:     ['ASPECT', 'FRAILTY', 'TELL', 'DISPOSITION', 'RITE_KEY'],
 };

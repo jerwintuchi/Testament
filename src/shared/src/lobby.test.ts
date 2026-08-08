@@ -74,11 +74,11 @@ describe('ContractIntel has no traitRoll or expeditionSeed field', () => {
       targetName: 'The Ashen Warden',
       siteName: 'The Collapsed Chancel',
       primaryVerb: 'INVESTIGATE',
-      tier: 'APPRENTICE',
+      tier: 'VIGIL',
     };
     expect(Object.keys(contract)).not.toContain('traitRoll');
     expect(Object.keys(contract)).not.toContain('expeditionSeed');
-    expect(contract.tier).toBe('APPRENTICE');
+    expect(contract.tier).toBe('VIGIL');
   });
 });
 

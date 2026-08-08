@@ -13,16 +13,20 @@
       Test: names checked against `generateContract.ts`'s NPC tables. `Magister` and `Archivist`
       were rejected on collision — both are already petitioner names/roles. **Done in TD-094.**
 
-- [ ] T356 [R346, R349, P159 / V1] — **Rename the union and the axis tables.**
+- [x] T356 [R346, R349, P159 / V1] — **Rename the union and the axis tables.**
       `APPRENTICE → VIGIL`, `JOURNEYMAN → INTERDICT`, `MASTER → ANATHEMA` in
       `src/shared/src/signs.ts`, then `ACTIVE_AXES` / `AMBIENT_AXES` keys in
       `incarnate/types.ts`, then `generateTraitRoll.ts`, `generateBoard.ts`, `requisition.ts`.
       **No axis membership moves — this is a rename, not a rebalance.**
       Order: shared → server source → server tests → client. ~21 test files, ~124 sites total.
-      Test: server + shared suites green; then **re-run `sim/sweep.ts` and diff the numbers against
-      TD-094's table — they must be identical.** A moved number means a moved axis (P159).
+      Test: server + shared suites green (**373 / 65 / 7**, counts unchanged).
+      **P159 fired and was worth having.** The sweep's numbers drifted (2.02 → 1.99, 51% → 50%) —
+      not a rebalance, but the harness seeding itself with `sweep-${tier}-...`, so renaming the tier
+      changed 5,000 seeds per cell. Proven by stashing the rename and running 40 fixed seeds under
+      both names: **byte-identical rolls AND signs**. `sweep.ts` now seeds off the tier's *index*,
+      so the check stays usable.
 
-- [ ] T357 [R346, R347 / V2] — **The client half, which the compiler does not check.**
+- [x] T357 [R346, R347 / V2] — **The client half, which the compiler does not check.**
       `client/scripts/board/notice.gd` (the `PLEA` table) and `client/scripts/main.gd` (preview
       fixtures). **This is the risky half:** `notice.gd:77` reads
       `PLEA.get(str(intel.get("tier", "APPRENTICE")), PLEA["APPRENTICE"])` — a **fallback**, so a
@@ -30,12 +34,18 @@
       Also do R347's copy pass: the bands are now *declarations*, not an abstract difficulty ramp —
       a **Vigil**'s petitioner is asking the Collegium to look; an **Anathema** is the Collegium
       having already decided. Re-read all bands, don't just re-key them.
-      Test: `--board-preview` capture per tier; headless parse clean; no fallback silently firing.
+      Test: `--board-preview` + `--reader` captures; headless parse clean. **The fixtures were all
+      one tier**, which would have let a missed rename hide behind the fallback — they are now mixed
+      across all three bands, with index 1 (what `--reader` opens) set to ANATHEMA since it carries
+      the longest pleas and is the worst case for `_fit_writ`. Capture confirms the ANATHEMA band
+      rendered ("If the Collegium will not come, we abandon the place to it."), not the fallback.
+      **R347 needed no copy change**: the bands already read as declarations — the Vigil band's
+      "we would know its name" is a request to observe, which fits the new name better than the old.
 
-- [ ] T358 [R349] — **Prove containment.** `git diff` touches `src/`, `client/`, `specs/`, `docs/`
+- [x] T358 [R349] — **Prove containment.** `git diff` touches `src/`, `client/`, `specs/`, `docs/`
       and nothing generated. **No codegen run** — `Tier` never reaches `client/protocol/protocol.gd`
       (an earlier estimate saying otherwise was wrong; `MASTER` was matching `NOT_AT_QUARTERMASTER`).
-      Test: suites green; `spec_status.py --check` and `asset_map.py --check` green.
+      Test: suites green (373 / 65 / 7); `spec_status.py --check` and `asset_map.py --check` green.
 
 ## Phase B — APOCRYPHA (BLOCKED: needs the Mutation system)
 

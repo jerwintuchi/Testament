@@ -19,9 +19,9 @@ function assertChannelExhaustive(c: Channel): string {
 // T39(c): Tier is a union of exactly 3 literals.
 function assertTierExhaustive(t: Tier): string {
   switch (t) {
-    case 'APPRENTICE': return t;
-    case 'JOURNEYMAN': return t;
-    case 'MASTER':     return t;
+    case 'VIGIL': return t;
+    case 'INTERDICT': return t;
+    case 'ANATHEMA':     return t;
   }
 }
 
@@ -61,7 +61,7 @@ describe('CHANNELS (T62, R59)', () => {
 
 describe('Tier', () => {
   it('covers exactly 3 values', () => {
-    const tiers: Tier[] = ['APPRENTICE', 'JOURNEYMAN', 'MASTER'];
+    const tiers: Tier[] = ['VIGIL', 'INTERDICT', 'ANATHEMA'];
     expect(tiers).toHaveLength(3);
     tiers.forEach(t => expect(assertTierExhaustive(t)).toBe(t));
   });

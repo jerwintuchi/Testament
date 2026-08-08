@@ -181,7 +181,7 @@ describe('T38: field-phase integration — Scenario A (happy path)', () => {
     expect(dep2.type).toBe('ROOM_DEPLOYING');
 
     // 4b. The party requisitions during DEPLOYING (T74, R65): split the four
-    // Apprentice-relevant channels across the two bags.
+    // Vigil-relevant channels across the two bags.
     standAll(code, 'QUARTERMASTER');
     host.send('REQUISITION', { itemIds: ['ashen-lens', 'witness-prism'] });          // RESIDUE + REACTION
     const req1 = await host.next(); // LOBBY_UPDATED broadcast
@@ -219,7 +219,7 @@ describe('T38: field-phase integration — Scenario A (happy path)', () => {
       expect(Object.keys(s).sort()).toEqual(['channel', 'token']);
       expect(fsPayload.perceivedChannels).toContain(s.channel);  // P28
     }
-    // The two players' sets cover the Apprentice tier channels together (P26).
+    // The two players' sets cover the Vigil tier channels together (P26).
     const fs2Payload = fs2.payload as { perceivedChannels: string[] };
     const union = new Set([...fsPayload.perceivedChannels, ...fs2Payload.perceivedChannels]);
     expect([...union].sort()).toEqual(['OMEN', 'REACTION', 'RESIDUE', 'STRESS_MARK']);
@@ -413,7 +413,7 @@ describe('T38: field-phase integration — Scenario C (reconnect during FIELD)',
 // ── Scenario E: probe flow (T61) ──────────────────────────────────────────────
 
 describe('T61: probe integration — miss, match, reconnect, extraction', () => {
-  it('full probe flow with a Journeyman ward: miss → match → resync carries revealed signs', async () => {
+  it('full probe flow with a Interdict ward: miss → match → resync carries revealed signs', async () => {
     const host = await connect(port);
     const p2 = await connect(port);
 
@@ -434,11 +434,11 @@ describe('T61: probe integration — miss, match, reconnect, extraction', () => 
     host.send('ACCEPT_CONTRACT');
     await host.next(); await p2.next(); // ROOM_DEPLOYING
 
-    // Pin a Journeyman contract with a known ward so probe outcomes are deterministic.
+    // Pin a Interdict contract with a known ward so probe outcomes are deterministic.
     const room = mgr.getRoom(code)!;
     room.contract = {
       ...room.contract!,
-      tier: 'JOURNEYMAN',
+      tier: 'INTERDICT',
       traitRoll: { aspect: 'EMBER', frailty: 'FLAME', tell: 'LUNGE', ward: 'COLD', disposition: 'STALKER' },
     };
 

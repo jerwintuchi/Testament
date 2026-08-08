@@ -9,7 +9,7 @@ const CONTRACT: ContractIntel = {
   targetName:  'The Ashen Warden',
   siteName:    'The Collapsed Chancel',
   primaryVerb: 'INVESTIGATE',
-  tier:        'APPRENTICE',
+  tier:        'VIGIL',
 };
 
 // T29: buildStubFieldData

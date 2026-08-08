@@ -16,7 +16,7 @@ const DISPOSITION_VALUES = ['STALKER', 'AMBUSHER', 'TERRITORIAL', 'FRENZIED'] as
 const RITE_KEY_VALUES    = ['PENANCE', 'IMMOLATION', 'INTERMENT', 'SILENCE'] as const;
 
 describe('completeness cross-check', () => {
-  it('every (axis, value) pair in ACTIVE_AXES.MASTER has a SIGN_LEXICON entry (P13)', () => {
+  it('every (axis, value) pair in ACTIVE_AXES.ANATHEMA has a SIGN_LEXICON entry (P13)', () => {
     const axisValuePairs: Array<[string, string]> = [
       ...ASPECT_VALUES.map(v => ['ASPECT', v] as [string, string]),
       ...FRAILTY_VALUES.map(v => ['FRAILTY', v] as [string, string]),
@@ -32,13 +32,13 @@ describe('completeness cross-check', () => {
     }
   });
 
-  it('deriveSigns does not throw for 100 randomly seeded Master rolls', () => {
+  it('deriveSigns does not throw for 100 randomly seeded Anathema rolls', () => {
     for (let i = 0; i < 100; i++) {
       const rng = createRng(hashSeed(`completeness-${i}`));
-      const roll = generateTraitRoll(rng, 'MASTER');
-      expect(() => deriveSigns(roll, 'MASTER')).not.toThrow();
-      expect(() => deriveSigns(roll, 'JOURNEYMAN')).not.toThrow();
-      expect(() => deriveSigns(roll, 'APPRENTICE')).not.toThrow();
+      const roll = generateTraitRoll(rng, 'ANATHEMA');
+      expect(() => deriveSigns(roll, 'ANATHEMA')).not.toThrow();
+      expect(() => deriveSigns(roll, 'INTERDICT')).not.toThrow();
+      expect(() => deriveSigns(roll, 'VIGIL')).not.toThrow();
     }
   });
 
@@ -47,9 +47,9 @@ describe('completeness cross-check', () => {
     expect(new Set(tokens).size).toBe(24);
   });
 
-  it('ACTIVE_AXES.MASTER covers all 6 axes from the lexicon', () => {
+  it('ACTIVE_AXES.ANATHEMA covers all 6 axes from the lexicon', () => {
     const lexiconAxes = new Set(SIGN_LEXICON.map(e => e.axis));
-    const activeAxes = new Set(ACTIVE_AXES.MASTER);
+    const activeAxes = new Set(ACTIVE_AXES.ANATHEMA);
     for (const axis of lexiconAxes) {
       expect(activeAxes.has(axis)).toBe(true);
     }

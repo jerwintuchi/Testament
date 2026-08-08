@@ -5,19 +5,19 @@ import { channelsForTier, perceivedChannelsFor, hasProbeKit, filterSigns } from 
 import type { Sign, Tier } from '@testament/shared';
 import { CHANNELS } from '@testament/shared';
 
-const TIERS: Tier[] = ['APPRENTICE', 'JOURNEYMAN', 'MASTER'];
+const TIERS: Tier[] = ['VIGIL', 'INTERDICT', 'ANATHEMA'];
 
 describe('channelsForTier', () => {
-  it('Apprentice: ambient channels plus REACTION, canonical order', () => {
-    expect(channelsForTier('APPRENTICE')).toEqual(['RESIDUE', 'STRESS_MARK', 'REACTION', 'OMEN']);
+  it('Vigil: ambient channels plus REACTION, canonical order', () => {
+    expect(channelsForTier('VIGIL')).toEqual(['RESIDUE', 'STRESS_MARK', 'REACTION', 'OMEN']);
   });
 
-  it('Journeyman: adds SPOOR', () => {
-    expect(channelsForTier('JOURNEYMAN')).toEqual(['RESIDUE', 'STRESS_MARK', 'REACTION', 'SPOOR', 'OMEN']);
+  it('Interdict: adds SPOOR', () => {
+    expect(channelsForTier('INTERDICT')).toEqual(['RESIDUE', 'STRESS_MARK', 'REACTION', 'SPOOR', 'OMEN']);
   });
 
-  it('Master: all six channels', () => {
-    expect(channelsForTier('MASTER')).toEqual(CHANNELS);
+  it('Anathema: all six channels', () => {
+    expect(channelsForTier('ANATHEMA')).toEqual(CHANNELS);
   });
 });
 
@@ -31,25 +31,25 @@ describe('perceivedChannelsFor (T69, P32)', () => {
 
   it('party perception equals exactly the carried PERCEPTION channels, canonical order', () => {
     const bag = ['augurs-bead', 'ashen-lens'];  // OMEN + RESIDUE, packed out of order
-    expect(perceivedChannelsFor(bag, false, 'MASTER')).toEqual(['RESIDUE', 'OMEN']);
+    expect(perceivedChannelsFor(bag, false, 'ANATHEMA')).toEqual(['RESIDUE', 'OMEN']);
   });
 
   it('probe kits contribute no perception', () => {
     const bag = ['censer-of-embers', 'phial-of-hoarfrost', 'consecrated-salt', 'lantern-of-the-creed'];
-    expect(perceivedChannelsFor(bag, false, 'MASTER')).toEqual([]);
+    expect(perceivedChannelsFor(bag, false, 'ANATHEMA')).toEqual([]);
   });
 
   it('empty bag in a party → empty set (blindness is a legal bad bet)', () => {
-    expect(perceivedChannelsFor([], false, 'JOURNEYMAN')).toEqual([]);
+    expect(perceivedChannelsFor([], false, 'INTERDICT')).toEqual([]);
   });
 
   it('gear is not filtered by tier relevance (a wasted slot is the player\'s bet)', () => {
-    // Cantor's Ear reads LITURGY, which carries no sign at Apprentice — still assigned.
-    expect(perceivedChannelsFor(['cantors-ear'], false, 'APPRENTICE')).toEqual(['LITURGY']);
+    // Cantor's Ear reads LITURGY, which carries no sign at Vigil — still assigned.
+    expect(perceivedChannelsFor(['cantors-ear'], false, 'VIGIL')).toEqual(['LITURGY']);
   });
 
   it('unknown ids are ignored', () => {
-    expect(perceivedChannelsFor(['not-a-real-item'], false, 'MASTER')).toEqual([]);
+    expect(perceivedChannelsFor(['not-a-real-item'], false, 'ANATHEMA')).toEqual([]);
   });
 });
 
