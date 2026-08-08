@@ -47,9 +47,12 @@ incoherent — the party does not exist yet, and leadership can reassign afterwa
 - AC: the mix is **seeded and deterministic** (I3) — the same board seed yields the same tiers.
 - AC: every tier in the mix is one the `Tier` union actually carries. `APOCRYPHA` is **excluded**
   until `specs/tiers/` Phase B ships it.
-- AC: the spread is **weighted, not uniform** — a commission wall should read as mostly ordinary work
-  with a few things nobody wants to touch. Exact weights are content, and are stated in `design.md`
-  so they can be tuned without re-reading this.
+- AC: the spread is a **guaranteed composition, not an independent draw per entry** — 5 Vigil /
+  2 Interdict / 1 Anathema at the canonical size of 8, shuffled into position.
+  **Why composed rather than rolled** (decided during T362): once Rank gates acceptance (Phase B),
+  independent per-entry draws could produce a board with **nothing a low-rank Seeker may accept** — a
+  dead wall, by luck. Composing then shuffling makes that unreachable: a Seeker always has work, and
+  always sees what they cannot yet take. Exact shares are content and live in `design.md`.
 - **Why this is worth doing on its own:** the simulator measured **no packing decision at any party
   size**, and this constant is why. At Vigil only three of ten catalog items can do anything, so a
   board of nothing but Vigils means the preparation pillar never activates. A spread gives the game

@@ -5,20 +5,30 @@
 
 ## Phase A — the board offers a spread of danger
 
-- [ ] T362 [R353, P163 / V1] — **Retire `const BOARD_TIER: Tier = 'VIGIL'`.** `generateBoard` draws a
-      weighted tier per entry — proposed 5 / 2 / 1 across Vigil / Interdict / Anathema. Draw from a
-      **dedicated sub-stream** (`${entrySeed}:tier`), not the entry's main rng, so the added draw does
-      not shift every downstream value in the contract (the P151 lesson from `ward !== frailty`).
-      `APOCRYPHA` is excluded until `specs/tiers/` Phase B ships it.
-      Test: `generateBoard.test.ts` — a board carries more than one tier; the same seed reproduces the
-      same tiers exactly; no tier outside the `Tier` union appears; the weights hold across many seeds.
+- [x] T362 [R353, P163 / V1] — **Retire `const BOARD_TIER: Tier = 'VIGIL'`.** `generateBoard` composes
+      5 Vigil / 2 Interdict / 1 Anathema and **shuffles them on a board-level stream**
+      (`${expeditionSeed}:tiers`) — deliberately *not* an independent per-entry draw, for two reasons:
+      a rolled board could leave a low-rank Seeker nothing to accept once Phase B lands, and a
+      board-level stream touches **no entry rng at all** (a stronger form of the P151 stream-shape
+      lesson from `ward !== frailty`). `APOCRYPHA` is excluded until `specs/tiers/` Phase B ships it.
+      Test: `generateBoard.test.ts` — **7 new cases, green (server 373 → 380)**: a board is not all one
+      tier; every board is exactly 5/2/1; same seed reproduces the same order; different seeds place the
+      dangerous writs differently; never a tier outside the union and never APOCRYPHA; rounding at other
+      sizes spills into VIGIL; and **every contract is byte-identical to a direct `generateContract`
+      call on its entry seed**, proving the shuffle disturbed no entry stream (P151).
       **Why this alone is worth shipping:** the simulator measured *no packing decision at any party
       size*, and this constant is why — at Vigil only three of ten catalog items can do anything.
 
-- [ ] T363 [R354 / V3] — **The writ says how deep it goes**, in the Collegium's language (*Vigil*,
+- [x] T363 [R354 / V3] — **The writ says how deep it goes**, in the Collegium's language (*Vigil*,
       *Interdict*, *Anathema*) — never a number or a star rating. The tier-banded petitioner plea
       already exists in `notice.gd`; it simply starts varying now that the wall is mixed.
-      Test: `--board-preview` capture — tiers legible, pleas visibly differ across the eight writs.
+      Shipped in the **reader**, not the grid card: the card is laid out by `_fit_writ`, which measures
+      each writ against the font it will be drawn in, and that is precisely what TD-089 broke. The
+      declaration reads as a declaration — *"This thing is declared anathema."* — never a tier number
+      or a star. Marking what you may not *accept* belongs to Phase B, where it has a reason to exist.
+      Test: `--board-preview --reader` capture — the declaration sits between site and Origin.
+      **Grid proven unchanged** by capture from a stashed clean tree at HEAD: **0.042%** of pixels
+      differ against a ~0.47% control floor, confined to the two torch gutters (particle noise).
 
 ## Phase B — acceptance is gated (rank stubbed server-side)
 

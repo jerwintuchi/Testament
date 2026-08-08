@@ -24,12 +24,9 @@ the leader check, which is exactly where "may this actor accept this?" belongs.
 
 ## Phase A — a mixed board
 
-Replace the constant with a seeded pick per entry. Each board entry already has its own seed stream
-(`${expeditionSeed}:contract:${i}`), so the tier draw costs one draw on that stream and stays
-deterministic (I3).
+Replace the constant with a **composed, shuffled pool** — see below for why not a per-entry draw.
 
-**Proposed weights** — a commission wall reads as mostly ordinary work with a few things nobody wants
-to touch:
+**Shares** — a commission wall reads as mostly ordinary work with a few things nobody wants to touch:
 
 ```
 VIGIL      5 of 8      ordinary petitions
@@ -37,14 +34,22 @@ INTERDICT  2 of 8      the parish is frightened
 ANATHEMA   1 of 8      two wardens went to look and neither returned
 ```
 
-Weights are **content**, tunable without touching shape. `APOCRYPHA` is excluded until
+Shares are **content**, tunable without touching shape. `APOCRYPHA` is excluded until
 `specs/tiers/` Phase B ships it — adding a tier to the union does not automatically put it on the
 wall.
 
-**Draw the tier from a dedicated sub-stream** (`${entrySeed}:tier`) rather than the entry's main rng,
-so adding the draw does not shift every downstream value in the contract. This is the same
-stream-shape discipline that `ward !== frailty` needed (P151) — and there, getting it wrong was what
-made the sweep's numbers move.
+**Shipped as a composed pool shuffled on a board-level stream** (`${expeditionSeed}:tiers`), not as a
+per-entry draw. Two reasons, the second discovered while building it:
+
+1. **Stream shape (P151).** A board-level stream touches **no entry rng at all**, so a contract is
+   byte-identical to what `generateContract` yields directly from its entry seed — asserted by test,
+   rather than merely argued. A per-entry `:tier` sub-stream would also have worked; this is stronger.
+2. **A rolled board can be a dead board.** Once Rank gates acceptance, independent draws could leave a
+   low-rank Seeker a wall with nothing they may take. A composed pool makes that unreachable.
+
+`tierPool(size)` gives higher tiers their proportional share and fills the remainder with VIGIL, so
+rounding at a non-canonical size can only ever make the wall *safer* — never leave it with fewer
+acceptable contracts than planned.
 
 **Expect the sweep to change, and check it deliberately.** `sim/sweep.ts` iterates tiers explicitly
 so its own numbers should be unaffected — but the *board* it samples is not the same board, so any

@@ -73,6 +73,20 @@ const PLEA := {
 	],
 }
 
+# What the Collegium has DECLARED about this place (R354/TD-094). A Tier is a
+# declaration, not a difficulty rating, so it reads as one — never "Tier 2", never
+# a star, never a number ("no knowledge as a number", vision.md). The declaration
+# also tells the player what kind of work this is: a Vigil has no Ward to probe.
+const DECLARATION := {
+	"VIGIL":     "The Collegium keeps vigil here.",
+	"INTERDICT": "This place lies under interdict.",
+	"ANATHEMA":  "This thing is declared anathema.",
+	"APOCRYPHA": "The Collegium no longer trusts its own record of this.",
+}
+
+static func declaration(intel: Dictionary) -> String:
+	return str(DECLARATION.get(str(intel.get("tier", "VIGIL")), DECLARATION["VIGIL"]))
+
 static func plea(intel: Dictionary) -> String:
 	var frames: Array = PLEA.get(str(intel.get("tier", "VIGIL")), PLEA["VIGIL"])
 	var h := absi((str(intel.get("contractId", "")) + "|plea").hash())

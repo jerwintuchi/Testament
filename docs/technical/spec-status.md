@@ -11,8 +11,7 @@ These are disagreements between what a spec says and what the tree contains.
 
 ### `specs/rank-gate/` — 🟢 active
 
-- **LIKELY-SHIPPED** — 2 open task(s) name only files that already exist — check whether the work shipped and the box was never ticked: T363, T367
-- **STALE** — 7 open task(s), untouched for 1000000 days
+- **LIKELY-SHIPPED** — 1 open task(s) name only files that already exist — check whether the work shipped and the box was never ticked: T367
 
 ### `specs/mobile-input/` — 🟡 dormant
 
@@ -27,7 +26,7 @@ These are disagreements between what a spec says and what the tree contains.
 
 | spec | status | done | open | superseded | last touched | flags |
 |---|---|---:|---:|---:|---|---|
-| `rank-gate` | 🟢 active | 0 | 7 | 0 | — | LIKELY-SHIPPED, STALE |
+| `rank-gate` | 🟢 active | 2 | 5 | 0 | 2026-08-08 | LIKELY-SHIPPED |
 | `mobile-input` | 🟡 dormant | 0 | 10 | 0 | 2026-07-11 | MISSING |
 | `sign-lexicon` | 🟡 dormant | 0 | 6 | 0 | 2026-08-08 | MISSING, LIKELY-SHIPPED |
 | `title-scene` | ⛔ blocked | 19 | 1 | 0 | 2026-08-07 | — |

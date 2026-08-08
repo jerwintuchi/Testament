@@ -233,6 +233,12 @@ static func _build(ctx: Ctx) -> Control:
 	var site := Widgets.card_label("at %s" % intel.get("siteName", "?"), 12, ink_soft, true, true)
 	site.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(site)
+	# What the Collegium declared about the place (R354/TD-095). Sits under the site
+	# because that is what it is about, and above the Origin because a declaration is
+	# a fact of record while the genus is only an assertion.
+	var decl := Widgets.card_label(Notice.declaration(intel), 12, ink_soft, true, true)
+	decl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_child(decl)
 	# Asserted genus (text-only gloss — the Origin wax seal is retired, TD-060: the
 	# assertion is a falsifiable claim and reads as prose, never pressed in wax).
 	var org := str(intel.get("origin", "SIN"))
