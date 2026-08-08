@@ -17,7 +17,7 @@ const VerbBadge = preload("res://scripts/board/verb_badge.gd")
 const Notice = preload("res://scripts/board/notice.gd")
 const NoticeReader = preload("res://scripts/board/notice_reader.gd")  # the taken-down writ + its seal
 const ContractBoard = preload("res://scripts/board/contract_board.gd")  # the wall the writs hang on
-const Quartermaster = preload("res://scripts/stations/quartermaster.gd")  # the requisition writ
+const Quartermaster = preload("res://scripts/stations/quartermaster/register.gd")  # the requisition register
 const NoticeCard = preload("res://scripts/board/notice_card.gd")        # one writ + its furniture
 const BoardGeo = preload("res://scripts/board/board_geometry.gd")  # pure board layout/keep-out/seed math
 const BoardDecor = preload("res://scripts/board/board_decor.gd")   # torches + crest render factories
@@ -359,7 +359,7 @@ func _ready() -> void:
 	# the same mismatch TD-084 fixed on the options writ. Inked HERE on the node rather
 	# than in the popup Theme, because that Theme is shared with the Contract Board
 	# (TD-089). The board does not overflow, so its scrollbar never draws.
-	_ink_scrollbar(pscroll.get_v_scroll_bar())
+	Widgets.ink_scrollbar(pscroll.get_v_scroll_bar())
 	_popup_body = VBoxContainer.new()
 	_popup_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_popup_body.add_theme_constant_override("separation", 8)
@@ -444,7 +444,12 @@ func _ready() -> void:
 		get_tree().create_timer(2.4).timeout.connect(func():
 			if OS.get_cmdline_user_args().has("--qm-full"):
 				_selected_items = ["ashen-lens", "chirurgeons-glass", "censer-of-embers", "consecrated-salt"]
-			_open_station("QUARTERMASTER"))
+			_open_station("QUARTERMASTER")
+			# `--qm-pick` also selects one, so the field record is capturable — it only
+			# fills once something is chosen, and a capture cannot click.
+			if OS.get_cmdline_user_args().has("--qm-pick") and not _qm_view.is_empty():
+				_qm_view["sel"] = "witness-prism"
+				Quartermaster.refresh(_qm_view))
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--options"):
 		call_deferred("_show_options")
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--name-rite"):
@@ -1497,7 +1502,10 @@ func _open_station(kind: String) -> void:
 		_board_frame.visible = true
 	else:
 		_popup.remove_theme_stylebox_override("panel")
-		_popup_scroll.custom_minimum_size = Vector2(400, 240)
+		var vp := get_viewport_rect().size
+		_popup_scroll.custom_minimum_size = (
+			Vector2(vp.x * 0.86, vp.y * 0.66)
+			if kind == "QUARTERMASTER" else Vector2(400, 240))
 		if _board_frame != null:
 			_board_frame.visible = false
 	_clear_popup_body()
@@ -1572,9 +1580,10 @@ func _build_station_content(kind: String) -> void:
 			# The writ itself lives in stations/quartermaster.gd (canon S5: a new client
 			# feature does not enter main.gd). This is the router half — it owns the
 			# selection and the socket; the module only renders and hands intents back.
-			_qm_view = Quartermaster.build(_popup_body, _selected_items,
-				func(id: String): _toggle_requisition(id),
-				func(): _net.send_message(Protocol.REQUISITION, {"itemIds": _selected_items.duplicate()}))
+			_qm_view = Quartermaster.build(_popup_body, self, _selected_items.duplicate(),
+				func(packed: Array): _selected_items = packed,
+				func(): _net.send_message(Protocol.REQUISITION, {"itemIds": _selected_items.duplicate()}),
+				_reduced_motion)
 		"DEPLOY_GATE":
 			_build_muster()
 		"EXTRACTION":
@@ -1661,46 +1670,8 @@ func _build_muster() -> void:
 		_popup_label("The party leader gives the word to deploy.")
 
 
-## Take an instrument off the shelf, or give it back. Click-to-assign rather than
-## drag-and-drop: mobile is a target platform (TD-042) and a drag breaks keyboard focus.
-## The bag is bounded, so a fifth pick is refused with a reason (R319) — the server
-## validates regardless (P148); this is only the affordance.
-func _toggle_requisition(id: String) -> void:
-	if id in _selected_items:
-		_selected_items.erase(id)
-	elif _selected_items.size() >= Catalog.BAG_SLOTS:
-		_set_status("the bag holds at most %d instruments — give one back first" % Catalog.BAG_SLOTS)
-		return
-	else:
-		_selected_items.append(id)
-	if not _qm_view.is_empty():
-		Quartermaster.refresh(_qm_view, _selected_items)
-
-## Ink on the station's parchment. The styling is applied HERE rather than in the popup Theme,
-## because a Theme cascades into the Contract Board — whose writs are Buttons measured against their
-## own font — and re-flowed every one of them when it was tried (TD-089).
-## A quill-line scrollbar: a thin brass rule with a gilt lozenge, the same vocabulary
-## the reader's ornament scrollbar speaks (TD-061). Scoped to one node, never a Theme.
-func _ink_scrollbar(bar: VScrollBar) -> void:
-	if bar == null:
-		return
-	bar.custom_minimum_size = Vector2(7, 0)
-	var track := StyleBoxFlat.new()
-	track.bg_color = Color(0.34, 0.26, 0.15, 0.30)
-	track.content_margin_left = 3.0
-	track.content_margin_right = 3.0
-	bar.add_theme_stylebox_override("scroll", track)
-	var grab := StyleBoxFlat.new()
-	grab.bg_color = Color(0.52, 0.40, 0.19)
-	grab.set_corner_radius_all(1)
-	bar.add_theme_stylebox_override("grabber", grab)
-	var lit := StyleBoxFlat.new()
-	lit.bg_color = Color(0.80, 0.64, 0.32)
-	lit.set_corner_radius_all(1)
-	bar.add_theme_stylebox_override("grabber_highlight", lit)
-	bar.add_theme_stylebox_override("grabber_pressed", lit)
-
-
+## The Register owns selection and bounds now (`stations/quartermaster/`), so the shell
+## keeps only what a station module may not: the socket and the authoritative list it sends.
 func _popup_label(text: String, parent: Node = null) -> void:
 	var l := Label.new()
 	l.text = text

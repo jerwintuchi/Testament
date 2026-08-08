@@ -44,6 +44,34 @@
       Clamped in both `_save_name` and `_load_name`, since a file written by an older build is already
       on disk.
 
+## Phase B — the Register (author brief, 2026-08-08)
+
+- [x] T369 — **The Quartermaster becomes an expedition preparation screen.** Three columns —
+      the register of available instruments, the **expedition pack** as a real leather case with
+      recessed compartments, and the **field record** — over a tally and the rite. Split per the
+      brief's §18 into `stations/quartermaster/`: `register` (composition + state), `pack`
+      (case, compartments, flight), `record` (the field document), `lore` (item prose),
+      `seal_rite` (the commitment). Selection inspects; the record commits; a packed compartment
+      is clicked to give the instrument back.
+      **Assets**: `client/assets/ui/gen_quartermaster.py` — deterministic, fixed Ash & Ember
+      palette with an `assert_on_palette` gate, authored at display size, shown 1:1 NEAREST.
+      Test: `--quartermaster`, `--qm-full`, `--qm-pick` captures; `--reduced-motion` clean;
+      `--muster` unaffected; board diffed at **0.289%** against a ~0.47% control floor.
+
+### Three findings from the brief that the tree overruled
+
+1. **BURDEN was rejected and replaced.** Every instrument costs exactly one slot, so a weight
+   line would either restate `PACKED: n/4` or reintroduce the per-item cost TD-091 cut. The slot
+   now shows the pack's **shape** — `SET TO READ` / `SET TO TEST` / `EVENLY SET` — which is the
+   Observe/Test tradeoff the two groups exist to make, and says something the count cannot.
+2. **The stacked layout does not fit.** `get_viewport_rect()` returns the **logical** 640x360, so
+   the sheet is ~250 units tall while the brief's composition is ~370. Three columns is the honest
+   adaptation; the brief's §22 makes the project's resolution the source of truth.
+3. **`capacity_cost`, audio files and expedition history were not built.** Per-item cost is (1)
+   again; there is no audio system (T262 blocked — hooks only, no placeholder files); and the
+   Field Testament is a stub hard-coding `outcome: 'success'`, so a history panel would be
+   fabricated data, which the brief's §10 forbids.
+
 ## Phase B — the Stipend — **CUT (TD-091, 2026-08-08)**
 
 > The author cut the Stipend: `BAG_SLOTS` is the economy and there is **no currency in Testament**.

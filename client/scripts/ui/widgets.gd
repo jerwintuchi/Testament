@@ -176,3 +176,26 @@ static func choice(host: Node, text: String, size: int, on_pressed: Callable) ->
 	row.add_child(right)
 	host.add_child(row)
 	return b
+
+
+## A quill-line scrollbar: a thin brass rule with a gilt grabber, so a scrolling region
+## on parchment does not show the stock grey engine bar. Applied to ONE node, never
+## through a Theme — the popup Theme is shared with the Contract Board (TD-089).
+static func ink_scrollbar(bar: ScrollBar) -> void:
+	if bar == null:
+		return
+	bar.custom_minimum_size = Vector2(7, 0)
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.34, 0.26, 0.15, 0.30)
+	track.content_margin_left = 3.0
+	track.content_margin_right = 3.0
+	bar.add_theme_stylebox_override("scroll", track)
+	var grab := StyleBoxFlat.new()
+	grab.bg_color = Color(0.52, 0.40, 0.19)
+	grab.set_corner_radius_all(1)
+	bar.add_theme_stylebox_override("grabber", grab)
+	var lit := StyleBoxFlat.new()
+	lit.bg_color = Color(0.80, 0.64, 0.32)
+	lit.set_corner_radius_all(1)
+	bar.add_theme_stylebox_override("grabber_highlight", lit)
+	bar.add_theme_stylebox_override("grabber_pressed", lit)

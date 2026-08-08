@@ -154,10 +154,10 @@
 - **`client/scripts/board/verb_badge.gd`**
   - loaded-by: `client/scripts/board/board_bar.gd` (preload), `client/scripts/board/notice_card.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scripts/board/wax_seal.gd`**
-  - loaded-by: `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload)
+  - loaded-by: `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster/seal_rite.gd` (preload)
 - **`client/scripts/core/catalog.gd`**
   - preloads: `protocol.gd`
-  - loaded-by: `client/scripts/stations/quartermaster.gd` (preload)
+  - loaded-by: `client/scripts/stations/quartermaster/register.gd` (preload)
 - **`client/scripts/core/settings.gd`**
   - preloads: `settings.gd`
   - loaded-by: `client/scripts/core/settings.gd` (load), `client/scripts/main.gd` (preload)
@@ -165,30 +165,41 @@
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/world/space_view.gd` (preload)
 - **`client/scripts/main.gd`**
   - loads: `collegium_logo.png`, `frame_v1.png`, `stone_tile.png`, `player.tscn`
-  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `contract_board.gd`, `notice.gd`, `notice_card.gd`, `notice_reader.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `settings.gd`, `station_names.gd`, `quartermaster.gd`, `fonts.gd`, `pause_menu.gd`, `popup_theme.gd`, `rite_banner.gd`, `title_scene.gd`, `widgets.gd`, `writ_form.gd`
+  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `contract_board.gd`, `notice.gd`, `notice_card.gd`, `notice_reader.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `settings.gd`, `station_names.gd`, `register.gd`, `fonts.gd`, `pause_menu.gd`, `popup_theme.gd`, `rite_banner.gd`, `title_scene.gd`, `widgets.gd`, `writ_form.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
-- **`client/scripts/stations/quartermaster.gd`**
-  - preloads: `catalog.gd`, `fonts.gd`, `popup_theme.gd`, `widgets.gd`
+- **`client/scripts/stations/quartermaster/lore.gd`**
+  - loaded-by: `client/scripts/stations/quartermaster/record.gd` (preload), `client/scripts/stations/quartermaster/register.gd` (preload)
+- **`client/scripts/stations/quartermaster/pack.gd`**
+  - preloads: `fonts.gd`, `popup_theme.gd`, `widgets.gd`
+  - loaded-by: `client/scripts/stations/quartermaster/register.gd` (preload)
+- **`client/scripts/stations/quartermaster/record.gd`**
+  - preloads: `lore.gd`, `fonts.gd`, `popup_theme.gd`, `widgets.gd`
+  - loaded-by: `client/scripts/stations/quartermaster/register.gd` (preload)
+- **`client/scripts/stations/quartermaster/register.gd`**
+  - preloads: `catalog.gd`, `lore.gd`, `pack.gd`, `record.gd`, `seal_rite.gd`, `fonts.gd`, `popup_theme.gd`, `widgets.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
+- **`client/scripts/stations/quartermaster/seal_rite.gd`**
+  - preloads: `wax_seal.gd`, `rite_banner.gd`
+  - loaded-by: `client/scripts/stations/quartermaster/register.gd` (preload)
 - **`client/scripts/ui/fonts.gd`**
   - loads: `Cinzel.ttf`
-  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/popup_theme.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/widgets.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
+  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster/pack.gd` (preload), `client/scripts/stations/quartermaster/record.gd` (preload), `client/scripts/stations/quartermaster/register.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/popup_theme.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/widgets.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
 - **`client/scripts/ui/pause_menu.gd`**
   - preloads: `fonts.gd`, `widgets.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/popup_theme.gd`**
   - loads: `parch_v1_0.png`
   - preloads: `fonts.gd`
-  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster.gd` (preload)
+  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster/pack.gd` (preload), `client/scripts/stations/quartermaster/record.gd` (preload), `client/scripts/stations/quartermaster/register.gd` (preload)
 - **`client/scripts/ui/rite_banner.gd`**
   - preloads: `fonts.gd`
-  - loaded-by: `client/scripts/main.gd` (preload)
+  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster/seal_rite.gd` (preload)
 - **`client/scripts/ui/title_scene.gd`**
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/widgets.gd`**
   - loads: `menu_sigil.png`
   - preloads: `fonts.gd`
-  - loaded-by: `client/scripts/board/board_header.gd` (preload), `client/scripts/board/contract_board.gd` (preload), `client/scripts/board/notice_card.gd` (preload), `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
+  - loaded-by: `client/scripts/board/board_header.gd` (preload), `client/scripts/board/contract_board.gd` (preload), `client/scripts/board/notice_card.gd` (preload), `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster/pack.gd` (preload), `client/scripts/stations/quartermaster/record.gd` (preload), `client/scripts/stations/quartermaster/register.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
 - **`client/scripts/ui/writ_form.gd`**
   - preloads: `fonts.gd`, `widgets.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
@@ -221,6 +232,10 @@
 - `client/assets/ui/stations/contract_board.png`
 - `client/assets/ui/stations/deploy_gate.png`
 - `client/assets/ui/stations/gear_icons.png`
+- `client/assets/ui/stations/label_strip.png`
+- `client/assets/ui/stations/pack_case.png`
+- `client/assets/ui/stations/pack_clasp.png`
+- `client/assets/ui/stations/pack_slot.png`
 - `client/assets/ui/stations/quartermaster.png`
 - `client/assets/ui/title/title_air.gdshader`
 
@@ -236,9 +251,13 @@
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
-- `client/scripts/main.gd:1869` — `load/preload path`
-- `client/scripts/main.gd:1873` — `load/preload normal_path`
-- `client/scripts/stations/quartermaster.gd:124` — `load/preload ICONS`
+- `client/scripts/main.gd:1840` — `load/preload path`
+- `client/scripts/main.gd:1844` — `load/preload normal_path`
+- `client/scripts/stations/quartermaster/pack.gd:68` — `load/preload CLASP`
+- `client/scripts/stations/quartermaster/pack.gd:152` — `load/preload path`
+- `client/scripts/stations/quartermaster/pack.gd:167` — `load/preload SLOT`
+- `client/scripts/stations/quartermaster/register.gd:163` — `load/preload ICONS`
+- `client/scripts/stations/quartermaster/seal_rite.gd:40` — `load/preload SEAL_TEX`
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
 - `client/scripts/ui/writ_form.gd:262` — `load/preload PARCH`

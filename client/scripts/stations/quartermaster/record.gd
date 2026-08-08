@@ -1,0 +1,125 @@
+extends RefCounted
+## The field record for the selected instrument — a Collegium document, not a tooltip.
+##
+## Reads as something filed: a ruled head, the classification, the question the
+## instrument settles, a short hand, a handling note, and the property footer. No
+## statistics: an instrument is described by what it DOES (R320/P149), and the only
+## number anywhere near this screen is how many slots are left.
+
+const Widgets    := preload("res://scripts/ui/widgets.gd")
+const PopupTheme := preload("res://scripts/ui/popup_theme.gd")
+const Fonts      := preload("res://scripts/ui/fonts.gd")
+const Lore       := preload("res://scripts/stations/quartermaster/lore.gd")
+
+const ICON_PX := 24
+
+
+## `host` takes the scrolling body; `action_host` takes the commit button, which is
+## pinned OUTSIDE the scroll — a long record must never carry the decision off-screen.
+static func build(host: Node, action_host: Node = null) -> Dictionary:
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 2)
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.custom_minimum_size = Vector2(150, 0)   # so the wrap has a width to work against
+	host.add_child(root)
+
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 8)
+	root.add_child(head)
+	var icon := TextureRect.new()
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	icon.custom_minimum_size = Vector2(ICON_PX, ICON_PX)
+	head.add_child(icon)
+	var titles := VBoxContainer.new()
+	titles.add_theme_constant_override("separation", 0)
+	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(titles)
+	var name_l := Widgets.card_label("", 14, PopupTheme.INK, false, false)
+	var class_l := Widgets.card_label("", 9, PopupTheme.INK_DIM, false, false)
+	titles.add_child(name_l)
+	titles.add_child(class_l)
+
+	root.add_child(Widgets.hrule(PopupTheme.RULE))
+	var asks := Widgets.card_label("", 11, PopupTheme.INK, true, false)
+	asks.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(asks)
+	var note := Widgets.card_label("", 9, PopupTheme.INK_DIM, true, false)
+	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(note)
+	var care := Widgets.card_label("", 8, Color(0.44, 0.20, 0.16, 0.90), true, false)
+	care.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(care)
+	var foot := Widgets.card_label("", 8, Color(PopupTheme.INK_DIM.r, PopupTheme.INK_DIM.g, PopupTheme.INK_DIM.b, 0.55), true, false)
+	foot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(foot)
+
+	# The one action in the record: it is where a decision is made, so the verb lives
+	# beside the thing being decided rather than in a toolbar — but pinned, not scrolled.
+	var act := Button.new()
+	act.visible = false
+	_ink(act)
+	(action_host if action_host != null else root).add_child(act)
+
+	return {"root": root, "icon": icon, "name": name_l, "class": class_l,
+		"asks": asks, "note": note, "care": care, "foot": foot, "action": act}
+
+
+## `state` is "shelf" (can be packed), "packed" (can be removed) or "full".
+static func show_item(view: Dictionary, item: Dictionary, tex: Texture2D,
+		state: String, act: Callable) -> void:
+	if item.is_empty():
+		clear(view)
+		return
+	var rec := Lore.of(String(item["id"]))
+	(view["icon"] as TextureRect).texture = tex
+	(view["name"] as Label).text = String(item["name"]).to_upper()
+	(view["class"] as Label).text = String(rec["class"])
+	(view["asks"] as Label).text = "\"%s\"" % rec["asks"]
+	(view["note"] as Label).text = String(rec["note"])
+	(view["care"] as Label).text = String(rec["care"])
+	(view["foot"] as Label).text = Lore.FOOTER
+
+	var b: Button = view["action"]
+	for c in b.pressed.get_connections():
+		b.pressed.disconnect(c["callable"])
+	b.visible = true
+	match state:
+		"packed":
+			b.text = "Take it back out"
+			b.disabled = false
+		"full":
+			b.text = "The pack is full"
+			b.disabled = true
+		_:
+			b.text = "Pack it"
+			b.disabled = false
+	if not b.disabled:
+		b.pressed.connect(act)
+
+
+static func clear(view: Dictionary) -> void:
+	(view["icon"] as TextureRect).texture = null
+	(view["name"] as Label).text = ""
+	(view["class"] as Label).text = ""
+	(view["asks"] as Label).text = ""
+	(view["note"] as Label).text = "Choose an instrument from the register to read its record."
+	(view["care"] as Label).text = ""
+	(view["foot"] as Label).text = ""
+	(view["action"] as Button).visible = false
+
+
+static func _ink(b: Button) -> void:
+	b.add_theme_stylebox_override("normal", PopupTheme.ruled(PopupTheme.RULE))
+	for st in ["hover", "pressed", "focus"]:
+		b.add_theme_stylebox_override(st, PopupTheme.ruled(PopupTheme.RULE_LIT))
+	b.add_theme_stylebox_override("disabled",
+		PopupTheme.ruled(Color(PopupTheme.RULE.r, PopupTheme.RULE.g, PopupTheme.RULE.b, 0.25)))
+	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(st, PopupTheme.INK)
+	b.add_theme_color_override("font_disabled_color",
+		Color(PopupTheme.INK.r, PopupTheme.INK.g, PopupTheme.INK.b, 0.35))
+	b.add_theme_font_size_override("font_size", 11)
+	var f := Fonts.cinzel(600)
+	if f != null:
+		b.add_theme_font_override("font", f)
