@@ -28,6 +28,7 @@ static func _variant(tx: int, ty: int, n: int) -> int:
 	h = (h ^ (h >> 13)) * 1274126177 & 0x7FFFFFFF
 	return (h >> 11) % n
 const MARKER := preload("res://scenes/marker.tscn")
+const Fonts := preload("res://scripts/ui/fonts.gd")
 
 # A station is an OBJECT, not a coloured square with its name floating over it (TD-081 T313/T314).
 # The proximity prompt already reads "Press E: <Station>" on approach, so a permanent caption in the
@@ -216,6 +217,68 @@ static func _solid_at(rows: Array, tx: int, ty: int) -> bool:
 	return tx < row.length() and row[tx] == SOLID
 
 
+## A notice hung ABOVE a station, in the world, rather than a subtitle across the foot
+## of the screen. The prompt is about a thing you are standing in front of, so it belongs
+## on that thing — a caption at the bottom of the viewport reads as UI chrome and makes
+## the player look away from what they are addressing.
+func set_notice(kind: String, text: String, warn: bool) -> void:
+	for c in _markers.get_children():
+		if c is Sprite2D and c.get_meta("station_kind", "") == kind:
+			var n: Node = c.get_node_or_null("Notice")
+			if n == null:
+				n = _notice()
+				c.add_child(n)
+			var lbl := n as Label
+			lbl.text = text
+			lbl.add_theme_color_override("font_color",
+				Color(0.94, 0.74, 0.62) if warn else Color(0.96, 0.90, 0.76))
+			lbl.visible = text != ""
+			lbl.custom_minimum_size = Vector2(NOTICE_W, 0)
+			lbl.size = Vector2(NOTICE_W, NOTICE_H)
+			# Clear of the object's head: the sprite's foot is anchored to the tile, so
+			# its top is one texture-height above the origin.
+			lbl.position = Vector2(-NOTICE_W * 0.5, -c.texture.get_height() - NOTICE_H - 8)
+		else:
+			var other: Node = c.get_node_or_null("Notice") if c is Sprite2D else null
+			if other != null:
+				other.visible = false
+
+
+func clear_notices() -> void:
+	for c in _markers.get_children():
+		if c is Sprite2D:
+			var n: Node = c.get_node_or_null("Notice")
+			if n != null:
+				n.visible = false
+
+
+const NOTICE_W := 128.0
+const NOTICE_H := 42.0
+
+static func _notice() -> Control:
+	# Positioned directly, NOT anchored: the wrapper Control has zero size, so a
+	# CENTER_BOTTOM preset resolved against nothing and threw the text off to one side.
+	var lbl := Label.new()
+	lbl.name = "Text"
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# BOTH, and set again on show: `size` alone does not constrain autowrap, because the
+	# label's own minimum (its longest line) wins and the box grows to fit.
+	lbl.custom_minimum_size = Vector2(NOTICE_W, 0)
+	lbl.size = Vector2(NOTICE_W, NOTICE_H)
+	lbl.add_theme_font_size_override("font_size", 5)
+	# An outline, not a panel: the hall is dark and lit unevenly, so the text must hold
+	# on stone, on floor, and inside a lamp pool without dragging a box around with it.
+	lbl.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.02, 0.95))
+	lbl.add_theme_constant_override("outline_size", 3)
+	var f := Fonts.cinzel(600)
+	if f != null:
+		lbl.add_theme_font_override("font", f)
+	return lbl
+
+
 func _place_markers(markers: Array) -> void:
 	for c in _markers.get_children():
 		c.queue_free()
@@ -231,6 +294,7 @@ func _place_markers(markers: Array) -> void:
 			# Seeker does, rather than floating centred on a grid square.
 			sp.offset = Vector2(0, -tex.get_height() * 0.5)
 			sp.position = Vector2(int(m["x"]) * TILE + TILE * 0.5, int(m["y"]) * TILE + TILE)
+			sp.set_meta("station_kind", kind)
 			_markers.add_child(sp)
 		else:
 			var node := MARKER.instantiate()

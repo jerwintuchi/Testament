@@ -459,6 +459,13 @@ func _ready() -> void:
 			if OS.get_cmdline_user_args().has("--qm-pick") and not _qm_view.is_empty():
 				_qm_view["sel"] = "witness-prism"
 				Quartermaster.refresh(_qm_view))
+	# `--at-qm` WALKS the Seeker to the Quartermaster, so the world notice is capturable
+	# without a human at the keys. A teleport is not available: position is server-owned
+	# and only ever moves through MOVE intents (I1), so this drives the same input a
+	# player would.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--at-qm"):
+		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
+		get_tree().create_timer(2.4).timeout.connect(func(): _walk_to_station("QUARTERMASTER"))
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--options"):
 		call_deferred("_show_options")
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--name-rite"):
@@ -1450,14 +1457,16 @@ func _update_stations() -> void:
 		_prompt.visible = false
 		return
 	_active_station = _nearest_station()
-	_prompt.visible = _active_station != ""
-	if _prompt.visible:
-		if _station_open(_active_station):
-			_prompt.text = "Press E: %s" % StationNames.of(_active_station)
-			_prompt.modulate = Color(1, 1, 1, 1)
-		else:
-			_prompt.text = "%s — closed" % StationNames.of(_active_station)
-			_prompt.modulate = Color(0.86, 0.62, 0.52, 1.0)
+	_prompt.visible = false                        # retired: the notice hangs on the station now
+	if _space == null:
+		return
+	if _active_station == "":
+		_space.clear_notices()
+		return
+	if _station_open(_active_station):
+		_space.set_notice(_active_station, "Press E", false)
+	else:
+		_space.set_notice(_active_station, _station_closed_reason(_active_station), true)
 
 ## Is this station open for business? The Quartermaster's counter only issues against a
 ## charge already taken up — REQUISITION is DEPLOYING-only server-side (R65), so walking
@@ -1473,7 +1482,9 @@ func _station_open(kind: String) -> bool:
 ## Why a closed station is closed, in the Collegium's voice.
 func _station_closed_reason(kind: String) -> String:
 	if kind == "QUARTERMASTER":
-		return "The counter is shut. The Collegium issues instruments only against a charge already taken up."
+		if _snapshot.get("contract") == null:
+			return "The counter is shut.\nTake a charge first."
+		return "The counter is shut.\nMuster at the Deploy Gate."
 	return ""
 
 
@@ -1776,6 +1787,33 @@ func _refresh_open_reader() -> void:
 # call sites need it (the popup scroll size, the reader Ctx), so the wrapper stays here.
 ## Every other Seeker's bag, keyed by display name — already on the wire and marked
 ## party-visible, because coordinating the bags IS coordinating perception (TD-007).
+## Drive MOVE intents toward a station until standing on it (debug captures only).
+func _walk_to_station(kind: String) -> void:
+	var c: Variant = _snapshot.get("collegium")
+	if c == null:
+		return
+	var target: Variant = null
+	for st in c["stations"]:
+		if str(st["kind"]) == kind:
+			target = _center_px(int(st["x"]), int(st["y"]))
+	if target == null:
+		return
+	var t := Timer.new()
+	t.wait_time = 0.05
+	add_child(t)
+	t.timeout.connect(func():
+		var me: Variant = _self_pos()
+		if me == null:
+			return
+		if me.distance_to(target) <= STATION_RADIUS * 0.6 or _nearest_station() == kind:
+			_net.send_message(Protocol.MOVE, {"dx": 0, "dy": 0})
+			t.stop()
+			return
+		var d: Vector2 = target - me
+		_net.send_message(Protocol.MOVE, {"dx": signi(int(round(d.x))), "dy": signi(int(round(d.y)))}))
+	t.start()
+
+
 func _party_bags() -> Array:
 	var out: Array = []
 	for p in _snapshot.get("players", []):

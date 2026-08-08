@@ -183,7 +183,7 @@
   - loaded-by: `client/scripts/stations/quartermaster/register.gd` (preload)
 - **`client/scripts/ui/fonts.gd`**
   - loads: `Cinzel.ttf`
-  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster/pack.gd` (preload), `client/scripts/stations/quartermaster/record.gd` (preload), `client/scripts/stations/quartermaster/register.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/popup_theme.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/widgets.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
+  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster/pack.gd` (preload), `client/scripts/stations/quartermaster/record.gd` (preload), `client/scripts/stations/quartermaster/register.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/popup_theme.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/widgets.gd` (preload), `client/scripts/ui/writ_form.gd` (preload), `client/scripts/world/space_view.gd` (preload)
 - **`client/scripts/ui/pause_menu.gd`**
   - preloads: `fonts.gd`, `widgets.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
@@ -208,7 +208,7 @@
   - loaded-by: `client/scenes/player.tscn` (ext_resource)
 - **`client/scripts/world/space_view.gd`**
   - loads: `marker.tscn`
-  - preloads: `station_names.gd`
+  - preloads: `station_names.gd`, `fonts.gd`
   - loaded-by: `client/scenes/space_view.tscn` (ext_resource)
 
 
@@ -251,8 +251,8 @@
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
-- `client/scripts/main.gd:1895` — `load/preload path`
-- `client/scripts/main.gd:1899` — `load/preload normal_path`
+- `client/scripts/main.gd:1933` — `load/preload path`
+- `client/scripts/main.gd:1937` — `load/preload normal_path`
 - `client/scripts/stations/quartermaster/pack.gd:70` — `load/preload CLASP`
 - `client/scripts/stations/quartermaster/pack.gd:156` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:170` — `load/preload path`
@@ -262,4 +262,4 @@
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
 - `client/scripts/ui/writ_form.gd:262` — `load/preload PARCH`
-- `client/scripts/world/space_view.gd:225` — `load/preload art`
+- `client/scripts/world/space_view.gd:288` — `load/preload art`
