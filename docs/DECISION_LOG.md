@@ -3646,3 +3646,108 @@ built**: `ward !== frailty`, `allReady` on the live deploy path, and `isSolo` co
 reading gear set below the channel count, so no party can ever read every channel — which would
 reverse the cost TD-091 explicitly accepted; it is to be worked up, not yet built, and must ship
 with a solo allowance or it inverts Pillar 4. Charges are demoted to late work.
+
+## 2026-08-08 — TD-093: a sign names what was seen, not what it means
+
+**Why.** TD-092 established that preparation is a solved packing problem. Reading the lexicon to fix
+that turned up something larger and closer to the game's centre: **the reading problem is not
+implemented.** `vision.md` calls interpretation "the soul, and the hardest part"; the shipped sign
+language is, for two of six axes, a set of labels that state their own answer in English.
+
+**The measurement, not the impression.** Applying the rule *"no token may contain, case-insensitively,
+a value of its own axis or any `Stimulus` literal"* to the 24-entry `SIGN_LEXICON` **fails 11 of 24
+entries** — every `FRAILTY` token (`flinch-from-flame`), every `WARD` token (`drinks-flame`),
+`frost-rime`, `rot-bloom`, and `flame-rune`. And `client/scripts/main.gd` prints the **raw token** to
+the player at two sites (`:754`, `:1183`), so `[STRESS_MARK] flinch-from-flame` is literally what a
+Seeker reads. There is no inferential step to perform.
+
+**A related technicality worth recording, because it is why nobody noticed.** The containment tests
+assert the wire JSON carries no trait literal via `expect(json).not.toContain('"FLAME"')` — *with
+quotes*. `flinch-from-flame` carries `flame` lowercase and unquoted, so it passes. The letter of I5
+holds (the trait roll never crosses the wire); the spirit does not (the sign spells the answer). The
+assertion becomes case-insensitive and unquoted.
+
+**The rule.**
+
+> **A token names what the Seeker saw. The player supplies what it means. The remedy is never in the
+> observation.**
+
+With the corollary that makes it a language rather than a cipher: **one inferential step, recoverable
+by reasoning about the world.** `still-spoor → AMBUSHER` is right because a thing that leaves presence
+without travel is a thing that waits. A token needing *no* step is a label; a token needing an
+*unrecoverable* step (`mark-VII`) is memorization of noise, which is Pillar 2's worst reading.
+
+**The rule that stops it over-correcting — the interpretation budget follows the clock.** The player
+must have time to do the thinking they are charged for.
+
+| Read during | Channels | Budget |
+|---|---|---|
+| Approach — minutes, the party talking | RESIDUE, SPOOR, LITURGY | one to two steps, forensic |
+| Mid-encounter — seconds | STRESS_MARK, REACTION | exactly one, and material |
+| The wind-up — milliseconds | OMEN | **zero. Transparent by design.** |
+
+So the **`TELL`/OMEN set is kept verbatim**. `full-body-tremor` being a near-synonym of SHUDDER is
+*correct*: TD-013 makes the Tell the survival payoff, read while something is about to kill you, and
+you cannot ask a player to deduce during a wind-up. Naming this is what keeps the redesign from
+"fixing" the file's best work. **17 tokens change, 7 are kept** — a third of the table was already
+right, including `still-spoor`, `weeping-clay` and `voided-glyph`.
+
+**The law the FRAILTY set now carries**, which is the deliverable rather than the four strings:
+*a wound names the substance; the substance names the remedy.* `tallow-sweat` (a fatty film — fat
+takes a flame), `fever-sweat` (it spends heat to hold its shape), `clear-weep` (water in a shape;
+salt draws water), `shadow-bleed` (made of the dark it lives in). A player who learns that one
+sentence derives all four, and derives the fifth when it ships. That is TD-092's principle exactly:
+a **law of the world** is the intended progression; the entity's value is not.
+
+**WARD is a confirmation channel, not a reading channel** — the party supplies the hypothesis
+(by choosing the stimulus, which `PROBE_RESULT` echoes) and the world answers yes or no, so no wording
+can make those four tokens informative. **But the redundancy is load-bearing**: `revealedSigns` stores
+bare `{channel, token}` deduped by token, and that is what a reconnecting player's snapshot restores —
+so `drinks-cold` is currently the *only* durable record that the ward is cold. **Collapsing the four
+to one would silently lose the ward on reconnect** (register item A8 arriving from a new direction).
+So they are reworded, not collapsed: `swallowed-the-brand` names the **instrument the party
+presented**, never the element. The collapse stays available, coupled to a durable probe record.
+
+**Prose lives on the client; the token stays a terse wire identifier.** A token is a contract,
+prose is presentation — and `sign-language.md` already commits to Origin as "a presentation modifier
+applied to the token", which is impossible if the token *is* the string the player reads. A prose
+table on an untrusted client leaks nothing: the sign→meaning map is public game-truth by canon
+("the same sign always means the same thing"), and the trait roll still never crosses the wire.
+Renaming alone would not be enough — prose rendered as one line in a scrolling log is still consumed
+as a label, so it renders as a **field note in the Seeker's own hand**, in the writ idiom the client
+already speaks.
+
+**The Librarium's dependency runs backwards from how it was proposed.** A room printing
+`tallow-sweat = frail to flame` hands over the single inferential step this whole entry exists to
+create — a wiki we would have built ourselves and installed in the lobby. **A translation table is
+forbidden there for the same reason entity→value lookups are.** It may hold laws, case histories
+(past Testaments as prose, from which the player *induces* the vocabulary — seeded, unlimited,
+systems over content), and which instrument reads which channel. Nothing else.
+
+**And the real teacher is not a room: it is the Field Testament at extraction** — the answer key,
+delivered *after* the bet is settled. That is Record closing the loop and Pillar 5 paying for itself.
+**Build the Testament reveal before the Librarium**; without it a failed hunt teaches nothing and the
+room becomes a crutch for a missing loop. (The Testament is currently a stub: `buildStubTestament`
+hard-codes `outcome: 'success'`.)
+
+**Ambiguity is deferred, and the reason matters.** The 1:1 map is not the problem — **the independence
+of the axes is**. Today the party's conversation is people reading tokens aloud, because knowing the
+Aspect tells you nothing about the Frailty. With `ward !== frailty` (shipped, TD-092) plus incomplete
+channel coverage (`specs/preparation/` R336), it becomes *"mine says `clear-weep`, so by the law it
+isn't warded against salt either — don't spend that probe"*: a chain, requiring two players. Adding
+ambiguity **now** would only produce "I'm not sure which", which is noise, not depth. Coarse/fine
+reads are a third pass, and if built must be a **different token** naming a coarser observation, never
+the same token with a confidence field.
+
+**Consequences.** New spec `specs/sign-lexicon/` (R339+, P154+, T349+), which becomes the active spec;
+`specs/preparation/` is parked with Phase 0 shipped and Phases 1–3 awaiting rulings. New properties:
+**P154** (a sign is an observation, not a conclusion — enforced by a test that fails 11 of 24 today)
+and **P155** (no client string names an axis or trait value — committing the sin on the client is
+committing it). `specs/incarnate-signs/` is closed, so its token table is marked superseded **in
+place**. No wire-shape change: `SignToken` is `string`. The Contract Board renders no signs, so the
+standing clean-tree capture diff is **not** required for this work.
+
+**Four rulings are outstanding and the spec is blocked on them**: the WARD form (reword now vs.
+collapse coupled to a probe record); the prose split; whether the Librarium's no-translation-table
+rule is recorded as a non-negotiable; and confirmation that coarse/fine ambiguity is deferred rather
+than dropped.

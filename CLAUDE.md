@@ -470,7 +470,27 @@ silently re-flowed. **A Theme on a container hosting a complex child carries onl
 cannot be harmed by**; ink is applied by the builders that create the widgets. Proven restored by
 diffing against a stashed clean tree at HEAD (0.43% vs a ~0.47% control noise floor).
 
-Active spec: **`specs/preparation/`** (TD-092) — **preparation stops being a solved packing
+Active spec: **`specs/sign-lexicon/`** (TD-093) — **a sign names what was seen, not what it means.**
+Reading the lexicon to fix TD-092 found something closer to the game's centre: **the reading problem
+is not implemented.** Measured, not asserted — the rule *"no token may contain a value of its own axis
+or a `Stimulus` literal"* **fails 11 of 24 entries** (every `FRAILTY`, every `WARD`, plus `frost-rime`,
+`rot-bloom`, `flame-rune`), and `main.gd` prints the **raw token** at `:754` and `:1183`, so a player
+literally reads `[STRESS_MARK] flinch-from-flame`. The containment test passed only because it checks
+`"FLAME"` **with quotes** — the letter of I5 held while the spirit did not. **17 tokens change, 7 are
+kept.** The rule that stops it over-correcting: **the interpretation budget follows the clock** — the
+`TELL`/OMEN set is kept **verbatim**, because the Tell is the survival payoff read at wind-up speed and
+you cannot ask a player to deduce while something is swinging (TD-013). The `FRAILTY` set carries a
+**law** instead of four strings — *a wound names the substance; the substance names the remedy.*
+**WARD is a confirmation channel** (the party supplies the hypothesis by choosing the stimulus), so its
+four tokens are flavour — but the redundancy is **load-bearing**: `revealedSigns` dedupes by token and
+is what reconnect restores, so collapsing them would silently lose the ward (A8 from a new direction).
+**BLOCKED on four rulings**: the WARD form, the prose split (terse token + client prose, which
+everything about Origin dialect depends on), whether the **Librarium's no-translation-table rule** is a
+non-negotiable, and confirming coarse/fine ambiguity is deferred not dropped. **Named but not this
+spec's work: the Field Testament at extraction is the real teacher** — the answer key after the bet is
+settled — and it is a stub (`outcome: 'success'` hard-coded). Build it before any Librarium.
+
+Parked: **`specs/preparation/`** (TD-092) — **preparation stops being a solved packing
 problem.** The finding that opened it: `ACTIVE_AXES` is fixed by tier and public, `AXIS_TO_CHANNEL` is
 a bijection, each channel has exactly one lens — so the optimal bag is computable from **tier alone**,
 identical every expedition. And the contract cannot inform it: `generateContract` draws `origin`,
@@ -497,9 +517,9 @@ allowance or Pillar 4 inverts. **Charges are NOT the anti-brute-force fix** (TD-
 four kits are four *different* stimuli and duplicates are already rejected, so one charge each is
 exactly the sweep).
 
-@specs/preparation/requirements.md
-@specs/preparation/design.md
-@specs/preparation/tasks.md
+@specs/sign-lexicon/requirements.md
+@specs/sign-lexicon/design.md
+@specs/sign-lexicon/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't
