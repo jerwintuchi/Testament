@@ -13,7 +13,6 @@ These are disagreements between what a spec says and what the tree contains.
 
 - **MISSING** — open tasks name 2 file(s) not in the tree: client/scripts/field/sign_prose.gd, sign_prose.gd
 - **LIKELY-SHIPPED** — 1 open task(s) name only files that already exist — check whether the work shipped and the box was never ticked: T350
-- **STALE** — 6 open task(s), untouched for 1000000 days
 
 ### `specs/mobile-input/` — 🟡 dormant
 
@@ -23,7 +22,7 @@ These are disagreements between what a spec says and what the tree contains.
 
 | spec | status | done | open | superseded | last touched | flags |
 |---|---|---:|---:|---:|---|---|
-| `sign-lexicon` | 🟢 active | 0 | 6 | 0 | — | MISSING, LIKELY-SHIPPED, STALE |
+| `sign-lexicon` | 🟢 active | 0 | 6 | 0 | 2026-08-08 | MISSING, LIKELY-SHIPPED |
 | `mobile-input` | 🟡 dormant | 0 | 10 | 0 | 2026-07-11 | MISSING |
 | `title-scene` | ⛔ blocked | 19 | 1 | 0 | 2026-08-07 | — |
 | `collegium-client` | 🟡 dormant | 6 | 1 | 0 | 2026-07-24 | — |
