@@ -250,8 +250,8 @@
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
-- `client/scripts/main.gd:1946` — `load/preload path`
-- `client/scripts/main.gd:1950` — `load/preload normal_path`
+- `client/scripts/main.gd:1949` — `load/preload path`
+- `client/scripts/main.gd:1953` — `load/preload normal_path`
 - `client/scripts/stations/quartermaster/pack.gd:70` — `load/preload CLASP`
 - `client/scripts/stations/quartermaster/pack.gd:156` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:170` — `load/preload path`
@@ -262,5 +262,5 @@
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
 - `client/scripts/ui/writ_form.gd:260` — `load/preload PARCH`
-- `client/scripts/world/space_view.gd:338` — `load/preload KEY_E`
-- `client/scripts/world/space_view.gd:381` — `load/preload art`
+- `client/scripts/world/space_view.gd:340` — `load/preload KEY_E`
+- `client/scripts/world/space_view.gd:383` — `load/preload art`

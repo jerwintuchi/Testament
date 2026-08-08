@@ -4029,3 +4029,22 @@ suspect) does not bring it back. The likely remaining difference is the TD-097 t
 the notice's sizing path calls `get_combined_minimum_size()` on text — but that is a hypothesis, not
 a diagnosis. Recorded as **fixed-by-something-else** rather than claimed as fixed: `--qm-open` is
 restored as the real end-to-end flag and the `--qm-charged` render fixture it displaced is deleted.
+
+## 2026-08-08 — TD-098 addendum: a hard break is not a wrap
+
+**Why.** Author follow-up on the shut-counter notice: too wide, and it ate the screen. The obvious
+answer is wrapping — which TD-098 records as attempted twice and abandoned, because an autowrapped
+`Label` inside an `HBoxContainer` reports its minimum height at its minimum **width** (one word per
+line), measured 585px, and threw the notice off the top of the screen.
+
+**The distinction that resolves it.** An explicit `\n` is **not** the same mechanism. With autowrap
+off the line count is FIXED rather than derived from an unknown width, so `get_combined_minimum_size`
+returns the true two-line box and every downstream calculation — height, centring, the viewport
+clamp — is correct. The failure was never "multiple lines"; it was "a size that depends on a width
+the container has not decided yet".
+
+**Consequences.** Station notices break at authored newlines and the copy is written to suit
+("The counter is shut. / Take a charge from the board."). Type dropped 7px → 6px with the outline
+2px, because a notice is an aside and not a headline. The notice also sits 9px higher: a Seeker
+standing at a station puts their own nameplate at roughly the station's top edge, and the second
+line collided with it — visible only with a player present, which a station-only capture misses.

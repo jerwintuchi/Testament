@@ -671,10 +671,12 @@ where an object sits.
   rather than being cut by the frame.
 - **Anything in a popup** is sized from the viewport (`vp.x * f`, `vp.y * f`), never from
   fixed pixels, and its columns bound themselves so the sheet never scrolls sideways.
-- **Copy is kept short** rather than wrapped. Wrapping a world notice was attempted twice
-  and abandoned: an autowrapped `Label` inside an `HBoxContainer` reports its minimum
-  height at its minimum *width* (one word per line) — measured 585px, which threw the
-  notice off the top of the screen. If a notice needs two lines, shorten it.
+- **Break lines with an explicit `\n`; never autowrap.** A hard break fixes the line
+  count, so the measured size is correct and the clamp works. Autowrap derives height
+  from a width the container has not decided yet: inside an `HBoxContainer` a Label
+  reports its minimum height at its minimum *width* (one word per line), which measured
+  585px and threw the notice off the top of the screen. Keep copy short and break it
+  yourself.
 - **Verify by capture, not by eye in the editor.** The failure only appears at a particular
   camera position, which is exactly the case a still frame at the default position misses.
 

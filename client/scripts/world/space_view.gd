@@ -294,7 +294,9 @@ func clear_notices() -> void:
 const VIEW_MARGIN := 10.0
 
 static func _place_in_view(n: Control, host: Sprite2D, w: float) -> void:
-	var y: float = -float(host.texture.get_height()) - float(n.get_meta("h", NOTICE_H)) + 4.0
+	# Clear of the object's head AND of a Seeker's nameplate — a player standing at the
+	# station puts their own label at roughly the station's top edge, and the two collided.
+	var y: float = -float(host.texture.get_height()) - float(n.get_meta("h", NOTICE_H)) - 9.0
 	var xf := host.get_global_transform_with_canvas()
 	var sc: float = maxf(xf.get_scale().x, 0.001)
 	var vw: float = n.get_viewport_rect().size.x
@@ -350,7 +352,7 @@ static func _line(n: String) -> Label:
 	l.name = n
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	l.add_theme_font_size_override("font_size", 7)
+	l.add_theme_font_size_override("font_size", 6)
 	l.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.02, 0.95))
 	l.add_theme_constant_override("outline_size", 4)
 	return l
