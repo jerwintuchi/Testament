@@ -53,7 +53,7 @@
 - **`frame_v1_n.png`** — produced-by: `client/assets/ui/gen_normals.py` · consumed-by: —
 - **`parch_flavor_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
 - **`parch_flavor_1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
-- **`parch_v1_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
+- **`parch_v1_0.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load), `client/scripts/ui/popup_theme.gd` (load)
 - **`parch_v1_1.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/notice_card.gd` (load)
 - **`seal_collegium.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads)
 - **`spark.png`** — produced-by: `client/assets/ui/gen_emblems.py` · consumed-by: `client/assets/ui/gen_normals.py` (reads), `client/scripts/board/board_decor.gd` (load)
@@ -71,7 +71,6 @@
 ### `client/assets/ui/shared/`
 
 - **`menu_sigil.png`** — produced-by: `client/assets/ui/gen_menu_sigil.py` · consumed-by: `client/scripts/ui/widgets.gd` (load)
-- **`panel.png`** — produced-by: — · consumed-by: `client/scripts/ui/popup_theme.gd` (load)
 
 ### `client/assets/ui/`
 
@@ -169,12 +168,13 @@
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/ui/fonts.gd`**
   - loads: `Cinzel.ttf`
-  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/widgets.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
+  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/popup_theme.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/widgets.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
 - **`client/scripts/ui/pause_menu.gd`**
   - preloads: `fonts.gd`, `widgets.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/popup_theme.gd`**
-  - loads: `panel.png`
+  - loads: `parch_v1_0.png`
+  - preloads: `fonts.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/rite_banner.gd`**
   - preloads: `fonts.gd`
@@ -213,6 +213,7 @@
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
 
 - `client/assets/ui/_src/_proto_board.png`
+- `client/assets/ui/shared/panel.png`
 - `client/assets/ui/stations/contract_board.png`
 - `client/assets/ui/stations/deploy_gate.png`
 - `client/assets/ui/stations/quartermaster.png`
@@ -230,8 +231,8 @@
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
-- `client/scripts/main.gd:1796` — `load/preload path`
-- `client/scripts/main.gd:1800` — `load/preload normal_path`
+- `client/scripts/main.gd:1834` — `load/preload path`
+- `client/scripts/main.gd:1838` — `load/preload normal_path`
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
 - `client/scripts/ui/writ_form.gd:262` — `load/preload PARCH`

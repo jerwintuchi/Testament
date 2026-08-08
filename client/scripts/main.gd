@@ -340,7 +340,11 @@ func _ready() -> void:
 	ppad.add_child(pcol)
 	_popup_title = Label.new()
 	_popup_title.add_theme_font_size_override("font_size", 15)
-	_popup_title.add_theme_color_override("font_color", Color(0.90, 0.78, 0.45))
+	# Ink, not gilt: the popup is parchment now (TD-089), and gilt on paper reads as a sticker.
+	_popup_title.add_theme_color_override("font_color", Color(0.16, 0.12, 0.07))
+	var _tf := Fonts.cinzel(700)
+	if _tf != null:
+		_popup_title.add_theme_font_override("font", _tf)
 	pcol.add_child(_popup_title)
 	# Fixed-size scroll viewport so a long list (Quartermaster) never overruns the
 	# window — it scrolls instead.
@@ -355,6 +359,9 @@ func _ready() -> void:
 	pscroll.add_child(_popup_body)
 	_popup_close = Button.new()
 	_popup_close.text = "Close  (Esc)"
+	# Built once at boot rather than through `_popup_button`, so it needs the ink treatment applied
+	# by hand — it shipped as a stock grey Godot button on parchment until it was captured (TD-089).
+	_ink_action(_popup_close)
 	_popup_close.pressed.connect(_close_station)
 	pcol.add_child(_popup_close)
 
@@ -1588,6 +1595,11 @@ func _muster_row(text: String) -> HBoxContainer:
 	l.autowrap_mode = TextServer.AUTOWRAP_OFF
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	l.add_theme_color_override("font_color", PopupTheme.INK)
+	l.add_theme_font_size_override("font_size", 11)
+	var f := Fonts.cinzel(500)
+	if f != null:
+		l.add_theme_font_override("font", f)
 	row.add_child(l)
 	return row
 
@@ -1600,6 +1612,7 @@ func _build_muster() -> void:
 		copy.text = "Copy"
 		copy.tooltip_text = "Copy the room code"
 		copy.size_flags_horizontal = Control.SIZE_SHRINK_END
+		_ink_action(copy)
 		copy.pressed.connect(func():
 			DisplayServer.clipboard_set(code)
 			_show_toast("room code copied"))
@@ -1627,6 +1640,7 @@ func _build_muster() -> void:
 			k.text = "Release"
 			k.tooltip_text = "Release this seat"
 			k.size_flags_horizontal = Control.SIZE_SHRINK_END
+			_ink_action(k)
 			k.pressed.connect(func(): _net.send_message(Protocol.KICK_PLAYER, {"playerId": pid}))
 			line.add_child(k)
 
@@ -1649,17 +1663,41 @@ func _build_muster() -> void:
 func _slots_text() -> String:
 	return "Requisition: %d of %d slots" % [_selected_items.size(), Catalog.BAG_SLOTS]
 
+## Ink on the station's parchment. The styling is applied HERE rather than in the popup Theme,
+## because a Theme cascades into the Contract Board — whose writs are Buttons measured against their
+## own font — and re-flowed every one of them when it was tried (TD-089).
 func _popup_label(text: String, parent: Node = null) -> void:
 	var l := Label.new()
 	l.text = text
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_color_override("font_color", PopupTheme.INK)
+	l.add_theme_font_size_override("font_size", 11)
+	var f := Fonts.cinzel(500)
+	if f != null:
+		l.add_theme_font_override("font", f)
 	(parent if parent != null else _popup_body).add_child(l)
 
+## An action on the sheet: written and underscored, not a filled rectangle (R232). Styled here for
+## the same reason `_popup_label` is — the board's notice cards are Buttons.
 func _popup_button(text: String, on_pressed: Callable, parent: Node = null) -> void:
 	var b := Button.new()
 	b.text = text
+	_ink_action(b)
 	b.pressed.connect(on_pressed)
 	(parent if parent != null else _popup_body).add_child(b)
+
+func _ink_action(b: Button) -> void:
+	b.add_theme_stylebox_override("normal", PopupTheme.ruled(PopupTheme.RULE))
+	for st in ["hover", "pressed", "focus"]:
+		b.add_theme_stylebox_override(st, PopupTheme.ruled(PopupTheme.RULE_LIT))
+	b.add_theme_stylebox_override("disabled",
+		PopupTheme.ruled(Color(PopupTheme.RULE.r, PopupTheme.RULE.g, PopupTheme.RULE.b, 0.25)))
+	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(st, PopupTheme.INK)
+	b.add_theme_font_size_override("font_size", 12)
+	var f := Fonts.cinzel(600)
+	if f != null:
+		b.add_theme_font_override("font", f)
 
 # ── Contract Board glue (specs/notice-board) ─────────────────────────────────
 # The wall, the writs and the sign all live in `board/` now (TD-067 T231). What is left here

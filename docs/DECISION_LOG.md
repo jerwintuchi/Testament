@@ -3447,3 +3447,38 @@ specced as `station-ui` T127–T129.
 
 **Containment.** Client only. `TOGGLE_READY`, `KICK_PLAYER`, `DEPLOY` and `LEAVE_ROOM` are existing
 messages with existing payloads; only where the player triggers them moved.
+
+## 2026-08-07 — TD-089: the station popup becomes a writ, and the Theme learns its limits
+
+**Why.** TD-088 moved the party roster into the Deploy Gate and, in doing so, made the last piece of
+old chrome impossible to ignore: the station popup was still a dark stone panel in an aged-gold frame
+with filled gold-on-charcoal buttons — the exact idiom the join screen shed in TD-080.
+
+**It is the writ now.** The Contract Board's own parchment, nine-sliced so the deckled edge never
+stretches; ink text in Cinzel; and actions **written and underscored** rather than filled, because a
+filled rectangle is the thing that reads as a game-UI button (R232). A station is something you walk
+up to and read, which is the same object the join and options screens already are.
+
+**The mistake, which the author caught before it was committed.** The first pass put the fonts and
+button styles in the **Theme**, on the reasoning that the Contract Board sets its colours explicitly
+(`Widgets.card_label` uses `add_theme_color_override`) and so could not be reached. That was true of
+**colour** and false of **font** — and the board's notice cards are themselves `Button`s. A cascading
+`Label`/`Button` font therefore re-flowed every writ: `_fit_writ` measures each one against the font
+it will be drawn in, so the measurement silently stopped matching the render. "The Sunken
+Congregation" wrapped mid-word and "at The Broken Cloister" was clipped.
+
+**The rule that comes out of it:** *a Theme applied to a container that hosts a complex child scene
+must carry only what that child cannot be harmed by.* The popup Theme now carries the **sheet alone**
+— panel and tooltip. Every ink treatment is applied by the builders that create the widgets
+(`_popup_label`, `_popup_button`, `_muster_row`), where it reaches only what it is aimed at. This is
+the same class of error as a global stylesheet reaching into a component: the fix is not a more
+careful cascade, it is not cascading.
+
+**Verified by diff, not by eye.** The board was captured from a stashed clean tree at HEAD and
+compared against the change: **0.43%** of sampled interior pixels differ by more than 24/255, against
+a same-build control noise floor of ~0.47% (TD-067) from torch particles and which writ holds
+hover-focus. The board is untouched.
+
+**Also caught by capture:** the persistent `Close (Esc)` button is built once at boot rather than
+through `_popup_button`, so it shipped as a stock grey Godot button on parchment until the screenshot
+showed it.
