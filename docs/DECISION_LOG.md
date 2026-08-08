@@ -3990,3 +3990,42 @@ did for Cinzel — the no-AA register is enforced at import so no call site can 
 because Almendra has no variable weight axis (weight is a separate file). Stale comments naming
 Cinzel across seven client files were corrected in the same pass — a comment that names a retired
 typeface is the kind of drift that costs the next session an hour.
+
+## 2026-08-08 — TD-098: on-screen text is clamped to the screen
+
+**Why.** Author playtest, reported with a screenshot: the Quartermaster's notice read
+"...ter is shut. Take a charge from the board." — the opening words cut off by the left edge. A
+notice is centred on the station it belongs to, the Hall's stations stand against walls, and the
+camera decides where they sit. Centring on a world object is therefore only half a position.
+
+**Decision.** `SpaceView._place_in_view` centres the notice on its station and then **clamps it in
+screen space** against the live camera, converting back to the node's local space. Applied **every
+frame**, outside the change-detection early-out, because the camera moves even when the words do
+not — it is position-only work, no layout, so it stays cheap. The notice now slides along the
+station rather than being cut by the frame.
+
+**The rule this generalises to** (now in CLAUDE.md): anything anchored to a world object — prompt,
+hint, name, and later damage numbers — must be clamped to the viewport. Anything in a popup is
+sized from the viewport rather than in fixed pixels.
+
+**What was attempted and abandoned, so it is not retried.** The obvious refinement is to *wrap*
+long notices instead of letting them run wide. Two passes failed:
+
+1. `get_combined_minimum_size()` on an autowrapped `Label` inside an `HBoxContainer` reports the
+   height at the label's **minimum width** — i.e. wrapped to one word per line. Measured **585px**,
+   which put the notice far above the top of the screen.
+2. Measuring against the intended draw width instead (the `_fit_writ` measure-equals-render
+   technique) left the notice clipped to a fragment.
+
+So notices stay **one line**, and short copy is the discipline. The clamp is what the reported
+defect actually needed; the wrap was scope I could not land cleanly, and shipping a half-working
+version of it would have been worse than not having it.
+
+**A note on the `--qm-open` hang, which was investigated in the same pass and is NOT explained.**
+The flag walked board → select → counter and had stopped producing captures. Instrumenting it showed
+**every step completing** — the chained walk was never the problem, and the capture was what failed.
+It no longer reproduces at three delays, and removing the change-detection early-out (the leading
+suspect) does not bring it back. The likely remaining difference is the TD-097 typeface swap, since
+the notice's sizing path calls `get_combined_minimum_size()` on text — but that is a hypothesis, not
+a diagnosis. Recorded as **fixed-by-something-else** rather than claimed as fixed: `--qm-open` is
+restored as the real end-to-end flag and the `--qm-charged` render fixture it displaced is deleted.

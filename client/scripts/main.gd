@@ -459,18 +459,17 @@ func _ready() -> void:
 			if OS.get_cmdline_user_args().has("--qm-pick") and not _qm_view.is_empty():
 				_qm_view["sel"] = "witness-prism"
 				Quartermaster.refresh(_qm_view))
-	# `--qm-charged` walks to the counter with a charge already on the snapshot, so the
-	# OPEN notice is capturable. The contract is a RENDER FIXTURE here — it is not
-	# selected server-side, so sealing would still be refused; this proves the notice,
-	# not the flow. The real end-to-end (board -> select -> counter) was walked by hand
-	# and is what TD-096 records.
-	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--qm-charged"):
+	# `--qm-open` walks the REAL route — board, take a charge, counter — so the flow
+	# TD-096 opened is capturable end to end rather than approximated by a fixture.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--qm-open"):
 		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
 		get_tree().create_timer(2.4).timeout.connect(func():
-			var b: Array = _snapshot.get("board", [])
-			if not b.is_empty():
-				_snapshot["contract"] = b[0]
-			_walk_to_station("QUARTERMASTER"))
+			_walk_to_station("CONTRACT_BOARD", func():
+				var b: Array = _snapshot.get("board", [])
+				if not b.is_empty():
+					_net.send_message(Protocol.SELECT_CONTRACT, {"contractId": b[0]["contractId"]})
+				get_tree().create_timer(0.5).timeout.connect(func():
+					_walk_to_station("QUARTERMASTER"))))
 	# `--at-qm` WALKS the Seeker to the Quartermaster, so the world notice is capturable
 	# without a human at the keys. A teleport is not available: position is server-owned
 	# and only ever moves through MOVE intents (I1), so this drives the same input a

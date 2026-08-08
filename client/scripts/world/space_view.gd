@@ -251,9 +251,22 @@ func set_notice(kind: String, text: String, warn: bool, keyed: bool = false) -> 
 			_paint(n, text, warn, keyed)
 			# Centre on the row's OWN width, not a guessed box: the words plus the keycap
 			# are wider than any fixed NOTICE_W, so a fixed offset threw it left and clipped.
-			var w: float = maxf(n.get_combined_minimum_size().x, 1.0)
-			n.size = Vector2(w, NOTICE_H)
-			n.position = Vector2(-w * 0.5, -c.texture.get_height() - NOTICE_H + 4)
+			# ONE LINE, deliberately. Wrapping was attempted twice and abandoned: an
+			# autowrapped Label inside an HBoxContainer reports its minimum height at its
+			# minimum WIDTH (one word per line), which measured 585px and threw the notice
+			# off the top of the screen; measuring against the draw width instead left it
+			# clipped to a fragment. The viewport clamp below is what the overflow actually
+			# needed, so the notice stays a single line and short copy is the discipline.
+			var m := n.get_combined_minimum_size()
+			var w: float = maxf(m.x, 1.0)
+			var h: float = maxf(m.y, NOTICE_H)
+			n.size = Vector2(w, h)
+			n.set_meta("w", w)
+			n.set_meta("h", h)
+		# EVERY FRAME, not only on change: the camera moves, so a notice centred on a
+		# station near a wall walks off the edge of the screen as the player approaches.
+		# Position only — no layout — so this stays cheap.
+		_place_in_view(n, c as Sprite2D, float(n.get_meta("w", NOTICE_W)))
 		# `keyed` carries its own words, so an empty `text` is NOT an empty notice —
 		# checking text alone faded the keycap hint straight back out.
 		_fade(n, 1.0 if (text != "" or keyed) else 0.0)
@@ -265,6 +278,31 @@ func clear_notices() -> void:
 			var n: Control = c.get_node_or_null("Notice")
 			if n != null:
 				_fade(n, 0.0)
+
+
+## Centre the notice over its station, then keep it inside the viewport.
+##
+## A notice belongs to a thing in the world, so it is centred on that thing — but the
+## Hall's stations stand against walls, and a centred label on a station near the left
+## wall simply hangs off the screen (author playtest). Clamped in SCREEN space against
+## the live camera, then converted back to the node's local space, so the notice slides
+## along the station rather than being cut in half by the frame edge.
+##
+## THE RULE THIS ESTABLISHES: anything that points at a world object — prompt, hint,
+## damage number, name — must be clamped to the viewport, because the camera decides
+## where the object is and the camera is not a designer.
+const VIEW_MARGIN := 10.0
+
+static func _place_in_view(n: Control, host: Sprite2D, w: float) -> void:
+	var y: float = -float(host.texture.get_height()) - float(n.get_meta("h", NOTICE_H)) + 4.0
+	var xf := host.get_global_transform_with_canvas()
+	var sc: float = maxf(xf.get_scale().x, 0.001)
+	var vw: float = n.get_viewport_rect().size.x
+	var want_left: float = xf.origin.x - w * sc * 0.5          # centred on the station
+	var lo := VIEW_MARGIN
+	var hi: float = maxf(vw - VIEW_MARGIN - w * sc, lo)        # never negative-width
+	var left: float = clampf(want_left, lo, hi)
+	n.position = Vector2((left - xf.origin.x) / sc, y)
 
 
 static func _fade(n: Control, to: float) -> void:

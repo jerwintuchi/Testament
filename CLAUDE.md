@@ -659,6 +659,25 @@ It lists every asset's producer + consumers, orphans (dead art), dangling refs, 
 unresolved dynamic loads. Regenerate + `--check` it when a dependency changes (see
 `docs/technical/code-map.md` for how to read it + the provenance-header convention). TD-051.
 
+## On-screen text must stay ON SCREEN — CANON (TD-098)
+
+Author playtest, twice: a station notice centred on its object ran off the left edge,
+because the Hall's stations stand against walls and the camera — not a designer — decides
+where an object sits.
+
+- **Anything anchored to a world object** (prompt, hint, name, later: damage numbers) is
+  **clamped to the viewport** in screen space against the live camera, every frame, then
+  converted back to local space: `SpaceView._place_in_view`. It slides along the object
+  rather than being cut by the frame.
+- **Anything in a popup** is sized from the viewport (`vp.x * f`, `vp.y * f`), never from
+  fixed pixels, and its columns bound themselves so the sheet never scrolls sideways.
+- **Copy is kept short** rather than wrapped. Wrapping a world notice was attempted twice
+  and abandoned: an autowrapped `Label` inside an `HBoxContainer` reports its minimum
+  height at its minimum *width* (one word per line) — measured 585px, which threw the
+  notice off the top of the screen. If a notice needs two lines, shorten it.
+- **Verify by capture, not by eye in the editor.** The failure only appears at a particular
+  camera position, which is exactly the case a still frame at the default position misses.
+
 ## Typography — CANON (TD-097)
 
 **Testament is set in Almendra.** `client/scripts/ui/fonts.gd` exposes three ROLES, and call sites
