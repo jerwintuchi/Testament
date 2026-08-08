@@ -433,9 +433,21 @@ with a diamond grabber. Also fixed `connected`/`v0.0.1` overlapping in the corne
 *Unverified:* the round-trip **save** — an unattended capture cannot click, so changing the name and
 seeing it in a lobby needs a human.
 
-@specs/options/requirements.md
-@specs/options/design.md
-@specs/options/tasks.md
+Completed: **`specs/pause-menu/`** (TD-085) — **Escape opens the way out**, which the game had none
+of: two exits, *Leave for the title* and *Quit to desktop*, plus *Return to your post* (focused on
+open, so Enter is always safe). **Which idiom** was the real question and is now settled: a *document
+you fill in* is a **writ** (join, options), a *choice you make* is a **menu row** (the title, and
+this) — so it is gilt Cinzel over a dimmed world, and `Widgets.choice` is now shared by both rather
+than copied a third time. **Escape is routed, not captured**: a station popup still steps back one
+layer first (T146 untouched), a writ takes Back, the title does nothing. Its own `CanvasLayer` at
+**128** above everything and cleared by `_clear()`, because a menu that exists to escape a trapped
+state must not be coverable by the thing that trapped you (P146). Leaving sends **`LEAVE_ROOM`**
+first, reusing the room scroll's path — leaving quietly strands the party with a ghost (TD-032).
+**T323–T326 done.** *Unverified:* the exits themselves need a human, since a capture cannot click.
+
+@specs/pause-menu/requirements.md
+@specs/pause-menu/design.md
+@specs/pause-menu/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

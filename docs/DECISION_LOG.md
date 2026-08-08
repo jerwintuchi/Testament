@@ -3294,3 +3294,54 @@ slider's grabber could not be isolated from the caption text by pixel measuremen
 rides the same three lines rather than having its own capture; and the **round-trip save is
 unverified**, because an unattended capture cannot click. Changing the name and confirming it in a
 lobby needs a human.
+
+## 2026-08-07 — TD-085: the way out
+
+**Why.** The author, during testing: there was no way to leave the game except closing the Godot
+window. Escape now opens a menu with two exits — to the title, and to the desktop.
+
+**Which idiom, and why the question mattered.** The project speaks two now, and picking wrongly would
+have muddled both. **A document you fill in is a writ** — parchment, ink, ruled lines: the join
+screen, options. **A choice you make is a menu row** — gilt Cinzel, no chrome, the laurel marking
+focus: the title screen. A pause menu is a choice, so it is the title's language over a dimmed world.
+That also makes the transition legible: *Leave for the title* goes to a screen that already looks
+like this one.
+
+**Escape is routed, not captured.** The key already meant something, and the order is the design:
+
+```
+pause menu open     -> close it              (its own layer answers first)
+station popup open  -> step back one layer   (T146, untouched)
+on a writ           -> Back to the title
+in an expedition    -> open the menu
+on the title        -> nothing; Quit is already there
+```
+
+A player deep in the Contract Board pressing Escape wants out of *the board*. Taking that key away to
+offer a quit dialog would be worse than not having the menu at all.
+
+**Nothing can draw over the way out** (P146). Its own `CanvasLayer` at 128, above everything, with a
+root that **stops** input rather than ignoring it; and `_clear()` closes it on every screen change so
+it can never be stranded over the screen that follows. A menu that exists to escape a trapped state
+must not be coverable by the thing that trapped you.
+
+**Leaving tells the server.** `LEAVE_ROOM` goes before the client does, reusing the room scroll's own
+leave path rather than inventing a second one. The room is authoritative and would time the player
+out eventually, but leaving quietly strands the party with a ghost until it does — the exact failure
+`specs/lobby-resilience/` (TD-032) was written to fix.
+
+**The menu row is now shared, not copied.** `main.gd._title_option` moved verbatim into
+`Widgets.choice`. Three screens speak this language, and the tuning inside it — the 175ms ease, the
++12% warmth, the laurel keeping its space so marking never shifts the lettering — is precisely the
+kind of detail that drifts silently between copies.
+
+**Two layout corrections, both self-inflicted and both worth recording.** The column was full-rect,
+so a `CenterContainer` with a shrink-centred column replaced it. The heading was then *still*
+off-centre, because `Widgets.engraved_line` returns a **zero-width** `Control` whose labels anchor
+full-rect to it: setting `SHRINK_CENTER` on that collapses the box to nothing and the text draws from
+the centre rightward. It has to **fill** its column — which is what the title screen had been quietly
+doing all along, and why the same call looked right there and wrong here.
+
+**Unverified, and stated rather than glossed:** the exits themselves. An unattended capture cannot
+click, so "Leave for the title" actually returning to the title, and the room emptying server-side,
+needs a human.

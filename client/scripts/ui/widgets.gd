@@ -98,3 +98,81 @@ static func laurel(pointing_right: bool) -> TextureRect:
 	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	s.modulate.a = 0.0
 	return s
+
+
+## A menu choice in the Collegium's own voice: gilt Cinzel, no button chrome, and the laurel marking
+## whichever line has focus. Lives here because THREE screens now speak it — the title menu, and the
+## pause menu that echoes it — and a third copy would drift from the other two.
+##
+## Moved verbatim from `main.gd._title_option` (TD-077/TD-084 tuning intact): the sigils keep their
+## space when unlit so marking never shifts the lettering (P133), they ease over 175ms rather than
+## snapping, and the selected line warms by +12% luminance — emphasis, not a highlight.
+static func choice(host: Node, text: String, size: int, on_pressed: Callable) -> Button:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	row.add_theme_constant_override("separation", 5)
+
+	var left := laurel(true)
+	var b := Button.new()
+	b.text = text
+	b.flat = true
+	b.focus_mode = Control.FOCUS_ALL
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.add_theme_font_size_override("font_size", size)
+	var font := Fonts.cinzel(500)
+	if font != null:
+		b.add_theme_font_override("font", font)
+	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(st, Color(0.86, 0.74, 0.46) if st == "font_color" else Color(1.0, 0.92, 0.66))
+	var empty := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
+		b.add_theme_stylebox_override(st, empty)
+	b.pressed.connect(on_pressed)
+	var right := laurel(false)
+
+	# The sigils keep their space when unlit, so marking an option never shifts the lettering
+	# (P133). They EASE rather than snap: at 34x30 an instant appearance reads as a glitch, and
+	# arrowing down a menu snapping four of them on and off reads as flicker. Each tween is stored
+	# on the node so a fast keyboard scroll kills the previous one instead of racing it.
+	var kill := func(n: Control, key: String) -> void:
+		# `has_meta` first: `get_meta(key, default)` still logs an error for a missing key, which
+		# would print four times on every focus change.
+		if n.has_meta(key):
+			var prev := n.get_meta(key) as Tween
+			if prev != null and prev.is_valid():
+				prev.kill()
+	# The Collegium setting its seal on the chosen action: 175ms, inside the brief's 150-200ms, and
+	# then an idle breath so the mark is never quite static. Both tweens are held on the node so a
+	# fast keyboard scroll kills its predecessor instead of racing it.
+	var fade := func(n: Control, to: float) -> void:
+		kill.call(n, "fade")
+		kill.call(n, "breathe")
+		var t := n.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		t.tween_property(n, "modulate:a", to, 0.175)
+		n.set_meta("fade", t)
+		if to <= 0.0:
+			return
+		# Extremely gentle: a 14% swing over nine seconds. If you can see it happen, it is too much.
+		var br := n.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		br.tween_interval(0.175)
+		br.tween_property(n, "modulate:a", 0.86, 4.5)
+		br.tween_property(n, "modulate:a", 1.0, 4.5)
+		n.set_meta("breathe", br)
+	var mark := func(on: bool) -> void:
+		var a := 1.0 if on else 0.0
+		fade.call(left, a)
+		fade.call(right, a)
+		# The selected line warms, but only just: +12% luminance, inside the brief's 10-15%. It was
+		# +23%, which read as a highlight rather than as emphasis.
+		b.add_theme_color_override("font_color",
+			Color(0.96, 0.83, 0.52) if on else Color(0.86, 0.74, 0.46))
+	b.focus_entered.connect(func(): mark.call(true))
+	b.focus_exited.connect(func(): mark.call(false))
+	b.mouse_entered.connect(func(): b.grab_focus())
+
+	row.add_child(left)
+	row.add_child(b)
+	row.add_child(right)
+	host.add_child(row)
+	return b

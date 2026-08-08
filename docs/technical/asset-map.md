@@ -165,11 +165,14 @@
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/world/space_view.gd` (preload)
 - **`client/scripts/main.gd`**
   - loads: `collegium_logo.png`, `frame_v1.png`, `stone_tile.png`, `player.tscn`
-  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `contract_board.gd`, `notice.gd`, `notice_card.gd`, `notice_reader.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `settings.gd`, `station_names.gd`, `fonts.gd`, `popup_theme.gd`, `rite_banner.gd`, `room_scroll.gd`, `title_scene.gd`, `widgets.gd`, `writ_form.gd`
+  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `contract_board.gd`, `notice.gd`, `notice_card.gd`, `notice_reader.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `settings.gd`, `station_names.gd`, `fonts.gd`, `pause_menu.gd`, `popup_theme.gd`, `rite_banner.gd`, `room_scroll.gd`, `title_scene.gd`, `widgets.gd`, `writ_form.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/ui/fonts.gd`**
   - loads: `Cinzel.ttf`
-  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/room_scroll.gd` (preload), `client/scripts/ui/widgets.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
+  - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/room_scroll.gd` (preload), `client/scripts/ui/widgets.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
+- **`client/scripts/ui/pause_menu.gd`**
+  - preloads: `fonts.gd`, `widgets.gd`
+  - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/ui/popup_theme.gd`**
   - loads: `panel.png`
   - loaded-by: `client/scripts/main.gd` (preload)
@@ -184,7 +187,7 @@
 - **`client/scripts/ui/widgets.gd`**
   - loads: `menu_sigil.png`
   - preloads: `fonts.gd`
-  - loaded-by: `client/scripts/board/board_header.gd` (preload), `client/scripts/board/contract_board.gd` (preload), `client/scripts/board/notice_card.gd` (preload), `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload), `client/scripts/ui/room_scroll.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
+  - loaded-by: `client/scripts/board/board_header.gd` (preload), `client/scripts/board/contract_board.gd` (preload), `client/scripts/board/notice_card.gd` (preload), `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/room_scroll.gd` (preload), `client/scripts/ui/writ_form.gd` (preload)
 - **`client/scripts/ui/writ_form.gd`**
   - preloads: `fonts.gd`, `widgets.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
@@ -230,8 +233,8 @@
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
-- `client/scripts/main.gd:1736` — `load/preload path`
-- `client/scripts/main.gd:1740` — `load/preload normal_path`
+- `client/scripts/main.gd:1726` — `load/preload path`
+- `client/scripts/main.gd:1730` — `load/preload normal_path`
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
 - `client/scripts/ui/writ_form.gd:262` — `load/preload PARCH`

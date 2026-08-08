@@ -28,6 +28,7 @@ const Widgets = preload("res://scripts/ui/widgets.gd")          # shared label/r
 const TitleScene = preload("res://scripts/ui/title_scene.gd")   # the title's layered environment
 const WritForm = preload("res://scripts/ui/writ_form.gd")       # the join / name writ (TD-080)
 const Settings = preload("res://scripts/core/settings.gd")      # persisted options (TD-084)
+const PauseMenu = preload("res://scripts/ui/pause_menu.gd")     # the Escape menu (TD-085)
 const RoomScroll = preload("res://scripts/ui/room_scroll.gd")   # the lobby's toggleable roster
 const StationNames = preload("res://scripts/core/station_names.gd")  # station kind -> player-facing name
 
@@ -119,6 +120,8 @@ var _stone_bg: TextureRect        # tiled stone/mortar surround, dim; Contract B
 var _reduced_motion: bool = false # settings toggle (F9 in playtest): freeze flicker, pin glow to peak
 var _title_arrived := false       # the title's arrival flourish plays once per launch, not per visit
 var _settings: Settings           # persisted options (TD-084); loaded once at boot
+var _pause_host: Control          # the Escape menu's own layer, above everything (TD-085)
+var _pause: Control               # the open menu, or null
 var _popup_tween: Tween           # the open/close animation, tracked so it can be killed on re-entry
 var _prompt: Label                # bottom-center "Press E — <Station>"
 var _popup_dim: ColorRect         # full-rect input blocker + dimmer behind the popup
@@ -142,6 +145,16 @@ func _ready() -> void:
 	# beneath the UI CanvasLayer, which is built below. 2× integer zoom (960×540
 	# window over a 480×270 frame) is set on the Camera2D in the scene.
 	_camera.make_current()
+
+	# The Escape menu gets its OWN layer, above every other, because it is the way out: a station
+	# popup or a HUD drawing over it would trap the player in exactly the situation it exists for.
+	var pause_layer := CanvasLayer.new()
+	pause_layer.layer = 128
+	add_child(pause_layer)
+	_pause_host = Control.new()
+	_pause_host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_pause_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pause_layer.add_child(_pause_host)
 
 	var layer := CanvasLayer.new()
 	add_child(layer)
@@ -401,6 +414,11 @@ func _ready() -> void:
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--setup-join"):
 		call_deferred("_show_join")
 	# The name rite is first-run only, so it is otherwise uncapturable once a name is on disk.
+	# `--pause` enters an expedition and then opens the Escape menu, so the one screen that exists
+	# to be reached BY a keypress is capturable without one.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--pause"):
+		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
+		get_tree().create_timer(2.4).timeout.connect(_open_pause)
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--options"):
 		call_deferred("_show_options")
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--name-rite"):
@@ -879,74 +897,7 @@ func _title_arrival(col: VBoxContainer) -> void:
 # row of stone-and-gold buttons would turn it back into a dialog. The SELECTED option is marked by
 # a gilt sigil either side of it rather than by a focus rectangle, for the same reason.
 func _title_option(host: Node, text: String, on_pressed: Callable) -> Button:
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	row.add_theme_constant_override("separation", 5)
-
-	var left := _menu_sigil(true)
-	var b := Button.new()
-	b.text = text
-	b.flat = true
-	b.focus_mode = Control.FOCUS_ALL
-	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	b.add_theme_font_size_override("font_size", 13)
-	var font := Fonts.cinzel(500)
-	if font != null:
-		b.add_theme_font_override("font", font)
-	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(st, Color(0.86, 0.74, 0.46) if st == "font_color" else Color(1.0, 0.92, 0.66))
-	var empty := StyleBoxEmpty.new()
-	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
-		b.add_theme_stylebox_override(st, empty)
-	b.pressed.connect(on_pressed)
-	var right := _menu_sigil(false)
-
-	# The sigils keep their space when unlit, so marking an option never shifts the lettering
-	# (P133). They EASE rather than snap: at 34x30 an instant appearance reads as a glitch, and
-	# arrowing down a menu snapping four of them on and off reads as flicker. Each tween is stored
-	# on the node so a fast keyboard scroll kills the previous one instead of racing it.
-	var kill := func(n: Control, key: String) -> void:
-		# `has_meta` first: `get_meta(key, default)` still logs an error for a missing key, which
-		# would print four times on every focus change.
-		if n.has_meta(key):
-			var prev := n.get_meta(key) as Tween
-			if prev != null and prev.is_valid():
-				prev.kill()
-	# The Collegium setting its seal on the chosen action: 175ms, inside the brief's 150-200ms, and
-	# then an idle breath so the mark is never quite static. Both tweens are held on the node so a
-	# fast keyboard scroll kills its predecessor instead of racing it.
-	var fade := func(n: Control, to: float) -> void:
-		kill.call(n, "fade")
-		kill.call(n, "breathe")
-		var t := n.create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		t.tween_property(n, "modulate:a", to, 0.175)
-		n.set_meta("fade", t)
-		if to <= 0.0:
-			return
-		# Extremely gentle: a 14% swing over nine seconds. If you can see it happen, it is too much.
-		var br := n.create_tween().set_loops().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		br.tween_interval(0.175)
-		br.tween_property(n, "modulate:a", 0.86, 4.5)
-		br.tween_property(n, "modulate:a", 1.0, 4.5)
-		n.set_meta("breathe", br)
-	var mark := func(on: bool) -> void:
-		var a := 1.0 if on else 0.0
-		fade.call(left, a)
-		fade.call(right, a)
-		# The selected line warms, but only just: +12% luminance, inside the brief's 10-15%. It was
-		# +23%, which read as a highlight rather than as emphasis.
-		b.add_theme_color_override("font_color",
-			Color(0.96, 0.83, 0.52) if on else Color(0.86, 0.74, 0.46))
-	b.focus_entered.connect(func(): mark.call(true))
-	b.focus_exited.connect(func(): mark.call(false))
-	b.mouse_entered.connect(func(): b.grab_focus())
-
-	row.add_child(left)
-	row.add_child(b)
-	row.add_child(right)
-	host.add_child(row)
-	return b
+	return Widgets.choice(host, text, 13, on_pressed)
 
 # The mark itself now lives in `Widgets.laurel` — the join writ marks focus with the same branch,
 # so it is shared language rather than a thing this file owns (TD-080).
@@ -1001,6 +952,33 @@ func _show_name_rite() -> void:
 	WritForm.action(col, "Back", func(): _show_title())
 	WritForm.arrive(w["sheet"], _reduced_motion)
 	_name_input.grab_focus.call_deferred()
+
+## Is the player inside an expedition — the only place a way out is needed? The title has Quit on it
+## already, and a writ has its own Back.
+func _in_expedition() -> bool:
+	return _screen == Screen.LOBBY or _screen == Screen.DEPLOYING or _screen == Screen.FIELD
+
+func _open_pause() -> void:
+	if _pause != null:
+		return
+	_pause = PauseMenu.build(_pause_host, _reduced_motion,
+		func(): _close_pause(),
+		func():
+			# Tell the server we are going before we go. The room is authoritative and would
+			# eventually time us out, but leaving quietly would strand the party with a ghost until
+			# it did (the lobby-resilience lesson, TD-032).
+			_close_pause()
+			if _net.is_open():
+				_net.send_message(Protocol.LEAVE_ROOM)
+			_reset_session()
+			_show_title(),
+		func(): get_tree().quit())
+
+func _close_pause() -> void:
+	if _pause == null:
+		return
+	_pause.queue_free()
+	_pause = null
 
 ## Options: the same writ as everything else, because a settings screen that looked like a settings
 ## screen would undo four specs of work. The NAME is the point of it — TD-080 asks once and then
@@ -1277,6 +1255,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.physical_keycode == KEY_E and _active_station != "" and not _menu_open:
 		_open_station(_active_station)
 		get_viewport().set_input_as_handled()
+	elif event.physical_keycode == KEY_ESCAPE and _pause != null:
+		# The menu is its own top layer, so it answers Escape before anything underneath does.
+		_close_pause()
+		get_viewport().set_input_as_handled()
 	elif event.physical_keycode == KEY_ESCAPE and _menu_open:
 		# ESC steps back one layer for a keyboard user (T146): a taken-down writ returns to the
 		# wall first (the Return button is deliberately focus-less), then ESC closes the station.
@@ -1284,6 +1266,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			_select_board_card({})
 		else:
 			_close_station()
+		get_viewport().set_input_as_handled()
+	elif event.physical_keycode == KEY_ESCAPE and _screen == Screen.MENU:
+		# On a writ, Escape is Back — the same thing its own action does, which is what a player
+		# already expects from the key.
+		_show_title()
+		get_viewport().set_input_as_handled()
+	elif event.physical_keycode == KEY_ESCAPE and _in_expedition():
+		_open_pause()
 		get_viewport().set_input_as_handled()
 	elif event.physical_keycode == KEY_TAB and _screen == Screen.LOBBY and not _menu_open \
 			and is_instance_valid(_room_scroll) and _room_scroll.visible:
@@ -1880,6 +1870,7 @@ func _load_token() -> String:
 ## laid over the SAME hall the player was just looking at, so rebuilding it would cost a full scene
 ## construction and produce a visible flicker at the one moment we are trying to make continuous.
 func _clear(keep_env: bool = false) -> void:
+	_close_pause()                 # never strand the Escape menu over the screen that follows
 	for child in _root.get_children():
 		child.queue_free()
 	if is_instance_valid(_status):
