@@ -12,31 +12,43 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 
-# ── Find pnpm, because the .bat cannot (TD-086) ──────────────────────────────
-# playtest.bat launches this through `wsl.exe -- bash tools/playtest.sh`: a NON-interactive,
-# NON-login shell. nvm installs itself in ~/.bashrc, and ~/.bashrc returns early for
-# non-interactive shells — so `pnpm` is not on PATH and the server never started. It looked like a
-# port problem or a timing problem for a while; it was neither, and running the script from a normal
-# terminal (where the environment is already set up) could never reproduce it.
+# ── Find a LINUX pnpm+node, because the .bat cannot (TD-086) ─────────────────
+# Two traps here, and the second only appeared after the first was fixed.
 #
-# So the script finds its own toolchain rather than assuming an inherited environment.
-if ! command -v pnpm >/dev/null 2>&1; then
-  # 1. nvm's own loader, if it is there.
+# 1. playtest.bat launches this through `wsl.exe -- bash tools/playtest.sh`: a NON-interactive,
+#    NON-login shell. nvm installs itself in ~/.bashrc, which returns early for non-interactive
+#    shells, so nvm's node/pnpm are not on PATH.
+# 2. WSL appends the WINDOWS PATH to its own, so `command -v pnpm` then finds
+#    /mnt/c/.../AppData/Roaming/npm/pnpm — a Windows shim that immediately fails with
+#    "exec: node: not found" (status 127), because there is no Windows node in that shell.
+#
+# So "is pnpm on PATH" is the wrong question. The right one is "is there a pnpm AND a node that are
+# both native to this Linux", which is what `_unusable` asks — anything under /mnt/ is a Windows
+# binary reached through interop and cannot run the server.
+_unusable() {
+  _p="$(command -v "$1" 2>/dev/null)" || return 0
+  case "$_p" in /mnt/*) return 0 ;; esac
+  return 1
+}
+
+if _unusable pnpm || _unusable node; then
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
   # shellcheck disable=SC1091
   [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
 fi
-if ! command -v pnpm >/dev/null 2>&1; then
-  # 2. Failing that, the newest node version nvm has installed.
-  newest="$(ls -d "$HOME"/.nvm/versions/node/*/bin 2>/dev/null | sort -V | tail -1)"
-  [ -n "$newest" ] && PATH="$newest:$PATH" && export PATH
+if _unusable pnpm || _unusable node; then
+  # PREPENDED, so nvm's pnpm wins over the Windows shim that interop put on PATH.
+  _newest="$(ls -d "$HOME"/.nvm/versions/node/*/bin 2>/dev/null | sort -V | tail -1)"
+  [ -n "$_newest" ] && PATH="$_newest:$PATH" && export PATH
 fi
-if ! command -v pnpm >/dev/null 2>&1; then
+if _unusable pnpm || _unusable node; then
   echo
-  echo "${red}pnpm not found.${off}"
-  echo "  This script is usually launched by tools/playtest.bat through a non-interactive"
-  echo "  shell, which does not read ~/.bashrc, so nvm is never initialised."
-  echo "  Looked in: \$PATH, \$NVM_DIR/nvm.sh, and ~/.nvm/versions/node/*/bin"
+  echo "${red}No usable Linux pnpm/node found.${off}"
+  echo "  pnpm: ${dim}$(command -v pnpm 2>/dev/null || echo 'not on PATH')${off}"
+  echo "  node: ${dim}$(command -v node 2>/dev/null || echo 'not on PATH')${off}"
+  echo
+  echo "  Anything under /mnt/ is a WINDOWS binary reached through WSL interop and cannot"
+  echo "  run the server. Looked in: \$NVM_DIR/nvm.sh and ~/.nvm/versions/node/*/bin"
   echo
   read -r -p "  Press Enter to close… " _
   exit 1
