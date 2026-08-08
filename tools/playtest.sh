@@ -12,6 +12,36 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 
+# ── Find pnpm, because the .bat cannot (TD-086) ──────────────────────────────
+# playtest.bat launches this through `wsl.exe -- bash tools/playtest.sh`: a NON-interactive,
+# NON-login shell. nvm installs itself in ~/.bashrc, and ~/.bashrc returns early for
+# non-interactive shells — so `pnpm` is not on PATH and the server never started. It looked like a
+# port problem or a timing problem for a while; it was neither, and running the script from a normal
+# terminal (where the environment is already set up) could never reproduce it.
+#
+# So the script finds its own toolchain rather than assuming an inherited environment.
+if ! command -v pnpm >/dev/null 2>&1; then
+  # 1. nvm's own loader, if it is there.
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  # shellcheck disable=SC1091
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" >/dev/null 2>&1
+fi
+if ! command -v pnpm >/dev/null 2>&1; then
+  # 2. Failing that, the newest node version nvm has installed.
+  newest="$(ls -d "$HOME"/.nvm/versions/node/*/bin 2>/dev/null | sort -V | tail -1)"
+  [ -n "$newest" ] && PATH="$newest:$PATH" && export PATH
+fi
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo
+  echo "${red}pnpm not found.${off}"
+  echo "  This script is usually launched by tools/playtest.bat through a non-interactive"
+  echo "  shell, which does not read ~/.bashrc, so nvm is never initialised."
+  echo "  Looked in: \$PATH, \$NVM_DIR/nvm.sh, and ~/.nvm/versions/node/*/bin"
+  echo
+  read -r -p "  Press Enter to close… " _
+  exit 1
+fi
+
 PORT="${PORT:-3001}"
 GODOT_WIN='D:\Godot_v4.7-stable_win64.exe'
 GODOT_WSL='/mnt/d/Godot_v4.7-stable_win64.exe'
