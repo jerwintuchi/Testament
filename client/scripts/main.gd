@@ -29,7 +29,6 @@ const TitleScene = preload("res://scripts/ui/title_scene.gd")   # the title's la
 const WritForm = preload("res://scripts/ui/writ_form.gd")       # the join / name writ (TD-080)
 const Settings = preload("res://scripts/core/settings.gd")      # persisted options (TD-084)
 const PauseMenu = preload("res://scripts/ui/pause_menu.gd")     # the Escape menu (TD-085)
-const RoomScroll = preload("res://scripts/ui/room_scroll.gd")   # the lobby's toggleable roster
 const StationNames = preload("res://scripts/core/station_names.gd")  # station kind -> player-facing name
 
 const SERVER_URL := "ws://localhost:3001"
@@ -82,7 +81,6 @@ var _nave_bg: ColorRect            # fills whatever the integer-scaled plate doe
 var _setup_mode := ""              # "create" or "join" — which room-setup plate is showing
 var _title_env: Control            # the title's layered environment (TD-073)
 var _title_host: Control           # full-rect host it is built onto, behind the UI
-var _room_scroll: Control          # the lobby's room scroll (TD-071), closed by default
 var _scroll_layer: Control         # holds it above the world, below the station popup
 var _menu_stone: TextureRect       # the brick surface inside it; also the torches' host
 var _ui_theme: Theme               # the gothic Theme, shared by the station popup and the menu
@@ -420,6 +418,11 @@ func _ready() -> void:
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--pause"):
 		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
 		get_tree().create_timer(2.4).timeout.connect(_open_pause)
+	# `--muster` enters an expedition and opens the Deploy Gate, so the screen that replaced the room
+	# scroll is capturable without walking across the hall.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--muster"):
+		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
+		get_tree().create_timer(2.4).timeout.connect(func(): _open_station("DEPLOY_GATE"))
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--options"):
 		call_deferred("_show_options")
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--name-rite"):
@@ -526,10 +529,7 @@ func _lobby_preview() -> void:
 		"positions": {"pv-self": {"x": 160, "y": 96}},
 	}
 	_show_lobby()
-	if OS.get_cmdline_user_args().has("--scroll-open") and is_instance_valid(_room_scroll):
-		_room_scroll.set_open(true)
-	_log("lobby preview: room %s scroll_open=%s"
-		% [_snapshot["roomCode"], is_instance_valid(_room_scroll) and _room_scroll.is_open()])
+	_log("lobby preview: room %s" % _snapshot["roomCode"])
 
 func _board_preview() -> void:
 	# `-- --board-empty` previews the empty wall (L8); default is the 8-contract fixture.
@@ -962,7 +962,7 @@ func _in_expedition() -> bool:
 func _open_pause() -> void:
 	if _pause != null:
 		return
-	_pause = PauseMenu.build(_pause_host, _reduced_motion,
+	_pause = PauseMenu.build(_pause_host, _reduced_motion, str(_snapshot.get("roomCode", "")),
 		func(): _close_pause(),
 		func():
 			# Tell the server we are going before we go. The room is authoritative and would
@@ -1136,18 +1136,9 @@ func _show_lobby() -> void:
 	# The lobby's HUD is the room scroll (TD-071/R228): closed by default so the walkable
 	# Collegium is unobstructed, opened with Tab. No standing labels over the world — that
 	# collision with the station markers and the Seeker is what this replaces.
-	if not is_instance_valid(_room_scroll):
-		_room_scroll = RoomScroll.new()
-		_room_scroll.ready_toggled.connect(func(): _net.send_message(Protocol.TOGGLE_READY))
-		_room_scroll.leave_pressed.connect(func():
-			_net.send_message(Protocol.LEAVE_ROOM)
-			_reset_session()
-			_show_title())
-		_room_scroll.kick_requested.connect(func(pid: String):
-			_net.send_message(Protocol.KICK_PLAYER, {"playerId": pid}))
-		_scroll_layer.add_child(_room_scroll)
-	_room_scroll.visible = true
-	_room_scroll.refresh(_snapshot, _self_id)
+	# The roster, ready, kick and the room code all live at the Deploy Gate now (TD-088), and leaving
+	# lives in the Escape menu. The lobby's HUD was 247 lines of panel over a hall we had just spent a
+	# spec making worth looking at; the party is standing in that hall, so the hall can say it.
 	_render_space()
 	# Initial/authoritative body sync: the lobby snapshot carries everyone's spawn
 	# position, so spawn (and prune) bodies here. Without this the local body would
@@ -1276,10 +1267,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.physical_keycode == KEY_ESCAPE and _in_expedition():
 		_open_pause()
 		get_viewport().set_input_as_handled()
-	elif event.physical_keycode == KEY_TAB and _screen == Screen.LOBBY and not _menu_open \
-			and is_instance_valid(_room_scroll) and _room_scroll.visible:
-		_room_scroll.toggle()            # the Contract Board owns Tab while its popup is up
-		get_viewport().set_input_as_handled()
 	elif event.physical_keycode == KEY_F9:
 		# Reduced-motion toggle (playtest lever L5): freeze torch flicker, pin the glow
 		# to peak brightness. Motion is atmosphere only — the static board loses no info.
@@ -1329,6 +1316,16 @@ func _render_space() -> void:
 # Create/move a body per playerId at its feet px. `full` (a snapshot/resync full
 # set) also prunes bodies no longer present; a `false` POSITIONS delta never
 # prunes and touches only named players (mirrors server delta discipline, I6).
+## Push a Seeker's lobby state onto their body (TD-088). Ready and connection live on the body now,
+## not in a roster panel — the party is standing in the room, so the room can say it.
+func _apply_lobby_state(pid: String, body: Player) -> void:
+	for pl in _snapshot.get("players", []):
+		if str(pl.get("playerId", "")) == pid:
+			body.set_lobby_state(bool(pl.get("readyState", false)), bool(pl.get("connected", true)))
+			return
+	body.set_lobby_state(false, true)
+
+
 func _apply_positions(positions: Dictionary, full: bool) -> void:
 	var before := _bodies.size()
 	for pid in positions:
@@ -1339,6 +1336,7 @@ func _apply_positions(positions: Dictionary, full: bool) -> void:
 			b = BODY.instantiate()
 			_body_root.add_child(b)
 			b.setup(feet, pid == _self_id, _display_name_plain(pid))
+			_apply_lobby_state(pid, b)
 			_bodies[pid] = b
 		else:
 			b.target = feet
@@ -1570,12 +1568,83 @@ func _build_station_content(kind: String) -> void:
 				_popup_body.add_child(check)
 			_popup_button("Requisition (replaces your bag)", func(): _net.send_message(Protocol.REQUISITION, {"itemIds": _selected_items.duplicate()}))
 		"DEPLOY_GATE":
-			if _is_leader():
-				_popup_button("DEPLOY the expedition", func(): _net.send_message(Protocol.DEPLOY))
-			else:
-				_popup_label("Only the party leader can deploy.")
+			_build_muster()
 		"EXTRACTION":
 			_popup_button("EXTRACT: leave with what you learned", func(): _net.send_message(Protocol.EXTRACT))
+
+## The Deploy Gate is where the party assembles to leave, so it is where the party is LISTED
+## (TD-088). Everything the room scroll carried lives here now — the roster, who is ready, who has
+## dropped, the room code you need to invite anyone, and the leader's kick — reached the way every
+## station is reached, by walking to it and pressing E. No HUD sits over the hall for it.
+## One roster line: a label that FILLS the row and does not wrap, plus an optional action. A
+## `_popup_label` inside an HBox collapses to a single character per line, because autowrap lets its
+## minimum width fall to the widest glyph — which is exactly what the first pass shipped.
+func _muster_row(text: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	_popup_body.add_child(row)
+	var l := Label.new()
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(l)
+	return row
+
+
+func _build_muster() -> void:
+	var code := str(_snapshot.get("roomCode", ""))
+	if code != "":
+		var row := _muster_row("Room code    %s" % code)
+		var copy := Button.new()
+		copy.text = "Copy"
+		copy.tooltip_text = "Copy the room code"
+		copy.size_flags_horizontal = Control.SIZE_SHRINK_END
+		copy.pressed.connect(func():
+			DisplayServer.clipboard_set(code)
+			_show_toast("room code copied"))
+		row.add_child(copy)
+		_popup_label("Give this to the Seekers you want beside you.")
+
+	_popup_label("")
+	var players: Array = _snapshot.get("players", [])
+	for p in players:
+		var pid := str(p.get("playerId", ""))
+		# Ready is a MARK, never the words "not ready" — the roster reads as a muster roll, and an
+		# empty space says the same thing without accusing anyone.
+		var mark := "✦" if p.get("readyState", false) else "·"
+		var who := _display_name_plain(pid)
+		if p.get("isLeader", false):
+			who += "  ★"
+		if pid == _self_id:
+			who += "  (you)"
+		if not p.get("connected", true):
+			who += "  — lost, seat held"
+		var line := _muster_row("%s   %s" % [mark, who])
+		# Kicking is a roster operation, so it belongs on the roster. Leader only, never yourself.
+		if _is_leader() and pid != _self_id:
+			var k := Button.new()
+			k.text = "Release"
+			k.tooltip_text = "Release this seat"
+			k.size_flags_horizontal = Control.SIZE_SHRINK_END
+			k.pressed.connect(func(): _net.send_message(Protocol.KICK_PLAYER, {"playerId": pid}))
+			line.add_child(k)
+
+	_popup_label("")
+	# Ready is a SERVER GATE (`allReady` blocks acceptContract), so this is load-bearing rather than
+	# decoration — which is why it could not simply be deleted with the scroll.
+	var me_ready := false
+	for p in players:
+		if str(p.get("playerId", "")) == _self_id:
+			me_ready = bool(p.get("readyState", false))
+	_popup_button("Stand down" if me_ready else "Declare yourself ready",
+		func(): _net.send_message(Protocol.TOGGLE_READY))
+
+	if _is_leader():
+		_popup_button("DEPLOY the expedition", func(): _net.send_message(Protocol.DEPLOY))
+	else:
+		_popup_label("The party leader gives the word to deploy.")
+
 
 func _slots_text() -> String:
 	return "Requisition: %d of %d slots" % [_selected_items.size(), Catalog.BAG_SLOTS]
@@ -1890,8 +1959,6 @@ func _clear(keep_env: bool = false) -> void:
 		_menu_bg.visible = false      # the room setup turns it back on; other screens leave it off
 	if is_instance_valid(_nave):
 		_nave.visible = false
-	if is_instance_valid(_room_scroll):
-		_room_scroll.visible = false     # LOBBY turns it back on
 	if is_instance_valid(_nave_bg):
 		_nave_bg.visible = false
 	if is_instance_valid(_title_env) and not keep_env:

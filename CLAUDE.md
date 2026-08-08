@@ -445,9 +445,20 @@ state must not be coverable by the thing that trapped you (P146). Leaving sends 
 first, reusing the room scroll's path — leaving quietly strands the party with a ghost (TD-032).
 **T323–T326 done.** *Unverified:* the exits themselves need a human, since a capture cannot click.
 
-@specs/pause-menu/requirements.md
-@specs/pause-menu/design.md
-@specs/pause-menu/tasks.md
+Completed: **`specs/lobby-diegetic/`** (TD-088) — the **room scroll is deleted** (247 lines) and its
+jobs moved to where they belong, on the author's challenge that it was overhead. The correction that
+shaped it: "just a room code" is not the alternative, because the code gets you *in* and says nothing
+about readiness — and `allReady()` is a **server gate**, so the ready toggle is load-bearing. The
+party → the Seekers in the hall; **ready** → a mark above each head; **dropped-but-holding-a-seat** →
+that Seeker as a **ghost** (the one thing the world could not show, TD-032); roster + kick + ready +
+**room code** → the **Deploy Gate**, whose fiction already is "the party musters here"; leave → the
+Escape menu, which had duplicated it since TD-085. Nothing new was invented — stations, `Press E` and
+the Escape menu all existed. **T327–T330 done.** *Exposed, not caused:* the station popup is still the
+old purple-and-yellow panel (`station-ui` T127–T129).
+
+@specs/lobby-diegetic/requirements.md
+@specs/lobby-diegetic/design.md
+@specs/lobby-diegetic/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

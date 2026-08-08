@@ -25,7 +25,7 @@ const DIM := Color(0.02, 0.015, 0.01, 0.86)
 
 ## Build the overlay onto `host` (a full-rect Control on its own layer). Returns the root, which the
 ## caller frees to dismiss — there is no hidden state here and nothing to reset.
-static func build(host: Control, reduced: bool, on_resume: Callable,
+static func build(host: Control, reduced: bool, room_code: String, on_resume: Callable,
 		on_main_menu: Callable, on_quit: Callable) -> Control:
 	var root := Control.new()
 	root.name = "PauseMenu"
@@ -66,6 +66,16 @@ static func build(host: Control, reduced: bool, on_resume: Callable,
 	rule.custom_minimum_size = Vector2(150, 1)
 	rule.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	col.add_child(rule)
+	# The room code, where a player actually goes looking for it — the question "how do I get my
+	# friend in?" is asked from the menu, not from a station across the hall (TD-088 R315).
+	if room_code != "":
+		var code := Widgets.card_label("ROOM CODE   " + room_code, 9,
+			Color(0.74, 0.64, 0.44), false, true)
+		var cf := Fonts.cinzel(600)
+		if cf != null:
+			code.add_theme_font_override("font", cf)
+		code.custom_minimum_size = Vector2(230, 12)
+		col.add_child(code)
 	col.add_child(_gap(14))
 
 	# "Return to game", not "Return to your post": the author's call, and the right one — the flavour

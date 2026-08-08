@@ -3387,3 +3387,63 @@ author would rather keep resume-after-crash and validate the token instead.
 **Also:** the pause menu's resume reads **"Return to game"**, not "Return to your post" — the author's
 call. The flavour reading cost a beat of comprehension at exactly the moment the player wants the
 obvious answer.
+
+## 2026-08-07 — TD-087: joining stays code-only; a friends list waits for accounts
+
+**The question** (author): is multiplayer a server browser, a room code, or a hybrid?
+
+**Decided: code-only**, and the reason is Pillar 4 rather than scope.
+
+Co-op here is structural *because perception is distributed* — the party can only assemble the theory
+**by talking**. That mechanic assumes people who will actually talk: a call, a room, friends. Dropping
+a stranger into a four-person party whose entire loop depends on them narrating what only they can
+see is where that pillar quietly dies. A code is friction that selects for the group the design needs.
+
+What already ships and is unchanged by this: `MAX_PLAYERS = 4` ("you and up to three companions"), a
+six-character `randomBytes` room code, `CREATE_ROOM` / `JOIN_ROOM`, and **no** `LIST_ROOMS`. A
+browser would be new server surface, not a UI skin.
+
+**What a browser would drag in**, none of it hard alone and all of it debt taken on before combat
+exists: room names and therefore moderation, region and ping, filtering by contract tier,
+join-in-progress rules, and griefing in a game where **one player seals a contract for everybody**.
+
+**Where discovery belongs later:** not a public browser but a **friends / recent** list, at **Phase 7**
+with the account layer — because "who am I allowed to see" is an account question (the same one
+TD-082 identified for display names). The code stays the primitive; a list becomes a convenience over
+it, reusing `JOIN_ROOM` underneath. A LAN/local broadcast is the cheaper interim if discovery is ever
+wanted sooner, since it needs no accounts and has no moderation surface.
+
+## 2026-08-07 — TD-088: the lobby dissolves into the hall
+
+**Why.** The author on the room scroll: *"unnecessary overhead and cost to deploy and maintain."*
+Half right, and the correction matters: the alternative is not "just a room code", because the code
+is how you get **in** and says nothing about readiness — which the server enforces. There is also no
+deployment cost; it was 247 lines of client render code with no server surface. The real costs were
+maintenance and screen real estate, and both were worth paying down.
+
+**What it actually carried, and where each job went.** The party → the Seekers standing in the hall.
+Who is ready → a mark above each Seeker's head. Who has dropped → that Seeker, as a ghost. Roster and
+kick, the ready toggle, and the room code → the **Deploy Gate**, whose fiction already is *the party
+musters here to leave*. Leave → the Escape menu, which had already duplicated it in TD-085.
+
+Nothing new was invented: stations, `Press E` and the Escape menu all existed. The HUD did not.
+
+**Ready could not simply be deleted with the panel.** `allReady()` is a **server gate** —
+`acceptContract` refuses without it — so the toggle is load-bearing. Putting it at the Deploy Gate
+puts it next to the action it gates.
+
+**The ghost is the one thing the world could not show.** A player who has dropped but still holds
+their seat (TD-032) was visible only as a roster line. Now the body fades to 45% and its label reads
+*(lost)*, which is more legible than a panel entry because it is where the player is already looking.
+
+**Two details worth keeping.** A `Label` with autowrap inside an `HBoxContainer` collapses to **one
+character per line**, since autowrap lets its minimum width fall to the widest glyph — the first pass
+shipped exactly that. And ready is shown as a **mark**, never the words "not ready": a muster roll
+notes who has answered, and blank says the same thing without accusing anyone.
+
+**Exposed rather than caused:** the station popup is still the old purple-and-yellow panel, the chrome
+the join screen shed in TD-080. Moving the roster into it makes that harder to ignore. It is already
+specced as `station-ui` T127–T129.
+
+**Containment.** Client only. `TOGGLE_READY`, `KICK_PLAYER`, `DEPLOY` and `LEAVE_ROOM` are existing
+messages with existing payloads; only where the player triggers them moved.

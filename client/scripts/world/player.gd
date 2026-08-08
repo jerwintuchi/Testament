@@ -47,6 +47,11 @@ const SMOOTH_K := 22.0
 var target := Vector2.ZERO
 var is_self := false
 var label_text := ""
+# Lobby state, shown ON THE BODY rather than in a roster panel (TD-088). The room scroll's pips
+# existed so readiness was legible without opening anything; above the Seeker's own head is where
+# that belongs, because the party is standing right there.
+var is_ready := false
+var is_connected := true
 
 var _facing := "south"
 var _prev_target := Vector2.ZERO
@@ -63,14 +68,33 @@ func setup(feet_px: Vector2, self_flag: bool, name_text: String) -> void:
 	if is_node_ready():
 		_refresh()
 
+
+## Lobby state for this Seeker. Separate from `setup` because it changes on every LOBBY_UPDATED
+## while position and identity do not.
+func set_lobby_state(ready: bool, connected: bool) -> void:
+	is_ready = ready
+	is_connected = connected
+	if is_node_ready():
+		_refresh()
+
 func _ready() -> void:
 	_sprite.sprite_frames = _build_frames()
 	_refresh()
 	_sprite.play("idle_south")
 
 func _refresh() -> void:
-	_name.text = label_text
-	_name.modulate = Color(1.0, 0.9, 0.55) if is_self else Color(0.8, 0.85, 0.95)
+	# A ready Seeker is marked with the Collegium's own tick beside their name — the same job the
+	# scroll's pips did, in the place the player is already looking.
+	_name.text = ("✦ " + label_text) if is_ready else label_text
+	var tint := Color(1.0, 0.9, 0.55) if is_self else Color(0.8, 0.85, 0.95)
+	if not is_connected:
+		# A seat still held by someone who has dropped (TD-032's ghost). The roster was the ONLY
+		# place this was visible; on the body it needs no panel and cannot be missed.
+		tint = Color(0.62, 0.66, 0.78)
+		_name.text = label_text + "  (lost)"
+	_name.modulate = tint
+	# The body fades with the connection, so a ghost reads as one at a glance from across the hall.
+	modulate.a = 1.0 if is_connected else 0.45
 
 func _process(delta: float) -> void:
 	# Facing, register (walk/run) and move-state all come from server motion (the
