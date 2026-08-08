@@ -169,8 +169,7 @@ static func refresh(view: Dictionary) -> void:
 	var issuable: bool = view["can_issue"]
 	(view["seal"] as Button).disabled = view["sealed"] or not issuable or packed.is_empty()
 	(view["gate_label"] as Label).text = ("" if issuable else
-		"The Collegium issues instruments against a charge already taken up. "
-		+ "Take a contract from the board, then muster at the Deploy Gate.")
+		"The Collegium issues instruments against a charge. Take one from the board first.")
 
 	var sel := String(view["sel"])
 	if sel == "":

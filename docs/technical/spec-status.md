@@ -59,7 +59,7 @@ These are disagreements between what a spec says and what the tree contains.
 | `pause-menu` | ✅ done | 4 | 0 | 0 | 2026-08-08 | — |
 | `probe-handler` | ✅ done | 8 | 0 | 0 | 2026-07-02 | — |
 | `protocol-contract` | ✅ done | 15 | 0 | 0 | 2026-07-24 | — |
-| `quartermaster` | ✅ done | 5 | 0 | 3 | 2026-08-08 | — |
+| `quartermaster` | ✅ done | 6 | 0 | 3 | 2026-08-08 | — |
 | `raw-ws-transport` | ✅ done | 5 | 0 | 0 | 2026-06-29 | — |
 | `reader-swap` | ✅ done | 4 | 0 | 0 | 2026-07-23 | — |
 | `seal-ceremony` | ✅ done | 5 | 0 | 0 | 2026-07-21 | — |

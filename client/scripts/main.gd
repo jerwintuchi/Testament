@@ -459,6 +459,18 @@ func _ready() -> void:
 			if OS.get_cmdline_user_args().has("--qm-pick") and not _qm_view.is_empty():
 				_qm_view["sel"] = "witness-prism"
 				Quartermaster.refresh(_qm_view))
+	# `--qm-open` selects a charge and then walks to the counter: the exact flow that
+	# used to fail with WRONG_PHASE and is now the supported one (TD-096).
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--qm-open"):
+		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
+		# Selecting is gated to the board itself (R99), so the walk is chained:
+		# board -> select -> counter, which is exactly the route a player takes.
+		get_tree().create_timer(2.4).timeout.connect(func():
+			_walk_to_station("CONTRACT_BOARD", func():
+				var b: Array = _snapshot.get("board", [])
+				if not b.is_empty():
+					_net.send_message(Protocol.SELECT_CONTRACT, {"contractId": b[0]["contractId"]})
+				get_tree().create_timer(0.5).timeout.connect(func(): _walk_to_station("QUARTERMASTER"))))
 	# `--at-qm` WALKS the Seeker to the Quartermaster, so the world notice is capturable
 	# without a human at the keys. A teleport is not available: position is server-owned
 	# and only ever moves through MOVE intents (I1), so this drives the same input a
@@ -1475,16 +1487,19 @@ func _update_stations() -> void:
 ## key, so the affordance and the action can never disagree.
 func _station_open(kind: String) -> bool:
 	if kind == "QUARTERMASTER":
-		return _phase() == Protocol.PHASE_DEPLOYING
+		# Mirrors the server exactly (TD-096): a charge must be taken up, and the party
+		# must not have deployed. NOT "the phase is DEPLOYING" — that was strictly
+		# narrower than the rule it enforced and made the leader cross the hall twice
+		# more than the design needs.
+		var ph := _phase()
+		return _snapshot.get("contract") != null and (ph == Protocol.PHASE_WAITING or ph == Protocol.PHASE_DEPLOYING)
 	return true
 
 
 ## Why a closed station is closed, in the Collegium's voice.
 func _station_closed_reason(kind: String) -> String:
 	if kind == "QUARTERMASTER":
-		if _snapshot.get("contract") == null:
-			return "The counter is shut.\nTake a charge first."
-		return "The counter is shut.\nMuster at the Deploy Gate."
+		return "The counter is shut.\nTake a charge from the board."
 	return ""
 
 
@@ -1637,7 +1652,7 @@ func _build_station_content(kind: String) -> void:
 				func(packed: Array): _selected_items = packed,
 				func(): _net.send_message(Protocol.REQUISITION, {"itemIds": _selected_items.duplicate()}),
 				_reduced_motion,
-				str(_snapshot.get("phase", "")) == Protocol.PHASE_DEPLOYING,
+				_station_open("QUARTERMASTER"),
 				_party_bags())
 		"DEPLOY_GATE":
 			_build_muster()
@@ -1788,7 +1803,7 @@ func _refresh_open_reader() -> void:
 ## Every other Seeker's bag, keyed by display name — already on the wire and marked
 ## party-visible, because coordinating the bags IS coordinating perception (TD-007).
 ## Drive MOVE intents toward a station until standing on it (debug captures only).
-func _walk_to_station(kind: String) -> void:
+func _walk_to_station(kind: String, on_arrive: Callable = Callable()) -> void:
 	var c: Variant = _snapshot.get("collegium")
 	if c == null:
 		return
@@ -1808,6 +1823,8 @@ func _walk_to_station(kind: String) -> void:
 		if me.distance_to(target) <= STATION_RADIUS * 0.6 or _nearest_station() == kind:
 			_net.send_message(Protocol.MOVE, {"dx": 0, "dy": 0})
 			t.stop()
+			if on_arrive.is_valid():
+				on_arrive.call()
 			return
 		var d: Vector2 = target - me
 		_net.send_message(Protocol.MOVE, {"dx": signi(int(round(d.x))), "dy": signi(int(round(d.y)))}))

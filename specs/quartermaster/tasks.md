@@ -78,6 +78,23 @@
       Test: `--qm-pick`, `--qm-full`, `--qm-party`, `--reduced-motion`, `--muster`, `--board-preview`
       — all clean; board diffed at **0.042%** against a ~0.47% floor.
 
+- [x] T371 [TD-096] — **The counter opens when a charge is taken, not when the party musters.**
+      The playtest report was "after accepting a contract the Quartermaster is still closed". That
+      was the shipped rule, not a defect — but the rule was **narrower than the requirement it
+      cited**. `handleRequisition` asserted `phase === 'DEPLOYING'`, while R65 says packing is legal
+      "while the contract is known and the party has not deployed", and the contract is known from
+      `SELECT_CONTRACT` onward. The cost was a hall crossing nobody asked for: board → gate →
+      counter → gate for the leader, and a shut counter for everyone else until the leader acted.
+      Now: `WAITING` or `DEPLOYING`, plus `room.contract != null`, via a new `assertAnyPhase`.
+      **Both edges stay bounded** — no contract is refused with `NO_CONTRACT_SELECTED` (nothing to
+      bet on), and `FIELD` is still refused, so the bag may be revised while deciding but never
+      after a sign has been seen (TD-092). The client mirrors the predicate in ONE place
+      (`_station_open`) so the world notice, the E key and the rite cannot disagree with the server.
+      Test: `requisition.test.ts` now pins **both** edges rather than one phase assertion — no
+      contract → refused, `WAITING` *with* a contract → packed, `FIELD` → refused (server 393 → 395).
+      Proven end to end by `--qm-open`, which walks board → select → counter: "Press E" in `WAITING`,
+      no `WRONG_PHASE` in the log.
+
 ### The Godot trap this pass hit, recorded so it is not repeated
 
 **`Panel` does not lay out its children.** The expedition case was a `Panel` with an anchored column

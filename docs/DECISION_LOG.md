@@ -3902,3 +3902,46 @@ persisted Rank) is explicitly deferred to ROADMAP Phase 7 and must not be attemp
 TD-082's ruling applied to a harder case. The Rank→Tier mapping is the ladder from TD-094:
 Seeker → Vigil, Witness → Interdict, Confessor → Anathema, Hierophant → Apocrypha; an Aspirant
 accepts nothing.
+
+## 2026-08-08 — TD-096: the counter opens when a charge is taken, not when the party musters
+
+**Why.** Author playtest of the Quartermaster's Register. The report was "after accepting a contract,
+the Quartermaster is still closed". That was not a bug in the code — it was the shipped rule — but
+chasing it showed the rule was **narrower than the requirement it cited**, and the cost was a hall
+crossing nobody had asked for.
+
+**What the code did.** `handleRequisition` asserted `phase === 'DEPLOYING'`. **What R65 says**, in the
+handler's own comment: *"Packing is only legal while the contract is known and the party has not
+deployed."* After `SELECT_CONTRACT` the contract **is** known — but selection is deliberately
+reversible and non-committing (TD-041), so the phase only turns at the Deploy Gate's first press. The
+implementation therefore demanded something R65 never asked for.
+
+**The cost, which is what made it worth changing.** The leader had to cross the hall three times —
+board, gate (commit), counter (pack), gate (launch) — and every other Seeker stood at a shut counter
+until the leader acted, unable to prepare for a contract they could already read on the board. For a
+game whose first pillar is *preparation*, the preparation screen was gated behind someone else's
+button press.
+
+**Decision (author ruling).** Requisition is legal **while a contract is selected and the party has
+not deployed** — `WAITING` or `DEPLOYING`, plus `room.contract !== null`. A new
+`assertAnyPhase` guard carries actions legal across more than one phase; requisition is the first.
+
+**Both edges stay bounded, and this is what keeps the change honest:**
+
+- **No contract, no issue.** Packing is a bet on the contract's intel; with nothing selected there is
+  nothing to bet on, so it is refused with `NO_CONTRACT_SELECTED` rather than silently allowed.
+- **FIELD is still closed.** The commitment boundary is untouched: the bag may be revised freely
+  while the party is deciding, but never after a sign has been seen (TD-092). That is the property
+  that matters, and it was never the phase check's job — `DEPLOYING`-only was simply a blunter tool
+  than the rule required.
+
+**Consequences.** `phaseGuard.ts` gains `assertAnyPhase`; `requisition.ts` checks contract-known plus
+not-deployed; `requisition.test.ts` pins **both** edges (no contract → refused; `WAITING` *with* a
+contract → packed; `FIELD` → refused) rather than the single phase assertion it had. The client
+mirrors the same predicate in one place (`_station_open`) so the world notice, the E key and the
+Register's rite cannot disagree with the server. The station notice becomes "Take a charge from the
+board", which is now the only reason the counter is ever shut.
+
+**A note on how this surfaced.** The bug report was about a *message*, and the message was wrong —
+it said "against a charge already taken up" to a player who had taken one up. Correcting the wording
+would have hidden the design problem behind better prose. The rule was the thing that was wrong.

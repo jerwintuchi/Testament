@@ -94,7 +94,9 @@ describe('handleRequisition — validation (R65, P31)', () => {
     expect(room.players[0]!.bag).toEqual([]);
   });
 
-  it('WAITING phase → WRONG_PHASE (contract not yet known)', () => {
+  // TD-096: the gate is "the contract is known and the party has not deployed", not
+  // "the phase is DEPLOYING". These four pin both edges of that.
+  it('WAITING with NO contract → NO_CONTRACT_SELECTED (nothing to bet on)', () => {
     const mgr = new RoomManager();
     const store = new ReconnectTokenStore();
     handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
@@ -102,7 +104,37 @@ describe('handleRequisition — validation (R65, P31)', () => {
 
     handleRequisition('host', { itemIds: ['ashen-lens'] }, mgr, emit, () => {});
 
+    expect((calls[0]?.[1] as { code: string }).code).toBe('NO_CONTRACT_SELECTED');
+    expect(mgr.getRoomBySocketId('host')!.players[0]!.bag).toEqual([]);
+  });
+
+  it('WAITING WITH a contract selected → the bag is packed', () => {
+    const mgr = new RoomManager();
+    const store = new ReconnectTokenStore();
+    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
+    const room = mgr.getRoomBySocketId('host')!;
+    room.contract = room.board[0]!;                      // selected, not yet committed
+    room.players[0]!.pos = stationCenterPx('QUARTERMASTER');
+    expect(room.phase).toBe('WAITING');
+
+    handleRequisition('host', { itemIds: ['ashen-lens'] }, mgr, () => {}, () => {});
+
+    expect(room.players[0]!.bag).toEqual(['ashen-lens']);
+  });
+
+  it('FIELD → WRONG_PHASE: the bag is fixed once a sign has been seen', () => {
+    const mgr = new RoomManager();
+    const store = new ReconnectTokenStore();
+    handleCreateRoom('host', { displayName: 'Host' }, mgr, store, () => {}, () => {});
+    const room = mgr.getRoomBySocketId('host')!;
+    room.contract = room.board[0]!;
+    room.phase = 'FIELD';
+    const { fn: emit, calls } = makeEmit();
+
+    handleRequisition('host', { itemIds: ['ashen-lens'] }, mgr, emit, () => {});
+
     expect((calls[0]?.[1] as { code: string }).code).toBe('WRONG_PHASE');
+    expect(room.players[0]!.bag).toEqual([]);
   });
 
   it('no room → NOT_IN_ROOM', () => {
