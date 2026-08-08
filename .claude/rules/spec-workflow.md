@@ -94,5 +94,28 @@ When you finish a task, tick it **in the same commit**. When a spec is overtaken
 **close it** with a `**STATUS: CLOSED**` banner and mark superseded items in place with what
 replaced them — do not leave them open, and do not delete them.
 
+## Finished work is closed (author's standing instruction, 2026-08-07)
+
+**Do not modify the Contract Board, or any spec marked done, unless the work genuinely requires it
+or the author asks.**
+
+Finished surfaces carry the most invested tuning and the least test coverage — they are verified by
+capture and by eye, so a regression is silent until someone looks. The Contract Board especially: its
+writs are laid out by `_fit_writ`, which *measures* each one against the font it will be drawn in, so
+anything changing that font breaks the layout without erroring.
+
+This has already cost a pass (**TD-089**): restyling the shared station popup `Theme` set a
+`Label`/`Button` font, which cascaded into the board — whose notice cards are themselves `Button`s —
+and re-flowed every writ.
+
+- **Scope changes to the thing being built.** Style widgets in the builders that create them, never
+  in a `Theme` that cascades into another feature's scene. A Theme on a container hosting a complex
+  child must carry only what that child cannot be harmed by.
+- **If shared code must change, prove the untouched surfaces are untouched** — capture from a stashed
+  clean tree at HEAD and diff, rather than judging by eye. (Board control noise floor ≈ 0.47%: torch
+  particles plus which writ holds hover-focus.)
+- **A spec marked done in `docs/technical/spec-status.md` is closed.** Reopening one is the author's
+  decision, not a convenience.
+
 ## Golden Rule
 If you can't point to a test that verifies it, the feature doesn't exist.
