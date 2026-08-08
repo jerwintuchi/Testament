@@ -221,62 +221,118 @@ static func _solid_at(rows: Array, tx: int, ty: int) -> bool:
 ## of the screen. The prompt is about a thing you are standing in front of, so it belongs
 ## on that thing — a caption at the bottom of the viewport reads as UI chrome and makes
 ## the player look away from what they are addressing.
-func set_notice(kind: String, text: String, warn: bool) -> void:
+##
+## It FADES rather than snapping: a notice that pops on and off at the radius edge
+## flickers when you stand on the boundary, and the fade also reads as the station
+## noticing you.
+const NOTICE_W := 150.0
+const NOTICE_H := 30.0
+const KEY_E := "res://assets/ui/shared/key_e.png"
+const FADE := 0.16
+
+func set_notice(kind: String, text: String, warn: bool, keyed: bool = false) -> void:
 	for c in _markers.get_children():
-		if c is Sprite2D and c.get_meta("station_kind", "") == kind:
-			var n: Node = c.get_node_or_null("Notice")
-			if n == null:
-				n = _notice()
-				c.add_child(n)
-			var lbl := n as Label
-			lbl.text = text
-			lbl.add_theme_color_override("font_color",
-				Color(0.94, 0.74, 0.62) if warn else Color(0.96, 0.90, 0.76))
-			lbl.visible = text != ""
-			lbl.custom_minimum_size = Vector2(NOTICE_W, 0)
-			lbl.size = Vector2(NOTICE_W, NOTICE_H)
-			# Clear of the object's head: the sprite's foot is anchored to the tile, so
-			# its top is one texture-height above the origin.
-			lbl.position = Vector2(-NOTICE_W * 0.5, -c.texture.get_height() - NOTICE_H - 8)
-		else:
-			var other: Node = c.get_node_or_null("Notice") if c is Sprite2D else null
-			if other != null:
-				other.visible = false
+		if not (c is Sprite2D):
+			continue
+		var n: Control = c.get_node_or_null("Notice")
+		if c.get_meta("station_kind", "") != kind:
+			if n != null:
+				_fade(n, 0.0)
+			continue
+		if n == null:
+			n = _notice()
+			c.add_child(n)
+		# EARLY-OUT. set_notice runs every frame from _update_stations, and re-laying a
+		# Container each frame (setting `size` while it recomputes its own minimum) thrashed
+		# layout badly enough to hang the client. Nothing here changes unless the words do.
+		var stamp := "%s|%s|%s" % [text, warn, keyed]
+		if n.get_meta("stamp", "") != stamp:
+			n.set_meta("stamp", stamp)
+			_paint(n, text, warn, keyed)
+			# Centre on the row's OWN width, not a guessed box: the words plus the keycap
+			# are wider than any fixed NOTICE_W, so a fixed offset threw it left and clipped.
+			var w: float = maxf(n.get_combined_minimum_size().x, 1.0)
+			n.size = Vector2(w, NOTICE_H)
+			n.position = Vector2(-w * 0.5, -c.texture.get_height() - NOTICE_H + 4)
+		# `keyed` carries its own words, so an empty `text` is NOT an empty notice —
+		# checking text alone faded the keycap hint straight back out.
+		_fade(n, 1.0 if (text != "" or keyed) else 0.0)
 
 
 func clear_notices() -> void:
 	for c in _markers.get_children():
 		if c is Sprite2D:
-			var n: Node = c.get_node_or_null("Notice")
+			var n: Control = c.get_node_or_null("Notice")
 			if n != null:
-				n.visible = false
+				_fade(n, 0.0)
 
 
-const NOTICE_W := 128.0
-const NOTICE_H := 42.0
+static func _fade(n: Control, to: float) -> void:
+	# Compare against the TARGET, not the current alpha. _update_stations runs every
+	# frame, so comparing current alpha restarted the tween each frame and it never
+	# got to step — the notice sat at zero and looked like it was never created.
+	if is_equal_approx(float(n.get_meta("fade_to", -1.0)), to):
+		return
+	n.set_meta("fade_to", to)
+	if n.has_meta("tw"):
+		var old: Tween = n.get_meta("tw")
+		if old != null and old.is_valid():
+			old.kill()
+	var tw := n.create_tween()
+	tw.tween_property(n, "modulate:a", to, FADE)
+	n.set_meta("tw", tw)
 
+
+## The notice is a row — words, a drawn keycap, words — so the key is READ rather than
+## parsed out of a sentence. Body text uses the DEFAULT face, never Cinzel: Cinzel is an
+## inscriptional roman whose lowercase glyphs are small capitals, so anything set in it
+## reads as SHOUTED regardless of how it was written.
 static func _notice() -> Control:
-	# Positioned directly, NOT anchored: the wrapper Control has zero size, so a
-	# CENTER_BOTTOM preset resolved against nothing and threw the text off to one side.
-	var lbl := Label.new()
-	lbl.name = "Text"
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	# BOTH, and set again on show: `size` alone does not constrain autowrap, because the
-	# label's own minimum (its longest line) wins and the box grows to fit.
-	lbl.custom_minimum_size = Vector2(NOTICE_W, 0)
-	lbl.size = Vector2(NOTICE_W, NOTICE_H)
-	lbl.add_theme_font_size_override("font_size", 5)
-	# An outline, not a panel: the hall is dark and lit unevenly, so the text must hold
-	# on stone, on floor, and inside a lamp pool without dragging a box around with it.
-	lbl.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.02, 0.95))
-	lbl.add_theme_constant_override("outline_size", 3)
-	var f := Fonts.cinzel(600)
-	if f != null:
-		lbl.add_theme_font_override("font", f)
-	return lbl
+	var root := HBoxContainer.new()
+	root.name = "Notice"          # must match the get_node above, or every call adds ANOTHER
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_theme_constant_override("separation", 3)
+	root.modulate.a = 0.0
+
+	root.add_child(_line("pre"))
+	var key := TextureRect.new()
+	key.name = "Key"
+	key.texture = load(KEY_E) as Texture2D
+	key.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	key.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	key.custom_minimum_size = Vector2(11, 11)
+	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(key)
+	root.add_child(_line("post"))
+	return root
+
+
+static func _line(n: String) -> Label:
+	var l := Label.new()
+	l.name = n
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", 7)
+	l.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.02, 0.95))
+	l.add_theme_constant_override("outline_size", 4)
+	return l
+
+
+static func _paint(n: Control, text: String, warn: bool, keyed: bool) -> void:
+	var pre: Label = n.get_node("pre")
+	var post: Label = n.get_node("post")
+	var key: TextureRect = n.get_node("Key")
+	var tone := Color(0.94, 0.76, 0.64) if warn else Color(0.96, 0.90, 0.76)
+	pre.add_theme_color_override("font_color", tone)
+	post.add_theme_color_override("font_color", tone)
+	key.visible = keyed
+	if keyed:
+		pre.text = "Press"
+		post.text = "to interact"
+	else:
+		pre.text = text
+		post.text = ""
 
 
 func _place_markers(markers: Array) -> void:

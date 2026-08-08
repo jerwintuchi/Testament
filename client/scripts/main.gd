@@ -459,18 +459,18 @@ func _ready() -> void:
 			if OS.get_cmdline_user_args().has("--qm-pick") and not _qm_view.is_empty():
 				_qm_view["sel"] = "witness-prism"
 				Quartermaster.refresh(_qm_view))
-	# `--qm-open` selects a charge and then walks to the counter: the exact flow that
-	# used to fail with WRONG_PHASE and is now the supported one (TD-096).
-	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--qm-open"):
+	# `--qm-charged` walks to the counter with a charge already on the snapshot, so the
+	# OPEN notice is capturable. The contract is a RENDER FIXTURE here — it is not
+	# selected server-side, so sealing would still be refused; this proves the notice,
+	# not the flow. The real end-to-end (board -> select -> counter) was walked by hand
+	# and is what TD-096 records.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--qm-charged"):
 		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
-		# Selecting is gated to the board itself (R99), so the walk is chained:
-		# board -> select -> counter, which is exactly the route a player takes.
 		get_tree().create_timer(2.4).timeout.connect(func():
-			_walk_to_station("CONTRACT_BOARD", func():
-				var b: Array = _snapshot.get("board", [])
-				if not b.is_empty():
-					_net.send_message(Protocol.SELECT_CONTRACT, {"contractId": b[0]["contractId"]})
-				get_tree().create_timer(0.5).timeout.connect(func(): _walk_to_station("QUARTERMASTER"))))
+			var b: Array = _snapshot.get("board", [])
+			if not b.is_empty():
+				_snapshot["contract"] = b[0]
+			_walk_to_station("QUARTERMASTER"))
 	# `--at-qm` WALKS the Seeker to the Quartermaster, so the world notice is capturable
 	# without a human at the keys. A teleport is not available: position is server-owned
 	# and only ever moves through MOVE intents (I1), so this drives the same input a
@@ -1476,9 +1476,9 @@ func _update_stations() -> void:
 		_space.clear_notices()
 		return
 	if _station_open(_active_station):
-		_space.set_notice(_active_station, "Press E", false)
+		_space.set_notice(_active_station, "", false, true)   # keyed: Press [E] to interact
 	else:
-		_space.set_notice(_active_station, _station_closed_reason(_active_station), true)
+		_space.set_notice(_active_station, _station_closed_reason(_active_station), true, false)
 
 ## Is this station open for business? The Quartermaster's counter only issues against a
 ## charge already taken up — REQUISITION is DEPLOYING-only server-side (R65), so walking
@@ -1499,7 +1499,7 @@ func _station_open(kind: String) -> bool:
 ## Why a closed station is closed, in the Collegium's voice.
 func _station_closed_reason(kind: String) -> String:
 	if kind == "QUARTERMASTER":
-		return "The counter is shut.\nTake a charge from the board."
+		return "The counter is shut. Take a charge from the board."
 	return ""
 
 
@@ -1748,9 +1748,6 @@ func _popup_label(text: String, parent: Node = null) -> void:
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.add_theme_color_override("font_color", PopupTheme.INK)
 	l.add_theme_font_size_override("font_size", 11)
-	var f := Fonts.cinzel(500)
-	if f != null:
-		l.add_theme_font_override("font", f)
 	(parent if parent != null else _popup_body).add_child(l)
 
 ## An action on the sheet: written and underscored, not a filled rectangle (R232). Styled here for
@@ -2085,7 +2082,7 @@ func _set_token(token: String) -> void:
 ## expedition with only a transient toast to explain. Clamped in BOTH directions here,
 ## since save/load are the one source of truth for the name (P145) and a file written by
 ## an older build is already out there.
-const NAME_MAX := 32
+const NAME_MAX := 14
 
 func _save_name(name: String) -> void:
 	name = name.strip_edges().substr(0, NAME_MAX)

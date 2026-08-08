@@ -67,19 +67,23 @@ static func _field(host: Node, caption: String, placeholder: String, value: Stri
 	cap.text = caption
 	cap.add_theme_font_size_override("font_size", 7)
 	cap.add_theme_color_override("font_color", INK_DIM)
-	var f := Fonts.cinzel(600)
-	if f != null:
-		cap.add_theme_font_override("font", f)
+	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
+	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
+	# Cinzel — a title is meant to be cut in stone; a sentence is not.
 	host.add_child(cap)
 
 	var e := LineEdit.new()
+	# A ceiling at the point of entry, so the field cannot accept what the game will
+	# then silently truncate. 14 is the readable limit for a nameplate in the hall;
+	# the server's own 32 is a containment bound, not a design one.
+	e.max_length = 14
 	e.text = value
 	e.placeholder_text = placeholder
 	e.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	e.add_theme_font_size_override("font_size", 12)
-	var ef := Fonts.cinzel(500)
-	if ef != null:
-		e.add_theme_font_override("font", ef)
+	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
+	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
+	# Cinzel — a title is meant to be cut in stone; a sentence is not.
 	e.add_theme_color_override("font_color", INK)
 	e.add_theme_color_override("font_placeholder_color", Color(0.42, 0.35, 0.24, 0.75))
 	e.add_theme_color_override("caret_color", INK)
@@ -126,9 +130,9 @@ static func toggle(host: Node, caption: String, on: bool, changed: Callable) -> 
 	focus_box.set_border_width_all(1)
 	box.add_theme_stylebox_override("focus", focus_box)
 	box.add_theme_font_size_override("font_size", 11)
-	var bf := Fonts.cinzel(700)
-	if bf != null:
-		box.add_theme_font_override("font", bf)
+	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
+	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
+	# Cinzel — a title is meant to be cut in stone; a sentence is not.
 	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		box.add_theme_color_override(st, INK)
 	var draw_mark := func() -> void:
@@ -143,9 +147,9 @@ static func toggle(host: Node, caption: String, on: bool, changed: Callable) -> 
 	lab.text = caption
 	lab.add_theme_font_size_override("font_size", 10)
 	lab.add_theme_color_override("font_color", INK)
-	var f := Fonts.cinzel(500)
-	if f != null:
-		lab.add_theme_font_override("font", f)
+	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
+	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
+	# Cinzel — a title is meant to be cut in stone; a sentence is not.
 	lab.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(lab)
 	host.add_child(row)
@@ -159,9 +163,9 @@ static func slider(host: Node, caption: String, value: float, changed: Callable)
 	cap.text = caption
 	cap.add_theme_font_size_override("font_size", 7)
 	cap.add_theme_color_override("font_color", INK_DIM)
-	var cf := Fonts.cinzel(600)
-	if cf != null:
-		cap.add_theme_font_override("font", cf)
+	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
+	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
+	# Cinzel — a title is meant to be cut in stone; a sentence is not.
 	host.add_child(cap)
 
 	var sl := HSlider.new()
@@ -211,9 +215,9 @@ static func action(host: Node, text: String, on_pressed: Callable) -> Button:
 	b.focus_mode = Control.FOCUS_ALL
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.add_theme_font_size_override("font_size", 12)
-	var f := Fonts.cinzel(600)
-	if f != null:
-		b.add_theme_font_override("font", f)
+	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
+	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
+	# Cinzel — a title is meant to be cut in stone; a sentence is not.
 	var empty := StyleBoxEmpty.new()
 	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
 		b.add_theme_stylebox_override(st, empty)
