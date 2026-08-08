@@ -470,7 +470,26 @@ silently re-flowed. **A Theme on a container hosting a complex child carries onl
 cannot be harmed by**; ink is applied by the builders that create the widgets. Proven restored by
 diffing against a stashed clean tree at HEAD (0.43% vs a ~0.47% control noise floor).
 
-Active spec: **`specs/sign-lexicon/`** (TD-093) — **a sign names what was seen, not what it means.**
+Active spec: **`specs/rank-gate/`** (TD-095) — **the board offers contracts by Rank.** The rule was
+already canon (`contracts.md`: *"the board is free, the rank is the gate"*) and waiting in
+`generateBoard.ts` since it was written. **Assessment found one hard blocker and one piece of
+unblocked work worth more than the feature asked for.** *Blocker:* `grep` finds **no filesystem or
+database write anywhere in `src/server/`**, and `playerId` is a fresh `randomUUID()` per join — so
+there is no durable identity to attach a rank to. **TD-082's `user://display-name.txt` stand-in does
+NOT transfer**: a name is a *convenience* (shape-validated, ownership never checked), a Rank is an
+**authorization token**, and a client-supplied permission is what I2 forbids. Real Rank is ROADMAP
+**Phase 7**; we are in Phase 5. *Unblocked and valuable:* `generateBoard` hard-codes
+`const BOARD_TIER = 'VIGIL'`, which is **why the simulator measured no packing decision at any party
+size** — at Vigil only three of ten catalog items can do anything. A mixed board gives the game its
+Interdict/Anathema content immediately, with zero persistence. **Author ruling: Rank gates what you
+may LEAD, not what you may JOIN** — a Seeker may join an Anathema hunt led by a Confessor but cannot
+accept one; gating by the *lowest* rank present would mean a veteran can never play their own content
+with a friend. **The gate is checked twice** (acceptance *and* the Stage-1 deploy commit) because
+`reassignLeader` runs on leave — a Confessor can select an Anathema, leave, and promote a Seeker.
+Same class as TD-092's `isSolo` counting ghosts. Ships with `specs/preparation/` R333, since
+rank-gating turns the free board reroll (A6) into fishing for a tier you may take.
+
+Parked: **`specs/sign-lexicon/`** (TD-093) — **a sign names what was seen, not what it means.**
 Reading the lexicon to fix TD-092 found something closer to the game's centre: **the reading problem
 is not implemented.** Measured, not asserted — the rule *"no token may contain a value of its own axis
 or a `Stimulus` literal"* **fails 11 of 24 entries** (every `FRAILTY`, every `WARD`, plus `frost-rime`,
@@ -517,9 +536,9 @@ allowance or Pillar 4 inverts. **Charges are NOT the anti-brute-force fix** (TD-
 four kits are four *different* stimuli and duplicates are already rejected, so one charge each is
 exactly the sweep).
 
-@specs/sign-lexicon/requirements.md
-@specs/sign-lexicon/design.md
-@specs/sign-lexicon/tasks.md
+@specs/rank-gate/requirements.md
+@specs/rank-gate/design.md
+@specs/rank-gate/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

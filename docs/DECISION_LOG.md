@@ -3837,3 +3837,68 @@ because Collegium Rank does not exist in code.
 `specs/tiers/` for the rename plus the fourth tier; the Mutation system is named there as a hard
 dependency of `APOCRYPHA` and may ship after the rename. `specs/sign-lexicon/` and
 `specs/preparation/` are unaffected — no token, axis or channel changes here.
+
+## 2026-08-08 — TD-095: the board is free, the rank is the gate — and the gate is a permission
+
+**Why.** The author asked for the Contract Board to offer contracts by the player's Collegium Rank,
+which is TD-012's design and has been waiting in `generateBoard.ts` since it was written. Assessing
+it turned up one hard blocker, one canon rule that dissolves the hardest design question, and one
+piece of genuinely valuable work that is not blocked at all.
+
+**The blocker: Rank is a permission, and the display-name precedent does not transfer.**
+`grep` finds **no filesystem or database write anywhere in `src/server/`** — only two comments saying
+"never persisted". Worse, identity is not stable either: `playerId` is a fresh `randomUUID()` on every
+join, so a player is a brand-new person each session. TD-082 hit this same wall for the display name
+and ruled correctly that *"persists" is not "persist it server-side now"*, parking it in
+`user://display-name.txt` until **ROADMAP Phase 7 — Persistence & account layer**.
+
+**That stand-in cannot be reused here, and the distinction is the point.** A display name is a
+*convenience*: the server validates its shape and never asks whether the sender owns it. A Rank is an
+**authorization token** — it decides what content a player may access. A client-supplied rank is
+exactly what invariant **I2** forbids. You cannot put a permission in `user://rank.txt`. So real Rank
+stays Phase 7; we are in Phase 5.
+
+**The canon rule that dissolves the design question.** `docs/systems/contracts.md` §*"The board is
+free, the rank is the gate"*: Seekers see every contract; Rank gates **acceptance**, not display.
+This matters mechanically, not just tonally — the board is minted inside `createRoom`, **before any
+other player has joined**, so gating *what appears* by party composition is incoherent: the party does
+not exist yet, and leadership can reassign later. Gating *acceptance* has no such timing problem.
+
+**Decision 1 — Rank gates what you may LEAD, not what you may JOIN** (author ruling). A Seeker may
+join an Anathema hunt led by a Confessor; they may not accept one themselves. It matches the fiction
+— the Collegium issues the writ to whoever takes responsibility for it — and it protects the pillar:
+a veteran bringing a newcomer along is Pillar 4 working for free, and it is how the sign vocabulary
+gets taught out loud. Gating by the *lowest* rank present would mean a veteran can never play their
+own content with a friend, which is the opposite of a cooperative design.
+
+**Decision 2 — mixed-tier boards ship now, and are not blocked on any of the above.**
+`generateBoard.ts` hard-codes `const BOARD_TIER: Tier = 'VIGIL'`, and its own comment already says
+the tier is per-entry data so mixing it "is a data change, not a shape change." That single constant
+is why the sweep measured **no packing decision at any party size**: every contract is a Vigil, and at
+Vigil only three of ten catalog items can do anything at all. A spread gives the game its Interdict
+and Anathema content immediately, exercises the tier-banded petitioner pleas, and needs no
+persistence whatsoever.
+
+**Decision 3 — build the gate mechanism now against a server-owned stub.** Rank lives on the server
+player record and is **never read from the wire**; acceptance validates against it. Phase 7 changes
+only *where the value comes from*, not the shape, so the authorization path is real and tested years
+before accounts exist. **The stub defaults permissive** (top rank) so all content stays reachable
+during development — that is a deliberate development affordance, not a design statement, and the
+tests must prove the gate *would* reject a low rank rather than relying on the default.
+
+**The edge case this must not repeat.** Leadership can be reassigned (`reassignLeader`, on leave).
+So a Confessor may select an Anathema and then leave, promoting a Seeker who could deploy it. The
+gate must therefore be checked **at acceptance AND again at the Stage-1 deploy commit** — the same
+class of defect as TD-092's `isSolo` counting ghosts, where a check computed once stopped matching
+reality when the party changed underneath it.
+
+**Interaction with an open exploit.** Rank-gating makes TD-092's **A6 (free board reroll)** worse:
+create-read-leave-create becomes fishing for a tier you are allowed to take. It must ship with the
+reroll fix, which `specs/preparation/` R333 already requires for the same reason.
+
+**Consequences.** New spec `specs/rank-gate/` (R353+, P160+, T362+). **Phase A** (mixed-tier boards)
+and **Phase B** (the gate against a stubbed rank) are unblocked and build now. **Phase C** (real
+persisted Rank) is explicitly deferred to ROADMAP Phase 7 and must not be attempted early — that is
+TD-082's ruling applied to a harder case. The Rank→Tier mapping is the ladder from TD-094:
+Seeker → Vigil, Witness → Interdict, Confessor → Anathema, Hierophant → Apocrypha; an Aspirant
+accepts nothing.
