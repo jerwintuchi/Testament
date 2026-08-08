@@ -50,7 +50,7 @@ These are disagreements between what a spec says and what the tree contains.
 | `main-decompose` | ✅ done | 7 | 0 | 0 | 2026-07-24 | — |
 | `menu-lobby` | ✅ done | 13 | 0 | 0 | 2026-07-24 | — |
 | `options` | ✅ done | 5 | 0 | 0 | 2026-08-07 | — |
-| `pause-menu` | ✅ done | 4 | 0 | 0 | — | — |
+| `pause-menu` | ✅ done | 4 | 0 | 0 | 2026-08-08 | — |
 | `probe-handler` | ✅ done | 8 | 0 | 0 | 2026-07-02 | — |
 | `protocol-contract` | ✅ done | 15 | 0 | 0 | 2026-07-24 | — |
 | `raw-ws-transport` | ✅ done | 5 | 0 | 0 | 2026-06-29 | — |

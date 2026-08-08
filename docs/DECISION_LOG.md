@@ -3345,3 +3345,45 @@ doing all along, and why the same call looked right there and wrong here.
 **Unverified, and stated rather than glossed:** the exits themselves. An unattended capture cannot
 click, so "Leave for the title" actually returning to the title, and the room emptying server-side,
 needs a human.
+
+## 2026-08-07 — TD-086: the playtest actually starts, and the title stops lying
+
+**Why.** The author could not playtest: `tools/playtest.bat` opened a server window that did nothing,
+no room could be created, and the title screen offered *"Return to your expedition"* on a first-time
+open. Three separate causes, and the first was mine.
+
+**1. A stray server held the port.** Servers started during capture runs were left listening on 3001.
+`playtest.sh` exits when the port is busy — correct — but launched from the `.bat` its window closes
+with it, so the explanation vanished before it could be read. It now names the holder, offers to stop
+it, and **waits for a keypress** on every failure path. An error nobody can read is not an error
+message.
+
+Compounding it, and worth recording because it wasted real time: `tsx watch` **respawns** a killed
+child. Killing the PID that holds the port leaves the watcher alive to bind again, so several servers
+accumulated across test runs and old rooms survived what looked like fresh starts. Any timing
+experiment run against that environment is untrustworthy — mine were, and the conclusions drawn from
+them were withdrawn rather than reported.
+
+**2. The client never retried its first connect.** One attempt, then "server offline" until the
+player restarted it. `playtest.bat` waits a fixed 4s for a server that binds in ~3s warm and longer
+cold, so the race was routine. The fix belongs in `net.gd`, not in a longer sleep: it now retries
+with backoff (0.5s, 1s, 2s, 4s, then every 5s) while `_want_open` is set, which also covers a server
+started late, restarted mid-session, or slow on a cold cache. A deliberate `close()` clears the flag,
+so nothing reconnects behind the player's back.
+
+**3. The reconnect token was persisted, and expedition state must not be.** It was written to
+`user://reconnect-token.txt` and outlived the client, so a fresh launch offered a seat in a room that
+had died with the previous server. Canon is explicit: **I7** keeps rooms in server memory, lost on
+restart, and **TD-006** lists what survives — identity, cosmetics, rank, customization, career stats.
+A seat in a room is none of those.
+
+So the token is now **memory-only**, and a legacy file is deleted on boot so existing installs stop
+lying on the very next launch rather than after the player clicks it and gets an error. It still
+covers what reconnect exists for — a network drop or server hiccup while the client runs. **The cost,
+stated plainly:** if the client process itself dies mid-expedition, the seat is lost rather than
+resumable. That is the same bargain I7 already makes for the server, and it is reversible if the
+author would rather keep resume-after-crash and validate the token instead.
+
+**Also:** the pause menu's resume reads **"Return to game"**, not "Return to your post" — the author's
+call. The flavour reading cost a beat of comprehension at exactly the moment the player wants the
+obvious answer.

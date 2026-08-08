@@ -1838,14 +1838,22 @@ func _reset_session() -> void:
 func _set_status(text: String) -> void:
 	_status.text = text
 
+## The reconnect token lives in MEMORY ONLY (TD-086).
+##
+## It used to be written to `user://reconnect-token.txt` and so outlived the client. But a room is
+## **expedition state**, and canon is explicit that expedition state does not persist: I7 says rooms
+## live in server memory and are lost on restart, and TD-006 lists what survives — identity,
+## cosmetics, rank, customization, career stats. A seat in a room is none of those.
+##
+## The practical symptom was the title screen lying: it offered "Return to your expedition" on a
+## fresh launch, for a room that had died with the previous server. In memory it still covers the
+## case reconnect actually exists for — a network drop or a server hiccup while the client is
+## running — and it can no longer promise something that is gone.
+##
+## The cost, stated plainly: if the CLIENT process itself dies mid-expedition, the seat is lost
+## rather than resumable. That is the same bargain I7 already makes for the server.
 func _set_token(token: String) -> void:
 	_reconnect_token = token
-	if token == "":
-		DirAccess.remove_absolute(TOKEN_PATH)
-	else:
-		var f := FileAccess.open(TOKEN_PATH, FileAccess.WRITE)
-		if f:
-			f.store_string(token)
 
 func _save_name(name: String) -> void:
 	var f := FileAccess.open(NAME_PATH, FileAccess.WRITE)
@@ -1858,11 +1866,13 @@ func _load_name() -> String:
 	var f := FileAccess.open(NAME_PATH, FileAccess.READ)
 	return f.get_as_text().strip_edges() if f else ""
 
+## Always empty — see `_set_token`. It also deletes any token left on disk by an older build, so an
+## existing install stops offering its dead expedition on the very next launch rather than after the
+## player clicks it once and gets an error.
 func _load_token() -> String:
-	if not FileAccess.file_exists(TOKEN_PATH):
-		return ""
-	var f := FileAccess.open(TOKEN_PATH, FileAccess.READ)
-	return f.get_as_text().strip_edges() if f else ""
+	if FileAccess.file_exists(TOKEN_PATH):
+		DirAccess.remove_absolute(TOKEN_PATH)
+	return ""
 
 # ── UI builders ──────────────────────────────────────────────────────────────
 

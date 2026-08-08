@@ -23,11 +23,35 @@ bold=$'\e[1m'; dim=$'\e[2m'; gilt=$'\e[33m'; red=$'\e[31m'; off=$'\e[0m'
 # several (Tailscale, IPv6); the WSL NAT address is the first.
 WSL_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 
+# A busy port is the usual reason a playtest "just does nothing": this script exits, and when it was
+# launched from playtest.bat the window closes with it, taking the explanation along. So say what is
+# holding the port, offer to take it, and WAIT — an error nobody can read is not an error message.
 if ss -ltn 2>/dev/null | grep -q ":${PORT} "; then
+  echo
   echo "${red}Port ${PORT} is already in use.${off}"
-  echo "Another server is probably already running — reuse it, or stop it first:"
-  echo "    ${dim}ss -ltnp | grep ${PORT}${off}"
-  exit 1
+  echo "${dim}Holder:${off}"
+  ss -ltnp 2>/dev/null | grep ":${PORT} " | sed 's/^/    /'
+  echo
+  echo "  That is almost always a Testament server left running from an earlier session."
+  read -r -p "  Stop it and start a fresh one? [Y/n] " reply
+  if [ -z "$reply" ] || [ "$reply" = "y" ] || [ "$reply" = "Y" ]; then
+    # By PID, from the port itself — never `pkill node`, which would take unrelated work with it.
+    holder="$(ss -ltnp 2>/dev/null | grep ":${PORT} " | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2)"
+    if [ -n "$holder" ]; then
+      kill "$holder" 2>/dev/null
+      sleep 2
+    fi
+    if ss -ltn 2>/dev/null | grep -q ":${PORT} "; then
+      echo "  ${red}Still held. Stop it by hand, then re-run.${off}"
+      read -r -p "  Press Enter to close… " _
+      exit 1
+    fi
+    echo "  ${dim}released.${off}"
+  else
+    echo "  Leaving it alone. If it IS a Testament server, the client can just use it."
+    read -r -p "  Press Enter to close… " _
+    exit 1
+  fi
 fi
 
 echo
@@ -56,4 +80,13 @@ if [ "${1:-}" = "--client" ]; then
   fi
 fi
 
-exec pnpm dev:server
+# Not `exec`: the trap below needs to survive the server exiting, so a crash on startup (a bad
+# install, a TypeScript error) stays readable instead of vanishing with the window.
+pnpm dev:server
+status=$?
+if [ "$status" -ne 0 ]; then
+  echo
+  echo "${red}The server exited with status ${status}.${off}"
+  read -r -p "Press Enter to close… " _
+fi
+exit "$status"

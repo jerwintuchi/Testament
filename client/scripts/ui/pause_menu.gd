@@ -68,7 +68,9 @@ static func build(host: Control, reduced: bool, on_resume: Callable,
 	col.add_child(rule)
 	col.add_child(_gap(14))
 
-	var first := Widgets.choice(col, "Return to your post", 12, on_resume)
+	# "Return to game", not "Return to your post": the author's call, and the right one — the flavour
+	# reading cost a beat of comprehension at the exact moment the player wants the obvious answer.
+	var first := Widgets.choice(col, "Return to game", 12, on_resume)
 	# Named for what they cost you, not for the widget: leaving the hall abandons the expedition,
 	# and the two are different enough acts to deserve different words.
 	Widgets.choice(col, "Leave for the title", 12, on_main_menu)
