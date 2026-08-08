@@ -55,7 +55,7 @@ static func _assignment(contract: Variant, sig: String) -> Control:
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v := _bar_body(p, "ACTIVE ASSIGNMENT")
 	if contract == null:
-		v.add_child(_label("— no charge sealed —", 9, Color(0.80, 0.72, 0.55)))
+		v.add_child(_label("— no contract sealed —", 9, Color(0.80, 0.72, 0.55)))
 		v.add_child(_label("Awaiting the leader's seal.", 8, Color(0.66, 0.58, 0.44)))
 		return p
 	var cd := contract as Dictionary

@@ -4056,9 +4056,20 @@ name for a procedural mission — and `charge` was flavour that had crept into t
 copy, where a player being told what to do should read the word the rest of the game uses. Two
 strings changed: the Quartermaster's world notice and its in-panel gate label.
 
-**Scope, deliberately narrow.** Four uses remain on the **Contract Board**, which is finished work
-(`spec-workflow.md`, "Finished work is closed") and where "charge" is doing a different job — the
-seal oath ("I, <name>, take up the charge against <target>") is authored ceremony from TD-062, and
-the writ preamble ("this charge is raised") is *inside* a notice card whose layout `_fit_writ`
-measures against its own text. They are left as they are unless the author asks; a synonym in
-ceremonial prose is not the same defect as a synonym in an instruction.
+**Scope.** First pass changed two strings and held back the four on the **Contract Board** as
+finished work; the author then asked for those too, so the word is now uniform across the game.
+
+**What the caution was worth, and what it was not.** The reflow risk was real in kind but not in
+place: the writ preamble renders **only in the reader** (`notice_reader.gd:251`), a scrolling sheet,
+and never in the grid card that `_fit_writ` measures. Checking *where a string renders* before
+fearing a layout change is the cheaper move than either changing it blind or refusing on principle.
+`keepout live=8 ok=true minhit=80x53` after, unchanged.
+
+**One of the four was not the same word.** `intel.get("targetName", "the charge")` is a fallback
+**target name**, not "charge" meaning contract — it had always produced "take up the charge against
+the charge", and a mechanical rename would have made it "against the contract". It became
+"the unnamed", which is what a missing target actually wants. A find-and-replace would have shipped
+the bug; the word appearing in a string does not mean it is doing the same job.
+
+`Notice.charge()` keeps its name — an identifier is not player-facing, and renaming it is churn on
+finished work with nothing visible to show for it.

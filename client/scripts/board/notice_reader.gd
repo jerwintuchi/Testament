@@ -356,7 +356,7 @@ static func _seal_block(ctx: Ctx, ink: Color, ink_soft: Color) -> Control:
 	# The OATH (TD-062/R198, author ruling: named-target form): the leader speaks in the
 	# first person; the how-to lives in the hover tooltip, never on the sheet. Non-leaders
 	# read the party form.
-	var target := str(intel.get("targetName", "the charge"))
+	var target := str(intel.get("targetName", "the unnamed"))
 	var seeker := ctx.seeker_name
 	if seeker.is_empty():
 		seeker = "Seeker"
@@ -364,7 +364,7 @@ static func _seal_block(ctx: Ctx, ink: Color, ink_soft: Color) -> Control:
 	if selected:
 		caption = "It is witnessed. %s is ours to answer." % target
 	elif leader:
-		caption = "I, %s, take up the charge against %s. Let it be witnessed." % [seeker, target]
+		caption = "I, %s, take up the contract against %s. Let it be witnessed." % [seeker, target]
 	else:
 		caption = "Awaiting the leader's seal."
 	if leader:

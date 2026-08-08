@@ -43,7 +43,7 @@ static func preamble(intel: Dictionary) -> String:
 		"A petition reaches the Archive from %s." % place,
 		"Word has come to the Collegium out of %s." % place,
 		"The %s of %s has brought this before us." % [role, place],
-		"By report from %s, this charge is raised." % place,
+		"By report from %s, this contract is raised." % place,
 	]
 	var h := absi((str(intel.get("contractId", "")) + "|pre").hash())
 	return str(frames[h % frames.size()])
