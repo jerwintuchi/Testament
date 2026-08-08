@@ -456,9 +456,29 @@ Escape menu, which had duplicated it since TD-085. Nothing new was invented — 
 the Escape menu all existed. **T327–T330 done.** *Exposed, not caused:* the station popup is still the
 old purple-and-yellow panel (`station-ui` T127–T129).
 
-@specs/lobby-diegetic/requirements.md
-@specs/lobby-diegetic/design.md
-@specs/lobby-diegetic/tasks.md
+Completed: **`specs/pause-menu/`**, **`specs/lobby-diegetic/`**, and the station-popup restyle
+(**TD-089**) — the popup is the **writ** now (the board's parchment, ink Cinzel, ruled actions).
+**The lesson that governs any future shared-UI work:** the first pass put fonts in the popup
+`Theme`, which cascades into the Contract Board — whose notice cards are `Button`s laid out by
+`_fit_writ`, and `_fit_writ` **measures** each writ against the font it will be drawn in. Every writ
+silently re-flowed. **A Theme on a container hosting a complex child carries only what that child
+cannot be harmed by**; ink is applied by the builders that create the widgets. Proven restored by
+diffing against a stashed clean tree at HEAD (0.43% vs a ~0.47% control noise floor).
+
+Active spec: **`specs/quartermaster/`** (TD-090) — **not started**, written to be picked up cold.
+**Phase A (client only, shippable alone):** the Quartermaster is still a plain `CheckBox` list, which
+now sits on parchment looking exactly like the engine widget it is. It becomes a requisition form —
+the four bag slots read as *slots* (bounded capacity is the mechanic, not a footnote), each item says
+what it *does* in the player's language ("Reads Residue", never the wire enum, never a rating).
+**Phase B (blocked on the author's numbers):** the **Stipend** — `price`/`description` on `GearItem`,
+`stipend` on `RoomRecord`, `REQUISITION` validating cost as well as `BAG_SLOTS`. `grep -rn "stipend"
+src/` still returns nothing. Its open questions are real design decisions (what gear costs; whether
+the Stipend is per-party or per-Seeker; whether the Surety comes out of it) and must be **asked, not
+invented**. `specs/station-ui/` T127–T129 are marked superseded in place.
+
+@specs/quartermaster/requirements.md
+@specs/quartermaster/design.md
+@specs/quartermaster/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

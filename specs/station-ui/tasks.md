@@ -75,7 +75,8 @@
       success debits exactly the catalog-summed cost; re-requisition recomputes
       without drift; balance never negative (P60).
 
-- [ ] T127 [R114 / P62] — Client Quartermaster: `gear_slot.tscn`, `item_detail.tscn`;
+- [ ] T127 [R114 / P62] — **SUPERSEDED by `specs/quartermaster/` (TD-090) Phase A: written before the writ idiom, the muster point (TD-088) and the popup restyle (TD-089).**
+       Client Quartermaster: `gear_slot.tscn`, `item_detail.tscn`;
       `_build_quartermaster()` — catalog grid, detail panel (name/kind/description/
       "Reads: <channel>"), equipped row, `used/BAG_SLOTS` + Stipend balance +
       selected cost, **Requisition**. Log `requisition cost=C balance=B`.
@@ -84,7 +85,8 @@
 
 ## Phase C — Deploy Gate
 
-- [ ] T128 [R115 / P63] — Client Deploy Gate: `_build_deploy_gate()` — contract
+- [ ] T128 [R115 / P63] — **SUPERSEDED by `specs/lobby-diegetic/` (TD-088): the Deploy Gate became the party's muster point.**
+       Client Deploy Gate: `_build_deploy_gate()` — contract
       summary (reuse `contract_detail` read-only) + party roster (name · ready ·
       **bag**, no class label) + **Deploy** (leader) → `DEPLOY`. Log `deploy target=<name>`.
       Verify: playtest item 5 (summary from selected contract; roster shows bags,
@@ -92,7 +94,8 @@
 
 ## Cross-cutting
 
-- [ ] T129 [R117 / P62,P63] — Fold the three builders onto one `ui_theme.gd`
+- [ ] T129 [R117 / P62,P63] — **SUPERSEDED by TD-089: the popup Theme carries the sheet only, and ink is applied by the builders — a shared `ui_theme.gd` is the exact shape that broke the board.**
+       Fold the three builders onto one `ui_theme.gd`
       (extends `_build_popup_theme`); make `threat_pips` + `contract_card` reusable;
       confirm no game logic in any UI scene (render + emit intent only).
       Verify: playtest item 6 (all three popups share the theme; ThreatPips reused
