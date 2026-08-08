@@ -71,9 +71,10 @@ static func build(host: Control, reduced: bool, on_resume: Callable,
 	# "Return to game", not "Return to your post": the author's call, and the right one — the flavour
 	# reading cost a beat of comprehension at the exact moment the player wants the obvious answer.
 	var first := Widgets.choice(col, "Return to game", 12, on_resume)
-	# Named for what they cost you, not for the widget: leaving the hall abandons the expedition,
-	# and the two are different enough acts to deserve different words.
-	Widgets.choice(col, "Leave for the title", 12, on_main_menu)
+	# Named for what they cost you, not for where they send you (the author's call, twice over).
+	# "Leave the expedition" says what you are giving up; "leave for the title" described the
+	# destination, which is the one thing the player is not thinking about at that moment.
+	Widgets.choice(col, "Leave the expedition", 12, on_main_menu)
 	Widgets.choice(col, "Quit to desktop", 12, on_quit)
 
 	if not reduced:

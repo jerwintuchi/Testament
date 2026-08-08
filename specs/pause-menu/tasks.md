@@ -10,7 +10,7 @@
 - [x] T324 [R307, R308, R311, P146 / V1] — **The Escape menu.** `ui/pause_menu.gd` (its own file,
       canon S5) on its own `CanvasLayer` at 128, above everything, blocking input to the world.
       Three choices, named for what they cost rather than for the widget: *Return to your post*
-      (focused on open, so Enter is always safe), *Leave for the title*, *Quit to desktop*.
+      (focused on open, so Enter is always safe), *Leave the expedition*, *Quit to desktop*.
       Escape is **routed, not captured**: an open station popup still steps back one layer first
       (T146 untouched), a writ takes Back, the title does nothing because Quit is already on it.
       `_clear()` closes the menu on every screen change so it is never stranded over the next one.
@@ -33,5 +33,5 @@
 
 ## Still open
 
-- **A real playtest of the exits.** The capture harness cannot click, so "Leave for the title"
+- **A real playtest of the exits.** The capture harness cannot click, so "Leave the expedition"
   actually returning you to the title, and the room emptying server-side, needs a human.

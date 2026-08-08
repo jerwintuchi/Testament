@@ -20,7 +20,7 @@
 
 ## R308 — Two exits, because they are different acts
 
-- AC: **Leave for the title** — leaves the expedition and returns to the title screen.
+- AC: **Leave the expedition** — leaves the expedition and returns to the title screen.
 - AC: **Quit to desktop** — closes the program.
 - AC: **Return to your post** — dismisses the menu, and holds focus on open, so Enter is always the
   safe answer.

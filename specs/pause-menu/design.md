@@ -14,7 +14,7 @@ Two now exist, and picking the wrong one would have muddled both:
 | a **choice you make** | gilt Cinzel, no chrome, laurel on focus | the title menu, **this** |
 
 A pause menu is a choice, so it is the title's language laid over a dimmed world. That also makes the
-transition legible: *Leave for the title* takes you to a screen that already looks like this one.
+transition legible: *Leave the expedition* takes you to a screen that already looks like this one.
 
 ## Escape is routed, not captured
 
