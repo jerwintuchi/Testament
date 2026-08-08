@@ -284,9 +284,8 @@ static func _fade(n: Control, to: float) -> void:
 
 
 ## The notice is a row — words, a drawn keycap, words — so the key is READ rather than
-## parsed out of a sentence. Body text uses the DEFAULT face, never Cinzel: Cinzel is an
-## inscriptional roman whose lowercase glyphs are small capitals, so anything set in it
-## reads as SHOUTED regardless of how it was written.
+## parsed out of a sentence. Body text takes the project face (Almendra, TD-097), which has
+## a true lowercase — the notice is a sentence a station says, not an inscription.
 static func _notice() -> Control:
 	var root := HBoxContainer.new()
 	root.name = "Notice"          # must match the get_node above, or every call adds ANOTHER

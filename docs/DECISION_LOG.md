@@ -3945,3 +3945,48 @@ board", which is now the only reason the counter is ever shut.
 **A note on how this surfaced.** The bug report was about a *message*, and the message was wrong —
 it said "against a charge already taken up" to a player who had taken one up. Correcting the wording
 would have hidden the design problem behind better prose. The rule was the thing that was wrong.
+
+## 2026-08-08 — TD-097: Testament is set in Almendra; Cinzel is retired
+
+**Why.** Author ruling, after a run of "why is this all caps" corrections that could never have
+worked. **Cinzel has no true lowercase** — its lowercase glyphs *are* small capitals — so every
+sentence set in it rendered as SHOUTING however it was written. That is a property of the typeface,
+not a styling slip, and no amount of call-site fixing addresses it. Three separate passes tried:
+retitling copy, changing sizes, and finally moving dialog body text off Cinzel onto the engine
+default — which fixed the shouting but split the UI across two unrelated families.
+
+**Decision.** **Almendra** is the project face; **Almendra Display** is reserved for large ornament.
+Both are SIL OFL, as Cinzel was (`client/assets/fonts/OFL-Almendra.txt`). Cinzel and its licence are
+deleted — leaving it in the tree would invite reuse of the exact problem.
+
+**Three roles, and the third is narrower than its name suggests** (`ui/fonts.gd`):
+
+| role | face | for |
+|---|---|---|
+| `body()` | Almendra Regular | everything a player reads. Legible to 7px |
+| `heading()` | Almendra Bold | titles, actions, emphasis — the practical display weight at UI sizes |
+| `ornament(px)` | Almendra Display | **large ornament only, ≥ 21px** |
+
+**`ornament()` is not "the secondary UI font", and this was measured rather than assumed.** Almendra
+Display is an **inline/outline** face — the glyphs are hollow. Rendered at the sizes this game
+actually draws (7 / 9 / 11 / 14px) it collapses into fringe and only resolves from about 21px. So
+`ornament()` takes the size it will be drawn at and **falls back to `heading()` below the threshold
+with a warning**: a silent smear is worse than a substitution. It is for the title screen and rite
+banners, not for UI chrome.
+
+**Set as the PROJECT DEFAULT, not as call-site overrides** (`project.godot` → `theme/custom_font`).
+This is the load-bearing detail: `notice_card.gd` measures every writ against `ThemeDB.fallback_font`
+while `Widgets.card_label` renders with the default, so **measure and render are the same font by
+construction** (P111). Overriding fonts at call sites would have broken that pairing — the TD-089
+trap in another costume. Changing one project setting keeps them married and retypesets every label
+in the game at once, including the ones nobody remembered.
+
+**Verified rather than asserted.** The Contract Board re-flows under new metrics, so it was
+captured, not trusted: `keepout live=8 ok=true minhit=80x53 hit_ok=true`, all eight writs whole. The
+faces are imported with **antialiasing off and subpixel positioning disabled**, matching what TD-077
+did for Cinzel — the no-AA register is enforced at import so no call site can opt back in.
+
+**Consequences.** `Fonts.cinzel(weight)` is gone; call sites ask for a **role** rather than a number,
+because Almendra has no variable weight axis (weight is a separate file). Stale comments naming
+Cinzel across seven client files were corrected in the same pass — a comment that names a retired
+typeface is the kind of drift that costs the next session an hour.

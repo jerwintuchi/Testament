@@ -4,7 +4,7 @@ extends RefCounted
 ##
 ## Two idioms now live in this game and the split is deliberate: **a document you fill in is a writ**
 ## (the join screen, options — parchment, ink, ruled lines), and **a choice you make is a menu row**
-## (the title screen, and this). So the pause menu is the title's own language — gilt Cinzel, no
+## (the title screen, and this). So the pause menu is the title's own language — gilt Almendra, no
 ## chrome, the laurel marking the focused line — laid over a dimmed world rather than over the hall.
 ##
 ## It exists because there was no way out of the game except closing the window (the author, during
@@ -71,7 +71,7 @@ static func build(host: Control, reduced: bool, room_code: String, on_resume: Ca
 	if room_code != "":
 		var code := Widgets.card_label("ROOM CODE   " + room_code, 9,
 			Color(0.74, 0.64, 0.44), false, true)
-		var cf := Fonts.cinzel(600)
+		var cf := Fonts.heading()
 		if cf != null:
 			code.add_theme_font_override("font", cf)
 		code.custom_minimum_size = Vector2(230, 12)

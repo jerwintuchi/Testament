@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://cq2ap1cgnm5xq"
-path="res://.godot/imported/Cinzel.ttf-1e003c02bd9f5caf99829299b24c9916.fontdata"
+uid="uid://d1hbq40gfmv57"
+path="res://.godot/imported/Almendra.ttf-5cfde2995dd387a4257341d0fb87fe31.fontdata"
 
 [deps]
 
-source_file="res://assets/fonts/Cinzel.ttf"
-dest_files=["res://.godot/imported/Cinzel.ttf-1e003c02bd9f5caf99829299b24c9916.fontdata"]
+source_file="res://assets/fonts/Almendra.ttf"
+dest_files=["res://.godot/imported/Almendra.ttf-5cfde2995dd387a4257341d0fb87fe31.fontdata"]
 
 [params]
 

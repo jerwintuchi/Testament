@@ -16,10 +16,6 @@
 - **`Unarmed_Run_with_shadow.png`** — produced-by: — · consumed-by: `client/scripts/world/player.gd` (preload)
 - **`Unarmed_Walk_with_shadow.png`** — produced-by: — · consumed-by: `client/scripts/world/player.gd` (preload)
 
-### `client/assets/fonts/`
-
-- **`Cinzel.ttf`** — produced-by: — · consumed-by: `client/scripts/ui/fonts.gd` (load)
-
 ### `client/assets/tiles/`
 
 - **`tiles.png`** — produced-by: `client/assets/ui/gen_collegium_tiles.py` · consumed-by: `client/assets/tiles/tiles.tres` (ext_resource)
@@ -182,7 +178,6 @@
   - preloads: `wax_seal.gd`, `rite_banner.gd`
   - loaded-by: `client/scripts/stations/quartermaster/register.gd` (preload)
 - **`client/scripts/ui/fonts.gd`**
-  - loads: `Cinzel.ttf`
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster/pack.gd` (preload), `client/scripts/stations/quartermaster/record.gd` (preload), `client/scripts/stations/quartermaster/register.gd` (preload), `client/scripts/ui/pause_menu.gd` (preload), `client/scripts/ui/popup_theme.gd` (preload), `client/scripts/ui/rite_banner.gd` (preload), `client/scripts/ui/widgets.gd` (preload), `client/scripts/ui/writ_form.gd` (preload), `client/scripts/world/space_view.gd` (preload)
 - **`client/scripts/ui/pause_menu.gd`**
   - preloads: `fonts.gd`, `widgets.gd`
@@ -227,6 +222,9 @@
 
 ## Orphans (on-disk asset, no producer & no consumer) — advisory
 
+- `client/assets/fonts/Almendra-Bold.ttf`
+- `client/assets/fonts/Almendra.ttf`
+- `client/assets/fonts/AlmendraDisplay.ttf`
 - `client/assets/ui/_src/_proto_board.png`
 - `client/assets/ui/shared/key_e.png`
 - `client/assets/ui/shared/panel.png`
@@ -260,8 +258,9 @@
 - `client/scripts/stations/quartermaster/pack.gd:185` — `load/preload SLOT`
 - `client/scripts/stations/quartermaster/register.gd:185` — `load/preload ICONS`
 - `client/scripts/stations/quartermaster/seal_rite.gd:40` — `load/preload SEAL_TEX`
+- `client/scripts/ui/fonts.gd:37` — `load/preload path`
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
-- `client/scripts/ui/writ_form.gd:266` — `load/preload PARCH`
-- `client/scripts/world/space_view.gd:301` — `load/preload KEY_E`
-- `client/scripts/world/space_view.gd:344` — `load/preload art`
+- `client/scripts/ui/writ_form.gd:260` — `load/preload PARCH`
+- `client/scripts/world/space_view.gd:300` — `load/preload KEY_E`
+- `client/scripts/world/space_view.gd:343` — `load/preload art`

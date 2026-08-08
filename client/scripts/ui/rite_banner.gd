@@ -36,7 +36,7 @@ static func show(host: Node, title: String, sub: String, reduced_motion: bool) -
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_theme_constant_override("separation", 2)
 	band.add_child(v)
-	var tf := Fonts.cinzel(700)
+	var tf := Fonts.heading()
 	if tf != null:
 		tf.set("spacing_glyph", 5)     # the souls-register letterspacing
 	var tl := Label.new()

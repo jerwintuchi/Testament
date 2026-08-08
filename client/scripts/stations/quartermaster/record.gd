@@ -141,6 +141,6 @@ static func _ink(b: Button) -> void:
 	b.add_theme_color_override("font_disabled_color",
 		Color(PopupTheme.INK.r, PopupTheme.INK.g, PopupTheme.INK.b, 0.35))
 	b.add_theme_font_size_override("font_size", 11)
-	var f := Fonts.cinzel(600)
+	var f := Fonts.heading()
 	if f != null:
 		b.add_theme_font_override("font", f)

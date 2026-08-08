@@ -22,7 +22,7 @@ const NoticeCard = preload("res://scripts/board/notice_card.gd")        # one wr
 const BoardGeo = preload("res://scripts/board/board_geometry.gd")  # pure board layout/keep-out/seed math
 const BoardDecor = preload("res://scripts/board/board_decor.gd")   # torches + crest render factories
 const BoardBar = preload("res://scripts/board/board_bar.gd")       # bottom legend/assignment/status bar
-const Fonts = preload("res://scripts/ui/fonts.gd")              # shared font builders (Cinzel)
+const Fonts = preload("res://scripts/ui/fonts.gd")              # shared font roles (Almendra, TD-097)
 const PopupTheme = preload("res://scripts/ui/popup_theme.gd")   # the station popup's gothic Theme
 const RiteBanner = preload("res://scripts/ui/rite_banner.gd")   # the CONTRACT SEALED ceremony overlay
 const Widgets = preload("res://scripts/ui/widgets.gd")          # shared label/rule/engraved builders
@@ -344,7 +344,7 @@ func _ready() -> void:
 	_popup_title.add_theme_font_size_override("font_size", 15)
 	# Ink, not gilt: the popup is parchment now (TD-089), and gilt on paper reads as a sticker.
 	_popup_title.add_theme_color_override("font_color", Color(0.16, 0.12, 0.07))
-	var _tf := Fonts.cinzel(700)
+	var _tf := Fonts.heading()
 	if _tf != null:
 		_popup_title.add_theme_font_override("font", _tf)
 	pcol.add_child(_popup_title)
@@ -952,7 +952,7 @@ func _title_arrival(col: VBoxContainer) -> void:
 		t.tween_property(c, "modulate:a", to, 0.42)
 		i += 1
 
-# One title choice: gilt Cinzel on the nave, no button chrome — the screen is an image, and a
+# One title choice: gilt Almendra on the nave, no button chrome — the screen is an image, and a
 # row of stone-and-gold buttons would turn it back into a dialog. The SELECTED option is marked by
 # a gilt sigil either side of it rather than by a focus rectangle, for the same reason.
 func _title_option(host: Node, text: String, on_pressed: Callable) -> Button:
@@ -1677,7 +1677,7 @@ func _muster_row(text: String) -> HBoxContainer:
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	l.add_theme_color_override("font_color", PopupTheme.INK)
 	l.add_theme_font_size_override("font_size", 11)
-	var f := Fonts.cinzel(500)
+	var f := Fonts.body()
 	if f != null:
 		l.add_theme_font_override("font", f)
 	row.add_child(l)
@@ -1768,7 +1768,7 @@ func _ink_action(b: Button) -> void:
 	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		b.add_theme_color_override(st, PopupTheme.INK)
 	b.add_theme_font_size_override("font_size", 12)
-	var f := Fonts.cinzel(600)
+	var f := Fonts.heading()
 	if f != null:
 		b.add_theme_font_override("font", f)
 

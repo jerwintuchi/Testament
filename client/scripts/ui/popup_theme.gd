@@ -7,7 +7,7 @@ extends RefCounted
 ## by TD-088 the last place in the pre-expedition flow still wearing it.
 ##
 ## Now it is the writ: **the Contract Board's own parchment**, nine-sliced, with ink text, ruled
-## lines instead of boxes, and Cinzel throughout. A station is a thing you walk up to and read, which
+## lines instead of boxes, and Almendra throughout. A station is a thing you walk up to and read, which
 ## is the same object the join and options screens already are.
 ##
 ## **The Theme carries the SHEET ONLY.** It does not style `Label` or `Button`, and that restraint is

@@ -49,7 +49,8 @@ static func focus_ring() -> StyleBoxFlat:
 # so the glyphs read as chiselled into the plank rather than inked onto it (carved cathedral
 # signage). Both labels share the rect; only the face carries the soft down-right AO.
 static func engraved_line(text: String, size: int, face_color: Color, weight: int) -> Control:
-	var font := Fonts.cinzel(weight)
+	# Almendra has no variable weight axis, so the old numeric weight resolves to a role.
+	var font := Fonts.heading() if weight >= 600 else Fonts.body()
 	var row := Control.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.custom_minimum_size = Vector2(0, size + 1)
@@ -100,7 +101,7 @@ static func laurel(pointing_right: bool) -> TextureRect:
 	return s
 
 
-## A menu choice in the Collegium's own voice: gilt Cinzel, no button chrome, and the laurel marking
+## A menu choice in the Collegium's own voice: gilt Almendra, no button chrome, and the laurel marking
 ## whichever line has focus. Lives here because THREE screens now speak it — the title menu, and the
 ## pause menu that echoes it — and a third copy would drift from the other two.
 ##
@@ -120,7 +121,7 @@ static func choice(host: Node, text: String, size: int, on_pressed: Callable) ->
 	b.focus_mode = Control.FOCUS_ALL
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.add_theme_font_size_override("font_size", size)
-	var font := Fonts.cinzel(500)
+	var font := Fonts.body()
 	if font != null:
 		b.add_theme_font_override("font", font)
 	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:

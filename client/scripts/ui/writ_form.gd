@@ -3,7 +3,7 @@ extends RefCounted
 ## a headless parse/import resolves it (TD-029/30).
 ##
 ## The join screen and the first-run name rite are the same object: aged parchment laid over the
-## Great Hall, ruled lines instead of input boxes, Cinzel throughout, and the laurel marking whichever
+## Great Hall, ruled lines instead of input boxes, Almendra throughout, and the laurel marking whichever
 ## action has focus. It replaces a purple-navy panel with a yellow studded frame and filled buttons —
 ## chrome that turned the screen back into a dialog, which is exactly what R232 exists to stop.
 ##
@@ -67,9 +67,8 @@ static func _field(host: Node, caption: String, placeholder: String, value: Stri
 	cap.text = caption
 	cap.add_theme_font_size_override("font_size", 7)
 	cap.add_theme_color_override("font_color", INK_DIM)
-	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
-	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
-	# Cinzel — a title is meant to be cut in stone; a sentence is not.
+	# Body face (TD-097). The writ's head takes the heading weight; everything a player
+	# reads or types takes the regular, so a sentence reads as a sentence.
 	host.add_child(cap)
 
 	var e := LineEdit.new()
@@ -81,9 +80,8 @@ static func _field(host: Node, caption: String, placeholder: String, value: Stri
 	e.placeholder_text = placeholder
 	e.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	e.add_theme_font_size_override("font_size", 12)
-	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
-	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
-	# Cinzel — a title is meant to be cut in stone; a sentence is not.
+	# Body face (TD-097). The writ's head takes the heading weight; everything a player
+	# reads or types takes the regular, so a sentence reads as a sentence.
 	e.add_theme_color_override("font_color", INK)
 	e.add_theme_color_override("font_placeholder_color", Color(0.42, 0.35, 0.24, 0.75))
 	e.add_theme_color_override("caret_color", INK)
@@ -130,9 +128,8 @@ static func toggle(host: Node, caption: String, on: bool, changed: Callable) -> 
 	focus_box.set_border_width_all(1)
 	box.add_theme_stylebox_override("focus", focus_box)
 	box.add_theme_font_size_override("font_size", 11)
-	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
-	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
-	# Cinzel — a title is meant to be cut in stone; a sentence is not.
+	# Body face (TD-097). The writ's head takes the heading weight; everything a player
+	# reads or types takes the regular, so a sentence reads as a sentence.
 	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		box.add_theme_color_override(st, INK)
 	var draw_mark := func() -> void:
@@ -147,9 +144,8 @@ static func toggle(host: Node, caption: String, on: bool, changed: Callable) -> 
 	lab.text = caption
 	lab.add_theme_font_size_override("font_size", 10)
 	lab.add_theme_color_override("font_color", INK)
-	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
-	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
-	# Cinzel — a title is meant to be cut in stone; a sentence is not.
+	# Body face (TD-097). The writ's head takes the heading weight; everything a player
+	# reads or types takes the regular, so a sentence reads as a sentence.
 	lab.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(lab)
 	host.add_child(row)
@@ -163,9 +159,8 @@ static func slider(host: Node, caption: String, value: float, changed: Callable)
 	cap.text = caption
 	cap.add_theme_font_size_override("font_size", 7)
 	cap.add_theme_color_override("font_color", INK_DIM)
-	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
-	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
-	# Cinzel — a title is meant to be cut in stone; a sentence is not.
+	# Body face (TD-097). The writ's head takes the heading weight; everything a player
+	# reads or types takes the regular, so a sentence reads as a sentence.
 	host.add_child(cap)
 
 	var sl := HSlider.new()
@@ -200,7 +195,7 @@ static func slider(host: Node, caption: String, value: float, changed: Callable)
 	return sl
 
 
-## An action on the writ: Cinzel, unfilled, with the laurel marking focus — the title screen's own
+## An action on the writ: Almendra, unfilled, with the laurel marking focus — the title screen's own
 ## language, so a choice reads the same way wherever it is made.
 static func action(host: Node, text: String, on_pressed: Callable) -> Button:
 	var row := HBoxContainer.new()
@@ -215,9 +210,8 @@ static func action(host: Node, text: String, on_pressed: Callable) -> Button:
 	b.focus_mode = Control.FOCUS_ALL
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.add_theme_font_size_override("font_size", 12)
-	# Default face, not Cinzel: Cinzel is an inscriptional roman whose lowercase IS
-	# small capitals, so a caption or a typed name renders as SHOUTING. The head keeps
-	# Cinzel — a title is meant to be cut in stone; a sentence is not.
+	# Body face (TD-097). The writ's head takes the heading weight; everything a player
+	# reads or types takes the regular, so a sentence reads as a sentence.
 	var empty := StyleBoxEmpty.new()
 	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
 		b.add_theme_stylebox_override(st, empty)
@@ -288,7 +282,7 @@ static func build(host: Control, vp: Vector2, title: String, fields: Array) -> D
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_theme_font_size_override("font_size", 13)
 	head.add_theme_color_override("font_color", INK)
-	var hf := Fonts.cinzel(700)
+	var hf := Fonts.heading()
 	if hf != null:
 		head.add_theme_font_override("font", hf)
 	col.add_child(head)

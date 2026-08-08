@@ -659,6 +659,31 @@ It lists every asset's producer + consumers, orphans (dead art), dangling refs, 
 unresolved dynamic loads. Regenerate + `--check` it when a dependency changes (see
 `docs/technical/code-map.md` for how to read it + the provenance-header convention). TD-051.
 
+## Typography — CANON (TD-097)
+
+**Testament is set in Almendra.** `client/scripts/ui/fonts.gd` exposes three ROLES, and call sites
+ask for a role, never a weight number (Almendra has no variable axis — weight is a separate file):
+
+| role | face | for |
+|---|---|---|
+| `Fonts.body()` | Almendra Regular | everything a player reads; legible to 7px |
+| `Fonts.heading()` | Almendra Bold | titles, actions, emphasis |
+| `Fonts.ornament(px)` | Almendra Display | **large ornament only, ≥ 21px** |
+
+- **Cinzel is retired** (TD-097). It has **no true lowercase** — its lowercase glyphs are small
+  capitals — so every sentence set in it read as SHOUTING. Do not reintroduce it.
+- **`ornament()` is not a UI face.** Almendra Display is an inline/outline design: measured at
+  7/9/11/14px it is fringe, resolving only from ~21px. The function falls back to `heading()` below
+  the threshold *and warns*, because a silent smear is worse than a substitution.
+- **The default face is a PROJECT SETTING** (`project.godot` → `theme/custom_font`), never a
+  call-site override. `notice_card.gd` measures writs against `ThemeDB.fallback_font` while
+  `Widgets.card_label` renders with the default, so measure and render stay the same font by
+  construction (P111). Overriding fonts per call site breaks that pairing — the TD-089 trap again.
+- **No antialiasing, no subpixel positioning**, enforced in the `.ttf.import` files so no call site
+  can opt back in (the rule TD-077 established).
+- Changing the face **re-flows the Contract Board**. Re-capture and check `keepout ok=true` before
+  believing it fits.
+
 ## Art Direction & Sanctioned Toolchain — CLOSED LIST
 
 > Decision log: **2026-07-05 — 2D top-down pixel reaffirmed; Blender 3D and MediBang
