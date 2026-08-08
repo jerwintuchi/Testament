@@ -1501,7 +1501,7 @@ func _station_closed_reason(kind: String) -> String:
 		# An explicit newline, NOT autowrap. Autowrap is what measured 585px (a Label
 		# reports its minimum height at its minimum WIDTH — one word per line, TD-098);
 		# a hard break sizes correctly because the line count is fixed, not derived.
-		return "The counter is shut.\nTake a charge from the board."
+		return "The counter is shut.\nTake a contract from the board."
 	return ""
 
 

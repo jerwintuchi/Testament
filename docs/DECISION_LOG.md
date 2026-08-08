@@ -4048,3 +4048,17 @@ the container has not decided yet".
 2px, because a notice is an aside and not a headline. The notice also sits 9px higher: a Seeker
 standing at a station puts their own nameplate at roughly the station's top edge, and the second
 line collided with it — visible only with a player present, which a station-only capture misses.
+
+## 2026-08-08 — TD-099: the player-facing word is "contract", not "charge"
+
+**Why.** Author ruling on the shut-counter notice. `Contract` is the GLOSSARY term — the canonical
+name for a procedural mission — and `charge` was flavour that had crept into the *instructional*
+copy, where a player being told what to do should read the word the rest of the game uses. Two
+strings changed: the Quartermaster's world notice and its in-panel gate label.
+
+**Scope, deliberately narrow.** Four uses remain on the **Contract Board**, which is finished work
+(`spec-workflow.md`, "Finished work is closed") and where "charge" is doing a different job — the
+seal oath ("I, <name>, take up the charge against <target>") is authored ceremony from TD-062, and
+the writ preamble ("this charge is raised") is *inside* a notice card whose layout `_fit_writ`
+measures against its own text. They are left as they are unless the author asks; a synonym in
+ceremonial prose is not the same defect as a synonym in an instruction.
