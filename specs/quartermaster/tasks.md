@@ -58,6 +58,35 @@
       Test: `--quartermaster`, `--qm-full`, `--qm-pick` captures; `--reduced-motion` clean;
       `--muster` unaffected; board diffed at **0.289%** against a ~0.47% control floor.
 
+- [x] T370 — **Author playtest follow-up.** Three fixes and one real bug the playtest surfaced.
+      **The bug:** `WRONG_PHASE` on sealing. `REQUISITION` is `DEPLOYING`-only server-side (R65 — the
+      bag is a bet on the contract's intel), but the station is walkable in `WAITING`, so a player
+      could browse, pack four instruments, seal, and only then be refused. The station is now
+      **closed until a charge is taken up**: one `_station_open()` predicate read by BOTH the
+      proximity prompt (which reads "Quartermaster — closed") and the E key (which states the
+      reason), so the affordance and the action can never disagree.
+      **Party bags** are now shown — `LobbyPlayer.bag` already ships party-visible precisely because
+      coordinating the bags IS coordinating perception (TD-007), and the screen ignored it. A shelf
+      row marks `held` and the record says "Wren already carries this." A second copy of an
+      instrument the party holds is a wasted slot; nothing used to say so.
+      **Pack art redesigned**: brass corner brackets, straps buckled over the rim, stitched interior,
+      and compartments re-cut as leather LOOPS rather than bevelled boxes (the old ones read as
+      buttons). Detail lives in the border, which a 9-slice never stretches.
+      Also: the outer scrollbar is gone (the columns bound themselves), descriptions were halved and
+      each carries a line of the order's history, and the property line dropped to a 6px footer under
+      its own rule.
+      Test: `--qm-pick`, `--qm-full`, `--qm-party`, `--reduced-motion`, `--muster`, `--board-preview`
+      — all clean; board diffed at **0.042%** against a ~0.47% floor.
+
+### The Godot trap this pass hit, recorded so it is not repeated
+
+**`Panel` does not lay out its children.** The expedition case was a `Panel` with an anchored column
+inside it. The panel collapsed to zero height, and the column — anchored but with its own minimum
+size — rendered OUTSIDE it. So the case texture was drawing correctly, at no size, while the
+compartments floated in front of it, and three passes of art tuning changed nothing because the art
+was never the problem. `PanelContainer` sizes to its child and applies the stylebox's content
+margins, which is what the insets should have been all along.
+
 ### Three findings from the brief that the tree overruled
 
 1. **BURDEN was rejected and replaced.** Every instrument costs exactly one slot, so a weight

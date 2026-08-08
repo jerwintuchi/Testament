@@ -43,11 +43,12 @@ const ANSWERS := {
 
 
 static func build(body: Node, host: Node, selected: Array,
-		on_change: Callable, on_requisition: Callable, reduced: bool) -> Dictionary:
+		on_change: Callable, on_requisition: Callable, reduced: bool,
+		can_issue: bool = true, party: Array = []) -> Dictionary:
 	var view := {
 		"host": host, "packed": selected, "sel": "", "sealed": false,
 		"on_change": on_change, "on_requisition": on_requisition, "reduced": reduced,
-		"rows": {},
+		"can_issue": can_issue, "party": party, "rows": {},
 	}
 
 	var cols := HBoxContainer.new()
@@ -119,6 +120,14 @@ static func build(body: Node, host: Node, selected: Array,
 	view["packed_label"] = packed_l
 	view["shape_label"] = shape_l
 
+	# Why the counter cannot issue yet. The server refuses REQUISITION outside DEPLOYING
+	# (R65 — the bag is a bet on the contract's intel), and the station is reachable
+	# before then, so the reason is stated instead of discovered as an error toast.
+	var gate := Widgets.card_label("", 9, Color(0.44, 0.20, 0.16, 0.95), true, true)
+	gate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(gate)
+	view["gate_label"] = gate
+
 	var seal := Button.new()
 	seal.text = "Seal Expedition Pack"
 	Record._ink(seal)
@@ -143,11 +152,25 @@ static func refresh(view: Dictionary) -> void:
 		# Packed instruments leave the register — they are in the case now. Dimmed
 		# rather than removed, so the shelf never reflows under the cursor.
 		row.modulate = Color(1, 1, 1, 0.35) if on else (Color(1, 1, 1, 0.55) if full else Color(1, 1, 1, 1))
-		(view["rows"][id]["state"] as Label).text = "packed" if on else ""
+		var who := _carried_by(view, String(id))
+		var mark: Label = view["rows"][id]["state"]
+		if on:
+			mark.text = "packed"
+			mark.add_theme_color_override("font_color", Color(0.44, 0.34, 0.18, 0.95))
+		elif not who.is_empty():
+			# A second copy is a wasted slot, so it is called what it is.
+			mark.text = "held"   # shorter than "carried", which clipped against the scrollbar
+			mark.add_theme_color_override("font_color", Color(0.30, 0.42, 0.34, 0.95))
+		else:
+			mark.text = ""
 
 	(view["packed_label"] as Label).text = "PACKED: %d / %d" % [packed.size(), Catalog.BAG_SLOTS]
 	(view["shape_label"] as Label).text = _shape(packed)
-	(view["seal"] as Button).disabled = view["sealed"]
+	var issuable: bool = view["can_issue"]
+	(view["seal"] as Button).disabled = view["sealed"] or not issuable or packed.is_empty()
+	(view["gate_label"] as Label).text = ("" if issuable else
+		"The Collegium issues instruments against a charge already taken up. "
+		+ "Take a contract from the board, then muster at the Deploy Gate.")
 
 	var sel := String(view["sel"])
 	if sel == "":
@@ -156,7 +179,7 @@ static func refresh(view: Dictionary) -> void:
 		var item := Catalog.item_by_id(sel)
 		var state := "packed" if sel in packed else ("full" if full else "shelf")
 		Record.show_item(view["record"], item, icon_for(sel), state,
-			func(): _act(view, sel))
+			func(): _act(view, sel), _carried_by(view, sel))
 
 
 static func icon_for(item_id: String) -> AtlasTexture:
@@ -290,9 +313,18 @@ static func _row(item: Dictionary, view: Dictionary) -> Dictionary:
 	col.add_child(Widgets.card_label(_says(item), 8, PopupTheme.INK_DIM, false, false))
 
 	var state := Widgets.card_label("", 8, Color(0.44, 0.34, 0.18, 0.95), false, true)
-	state.custom_minimum_size = Vector2(38, 0)
+	state.custom_minimum_size = Vector2(34, 0)
 	box.add_child(state)
 	return {"row": b, "icon": ic, "state": state}
+
+
+## Names of other Seekers already carrying `id`. Empty when nobody is.
+static func _carried_by(view: Dictionary, id: String) -> Array:
+	var who: Array = []
+	for p in view.get("party", []):
+		if id in p.get("bag", []):
+			who.append(String(p.get("name", "?")))
+	return who
 
 
 static func _says(item: Dictionary) -> String:

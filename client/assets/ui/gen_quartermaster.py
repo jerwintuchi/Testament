@@ -57,14 +57,34 @@ def _case(x, y):
     # Distance from each edge, so the border logic is written once and mirrored.
     dl, dr, dt, db = x, CASE_W - 1 - x, y, CASE_H - 1 - y
     d = min(dl, dr, dt, db)
+    near_x, near_y = min(dl, dr), min(dt, db)
 
     if d == 0:
         return _op(BLACK)                       # a hard outline: this is an object
+
+    # Brass corner brackets. These must be tested BEFORE the rim, not after — the
+    # first attempt put them below the d-based returns, so they could only run deep
+    # inside the panel where their own condition was unreachable and nothing drew.
+    if near_x <= 11 and near_y <= 11 and 1 <= d <= 4:
+        # BRASS_DIM/BRASS, not BRASS_LIT: the bright stop read as gold plate against a
+        # muted hide and pulled the eye off the compartments, which are the mechanic.
+        return _op(BRASS if d <= 2 else BRASS_DIM)
+    if near_x <= 12 and near_y <= 12 and d == 5:
+        return _op(IRON_DARK)                   # the bracket's own shadow
+
+    # Straps: two bands buckled over the case, crossing the rim so they read as
+    # holding it shut rather than as decals painted on the hide.
+    strap = abs(x - CASE_W // 3) <= 3 or abs(x - 2 * CASE_W // 3) <= 3
+    if strap and near_y <= 10:
+        edge = abs(x - CASE_W // 3) == 3 or abs(x - 2 * CASE_W // 3) == 3
+        if near_y <= 1:
+            return _op(BLACK if edge else LEATHER_DEEP)
+        return _op(LEATHER_DEEP if edge else (LEATHER_WORN if near_y <= 6 else LEATHER))
+
     if d == 1:
         return _op(IRON_DARK)
     if d in (2, 3):
-        # Iron rim. Only the OUTER row of the top/left edge takes the highlight — a 2px
-        # band of the brightest stone stop read as chrome against warm hide.
+        # Iron rim. Only the OUTER row of the top/left edge takes the highlight.
         lit = d == 2 and ((dt <= dl and dt <= dr) or (dl <= dt and dl <= db))
         return _op(IRON_LIT if lit else IRON)
     if d == 4:
@@ -72,13 +92,12 @@ def _case(x, y):
     if d in (5, 6):
         return _op(LEATHER)
     if d == 7:
-        # Stitching: dashes, not a solid line.
-        return _op(WOOD_LIP if (x + y) % 4 != 0 else LEATHER)
+        return _op(WOOD_LIP if (x + y) % 4 != 0 else LEATHER)   # stitching, dashed
 
-    # THE CENTRE MUST BE NEARLY FLAT. A 9-slice stretches its middle, so banding or
-    # a scatter here is smeared and repeated into a patchwork — which is exactly what
-    # the first two passes produced (they read as camouflage, then as brickwork). The
-    # character of the object belongs in the BORDER, which does not stretch.
+    # THE CENTRE MUST BE NEARLY FLAT. A 9-slice stretches its middle, so banding or a
+    # scatter here is smeared and repeated into a patchwork — which is exactly what the
+    # first two passes produced (camouflage, then brickwork). Character lives in the
+    # BORDER, which does not stretch.
     c = LEATHER
     if A.noise(x // 5, y // 5, 17) > 0.93:
         c = A.quantize(A.lerp_rgb(LEATHER, LEATHER_WORN, 0.35))
@@ -96,19 +115,25 @@ def _slot(x, y):
     dl, dr, dt, db = x, SLOT_W - 1 - x, y, SLOT_H - 1 - y
     d = min(dl, dr, dt, db)
 
+    # A LOOP, not a box: a leather band across the top and bottom that a thing is
+    # slid behind, with the case's own dark interior showing between them. The first
+    # pass drew a bevelled rectangle, which read as a button.
+    if dt <= 2:
+        return _op(WOOD_LIP if dt == 1 else LEATHER_WORN)     # upper band, lit
+    if db <= 2:
+        return _op(LEATHER_DEEP if db == 0 else LEATHER)      # lower band, in shadow
     if d == 0:
+        return _op(BLACK)
+
+    # Stitch marks where each band is sewn down.
+    if dt in (3, 4) and (x % 6 == 2):
         return _op(LEATHER_DEEP)
-    if d == 1:
-        # The lip: bright along the bottom/right (light falls in), dark along the
-        # top/left (the overhang shades it). This is what makes it read as a HOLE.
-        return _op(WOOD_LIP if (db <= 1 or dr <= 1) else BLACK)
-    if d == 2:
-        return _op(IRON_DARK if (dt <= 2 or dl <= 2) else IRON)
-    # The floor of the compartment, shading up toward the back.
+    if db in (3, 4) and (x % 6 == 2):
+        return _op(LEATHER_DEEP)
+
+    # The interior behind the loop — darkest at the top where the band overhangs.
     t = min(1.0, (y - 3) / float(SLOT_H - 6))
-    c = A.quantize(A.lerp_rgb(BLACK, LEATHER, 0.25 + 0.45 * t))
-    if A.noise(x // 3, y // 3, 41) > 0.95:
-        c = A.quantize(A.lerp_rgb(c, LEATHER_DEEP, 0.5))
+    c = A.quantize(A.lerp_rgb(BLACK, LEATHER_DEEP, 0.20 + 0.55 * t))
     return _op(c)
 
 

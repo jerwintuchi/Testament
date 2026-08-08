@@ -44,15 +44,17 @@ static func build(host: Node, slot_count: int) -> Dictionary:
 	label.add_child(cap)
 	cap.set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	var case_panel := _nine(CASE, CASE_M)
+	# A PanelContainer, NOT a Panel. A Panel does not lay out its children, so the
+	# anchored column fell back on its own minimum size and rendered OUTSIDE a
+	# zero-height panel — the case texture was drawing all along, at no size, while the
+	# compartments floated in front of it. A PanelContainer sizes to its child and
+	# applies the stylebox's content margins, which is what the insets should have been.
+	var case_panel := _nine_container(CASE, CASE_M, 15, 14)
 	case_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(case_panel)
 
 	var col := VBoxContainer.new()
-	col.set_anchors_preset(Control.PRESET_FULL_RECT)
-	col.offset_left = 11; col.offset_top = 10
-	col.offset_right = -11; col.offset_bottom = -9
-	col.add_theme_constant_override("separation", 4)
+	col.add_theme_constant_override("separation", 3)
 	case_panel.add_child(col)
 
 	var slots: Array = []
@@ -146,6 +148,22 @@ static func fly_in(host: Node, view: Dictionary, from_ctrl: Control, tex: Textur
 
 # ── builders ────────────────────────────────────────────────────────────────
 
+## A 9-slice that LAYS OUT its child, with the border inset expressed as the
+## stylebox's content margin so the case's brackets and straps are never covered.
+static func _nine_container(path: String, margin: int, pad_x: int, pad_y: int) -> PanelContainer:
+	var p := PanelContainer.new()
+	var sb := StyleBoxTexture.new()
+	sb.texture = load(path) as Texture2D
+	for side in ["left", "top", "right", "bottom"]:
+		sb.set("texture_margin_" + side, float(margin))
+	sb.content_margin_left = float(pad_x)
+	sb.content_margin_right = float(pad_x)
+	sb.content_margin_top = float(pad_y)
+	sb.content_margin_bottom = float(pad_y)
+	p.add_theme_stylebox_override("panel", sb)
+	return p
+
+
 static func _nine(path: String, margin: int) -> Panel:
 	var p := Panel.new()
 	var sb := StyleBoxTexture.new()
@@ -160,7 +178,7 @@ static func _compartment() -> Button:
 	# A Button, so a packed instrument can be taken back out by clicking it and so the
 	# pack is reachable by keyboard — the shelf and the pack are both focusable columns.
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(0, ICON_PX + 6)
+	b.custom_minimum_size = Vector2(0, ICON_PX + 4)
 	b.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	b.focus_mode = Control.FOCUS_ALL
 	var sb := StyleBoxTexture.new()

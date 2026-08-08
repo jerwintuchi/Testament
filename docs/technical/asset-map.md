@@ -251,12 +251,13 @@
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
-- `client/scripts/main.gd:1840` — `load/preload path`
-- `client/scripts/main.gd:1844` — `load/preload normal_path`
-- `client/scripts/stations/quartermaster/pack.gd:68` — `load/preload CLASP`
-- `client/scripts/stations/quartermaster/pack.gd:152` — `load/preload path`
-- `client/scripts/stations/quartermaster/pack.gd:167` — `load/preload SLOT`
-- `client/scripts/stations/quartermaster/register.gd:163` — `load/preload ICONS`
+- `client/scripts/main.gd:1895` — `load/preload path`
+- `client/scripts/main.gd:1899` — `load/preload normal_path`
+- `client/scripts/stations/quartermaster/pack.gd:70` — `load/preload CLASP`
+- `client/scripts/stations/quartermaster/pack.gd:156` — `load/preload path`
+- `client/scripts/stations/quartermaster/pack.gd:170` — `load/preload path`
+- `client/scripts/stations/quartermaster/pack.gd:185` — `load/preload SLOT`
+- `client/scripts/stations/quartermaster/register.gd:186` — `load/preload ICONS`
 - `client/scripts/stations/quartermaster/seal_rite.gd:40` — `load/preload SEAL_TEX`
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`

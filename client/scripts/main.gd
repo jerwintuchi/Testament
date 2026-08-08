@@ -442,6 +442,15 @@ func _ready() -> void:
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--quartermaster"):
 		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
 		get_tree().create_timer(2.4).timeout.connect(func():
+			# `--qm-party` fakes a second Seeker holding two instruments, so the
+			# party-coordination affordance is capturable. A real one needs two clients
+			# (the same gap TD-074 recorded for the board's seal split).
+			if OS.get_cmdline_user_args().has("--qm-party"):
+				var ps: Array = _snapshot.get("players", []).duplicate()
+				ps.append({"playerId": "pv-wren", "displayName": "Wren", "isLeader": false,
+					"readyState": true, "connected": true,
+					"bag": ["witness-prism", "cantors-ear"]})
+				_snapshot["players"] = ps
 			if OS.get_cmdline_user_args().has("--qm-full"):
 				_selected_items = ["ashen-lens", "chirurgeons-glass", "censer-of-embers", "consecrated-salt"]
 			_open_station("QUARTERMASTER")
@@ -1275,6 +1284,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
 	if event.physical_keycode == KEY_E and _active_station != "" and not _menu_open:
+		if not _station_open(_active_station):
+			_set_status(_station_closed_reason(_active_station))
+			return
 		_open_station(_active_station)
 		get_viewport().set_input_as_handled()
 	elif event.physical_keycode == KEY_ESCAPE and _pause != null:
@@ -1440,7 +1452,30 @@ func _update_stations() -> void:
 	_active_station = _nearest_station()
 	_prompt.visible = _active_station != ""
 	if _prompt.visible:
-		_prompt.text = "Press E: %s" % StationNames.of(_active_station)
+		if _station_open(_active_station):
+			_prompt.text = "Press E: %s" % StationNames.of(_active_station)
+			_prompt.modulate = Color(1, 1, 1, 1)
+		else:
+			_prompt.text = "%s — closed" % StationNames.of(_active_station)
+			_prompt.modulate = Color(0.86, 0.62, 0.52, 1.0)
+
+## Is this station open for business? The Quartermaster's counter only issues against a
+## charge already taken up — REQUISITION is DEPLOYING-only server-side (R65), so walking
+## up in WAITING and pressing E used to open a screen that could not do anything and
+## failed with WRONG_PHASE at the seal. One predicate, read by both the prompt and the
+## key, so the affordance and the action can never disagree.
+func _station_open(kind: String) -> bool:
+	if kind == "QUARTERMASTER":
+		return _phase() == Protocol.PHASE_DEPLOYING
+	return true
+
+
+## Why a closed station is closed, in the Collegium's voice.
+func _station_closed_reason(kind: String) -> String:
+	if kind == "QUARTERMASTER":
+		return "The counter is shut. The Collegium issues instruments only against a charge already taken up."
+	return ""
+
 
 # Kind of the station whose centre the local body stands within, else "". Reads
 # the local body's server target (feet px), never an integrated guess.
@@ -1490,6 +1525,10 @@ func _open_station(kind: String) -> void:
 	_popup_close.visible = (kind != "CONTRACT_BOARD")
 	if _keyhint != null:
 		_keyhint.visible = (kind == "CONTRACT_BOARD")
+	# The Register bounds its own columns, so the outer sheet never scrolls; every other
+	# station keeps the shared scrolling body.
+	_popup_scroll.vertical_scroll_mode = (ScrollContainer.SCROLL_MODE_DISABLED
+		if kind == "QUARTERMASTER" else ScrollContainer.SCROLL_MODE_AUTO)
 	if kind == "CONTRACT_BOARD":
 		# Transparent panel that only supplies the content inset (the frame is drawn by the
 		# shader-lit _board_frame overlay); keeps the canvas layout identical to the old skin.
@@ -1504,7 +1543,7 @@ func _open_station(kind: String) -> void:
 		_popup.remove_theme_stylebox_override("panel")
 		var vp := get_viewport_rect().size
 		_popup_scroll.custom_minimum_size = (
-			Vector2(vp.x * 0.86, vp.y * 0.66)
+			Vector2(vp.x * 0.86, vp.y * 0.62)
 			if kind == "QUARTERMASTER" else Vector2(400, 240))
 		if _board_frame != null:
 			_board_frame.visible = false
@@ -1580,10 +1619,15 @@ func _build_station_content(kind: String) -> void:
 			# The writ itself lives in stations/quartermaster.gd (canon S5: a new client
 			# feature does not enter main.gd). This is the router half — it owns the
 			# selection and the socket; the module only renders and hands intents back.
+			# The Collegium issues instruments against a COMMITTED charge: REQUISITION is
+			# DEPLOYING-only server-side (R65). The station is walkable in WAITING, so the
+			# Register says why it cannot yet issue rather than letting the seal fail.
 			_qm_view = Quartermaster.build(_popup_body, self, _selected_items.duplicate(),
 				func(packed: Array): _selected_items = packed,
 				func(): _net.send_message(Protocol.REQUISITION, {"itemIds": _selected_items.duplicate()}),
-				_reduced_motion)
+				_reduced_motion,
+				str(_snapshot.get("phase", "")) == Protocol.PHASE_DEPLOYING,
+				_party_bags())
 		"DEPLOY_GATE":
 			_build_muster()
 		"EXTRACTION":
@@ -1730,6 +1774,17 @@ func _refresh_open_reader() -> void:
 
 # The board's inner area (inside the wood frame), against the live viewport. Several shell
 # call sites need it (the popup scroll size, the reader Ctx), so the wrapper stays here.
+## Every other Seeker's bag, keyed by display name — already on the wire and marked
+## party-visible, because coordinating the bags IS coordinating perception (TD-007).
+func _party_bags() -> Array:
+	var out: Array = []
+	for p in _snapshot.get("players", []):
+		if str(p.get("playerId", "")) == _self_id:
+			continue
+		out.append({"name": str(p.get("displayName", "?")), "bag": p.get("bag", [])})
+	return out
+
+
 func _board_inner_size() -> Vector2:
 	return ContractBoard.inner_size(get_viewport_rect().size)
 

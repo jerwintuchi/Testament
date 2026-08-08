@@ -50,7 +50,13 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 	var care := Widgets.card_label("", 8, Color(0.44, 0.20, 0.16, 0.90), true, false)
 	care.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(care)
-	var foot := Widgets.card_label("", 8, Color(PopupTheme.INK_DIM.r, PopupTheme.INK_DIM.g, PopupTheme.INK_DIM.b, 0.55), true, false)
+	var party := Widgets.card_label("", 9, Color(0.24, 0.40, 0.32, 0.95), true, false)
+	party.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(party)
+
+	var foot_rule := Widgets.hrule(Color(PopupTheme.RULE.r, PopupTheme.RULE.g, PopupTheme.RULE.b, 0.30))
+	root.add_child(foot_rule)
+	var foot := Widgets.card_label("", 6, Color(PopupTheme.INK_DIM.r, PopupTheme.INK_DIM.g, PopupTheme.INK_DIM.b, 0.45), true, false)
 	foot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(foot)
 
@@ -62,12 +68,13 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 	(action_host if action_host != null else root).add_child(act)
 
 	return {"root": root, "icon": icon, "name": name_l, "class": class_l,
-		"asks": asks, "note": note, "care": care, "foot": foot, "action": act}
+		"asks": asks, "note": note, "care": care, "party": party, "foot": foot,
+		"foot_rule": foot_rule, "action": act}
 
 
 ## `state` is "shelf" (can be packed), "packed" (can be removed) or "full".
 static func show_item(view: Dictionary, item: Dictionary, tex: Texture2D,
-		state: String, act: Callable) -> void:
+		state: String, act: Callable, carried_by: Array = []) -> void:
 	if item.is_empty():
 		clear(view)
 		return
@@ -79,6 +86,18 @@ static func show_item(view: Dictionary, item: Dictionary, tex: Texture2D,
 	(view["note"] as Label).text = String(rec["note"])
 	(view["care"] as Label).text = String(rec["care"])
 	(view["foot"] as Label).text = Lore.FOOTER
+	(view["foot_rule"] as Control).visible = true
+
+	# The party half of the decision. Perception is distributed (TD-007), so a second
+	# copy of an instrument the party already holds buys nothing — this is the one
+	# thing the old screen could not tell you, and the bag ships party-visible for it.
+	var party: Label = view["party"]
+	if carried_by.is_empty():
+		party.text = ""
+	elif carried_by.size() == 1:
+		party.text = "%s already carries this." % carried_by[0]
+	else:
+		party.text = "%s already carry this." % ", ".join(carried_by)
 
 	var b: Button = view["action"]
 	for c in b.pressed.get_connections():
@@ -105,7 +124,9 @@ static func clear(view: Dictionary) -> void:
 	(view["asks"] as Label).text = ""
 	(view["note"] as Label).text = "Choose an instrument from the register to read its record."
 	(view["care"] as Label).text = ""
+	(view["party"] as Label).text = ""
 	(view["foot"] as Label).text = ""
+	(view["foot_rule"] as Control).visible = false
 	(view["action"] as Button).visible = false
 
 
