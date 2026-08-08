@@ -8,6 +8,7 @@ export * from './fieldMessages.js';
 export * from './site.js';
 export * from './collegium.js';
 export * from './signs.js';
+export * from './rank.js';
 export * from './contract.js';
 export * from './gear.js';
 export * from './messages.js';

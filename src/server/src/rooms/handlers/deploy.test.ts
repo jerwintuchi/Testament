@@ -4,6 +4,7 @@ import { handleCreateRoom } from './createRoom.js';
 import { handleAcceptContract } from './acceptContract.js';
 import { handleSelectContract } from './selectContract.js';
 import { handleToggleReady } from './toggleReady.js';
+import { handleLeaveRoom } from './leaveRoom.js';
 import { RoomManager } from '../RoomManager.js';
 import { ReconnectTokenStore } from '../ReconnectTokenStore.js';
 import { stationCenterPx } from '../stations.js';
@@ -150,7 +151,7 @@ describe('handleDeploy', () => {
     room.players[0]!.bag = ['ashen-lens', 'censer-of-embers'];  // RESIDUE + a probe kit
     room.players.push({
       playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
-      isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [],
+      isLeader: false, readyState: true, disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [],
       bag: ['augurs-bead', 'chirurgeons-glass'],                // OMEN + STRESS_MARK
       pos: null, moveIntent: { dx: 0, dy: 0 },
     });
@@ -174,7 +175,7 @@ describe('handleDeploy', () => {
     const room = mgr.getRoomBySocketId('host')!;
     room.players.push({
       playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
-      isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
+      isLeader: false, readyState: true, disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     });
     const { fn: emitTo, calls: emitToCalls } = makeEmitTo();
 
@@ -192,7 +193,7 @@ describe('handleDeploy', () => {
     const room = mgr.getRoomBySocketId('host')!;
     room.players.push({
       playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
-      isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
+      isLeader: false, readyState: true, disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     });
 
     const { fn: emit, calls } = makeEmit();
@@ -268,7 +269,7 @@ function twoPlayerDeploying(seed: string) {
   const room = mgr.getRoomBySocketId('host')!;
   room.players.push({
     playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
-    isLeader: false, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [],
+    isLeader: false, readyState: true, disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [], bag: [],
     pos: null, moveIntent: { dx: 0, dy: 0 },
   });
   room.contract = { ...room.contract!, expeditionSeed: seed };
@@ -419,5 +420,62 @@ describe('handleDeploy — isSolo counts LISTED players (A7, known defect)', () 
     // The ghost carries a perception snapshot it never asked for and will keep on
     // reconnect. Any future isSolo change must reckon with this line.
     expect(room.players[1]!.perceivedChannels).toEqual([]);
+  });
+});
+
+// T365 (R357, P161, TD-095) — the rank gate is re-checked at the Stage-1 commit.
+// This is NOT a duplicate of selectContract's check: leadership can be reassigned
+// between the two, so a check computed once stops matching reality.
+describe('handleDeploy — rank gate at the commit (R357)', () => {
+  it('refuses the commit when the CURRENT leader cannot answer for the contract', () => {
+    const { mgr, room } = setupDeployingRoom();
+    room.phase = 'WAITING';                                  // back to before the commit
+    room.contract = { ...room.contract!, tier: 'ANATHEMA' };
+    room.players[0]!.rank = 'SEEKER';                         // explicitly under-ranked (P162)
+    const { fn: emit, calls } = makeEmit();
+
+    handleDeploy('host', mgr, new ReconnectTokenStore(), emit, () => {}, noBroadcast);
+
+    expect(room.phase).toBe('WAITING');                       // unmutated
+    expect((calls[0]?.[1] as { code: string }).code).toBe('RANK_TOO_LOW');
+  });
+
+  it('THE REASON THIS CHECK EXISTS: a Confessor selects, leaves, and a Seeker is promoted', () => {
+    const { mgr, room } = setupDeployingRoom();
+    room.phase = 'WAITING';
+    room.contract = { ...room.contract!, tier: 'ANATHEMA' };
+
+    // The Confessor who legitimately accepted it.
+    room.players[0]!.rank = 'CONFESSOR';
+    // A Seeker in the party who could never have accepted it.
+    room.players.push({
+      playerId: 'p2', displayName: 'P2', socketId: 'p2-sock', isLeader: false,
+      readyState: true, disconnectedAt: null, rank: 'SEEKER',
+      perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
+    });
+
+    // The Confessor leaves; reassignLeader promotes the Seeker.
+    handleLeaveRoom('host', mgr, () => {}, () => {});
+    const survivor = room.players.find(p => p.socketId === 'p2-sock')!;
+    expect(survivor.isLeader).toBe(true);                     // promoted
+    survivor.pos = stationCenterPx('DEPLOY_GATE');
+
+    const { fn: emit, calls } = makeEmit();
+    handleDeploy('p2-sock', mgr, new ReconnectTokenStore(), emit, () => {}, noBroadcast);
+
+    // Without the second check the Seeker would commit a charge they cannot answer for.
+    expect(room.phase).toBe('WAITING');
+    expect((calls[0]?.[1] as { code: string }).code).toBe('RANK_TOO_LOW');
+  });
+
+  it('a sufficiently ranked leader commits normally', () => {
+    const { mgr, room } = setupDeployingRoom();
+    room.phase = 'WAITING';
+    room.contract = { ...room.contract!, tier: 'ANATHEMA' };
+    room.players[0]!.rank = 'CONFESSOR';
+
+    handleDeploy('host', mgr, new ReconnectTokenStore(), () => {}, () => {}, noBroadcast);
+
+    expect(room.phase).toBe('DEPLOYING');
   });
 });

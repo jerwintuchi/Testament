@@ -84,7 +84,7 @@ describe('handleSelectContract (R110 / P59, TD-041)', () => {
     const room = mgr.getRoomBySocketId('host')!;
     const p2: ServerPlayerEntry = {
       playerId: 'p2', displayName: 'P2', socketId: 'p2', isLeader: false, readyState: true,
-      disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
+      disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     room.players.push(p2);
     standAt(mgr, 'p2', 'CONTRACT_BOARD');
@@ -101,5 +101,72 @@ describe('handleSelectContract (R110 / P59, TD-041)', () => {
     handleSelectContract('host', { contractId: room.board[0]!.contractId }, mgr, emit, () => {});
     expect((calls[0]?.[1] as { code: string }).code).toBe('NOT_AT_CONTRACT_BOARD');
     expect(room.contract).toBeNull();
+  });
+
+  // T365 (R356/R357, P160/P162, TD-095) — "the board is free, the rank is the gate".
+  // Every case sets rank EXPLICITLY: relying on DEFAULT_RANK would only ever exercise
+  // the gate in its permissive state, which is no test at all (P162).
+  describe('rank gate', () => {
+    it('refuses a contract above the actor rank, mutating nothing (I2)', () => {
+      const { mgr } = setup();
+      const room = mgr.getRoomBySocketId('host')!;
+      standAt(mgr, 'host', 'CONTRACT_BOARD');
+      room.players[0]!.rank = 'SEEKER';
+      const anathema = room.board.find(c => c.tier === 'ANATHEMA')!;
+      const errs: Array<[string, unknown]> = [];
+      const bcast: Array<[string, string, unknown]> = [];
+
+      handleSelectContract('host', { contractId: anathema.contractId }, mgr,
+        (t, p) => errs.push([t, p]), (c, t, p) => bcast.push([c, t, p]));
+
+      expect(room.contract).toBeNull();                 // unmutated
+      expect(bcast).toHaveLength(0);                    // nothing broadcast
+      expect(errs).toHaveLength(1);                     // sender only (I2)
+      expect((errs[0]![1] as { code: string }).code).toBe('RANK_TOO_LOW');
+    });
+
+    it('allows a contract the actor rank answers for', () => {
+      const { mgr } = setup();
+      const room = mgr.getRoomBySocketId('host')!;
+      standAt(mgr, 'host', 'CONTRACT_BOARD');
+      room.players[0]!.rank = 'SEEKER';
+      const vigil = room.board.find(c => c.tier === 'VIGIL')!;
+
+      handleSelectContract('host', { contractId: vigil.contractId }, mgr, () => {}, () => {});
+
+      expect(room.contract?.contractId).toBe(vigil.contractId);
+    });
+
+    it('an Aspirant answers for nothing at all', () => {
+      const { mgr } = setup();
+      const room = mgr.getRoomBySocketId('host')!;
+      standAt(mgr, 'host', 'CONTRACT_BOARD');
+      room.players[0]!.rank = 'ASPIRANT';
+      const errs: Array<[string, unknown]> = [];
+
+      handleSelectContract('host', { contractId: room.board[0]!.contractId }, mgr,
+        (t, p) => errs.push([t, p]), () => {});
+
+      expect(room.contract).toBeNull();
+      expect((errs[0]![1] as { code: string }).code).toBe('RANK_TOO_LOW');
+    });
+
+    it('an inbound rank in the payload is ignored, never trusted (P160)', () => {
+      const { mgr } = setup();
+      const room = mgr.getRoomBySocketId('host')!;
+      standAt(mgr, 'host', 'CONTRACT_BOARD');
+      room.players[0]!.rank = 'SEEKER';
+      const anathema = room.board.find(c => c.tier === 'ANATHEMA')!;
+      const errs: Array<[string, unknown]> = [];
+
+      // A client claiming a rank it does not hold changes nothing.
+      handleSelectContract('host',
+        { contractId: anathema.contractId, rank: 'HIEROPHANT' } as unknown as Record<string, unknown>,
+        mgr, (t, p) => errs.push([t, p]), () => {});
+
+      expect(room.contract).toBeNull();
+      expect((errs[0]![1] as { code: string }).code).toBe('RANK_TOO_LOW');
+      expect(room.players[0]!.rank).toBe('SEEKER');     // and does not stick
+    });
   });
 });

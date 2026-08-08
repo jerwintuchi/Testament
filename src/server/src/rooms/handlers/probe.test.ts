@@ -53,7 +53,7 @@ function setupFieldRoom() {
 function addPlayer(room: ReturnType<typeof setupFieldRoom>['room'], channels: Channel[]) {
   room.players.push({
     playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
-    isLeader: false, readyState: true, disconnectedAt: null,
+    isLeader: false, readyState: true, disconnectedAt: null, rank: 'HIEROPHANT',
     perceivedChannels: channels, bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
   });
 }

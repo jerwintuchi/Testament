@@ -3,7 +3,7 @@ import { reassignLeader } from './leaderElection.js';
 import type { ServerPlayerEntry } from './types.js';
 
 function makePlayer(id: string, isLeader = false): ServerPlayerEntry {
-  return { playerId: id, displayName: id, socketId: `s-${id}`, isLeader, readyState: false, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 } };
+  return { playerId: id, displayName: id, socketId: `s-${id}`, isLeader, readyState: false, disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 } };
 }
 
 // T7: leader election

@@ -1,6 +1,7 @@
 import type { RoomManager } from '../RoomManager.js';
 import type { EmitFn, BroadcastFn } from '../types.js';
 import { atStation } from '../stations.js';
+import { canAccept } from '../rank.js';
 import { toSnapshot } from '../snapshot.js';
 import { SERVER_MESSAGES } from '@testament/shared';
 
@@ -53,6 +54,17 @@ export function handleSelectContract(
   const chosen = room.board.find(c => c.contractId === contractId);
   if (!chosen) {
     emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'UNKNOWN_CONTRACT', message: 'That contract is not on the board.' });
+    return;
+  }
+  // "The board is free, the rank is the gate" (contracts.md, TD-012/TD-095). Every
+  // Seeker SEES every writ; Rank decides what they may take responsibility for — and
+  // only the ACCEPTING player is checked, never the party (author ruling: rank gates
+  // what you may LEAD, not what you may JOIN).
+  if (!canAccept(player.rank, chosen.tier)) {
+    emit(SERVER_MESSAGES.LOBBY_ERROR, {
+      code: 'RANK_TOO_LOW',
+      message: 'Your standing in the Collegium does not answer for this charge.',
+    });
     return;
   }
 

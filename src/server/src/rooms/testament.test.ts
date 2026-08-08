@@ -18,7 +18,7 @@ const CONTRACT: ContractRecord = {
 function makeRoom(contract: ContractRecord | null = CONTRACT): RoomRecord {
   const player: ServerPlayerEntry = {
     playerId: 'p1', displayName: 'Aldric', socketId: 's1',
-    isLeader: true, readyState: true, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
+    isLeader: true, readyState: true, disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
   };
   return { code: 'ABC123', phase: 'FIELD', players: [player], board: [], contract, fieldData: null, exposure: 0, revealedSigns: [], site: null, moveTick: null };
 }

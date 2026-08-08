@@ -38,12 +38,19 @@
 
 ## Phase B — acceptance is gated (rank stubbed server-side)
 
-- [ ] T364 [R355, P160] — **`Rank` + `RANK_ACCEPTS` in `src/shared`** (types + constants only, I4) and
+- [x] T364 [R355, P160] — **`Rank` + `RANK_ACCEPTS` in `src/shared`** (types + constants only, I4) and
       a server-owned `rank` on `ServerPlayerEntry`, assigned at create/join from a single named
       `DEFAULT_RANK`. **Never read from a client payload.**
-      Test: a `rank` field in an inbound payload is ignored, not trusted.
+      Shipped: `src/shared/src/rank.ts` (`Rank`, `RANKS`, `RANK_ACCEPTS` — an explicit map, not an
+      ordinal comparison, so a future rank or tier must be placed deliberately) and
+      `src/server/src/rooms/rank.ts` (`canAccept`, `DEFAULT_RANK`). The **decision** is server-side
+      because `canAccept` is game logic and I4 keeps shared to types + constants.
+      Test: `rank.test.ts` — 6 cases: an Aspirant accepts nothing; each rank accepts its own tier and
+      below; the ladder is **monotonic**; every rank has an entry; no entry names a tier that does not
+      exist. Plus `selectContract.test.ts` — an inbound `rank` in the payload is ignored **and does
+      not stick**.
 
-- [ ] T365 [R356, R357, P161, P162 / V2] — **The gate, in both places.** In `selectContract`,
+- [x] T365 [R356, R357, P161, P162 / V2] — **The gate, in both places.** In `selectContract`,
       immediately after the `isLeader` guard: refuse a contract above the actor's rank with
       `RANK_TOO_LOW`, mutating nothing, erroring only to the sender (I2). Then **the same check in
       Stage 1 of `handleDeploy`** against the *current* leader.
@@ -51,21 +58,33 @@
       select an Anathema, leave, and promote a Seeker who would otherwise deploy it. Same class as
       TD-092's `isSolo` counting ghosts: a check computed once that stops matching reality when the
       party changes underneath it.
-      Test: `selectContract.test.ts` + `deploy.test.ts` — under-ranked actor refused, state unmutated;
-      sufficiently ranked succeeds; **a leader demoted by reassignment between select and deploy is
-      refused at the commit**. Every case sets rank **explicitly** — never relying on `DEFAULT_RANK`
-      (P162), or the gate is only ever exercised in its permissive state.
+      Test: `selectContract.test.ts` (4 cases) + `deploy.test.ts` (3 cases) — under-ranked actor
+      refused with nothing mutated and the error to the sender only; sufficiently ranked succeeds;
+      an Aspirant answers for nothing; and **the case the second check exists for**, built end to end:
+      a Confessor selects an Anathema, calls `LEAVE_ROOM`, `reassignLeader` promotes a Seeker, and the
+      Seeker's commit is refused. Every case sets rank **explicitly** (P162).
+      **Proven to bite, not merely to pass:** disabling the deploy-side check makes exactly those two
+      tests fail and nothing else — so they test the gate, not the scenery.
 
-- [ ] T366 [R358] — **Flag the stub so nobody ships it as balance.** `DEFAULT_RANK` is permissive
-      (top rank) on purpose, so content stays reachable before accounts exist. One named constant,
-      commented at the declaration, cited in TD-095.
+- [x] T366 [R358] — **Flag the stub so nobody ships it as balance.** `DEFAULT_RANK = 'HIEROPHANT'`
+      carries a boxed comment at its declaration explaining that it is a development affordance, why
+      no account layer exists to replace it, and that only its *source* changes at Phase 7.
+      **Client affordance deliberately NOT built:** R355 makes shipping rank in the snapshot optional,
+      and with a permissive stub every player may take everything — so a "what you may accept" marker
+      would render nothing. It becomes meaningful at Phase 7 and belongs there.
 
-- [ ] T367 [R359 / V4] — **Prove containment.** No filesystem or database write is added — if a task
+- [x] T367 [R359 / V4] — **Prove containment.** No filesystem or database write is added — if a task
       finds itself building storage it has left this spec and entered Phase 7. Suites green; re-run
       `sim/sweep.ts` and **explain any change** rather than accepting it (the harness iterates tiers
       itself, so its numbers should hold; the board it samples does not).
-      **Ships with `specs/preparation/` R333**, the board-reroll fix — rank-gating turns
-      create-read-leave-create into fishing for a tier you are allowed to take (TD-092 A6).
+      **The R333 coupling turns out NOT to apply here, and that is a consequence of T362's design.**
+      The spec required the board-reroll fix to ship alongside, because rank-gating would turn
+      create-read-leave-create into fishing for a tier you may take. But T362 composes a **guaranteed**
+      5/2/1 spread, so **every board has identical tier composition** — rerolling cannot change which
+      tiers are on offer, only which targets and trait rolls. There is no tier to fish for. The reroll
+      exploit still exists for *intel* fishing, which is exactly where R333 lives (`preparation`
+      Phase 1, blocked); it stays there rather than being pulled forward.
+      Verified: server 380 → **393**, 8 consecutive green runs, no filesystem or database write added.
 
 ## Phase C — real Collegium Rank — **DEFERRED, ROADMAP PHASE 7**
 

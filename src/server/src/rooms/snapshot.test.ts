@@ -22,7 +22,7 @@ const STUB_CONTRACT_RECORD: ContractRecord = {
 };
 
 function makePlayer(id: string, socketId: string, channels: Channel[] = [...CHANNELS]): ServerPlayerEntry {
-  return { playerId: id, displayName: id, socketId, isLeader: id === 'p1', readyState: false, disconnectedAt: 123, perceivedChannels: channels, bag: [], pos: null, moveIntent: { dx: 0, dy: 0 } };
+  return { playerId: id, displayName: id, socketId, isLeader: id === 'p1', readyState: false, disconnectedAt: 123, rank: 'HIEROPHANT', perceivedChannels: channels, bag: [], pos: null, moveIntent: { dx: 0, dy: 0 } };
 }
 
 function makeRoom(phase: RoomRecord['phase'] = 'WAITING'): RoomRecord {

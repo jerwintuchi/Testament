@@ -157,7 +157,7 @@ describe('handleRequisition — success path (R65)', () => {
     const { mgr, room } = setupDeployingRoom();
     room.players.push({
       playerId: 'p2', displayName: 'P2', socketId: 'p2-sock',
-      isLeader: false, readyState: true, disconnectedAt: null,
+      isLeader: false, readyState: true, disconnectedAt: null, rank: 'HIEROPHANT',
       perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     });
     standAt(mgr, 'p2-sock', 'QUARTERMASTER');

@@ -3,7 +3,7 @@ import { allReady } from './readyCheck.js';
 import type { ServerPlayerEntry } from './types.js';
 
 function p(ready: boolean, disconnectedAt: number | null = null): ServerPlayerEntry {
-  return { playerId: 'x', displayName: 'x', socketId: 'x', isLeader: false, readyState: ready, disconnectedAt, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 } };
+  return { playerId: 'x', displayName: 'x', socketId: 'x', isLeader: false, readyState: ready, disconnectedAt, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 } };
 }
 
 // T8: all-ready check

@@ -1,5 +1,5 @@
 // Server-only room types. Never exported from @testament/shared (I4).
-import type { RoomCode, RoomPhase, LobbyPlayer, StubFieldData, Sign, Channel, ItemId, SiteLayout } from '@testament/shared';
+import type { RoomCode, RoomPhase, LobbyPlayer, StubFieldData, Sign, Channel, ItemId, Rank, SiteLayout } from '@testament/shared';
 import type { ContractRecord } from '../incarnate/contractRecord.js';
 
 export type { RoomCode };
@@ -11,6 +11,10 @@ export type ServerPlayerEntry = {
   isLeader: boolean;
   readyState: boolean;
   disconnectedAt: number | null;
+  // Collegium Rank (R355, TD-095): SERVER-OWNED and never read from a client
+  // payload — it is a permission, not a preference (I1/I2). Stubbed from
+  // DEFAULT_RANK until the Phase 7 account layer exists.
+  rank: Rank;
   // Distributed Perception (R61): empty until DEPLOY assigns. Keyed to the
   // player entry (playerId), not the socket, so it survives reconnection (R63).
   perceivedChannels: Channel[];

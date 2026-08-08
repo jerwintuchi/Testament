@@ -4,6 +4,7 @@ import type { RoomManager } from '../RoomManager.js';
 import type { ReconnectTokenStore } from '../ReconnectTokenStore.js';
 import type { EmitFn, BroadcastFn, ServerPlayerEntry } from '../types.js';
 import { sanitizeDisplayName } from '../sanitize.js';
+import { DEFAULT_RANK } from '../rank.js';
 import { toSnapshot } from '../snapshot.js';
 import { spawnInCollegium } from '../collegiumSpawn.js';
 import { startMovementTick } from '../movementTick.js';
@@ -50,6 +51,7 @@ export function handleJoinRoom(
     socketId,
     isLeader: false,
     readyState: false,
+    rank: DEFAULT_RANK,            // server-owned stub until Phase 7 (R358)
     disconnectedAt: null,
     perceivedChannels: [], bag: [],
     pos: null, moveIntent: { dx: 0, dy: 0 },

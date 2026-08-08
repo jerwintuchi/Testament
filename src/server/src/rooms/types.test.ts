@@ -13,7 +13,7 @@ describe('ServerPlayerEntry', () => {
       socketId: 'sock-1',
       isLeader: true,
       readyState: false,
-      disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
+      disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     expect(entry.socketId).toBe('sock-1');
     expect(entry.disconnectedAt).toBeNull();
@@ -28,7 +28,7 @@ describe('toPublicPlayer', () => {
       socketId: 'sock-1',
       isLeader: true,
       readyState: false,
-      disconnectedAt: 1234567890, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
+      disconnectedAt: 1234567890, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     const pub: LobbyPlayer = toPublicPlayer(entry);
     expect(pub.playerId).toBe('p1');
@@ -40,7 +40,7 @@ describe('toPublicPlayer', () => {
   it('derives connected=false from a set disconnectedAt', () => {
     const entry: ServerPlayerEntry = {
       playerId: 'p1', displayName: 'Aldric', socketId: '', isLeader: false,
-      readyState: true, disconnectedAt: 1234567890, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
+      readyState: true, disconnectedAt: 1234567890, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     expect(toPublicPlayer(entry).connected).toBe(false);
   });
@@ -48,7 +48,7 @@ describe('toPublicPlayer', () => {
   it('derives connected=true from a null disconnectedAt', () => {
     const entry: ServerPlayerEntry = {
       playerId: 'p1', displayName: 'Aldric', socketId: 'sock-1', isLeader: false,
-      readyState: false, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
+      readyState: false, disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     expect(toPublicPlayer(entry).connected).toBe(true);
   });
@@ -78,7 +78,7 @@ describe('RoomRecord shape', () => {
   it('fieldData is absent from LobbyPlayer (server-only field)', () => {
     const entry: ServerPlayerEntry = {
       playerId: 'p1', displayName: 'Aldric', socketId: 's1',
-      isLeader: true, readyState: false, disconnectedAt: null, perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
+      isLeader: true, readyState: false, disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: null, moveIntent: { dx: 0, dy: 0 },
     };
     const pub = toPublicPlayer(entry);
     expect('fieldData' in pub).toBe(false);
@@ -89,7 +89,7 @@ describe('RoomRecord shape', () => {
   it('toPublicPlayer includes bag but not perceivedChannels (T70, R64/R68)', () => {
     const entry: ServerPlayerEntry = {
       playerId: 'p1', displayName: 'Aldric', socketId: 's1',
-      isLeader: true, readyState: false, disconnectedAt: null,
+      isLeader: true, readyState: false, disconnectedAt: null, rank: 'HIEROPHANT',
       perceivedChannels: [], bag: ['ashen-lens', 'censer-of-embers'],
       pos: null, moveIntent: { dx: 0, dy: 0 },
     };

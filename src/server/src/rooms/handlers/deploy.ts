@@ -8,6 +8,7 @@ import { perceivedChannelsFor, filterSigns } from '../perception.js';
 import { generateSite } from '../../site/generateSite.js';
 import { spawnFanOut } from '../../site/spawn.js';
 import { atStation } from '../stations.js';
+import { canAccept } from '../rank.js';
 import { allReady } from '../readyCheck.js';
 import { createRng, hashSeed } from '../../rng/seeded.js';
 import { SERVER_MESSAGES } from '@testament/shared';
@@ -51,6 +52,19 @@ export function handleDeploy(
   if (room.phase === 'WAITING') {
     if (!room.contract) {
       emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NO_CONTRACT_SELECTED', message: 'Select a contract at the board before deploying.' });
+      return;
+    }
+    // R357 — re-check the rank gate against the CURRENT leader. This is NOT redundant
+    // with the check in selectContract: `reassignLeader` runs when a player leaves, so
+    // a Confessor can select an Anathema, leave, and promote a Seeker who would
+    // otherwise commit a charge they could never have accepted. Same class of defect as
+    // TD-092's `isSolo` counting ghosts — a check computed once that stops matching
+    // reality when the party changes underneath it. Do not delete this as duplication.
+    if (!canAccept(sender.rank, room.contract.tier)) {
+      emit(SERVER_MESSAGES.LOBBY_ERROR, {
+        code: 'RANK_TOO_LOW',
+        message: 'Your standing in the Collegium does not answer for this charge.',
+      });
       return;
     }
     room.phase = 'DEPLOYING';

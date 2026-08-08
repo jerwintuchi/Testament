@@ -4,6 +4,7 @@ import type { RoomRecord, ServerPlayerEntry } from './types.js';
 import { generateRoomCode } from './roomCode.js';
 import { stopMovementTick } from './movementTick.js';
 import { generateBoard } from '../incarnate/generateBoard.js';
+import { DEFAULT_RANK } from './rank.js';
 import { randomUUID } from 'node:crypto';
 
 export class RoomManager {
@@ -23,6 +24,7 @@ export class RoomManager {
       socketId,
       isLeader: true,
       readyState: false,
+      rank: DEFAULT_RANK,          // server-owned stub until Phase 7 (R358)
       disconnectedAt: null,
       perceivedChannels: [], bag: [],
       pos: null, moveIntent: { dx: 0, dy: 0 },

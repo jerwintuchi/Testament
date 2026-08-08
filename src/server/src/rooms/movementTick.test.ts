@@ -50,6 +50,7 @@ function roomWith(
     displayName: p.playerId,
     socketId: `s-${i}`,
     isLeader: i === 0,
+    rank: 'HIEROPHANT' as const,
     readyState: true,
     disconnectedAt: p.disconnectedAt ?? null,
     perceivedChannels: [],

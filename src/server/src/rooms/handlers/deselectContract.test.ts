@@ -65,7 +65,7 @@ describe('handleDeselectContract (TD-041)', () => {
     handleSelectContract('host', { contractId: room.board[0]!.contractId }, mgr, () => {}, () => {});
     const p2: ServerPlayerEntry = {
       playerId: 'p2', displayName: 'P2', socketId: 'p2', isLeader: false, readyState: true,
-      disconnectedAt: null, perceivedChannels: [], bag: [], pos: stationCenterPx('CONTRACT_BOARD'), moveIntent: { dx: 0, dy: 0 },
+      disconnectedAt: null, rank: 'HIEROPHANT', perceivedChannels: [], bag: [], pos: stationCenterPx('CONTRACT_BOARD'), moveIntent: { dx: 0, dy: 0 },
     };
     room.players.push(p2);
     const { fn: emit, calls } = makeEmit();
