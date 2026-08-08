@@ -44,6 +44,12 @@ function setupDeployingRoom() {
   const { fn: emit } = makeEmit();
   handleAcceptContract('host', mgr, emit, noBroadcast);
   standAt(mgr, 'host', 'DEPLOY_GATE');
+  // PIN THE TIER. Since TD-095 the board is a MIXED spread (5 Vigil / 2 Interdict /
+  // 1 Anathema) minted from randomUUID(), so `board[0]` — what acceptContract takes —
+  // has a random tier. Any test asserting tier-dependent output (sign counts, a solo's
+  // channel set) is otherwise FLAKY, not failing. These tests exercise deploy, not board
+  // variety, so they state their tier; the ones that want another set it themselves.
+  room.contract = { ...room.contract!, tier: 'VIGIL' };
   return { mgr, store, room };
 }
 

@@ -156,7 +156,8 @@ describe('T22: lobby integration — full flow', () => {
     const contract = (deployingHost.payload as { contract: Record<string, unknown> }).contract;
     expect(Object.keys(contract)).not.toContain('traitRoll');
     expect(Object.keys(contract)).not.toContain('expeditionSeed');
-    expect(contract['tier']).toBe('VIGIL');
+    // Mixed board since TD-095 — assert the tier is a real one, not a fixed one.
+    expect(['VIGIL', 'INTERDICT', 'ANATHEMA']).toContain(contract['tier']);
     expect(['INVESTIGATE', 'ELIMINATE', 'CAPTURE', 'BANISH']).toContain(contract['primaryVerb']);
     expect(typeof contract['contractId']).toBe('string');
     expect(typeof contract['targetName']).toBe('string');

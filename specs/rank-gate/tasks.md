@@ -18,6 +18,12 @@
       call on its entry seed**, proving the shuffle disturbed no entry stream (P151).
       **Why this alone is worth shipping:** the simulator measured *no packing decision at any party
       size*, and this constant is why — at Vigil only three of ten catalog items can do anything.
+      **Follow-up it forced (T362b):** the mixed board made **five tests FLAKY, not failing** —
+      `RoomManager` mints the board from `randomUUID()`, `acceptContract` takes `board[0]`, and five
+      assertions hard-coded the tier that used to be guaranteed. A green run proved nothing; the
+      failures surfaced only across repeated runs. Deploy tests now **pin their tier** in the shared
+      setup (they exercise deploy, not board variety); the accept and lobby-integration tests
+      **derive** it instead of assuming it. Verified by **10 consecutive green runs**, not one.
 
 - [x] T363 [R354 / V3] — **The writ says how deep it goes**, in the Collegium's language (*Vigil*,
       *Interdict*, *Anathema*) — never a number or a star rating. The tier-banded petitioner plea

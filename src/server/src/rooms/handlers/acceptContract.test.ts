@@ -52,7 +52,10 @@ describe('handleAcceptContract', () => {
     expect(payload.contract).toBeDefined();
     expect(Object.keys(payload.contract)).not.toContain('traitRoll');
     expect(Object.keys(payload.contract)).not.toContain('expeditionSeed');
-    expect(payload.contract['tier']).toBe('VIGIL');
+    // The board is a mixed spread since TD-095, so the tier of board[0] — what
+    // acceptContract takes — is not fixed. What this test is actually about is
+    // containment: the intel must carry the SAME tier the server holds, whatever it is.
+    expect(payload.contract['tier']).toBe(mgr.getRoomBySocketId('host')!.board[0]!.tier);
     // server-side room.contract has the traitRoll
     const room = mgr.getRoomBySocketId('host')!;
     expect(room.contract?.traitRoll).toBeDefined();
