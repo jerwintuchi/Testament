@@ -17,6 +17,7 @@ const VerbBadge = preload("res://scripts/board/verb_badge.gd")
 const Notice = preload("res://scripts/board/notice.gd")
 const NoticeReader = preload("res://scripts/board/notice_reader.gd")  # the taken-down writ + its seal
 const ContractBoard = preload("res://scripts/board/contract_board.gd")  # the wall the writs hang on
+const Quartermaster = preload("res://scripts/stations/quartermaster.gd")  # the requisition writ
 const NoticeCard = preload("res://scripts/board/notice_card.gd")        # one writ + its furniture
 const BoardGeo = preload("res://scripts/board/board_geometry.gd")  # pure board layout/keep-out/seed math
 const BoardDecor = preload("res://scripts/board/board_decor.gd")   # torches + crest render factories
@@ -69,6 +70,7 @@ var _archive: Array = []
 
 # ── Client-only UI state ─────────────────────────────────────────────────────
 var _selected_items: Array = []   # requisition picks before sending
+var _qm_view: Dictionary = {}     # Quartermaster node handles, for in-place refresh
 var _pending_join := false        # sent CREATE/JOIN, awaiting the server's verdict
 var _awaiting_resume := false     # sent RECONNECT, awaiting STATE_RESYNC or an error
 
@@ -353,6 +355,11 @@ func _ready() -> void:
 	pscroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	pcol.add_child(pscroll)
 	_popup_scroll = pscroll
+	# The stock grey scrollbar was the one engine widget left visible on the parchment —
+	# the same mismatch TD-084 fixed on the options writ. Inked HERE on the node rather
+	# than in the popup Theme, because that Theme is shared with the Contract Board
+	# (TD-089). The board does not overflow, so its scrollbar never draws.
+	_ink_scrollbar(pscroll.get_v_scroll_bar())
 	_popup_body = VBoxContainer.new()
 	_popup_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_popup_body.add_theme_constant_override("separation", 8)
@@ -430,6 +437,14 @@ func _ready() -> void:
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--muster"):
 		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
 		get_tree().create_timer(2.4).timeout.connect(func(): _open_station("DEPLOY_GATE"))
+	# `--quartermaster` opens the requisition writ, and `--qm-full` signs for four first,
+	# so both the empty and the full bag are capturable without walking or clicking (T331).
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--quartermaster"):
+		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
+		get_tree().create_timer(2.4).timeout.connect(func():
+			if OS.get_cmdline_user_args().has("--qm-full"):
+				_selected_items = ["ashen-lens", "chirurgeons-glass", "censer-of-embers", "consecrated-salt"]
+			_open_station("QUARTERMASTER"))
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--options"):
 		call_deferred("_show_options")
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--name-rite"):
@@ -1554,29 +1569,12 @@ func _build_station_content(kind: String) -> void:
 		"CONTRACT_BOARD":
 			_board_canvas = ContractBoard.build(_board_ctx())
 		"QUARTERMASTER":
-			var slots := Label.new()
-			slots.text = _slots_text()
-			_popup_body.add_child(slots)
-			for item in Catalog.GEAR:
-				var id: String = item["id"]
-				var check := CheckBox.new()
-				check.text = Catalog.item_label(item)
-				check.button_pressed = id in _selected_items
-				# Update selection + live slot count in place — no popup rebuild, so
-				# the scroll position and the other checkboxes stay put.
-				check.toggled.connect(func(on: bool):
-					if on:
-						if id not in _selected_items and _selected_items.size() >= Catalog.BAG_SLOTS:
-							check.button_pressed = false  # revert; bag is full
-							_set_status("the bag holds at most %d items" % Catalog.BAG_SLOTS)
-							return
-						if id not in _selected_items:
-							_selected_items.append(id)
-					else:
-						_selected_items.erase(id)
-					slots.text = _slots_text())
-				_popup_body.add_child(check)
-			_popup_button("Requisition (replaces your bag)", func(): _net.send_message(Protocol.REQUISITION, {"itemIds": _selected_items.duplicate()}))
+			# The writ itself lives in stations/quartermaster.gd (canon S5: a new client
+			# feature does not enter main.gd). This is the router half — it owns the
+			# selection and the socket; the module only renders and hands intents back.
+			_qm_view = Quartermaster.build(_popup_body, _selected_items,
+				func(id: String): _toggle_requisition(id),
+				func(): _net.send_message(Protocol.REQUISITION, {"itemIds": _selected_items.duplicate()}))
 		"DEPLOY_GATE":
 			_build_muster()
 		"EXTRACTION":
@@ -1663,12 +1661,46 @@ func _build_muster() -> void:
 		_popup_label("The party leader gives the word to deploy.")
 
 
-func _slots_text() -> String:
-	return "Requisition: %d of %d slots" % [_selected_items.size(), Catalog.BAG_SLOTS]
+## Take an instrument off the shelf, or give it back. Click-to-assign rather than
+## drag-and-drop: mobile is a target platform (TD-042) and a drag breaks keyboard focus.
+## The bag is bounded, so a fifth pick is refused with a reason (R319) — the server
+## validates regardless (P148); this is only the affordance.
+func _toggle_requisition(id: String) -> void:
+	if id in _selected_items:
+		_selected_items.erase(id)
+	elif _selected_items.size() >= Catalog.BAG_SLOTS:
+		_set_status("the bag holds at most %d instruments — give one back first" % Catalog.BAG_SLOTS)
+		return
+	else:
+		_selected_items.append(id)
+	if not _qm_view.is_empty():
+		Quartermaster.refresh(_qm_view, _selected_items)
 
 ## Ink on the station's parchment. The styling is applied HERE rather than in the popup Theme,
 ## because a Theme cascades into the Contract Board — whose writs are Buttons measured against their
 ## own font — and re-flowed every one of them when it was tried (TD-089).
+## A quill-line scrollbar: a thin brass rule with a gilt lozenge, the same vocabulary
+## the reader's ornament scrollbar speaks (TD-061). Scoped to one node, never a Theme.
+func _ink_scrollbar(bar: VScrollBar) -> void:
+	if bar == null:
+		return
+	bar.custom_minimum_size = Vector2(7, 0)
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.34, 0.26, 0.15, 0.30)
+	track.content_margin_left = 3.0
+	track.content_margin_right = 3.0
+	bar.add_theme_stylebox_override("scroll", track)
+	var grab := StyleBoxFlat.new()
+	grab.bg_color = Color(0.52, 0.40, 0.19)
+	grab.set_corner_radius_all(1)
+	bar.add_theme_stylebox_override("grabber", grab)
+	var lit := StyleBoxFlat.new()
+	lit.bg_color = Color(0.80, 0.64, 0.32)
+	lit.set_corner_radius_all(1)
+	bar.add_theme_stylebox_override("grabber_highlight", lit)
+	bar.add_theme_stylebox_override("grabber_pressed", lit)
+
+
 func _popup_label(text: String, parent: Node = null) -> void:
 	var l := Label.new()
 	l.text = text
@@ -1966,7 +1998,16 @@ func _set_status(text: String) -> void:
 func _set_token(token: String) -> void:
 	_reconnect_token = token
 
+## The server rejects a display name over 32 characters (`sanitizeDisplayName`), and
+## nothing on the client enforced that — so a longer name was written to disk and then
+## rejected on every CREATE_ROOM forever, leaving the player unable to start an
+## expedition with only a transient toast to explain. Clamped in BOTH directions here,
+## since save/load are the one source of truth for the name (P145) and a file written by
+## an older build is already out there.
+const NAME_MAX := 32
+
 func _save_name(name: String) -> void:
+	name = name.strip_edges().substr(0, NAME_MAX)
 	var f := FileAccess.open(NAME_PATH, FileAccess.WRITE)
 	if f:
 		f.store_string(name)
@@ -1975,7 +2016,7 @@ func _load_name() -> String:
 	if not FileAccess.file_exists(NAME_PATH):
 		return ""
 	var f := FileAccess.open(NAME_PATH, FileAccess.READ)
-	return f.get_as_text().strip_edges() if f else ""
+	return f.get_as_text().strip_edges().substr(0, NAME_MAX) if f else ""
 
 ## Always empty — see `_set_token`. It also deletes any token left on disk by an older build, so an
 ## existing install stops offering its dead expedition on the very next launch rather than after the

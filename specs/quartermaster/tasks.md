@@ -6,22 +6,43 @@
 
 ## Phase A — the requisition form (client only)
 
-- [ ] T331 [R319 / V1] — **The four slots read as slots.** Occupied and empty shown at once, at the
+- [x] T331 [R319 / V1] — **The four slots read as slots.** Occupied and empty shown at once, at the
       top of the sheet, because bounded capacity is the mechanic (`loadout-economy` non-negotiable 3)
       and "2 of 4" makes the player parse a number to learn it.
-      Test: capture against a live server (`--muster` is the existing precedent for a station capture
-      flag; add `--quartermaster` the same way).
+      Shipped: four bordered slots that FILL with the instrument's icon, above a line that reads
+      "3 of 4 slots still open" / "the bag is full" — the count is the subtitle, the slots are the
+      statement. **The Quartermaster is a LENDING COUNTER**, not a shop or storage: there is no
+      currency (TD-091) and instruments are issued against a writ, not owned.
+      Test: `--quartermaster` and `--qm-full` capture against a live server. Both green.
 
-- [ ] T332 [R318, R320 / V1] — **The list becomes ink.** Each item is a marked row in the writ idiom
+- [x] T332 [R318, R320 / V1] — **The list becomes ink.** Each item is a marked row in the writ idiom
       — `WritForm.toggle`'s inked square, not a stock `CheckBox` — and states what it does in the
       player's language ("Reads Residue"), never the wire enum, never a rating.
       **Style in the builders, never in the popup `Theme`** — it cascades into the Contract Board
       (TD-089). This is the whole risk of the task.
-      Test: capture; every row readable on parchment, no engine widget visible.
+      Shipped as `client/scripts/stations/quartermaster.gd` — a new client feature does NOT enter
+      `main.gd` (canon S5); the router keeps the selection and the socket, the module only renders and
+      hands intents back. **Interaction is CLICK-TO-ASSIGN, not drag-and-drop**: mobile is a target
+      platform (TD-042), and a drag needs a touch state machine, is fiddly at this scale and breaks
+      the keyboard focus the board already uses. Rows are grouped **Instruments of Sight / of Trial**
+      — the spine verbs — so the real tradeoff is visible: how many slots for looking, how many for
+      trying. Each row states the QUESTION it settles ("Answers: what hurts it?"), never the wire enum.
+      **Icons**: 10 hand-authored 24px marginalia (`art/src/gen_gear_icons.lua`, Aseprite per TD-057),
+      iron-gall ink with a muted wash because they sit on parchment. Shown 1:1 NEAREST.
+      Test: capture — no engine widget visible. **One found on the way**: the popup's stock grey
+      scrollbar was the last engine widget on the paper; inked on the node, never in the Theme.
 
-- [ ] T333 [R321 / V2] — **Prove the board is untouched.** Capture it from a stashed clean tree at
-      HEAD and diff against the change; control noise floor ≈ 0.47% (torch particles + which writ
-      holds hover-focus). Suites green, diff scoped to `client/ specs/ docs/`.
+- [x] T333 [R321 / V2] — **Board proven untouched**: captured from a stashed clean tree at HEAD,
+      **0.339%** of pixels differ against a ~0.47% control floor (torch particles + hover-focus).
+      Necessary because the scrollbar fix touches the popup's SHARED `ScrollContainer`; the board does
+      not overflow, so its bar never draws. Suites green (server 393 / shared 65 / tools 7); no
+      `src/**` change.
+      **Unrelated defect found and fixed while capturing** (it blocked the capture path): the client
+      wrote a display name of any length to `user://display-name.txt`, but the server rejects over 32
+      characters — so a player who typed a long name in the options writ could never create an
+      expedition again, with only a transient toast to explain. The local file held 82 characters.
+      Clamped in both `_save_name` and `_load_name`, since a file written by an older build is already
+      on disk.
 
 ## Phase B — the Stipend — **CUT (TD-091, 2026-08-08)**
 

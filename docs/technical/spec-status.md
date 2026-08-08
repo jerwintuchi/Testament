@@ -29,7 +29,6 @@ These are disagreements between what a spec says and what the tree contains.
 | `collegium-client` | 🟡 dormant | 6 | 1 | 0 | 2026-07-24 | — |
 | `nave-cathedral` | 🟡 dormant | 3 | 2 | 0 | 2026-07-23 | — |
 | `preparation` | 🟡 dormant | 3 | 8 | 1 | 2026-08-08 | — |
-| `quartermaster` | 🟡 dormant | 0 | 3 | 3 | 2026-08-08 | — |
 | `station-ui` | 🟡 dormant | 3 | 4 | 2 | 2026-08-08 | — |
 | `tiers` | 🟡 dormant | 4 | 3 | 0 | 2026-08-08 | — |
 | `ambient-signs` | ✅ done | 4 | 0 | 0 | 2026-07-02 | — |
@@ -60,6 +59,7 @@ These are disagreements between what a spec says and what the tree contains.
 | `pause-menu` | ✅ done | 4 | 0 | 0 | 2026-08-08 | — |
 | `probe-handler` | ✅ done | 8 | 0 | 0 | 2026-07-02 | — |
 | `protocol-contract` | ✅ done | 15 | 0 | 0 | 2026-07-24 | — |
+| `quartermaster` | ✅ done | 3 | 0 | 3 | 2026-08-08 | — |
 | `raw-ws-transport` | ✅ done | 5 | 0 | 0 | 2026-06-29 | — |
 | `reader-swap` | ✅ done | 4 | 0 | 0 | 2026-07-23 | — |
 | `seal-ceremony` | ✅ done | 5 | 0 | 0 | 2026-07-21 | — |
