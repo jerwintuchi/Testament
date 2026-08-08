@@ -45,8 +45,9 @@ func _server_url() -> String:
 		if a.begins_with("--server="):
 			return a.substr("--server=".length())
 	return SERVER_URL
-# The reconnect token survives a client relaunch (R75). It is an opaque server
-# secret, not game state — the one thing the client is allowed to remember.
+# The reconnect token NO LONGER survives a client relaunch (TD-086, superseding R75's persistence).
+# It is expedition state, and I7/TD-006 keep expedition state out of persistence — a seat in a room
+# is not identity. This path exists only so a token written by an older build is deleted on boot.
 const TOKEN_PATH := "user://reconnect-token.txt"
 # The display name the player last used. Like the token this is a local convenience, not game
 # state — the server still assigns identity, this only spares a returning player the retyping.
