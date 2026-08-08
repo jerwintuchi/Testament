@@ -70,9 +70,31 @@ superseded by this spec; its *server* half (T125/T126) is still the plan of reco
 
 ---
 
-## Phase B — The Stipend (server + shared + client)
+## Phase B — The Stipend — **CLOSED, NOT BUILT (TD-091, 2026-08-08)**
 
-**This phase needs an author decision before it starts** (see Open questions). Do not invent prices.
+> **The author cut the Stipend.** `BAG_SLOTS` is the loadout economy; there is **no currency in
+> Testament**. R322–R325 below are kept as the record of what was specced and are **superseded in
+> place** — do not implement them, and do not re-propose a price on gear without reading TD-091.
+>
+> **The reasoning, in one paragraph, so it is not re-derived:** every catalog item is a *key* (a
+> channel you can read, a stimulus you can present), not a power level. So a price has two possible
+> forms and both fail — **flat** prices are a literal no-op (any four items cost what any other four
+> cost, so the budget never binds), and **varied** prices are the "bigger numbers shopping ladder"
+> that `loadout-economy.md` non-negotiable 2 and TD-017 forbid. The strongest surviving case was a
+> *party-wide* allowance that does not scale with headcount — because the reading catalog is
+> permanently bounded at six channels and four stimuli, so a trio (12 slots) carries all ten
+> instruments and no future content can change that. The author weighed it and declined: a currency
+> costs eleven authored numbers and an exchange rate between reading and winning that must be
+> defended forever once combat tools carry prices beside lenses.
+>
+> **Accepted consequence:** scarcity binds at solo and duo, and stops binding at trio and quartet.
+>
+> **Still open, and the next thing to decide:** consumable **charges** on probe kits. Ward is drawn
+> independently of Frailty from the same four values and is readable only by probing, so four kits
+> are a guaranteed four-step lookup — a memorizable *procedure* standing in for a read. Charges are
+> already implied by `docs/systems/investigation-and-probing.md` ("resupply of **consumable**
+> probes") and need no pricing decision. See TD-091 for the three other findings it surfaced
+> (`exposure` is inert; `isSolo` counts ghosts; an Apprentice probe kit is a guaranteed null).
 
 ### R322 — Gear carries a price and a description
 
@@ -119,14 +141,14 @@ superseded by this spec; its *server* half (T125/T126) is still the plan of reco
 
 ---
 
-## Open questions for the author (ask before building Phase B)
+## Open questions — **ANSWERED (TD-091, 2026-08-08)**
 
-1. **What does gear cost, and what is `STARTING_STIPEND`?** Pricing is content and a balance
-   decision — 12 catalog entries need numbers that make "which four" a real choice. Do not invent
-   these silently.
-2. **Is the Stipend per-party or per-Seeker?** GLOSSARY says "the Collegium's per-contract
-   allowance, spent to requisition the loadout **and to place the Surety**", which reads
-   party-wide — but the bag is per-Seeker, and `REQUISITION` is sent by one player.
-3. **Does the Surety come out of the same Stipend?** It is named in the same GLOSSARY line, and it
-   is the mechanism that gives acceptance teeth (vision.md non-negotiable 4). If so, spending it all
-   on gear is itself a decision — which is interesting, and worth being deliberate about.
+1. ~~**What does gear cost, and what is `STARTING_STIPEND`?**~~ **Moot.** Nothing costs anything;
+   there is no Stipend. This question was the vise itself — see the Phase B banner.
+2. ~~**Is the Stipend per-party or per-Seeker?**~~ **Moot, but recorded:** had it been kept it would
+   have been **per-party**. Per-Seeker was disqualified outright, because a per-Seeker budget scales
+   linearly with headcount and so fails the only job a currency could have done.
+3. **Does the Surety come out of the Stipend?** **Deferred — genuinely undecided.** With no currency
+   the default is that the Surety is a flat cost in **Collegium standing** (already persistent,
+   already access-not-power per TD-012), but the author is still weighing a **variable stake you
+   size**. Do not treat this as settled; GLOSSARY's *Surety* carries the same open marker.

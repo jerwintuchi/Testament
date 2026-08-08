@@ -1,7 +1,8 @@
 # Tasks — The Quartermaster (TD-090)
 
-> T# continues global from T330. **Phase A is client-only and can ship alone.**
-> Phase B is blocked on the author answering the open questions in `requirements.md`.
+> T# continues global from T330. **Phase A is client-only and can ship alone — it is the whole
+> remaining spec.** Phase B (the Stipend) was **cut by the author on 2026-08-08, TD-091**; its tasks
+> are marked superseded in place below.
 
 ## Phase A — the requisition form (client only)
 
@@ -22,21 +23,33 @@
       HEAD and diff against the change; control noise floor ≈ 0.47% (torch particles + which writ
       holds hover-focus). Suites green, diff scoped to `client/ specs/ docs/`.
 
-## Phase B — the Stipend (blocked: needs the author's numbers)
+## Phase B — the Stipend — **CUT (TD-091, 2026-08-08)**
 
-- [ ] T334 [R322] — `price` + `description` on `GearItem` and every `GEAR_CATALOG` entry; shared
-      stays types + constants only (I4).
-      Test: `gear.test.ts` — every catalog entry has both, and prices are positive.
+> The author cut the Stipend: `BAG_SLOTS` is the economy and there is **no currency in Testament**.
+> The three tasks below are kept as the record and **will not be built**. Reasoning in TD-091 and in
+> the Phase B banner of `requirements.md`; the short version is that gear items are *keys*, so a flat
+> price is a no-op and a varied price is the ladder `loadout-economy.md` non-negotiable 2 forbids.
 
-- [ ] T335 [R323, P148 / V3] — `stipend` on `RoomRecord`, initialised at `createRoom` from
-      `STARTING_STIPEND`; `REQUISITION` validates **cost against the balance** as well as
-      `BAG_SLOTS`, rejecting over-budget with a reason.
-      Test: server suite — an over-budget bag is refused and state is unmutated; an affordable one
-      applies; `BAG_SLOTS` still bounds it.
+- [~] T334 **SUPERSEDED** (no prices exist; `GearItem` gains nothing) — [R322] — `price` +
+      `description` on `GearItem` and every `GEAR_CATALOG` entry; shared stays types + constants
+      only (I4).
 
-- [ ] T336 [R324, R325 / V4] — The client shows the remaining balance as something the player can
-      feel, not a spreadsheet; protocol contract/codegen regenerated if shapes moved.
-      Test: capture; suites green.
+- [~] T335 **SUPERSEDED** (no `stipend` on the room; `REQUISITION` keeps validating slots only) —
+      [R323, P148 / V3] — `stipend` on `RoomRecord`, initialised at `createRoom` from
+      `STARTING_STIPEND`; `REQUISITION` validates cost against the balance as well as `BAG_SLOTS`.
+
+- [~] T336 **SUPERSEDED** (there is no balance to show) — [R324, R325 / V4] — The client shows the
+      remaining balance as something the player can feel, not a spreadsheet.
+
+## The open follow-up (not yet a task — needs an author ruling)
+
+**Consumable charges on probe kits.** `generateTraitRoll` draws `ward` independently of `frailty`
+from the same four values, and `deriveReaction` only ever fires on an exact match — so carrying all
+four kits is a **guaranteed four-step lookup** of the one probe-gated axis, free at 3+ players. That
+is a memorizable *procedure* standing in for a read. Charges fix it, need no pricing decision, and
+are already implied by `docs/systems/investigation-and-probing.md` ("resupply of **consumable**
+probes"). TD-091 also records three unfixed findings: `exposure` is written but read by nothing,
+`deploy.ts:87`'s `isSolo` counts ghosts, and an Apprentice probe kit is a guaranteed null.
 
 ## Do not re-invent
 

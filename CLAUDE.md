@@ -61,12 +61,17 @@ playtest) is still unrun — the spec is left open, re-exercised by Station UI.*
 previously claimed a "Stipend-priced Quartermaster and Deploy Gate" that **does not exist**.*
 **Shipped:** the contract **board** pool + reversible leader `SELECT_CONTRACT` (T122–T123,
 server, tested; the Notice Board reuses them). **Superseded:** T124's client board (replaced by
-the Notice Board; its `ThreatPips` later deleted, TD-061). **NOT BUILT — real, unstarted work:**
-**T125–T128, the entire Stipend economy.** `grep -rn "stipend\|price" src/` returns nothing;
-`GearItem` has no `price`/`description`, there is no `STARTING_STIPEND`, no `stipend` on the
-room, and `handleRequisition` checks `BAG_SLOTS` only. The client Quartermaster is still a plain
-`CheckBox` list and the Deploy Gate a single button. **Stipend** is a canonical GLOSSARY term and
-load-bearing for the preparation pillar, so this is a gap in the design, not dead scope.
+the Notice Board; its `ThreatPips` later deleted, TD-061). **CUT — the Stipend economy (T125–T126), by the author, TD-091.**
+`grep -rn "stipend\|price" src/` returns nothing and always will: **there is no currency in
+Testament.** Gear items are *keys* (a channel you can read, a stimulus you can present), not power
+levels, so a flat price is a literal no-op and a varied price is the "bigger numbers shopping ladder"
+`loadout-economy.md` non-negotiable 2 and TD-017 forbid. `BAG_SLOTS` is the loadout economy;
+`handleRequisition` validating slots alone is **correct, not a gap**. *This block previously called
+it "a gap in the design, not dead scope" — that was overturned.* **Stipend** is retired from the
+GLOSSARY. The Deploy Gate became the muster point (TD-088); the Quartermaster's `CheckBox` list is
+rebuilt by `specs/quartermaster/` Phase A. **Accepted cost, recorded in TD-091:** the reading catalog
+is permanently bounded (6 channels, 4 stimuli), so a trio's 12 slots carry all 10 instruments —
+scarcity binds at solo and duo and stops binding at trio and quartet.
 
 Completed: **`specs/board-lighting/`** (TD-047/TD-048) — dynamic torch lighting, **Phases A–D
 done + verified** (T148–T162 + T154; only the T151 heat-haze stretch deferred). Surround normal-
@@ -465,20 +470,36 @@ silently re-flowed. **A Theme on a container hosting a complex child carries onl
 cannot be harmed by**; ink is applied by the builders that create the widgets. Proven restored by
 diffing against a stashed clean tree at HEAD (0.43% vs a ~0.47% control noise floor).
 
-Active spec: **`specs/quartermaster/`** (TD-090) — **not started**, written to be picked up cold.
-**Phase A (client only, shippable alone):** the Quartermaster is still a plain `CheckBox` list, which
-now sits on parchment looking exactly like the engine widget it is. It becomes a requisition form —
-the four bag slots read as *slots* (bounded capacity is the mechanic, not a footnote), each item says
-what it *does* in the player's language ("Reads Residue", never the wire enum, never a rating).
-**Phase B (blocked on the author's numbers):** the **Stipend** — `price`/`description` on `GearItem`,
-`stipend` on `RoomRecord`, `REQUISITION` validating cost as well as `BAG_SLOTS`. `grep -rn "stipend"
-src/` still returns nothing. Its open questions are real design decisions (what gear costs; whether
-the Stipend is per-party or per-Seeker; whether the Surety comes out of it) and must be **asked, not
-invented**. `specs/station-ui/` T127–T129 are marked superseded in place.
+Active spec: **`specs/preparation/`** (TD-092) — **preparation stops being a solved packing
+problem.** The finding that opened it: `ACTIVE_AXES` is fixed by tier and public, `AXIS_TO_CHANNEL` is
+a bijection, each channel has exactly one lens — so the optimal bag is computable from **tier alone**,
+identical every expedition. And the contract cannot inform it: `generateContract` draws `origin`,
+`targetName` and `siteName` independently of the trait roll, and `origin` is referenced **nowhere else
+in `src/server/`**. At APPRENTICE (the only tier that ships) **three of ten catalog items can do
+anything at all**, and for a solo Seeker **the empty bag is optimal**. TD-092 carries the full abuse
+register (A1–A9).
+**Phase 0 SHIPPED (T337, T338, T340; server-only, suites 362 → 373):** **`ward !== frailty`** — a
+thing is never warded against what it is frail to, so an *ambient* channel (Stress-mark) now yields a
+falsifiable prediction about a *probe-gated* one (Reaction). A **filtered pick**, not a rejection
+loop, so the draw count stays at one and the seeded stream keeps its shape (proven by a stream-shape
+test). And **`allReady` on the live deploy path** — it had been reachable only from the *legacy*
+`acceptContract` handler the client no longer uses, so the ready toggle TD-088 called load-bearing was
+decorative and a leader could deploy the party with four empty bags.
+**T339 BLOCKED, and instructively:** the naive `isSolo`-counts-connected fix was written, **tested,
+found to open a worse hole, and reverted** — `perceivedChannels` is assigned to ghosts too and never
+recomputed on reconnect (A9), so a duo where one player deliberately disconnects at deploy would give
+**both** every channel. `deploy.test.ts` now pins the defect with a regression guard instead.
+**Phases 1–3 are designed, not authorised:** variable live-axis set + verb-forced liveness + Origin as
+a shallow prior (must ship with the board-reroll fix, A6); superlinear probe exposure + a real
+consumer (must ship together); and a party-wide instrument allowance below the channel count — the
+author is **open to it**, it reverses the cost TD-091 accepted, and it must ship with a solo
+allowance or Pillar 4 inverts. **Charges are NOT the anti-brute-force fix** (TD-092 corrects TD-091:
+four kits are four *different* stimuli and duplicates are already rejected, so one charge each is
+exactly the sweep).
 
-@specs/quartermaster/requirements.md
-@specs/quartermaster/design.md
-@specs/quartermaster/tasks.md
+@specs/preparation/requirements.md
+@specs/preparation/design.md
+@specs/preparation/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

@@ -24,7 +24,16 @@ export function generateTraitRoll(rng: Rng, tier: Tier): TraitRoll {
     tell:    rng.pick(TELL_VALUES),
   };
   if (tier === 'JOURNEYMAN' || tier === 'MASTER') {
-    roll.ward        = rng.pick(WARD_VALUES);
+    // R326/P150 — a thing is never warded against what it is frail to. This makes an
+    // AMBIENT channel (Stress-mark, read by a lens) a falsifiable prediction about a
+    // PROBE-GATED one (Reaction): "Stress-mark says salt, so don't waste the salt probe."
+    // It is a law of the world, learned once (Pillar 2); it shrinks the search and never
+    // reveals the Ward (Pillar 3).
+    //
+    // A FILTERED pick, deliberately, not a rejection loop: this consumes exactly one draw,
+    // so the seeded stream keeps its shape (I3/P151). A `do…while` would consume a variable
+    // number and shift every downstream value depending on what was rejected.
+    roll.ward        = rng.pick(WARD_VALUES.filter(w => w !== roll.frailty));
     roll.disposition = rng.pick(DISPOSITION_VALUES);
   }
   if (tier === 'MASTER') {

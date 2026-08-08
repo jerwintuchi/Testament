@@ -13,13 +13,16 @@
 >   and are tested; the notice-board spec reuses them unchanged.
 > - **T124 (client board) — SUPERSEDED.** Replaced by the Notice Board render, and its
 >   `ThreatPips` were later deleted outright (TD-061).
-> - **T125–T126 (Stipend economy, server/shared) — NOT BUILT.** Real, unstarted work. `Stipend`
->   is a canonical GLOSSARY term and part of the preparation pillar ("spent to requisition the
->   loadout and to place the Surety"), so this is a genuine gap, not dead scope.
-> - **T127–T128 (client Quartermaster / Deploy Gate) — NOT BUILT.** The Quartermaster is still a
->   plain `CheckBox` list with a slot counter and one "Requisition (replaces your bag)" button;
->   the Deploy Gate is a single "DEPLOY the expedition" button. No prices, no balance, no
->   contract summary, no roster-with-bags. Both depend on T125–T126.
+> - **T125–T126 (Stipend economy, server/shared) — CUT, never built (TD-091, 2026-08-08).** This
+>   block previously called it "a genuine gap, not dead scope" — that judgement was **overturned by
+>   the author**. Gear items are *keys*, not power levels, so a flat price is a no-op and a varied
+>   price is the ladder `loadout-economy.md` non-negotiable 2 forbids. `BAG_SLOTS` is the economy;
+>   `Stipend` is **retired from the GLOSSARY**. Do not re-propose without reading TD-091.
+> - **T127–T128 (client Quartermaster / Deploy Gate) — SUPERSEDED, see each task.** The Deploy Gate
+>   became the party's muster point (TD-088). The Quartermaster is still a plain `CheckBox` list with
+>   a slot counter and one "Requisition (replaces your bag)" button — now rebuilt by
+>   `specs/quartermaster/` **Phase A**, which no longer depends on T125–T126 since there is no
+>   balance to show.
 > - **T129 — PARTLY DONE.** The shared theme exists as `ui/popup_theme.gd` (`PopupTheme.build`,
 >   TD-067 T226) and every popup wears it; the `threat_pips`/`contract_card` reuse half is moot
 >   (pips deleted, TD-061).
@@ -61,19 +64,14 @@
 
 ## Phase B — Quartermaster / Stipend
 
-- [ ] T125 [R112 / P61] — Add `price` + `description` to `GearItem` and every
-      `GEAR_CATALOG` entry (authored table, utility-keyed); add `STARTING_STIPEND`.
-      Test: `gear.test.ts` — every item has `price > 0` and a non-empty
-      `description`; catalog stays wire-safe (no trait axes); prices are not assumed
-      monotonic in power (P61).
+- [~] T125 **SUPERSEDED by TD-091 (2026-08-08): the author cut the Stipend — there is no currency in
+      Testament, so gear carries no price.** — [R112 / P61] — Add `price` + `description` to
+      `GearItem` and every `GEAR_CATALOG` entry (authored table, utility-keyed); add
+      `STARTING_STIPEND`.
 
-- [ ] T126 [R113 / P60] — Add `stipend` to `RoomRecord` (init at `createRoom`) and
-      `LobbySnapshot`. Extend `handleRequisition`: recompute cost from catalog,
-      reject `INSUFFICIENT_STIPEND` (over budget) / slot error (over `BAG_SLOTS`)
-      with no mutation, else set bag + debit balance.
-      Test: `requisition.test.ts` — over-budget and over-slot mutate nothing;
-      success debits exactly the catalog-summed cost; re-requisition recomputes
-      without drift; balance never negative (P60).
+- [~] T126 **SUPERSEDED by TD-091: `REQUISITION` continues to validate `BAG_SLOTS` and nothing else;
+      `RoomRecord` gains no `stipend`.** — [R113 / P60] — Add `stipend` to `RoomRecord` (init at
+      `createRoom`) and `LobbySnapshot`; extend `handleRequisition` to reject `INSUFFICIENT_STIPEND`.
 
 - [ ] T127 [R114 / P62] — **SUPERSEDED by `specs/quartermaster/` (TD-090) Phase A: written before the writ idiom, the muster point (TD-088) and the popup restyle (TD-089).**
        Client Quartermaster: `gear_slot.tscn`, `item_detail.tscn`;

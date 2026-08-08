@@ -8,6 +8,7 @@ import { perceivedChannelsFor, filterSigns } from '../perception.js';
 import { generateSite } from '../../site/generateSite.js';
 import { spawnFanOut } from '../../site/spawn.js';
 import { atStation } from '../stations.js';
+import { allReady } from '../readyCheck.js';
 import { createRng, hashSeed } from '../../rng/seeded.js';
 import { SERVER_MESSAGES } from '@testament/shared';
 import type { PlayerPositions } from '@testament/shared';
@@ -57,6 +58,18 @@ export function handleDeploy(
     return;
   }
 
+  // R327/P152 — the party cannot be deployed unprepared. `allReady` ignores ghosts
+  // (a held seat must never veto, TD-032), so this gates on CONNECTED players only.
+  // Stage 1 deliberately does not check this: packing happens *during* DEPLOYING, so
+  // a gate on the commit would fire before anyone could reach the Quartermaster.
+  // Until now `allReady` was reachable only from the legacy acceptContract path, which
+  // the client no longer uses — so the ready toggle TD-088 called load-bearing was, on
+  // the live path, decorative: a leader could deploy the party with four empty bags.
+  if (!allReady(room.players)) {
+    emit(SERVER_MESSAGES.LOBBY_ERROR, { code: 'NOT_ALL_READY', message: 'Every Seeker must be ready before the party deploys.' });
+    return;
+  }
+
   // Stage 2 — launch: DEPLOYING -> FIELD. room.contract is guaranteed non-null in
   // DEPLOYING (set at selection, required at the Stage-1 commit).
   const contract  = room.contract!;
@@ -84,6 +97,17 @@ export function handleDeploy(
 
   // Distributed Perception (R66): perception is a consequence of the bag (TD-007).
   // Solo perceives all tier channels regardless of gear (TD-008).
+  //
+  // KNOWN DEFECT — A7 (TD-092), deliberately NOT fixed by counting connected players.
+  // Counting ghosts here means a partner who *dropped* leaves you strictly worse than
+  // solo, while a partner who deliberately LEAVE_ROOMs during DEPLOYING makes you
+  // strictly better (the party shrinks to 1 and the solo grant fires): leaving beats
+  // dropping. The obvious fix — `filter(p => p.disconnectedAt === null).length === 1` —
+  // opens a WORSE hole, proven by test: perceivedChannels is assigned to every listed
+  // player including ghosts and is never recomputed on reconnect (A9), so a duo where
+  // one player disconnects at deploy would give BOTH of them every channel. Fixing this
+  // properly means either freezing party size at the Stage-1 commit or recomputing
+  // perception whenever the connected set changes. See specs/preparation/ T339.
   const isSolo = room.players.length === 1;
 
   // FIELD_STARTED is per-player: own reconnect token, own filtered signs.

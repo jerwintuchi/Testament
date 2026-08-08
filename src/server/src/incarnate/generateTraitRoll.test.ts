@@ -73,6 +73,57 @@ describe('generateTraitRoll', () => {
     }
   });
 
+  // T337 (R326, P150/P151) — a thing is never warded against what it is frail to.
+  describe('ward !== frailty (R326)', () => {
+    it('never rolls a ward equal to the frailty — across 300 seeds, both rolling tiers', () => {
+      for (let i = 0; i < 300; i++) {
+        for (const tier of ['JOURNEYMAN', 'MASTER'] as const) {
+          const roll = generateTraitRoll(createRng(hashSeed(`ward-frailty-${tier}-${i}`)), tier);
+          expect(roll.ward).not.toBe(roll.frailty);
+        }
+      }
+    });
+
+    it('still reaches every ward value — the rule must not bias toward one (P150)', () => {
+      const seen = new Set<string>();
+      for (let i = 0; i < 300; i++) {
+        seen.add(generateTraitRoll(createRng(hashSeed(`ward-spread-${i}`)), 'MASTER').ward!);
+      }
+      expect([...seen].sort()).toEqual([...WARD_VALUES].sort());
+    });
+
+    it('pairs every frailty with all three of its permitted wards (no dead combination)', () => {
+      const pairs = new Set<string>();
+      for (let i = 0; i < 2000; i++) {
+        const roll = generateTraitRoll(createRng(hashSeed(`ward-pairs-${i}`)), 'MASTER');
+        pairs.add(`${roll.frailty}->${roll.ward}`);
+      }
+      // 4 frailties x 3 permitted wards each = 12 reachable combinations.
+      expect(pairs.size).toBe(12);
+    });
+
+    it('determinism survives the filtered pick — same seed, same roll (I3, P151)', () => {
+      for (const tier of ['APPRENTICE', 'JOURNEYMAN', 'MASTER'] as const) {
+        const a = generateTraitRoll(createRng(hashSeed('determinism-probe')), tier);
+        const b = generateTraitRoll(createRng(hashSeed('determinism-probe')), tier);
+        expect(a).toEqual(b);
+      }
+    });
+
+    it('consumes exactly one draw for the ward, so the stream keeps its shape (P151)', () => {
+      // A rejection loop would consume a variable number of draws and shift riteKey,
+      // which is drawn after the ward. Same seed at MASTER must reproduce riteKey too.
+      const rng = createRng(hashSeed('stream-shape'));
+      const roll = generateTraitRoll(rng, 'MASTER');
+      // Draw order is aspect, frailty, tell, ward, disposition, riteKey — six picks.
+      const control = createRng(hashSeed('stream-shape'));
+      for (let i = 0; i < 6; i++) control.float();
+      // The generator and a six-draw control leave the stream at the same place.
+      expect(control.float()).toBe(rng.float());
+      expect(roll.riteKey).toBeDefined();
+    });
+  });
+
   it('source file does not import crypto or call Math.random (R41)', () => {
     const src = fileURLToPath(new URL('./generateTraitRoll.ts', import.meta.url));
     const content = readFileSync(src, 'utf-8');

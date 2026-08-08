@@ -3482,3 +3482,167 @@ hover-focus. The board is untouched.
 **Also caught by capture:** the persistent `Close (Esc)` button is built once at boot rather than
 through `_popup_button`, so it shipped as a stock grey Godot button on parchment until the screenshot
 showed it.
+
+## 2026-08-08 — TD-091: the Stipend is cut; the bag is the economy
+
+**Why.** `specs/quartermaster/` Phase B was written to build the Stipend, and its own open questions
+asked the author to price twelve catalog entries. The author asked the prior question instead: *if
+gear is a set of fixed keys and the bag already holds four, what is a currency for?* It is the right
+question, and the answer is that the Stipend as designed cannot be built.
+
+**The vise.** `GEAR_CATALOG` is ten items, every one of them a **key** rather than a power level: six
+lenses (one per sign channel) and four probe kits (one per stimulus). Against that shape a price has
+only two forms and both are dead ends. **Flat prices are a literal no-op** — any four items cost what
+any other four cost, so the budget never binds and `BAG_SLOTS` is doing all the work alone. **Varied
+prices are the forbidden ladder** — `docs/systems/loadout-economy.md` non-negotiable 2 and TD-017 both
+state that gear is valued by utility and specialization, never by raw power, precisely so requisition
+is a preparation decision and not a shopping ladder (Pillar 2). There is no third form.
+
+**What was nearly built instead, and why it also loses.** The strongest case for keeping the job (if
+not the coin) was a **party-wide allowance that does not scale with headcount**, because `BAG_SLOTS`
+is per-Seeker and linear in party size and therefore structurally cannot express a party-level
+ceiling. The argument for it is real and is recorded here so it is not re-derived from scratch:
+
+> **The reading catalog is permanently bounded.** Six channels and four stimuli is the shape of the
+> sign language, not a content backlog. So no amount of future content can make *reading* scarce for
+> a full party — sixteen slots will always exceed ten instruments. Combat tools and rites (canon,
+> unbuilt) will compete for slots, but a quartet takes all ten reading tools **and** keeps six slots
+> for fighting. Content cannot fix this; only a non-linear allowance, fewer slots, or charges can.
+
+The measured coverage, at MASTER tier where the catalog is fully live (channels are a union — one
+carrier serves the party, because the party talks, which is the design):
+
+| party | slots | instruments needed | result |
+|---|---|---|---|
+| 1 | 4 | 4 (kits only) | complete, 0 spare |
+| 2 | 8 | 10 | **short 2** — the only size where the bag bites |
+| 3 | 12 | 10 | complete, 2 spare |
+| 4 | 16 | 10 | complete, 6 spare |
+
+**Decision.** **The Stipend is cut.** `BAG_SLOTS` is the loadout economy; there is no currency in
+Testament. `GearItem` gains no `price`; `RoomRecord` gains no `stipend`; `REQUISITION` continues to
+validate slot count and nothing else. Nothing is lost from the tree because nothing was ever built —
+`grep -rn "stipend" src/` returned nothing on the day this was decided.
+
+**What the author is accepting, stated plainly so it is not a surprise later.** A party of three or
+four carries every reading instrument, every expedition, and preparation stops being a scarcity
+decision at those sizes. Solo and duo keep the tension; trio and quartet trade it for the coordination
+problem of who reads what. The author judged a currency too high a price to fix it — eleven numbers to
+author and re-author, plus an exchange rate between reading and winning that would have to be defended
+forever once combat tools carry prices beside lenses.
+
+**Deferred, explicitly open — the Surety.** Whether the stake is a **flat cost in standing** or a
+**variable amount the party sizes** is *not* decided here. It is the only mechanism that would have
+required a currency, so with the Stipend cut the default is standing (already persistent, already
+access-not-power per TD-012) — but the author is still thinking, and this entry must not be read as
+settling it. GLOSSARY's **Surety** and **Recant** stand unchanged; only the Stipend's role in funding
+them is removed.
+
+**Findings this surfaced but did not cause.** All four verified in the tree during the review, none
+fixed here:
+
+1. **Ward is brute-forceable, and that is the serious one.** `generateTraitRoll` draws `ward` and
+   `frailty` **independently from the same four values** (`FLAME`/`COLD`/`SALT`/`LIGHT`), and
+   `deriveReaction` returns a positive only on an exact match. Ward is learnable by exactly one
+   method — probing — so **four kits are a guaranteed four-step lookup**, and at three-plus players
+   carrying all four is free. That is a memorizable *procedure* substituting for a read, which is the
+   spirit of vision.md non-negotiable 1 broken without a memorizable boss anywhere in sight. The
+   indicated fix is **charges on probe kits**, which is already canon —
+   `docs/systems/investigation-and-probing.md` describes caches as "resupply of **consumable**
+   probes", so `gear.ts`'s "reusable in v1" is a simplification, not the design. Charges cannot
+   starve the Test verb, because Probe-*features* (TD-018) are environmental, item-free and cost only
+   exposure. **Not yet ruled on; the next thing to decide.**
+2. **`exposure` is inert.** It is written at `probe.ts:41`, reported in `PROBE_RESULT`, reset at
+   `deploy.ts:81` — and read by nothing. "Probing has a price" is currently false in the tree.
+3. **`isSolo` counts ghosts.** `deploy.ts:87` is `room.players.length === 1`, so a duo whose partner
+   has dropped is not solo: the survivor loses the free full-channel read *and* the ghost's channels
+   go unread, which is strictly worse than having played alone. Perception should be computed over
+   **connected** players.
+4. **A probe kit at APPRENTICE is a guaranteed null.** `ACTIVE_AXES` excludes `WARD` at that tier, so
+   `deriveReaction` short-circuits, and nothing distinguishes "no ward" from "ward inactive at this
+   tier". Preparation is meant to be a bet on falsifiable intel; this is a bet against a hidden system
+   rule. Whether kits should be requisitionable at Apprentice at all is an open author ruling.
+
+A fifth, deliberate but consequential: `perceivedChannelsFor` returns **all** tier channels for a solo
+Seeker regardless of gear (TD-008 — solo is balanced by tempo and bag pressure, never by withholding
+information). The rule is intended; the consequence may not have been. A solo spends zero slots on
+lenses and all four on kits, which makes **solo the most informationally complete configuration in the
+game**.
+
+**Consequences.** `specs/quartermaster/` **Phase A stands unchanged** — it is client-only, and making
+the requisition list read as a writ instead of stock `CheckBox`es is independent of every decision
+here. **Phase B is closed**, its tasks marked superseded in place per the spec workflow rather than
+deleted. `specs/station-ui/` T125–T126, the Stipend's server half and the last plan of record for it,
+are closed by the same ruling. GLOSSARY's **Stipend** entry is retired, and
+`docs/systems/loadout-economy.md` loses the Stipend as its funding model — the bag funds itself.
+
+## 2026-08-08 — TD-092: charges do not fix the brute-force; the abuse register
+
+**Why.** TD-091 was written the same day and got one thing wrong. This entry corrects it and records
+the exploit register a full review of the preparation path turned up, so a cold session inherits the
+findings instead of rediscovering them. The log is append-only (invariant 4), so TD-091 stands as
+written and is corrected here.
+
+**Correction — TD-091 finding 1 overstates charges.** It named consumable charges on probe kits as
+"the indicated fix" for the Ward brute-force. **The arithmetic does not support that.** Four bag
+slots, four probe kits, four stimuli, one charge each is *exactly* enough for the guaranteed sweep;
+`handleRequisition` already rejects duplicate items (`requisition.ts:32`), so the four kits a bag can
+hold are necessarily four *different* stimuli. Charges limit repeat use of the **same** stimulus,
+and the exploit uses each stimulus once. **Charges do not close it.** They remain worth building for
+a different job — a breadth-versus-depth curve, three tests of one stimulus against one test of
+three — but that only bites once reading instruments are scarce, so it is late work, not the fix.
+
+**What actually answers it, in order of cost.** (a) **`ward !== frailty`** — one rejection-sample
+line in `generateTraitRoll`, making a thing never warded against what it is frail to. That converts
+an ambient channel (Stress-mark) into a falsifiable prediction about a probe-gated one (Reaction),
+shrinking the sweep and giving the party its first load-bearing sentence. (b) **Superlinear
+exposure** — probe cost escalating 1, 2, 4, 8 within an expedition, so the four-step sweep costs 15
+against an inferred single test at 1: a **15x premium on refusing to think**. Pricing beats
+forbidding, because brute force survives as a desperate, legible, expensive option instead of a
+locked door.
+
+**The deeper finding: preparation is a solved packing problem.** `ACTIVE_AXES`/`AMBIENT_AXES` are
+fixed by tier and public; `AXIS_TO_CHANNEL` is a bijection; each channel has exactly one lens. So the
+optimal bag is computable from **tier alone**, identical every expedition, before anything about the
+Incarnate is known. And the contract cannot inform it: `generateContract` draws `origin` (and
+`targetName`, `siteName`) independently of the trait roll, and `origin` is referenced **nowhere else
+in `src/server/`** — not in `deriveSigns`, not in `deriveReaction`. It is not the "partial,
+sometimes-wrong intel" `loadout-economy.md` non-negotiable 4 requires; it is noise wearing intel's
+clothes. At APPRENTICE, the only tier that ships, **three of ten catalog items can do anything at
+all**, and for a solo Seeker the *empty bag is optimal*.
+
+**The register.** Verified against the tree, none fixed by this entry:
+
+| # | vector | where |
+|---|---|---|
+| A1 | Fixed-optimal loadout — optimal bag = f(tier) | `types.ts:23`, `perception.ts:11` |
+| A2 | Ward brute-force — four kits are a guaranteed lookup | `generateTraitRoll.ts:16`, `deriveReaction.ts:14` |
+| A3 | Probing is free — `exposure` written, reported, **read by nothing** | `probe.ts:41`, `deploy.ts:81` |
+| A4 | Solo reads every channel free, so spends 4 slots on testing | `perception.ts:31` (deliberate, TD-008) |
+| A5 | **No readiness gate on the live deploy path.** `allReady` is imported by exactly one file — `acceptContract.ts`, the *legacy* handler its own comment says the new client flow does not use. `handleDeploy` checks in-room, phase, leader, at-station, contract-selected, and **nothing about readiness or bags**: a leader can deploy the party with four empty bags. TD-088 called the ready toggle load-bearing; on the live path it is decorative. | `deploy.ts`, `readyCheck.ts` |
+| A6 | **Free board reroll.** `createRoom` mints `generateBoard(randomUUID())` and `leaveRoom` destroys a room at zero players, so create-read-leave-create is unbounded. Harmless while intel is noise; becomes contract-scumming **the day intel gains signal**, so it must be closed in the same commit as any intel fix. | `RoomManager.ts:36`, `leaveRoom.ts:22` |
+| A7 | **Leaving beats dropping.** `isSolo = room.players.length === 1` counts ghosts, and `leaveRoom` has no phase gate. A *disconnected* partner leaves you strictly worse than solo; a partner who leaves deliberately makes you strictly better — full free channel coverage plus four probe slots. It is an incentive, not merely a bug. | `deploy.ts:87`, `leaveRoom.ts` |
+| A8 | Null probes unrecorded — `revealedSigns` dedupes by token, so four failed probes collapse into one `no-reaction` and a reconnecting player loses all elimination evidence. | `probe.ts:42` |
+| A9 | `perceivedChannels` is snapshotted at deploy and never recomputed — correct today, silently wrong the moment gear is consumable or droppable. | `deploy.ts:91` |
+
+**Requisition itself is clean** and its reversibility is *correct*: `DEPLOYING`-only, at-station,
+own-bag, replace-not-merge, and ambient signs do not arrive until `FIELD_STARTED`. So a party may
+re-pack freely while deciding but **cannot re-pack after seeing a single sign**. The commitment
+boundary is in the right place; the hole is A5, not the reversibility. **Cross-expedition leakage is
+currently none** — rooms die at extraction, boards are minted per room. The one future feature that
+would break Pillar 3 outright is **"share/replay this expedition seed"**: `generateSite` derives from
+`contract.expeditionSeed`, so a shared seed hands over the whole world including the trait roll. It
+will be requested. It must be refused.
+
+**The principle this turns on, added to canon.**
+
+> Memorizing a **law of the world** is the intended progression (Pillar 2). Memorizing **which entity
+> carries which value** is forbidden (Pillar 3). A procedure that yields certainty without inference
+> is a wiki with extra steps: it must be made impossible, or made expensive, but never left free.
+
+**Consequences.** New spec `specs/preparation/` (R326+, T337+). **Tier 0 is authorised and being
+built**: `ward !== frailty`, `allReady` on the live deploy path, and `isSolo` computed over
+*connected* players. The author is **open to a party-wide instrument allowance** — a lending bound on
+reading gear set below the channel count, so no party can ever read every channel — which would
+reverse the cost TD-091 explicitly accepted; it is to be worked up, not yet built, and must ship
+with a solo allowance or it inverts Pillar 4. Charges are demoted to late work.

@@ -102,9 +102,10 @@ The shared kit the party prepares. Limited bag space forces a tradeoff between
 combat capability and probing/ritual gear, which is how preparation and role
 distribution become the same decision.
 
-**Stipend**
-The Collegium's per-contract allowance, spent to requisition the loadout and to place
-the Surety. The deliberate, skill-based layer of preparation.
+**Stipend** — *retired (TD-091).* There is no currency in Testament. Requisition is bounded
+by **bag slots** alone: gear is a set of keys, so a price could only be a no-op (flat) or the
+forbidden power ladder (varied). The deliberate, skill-based layer of preparation is *which
+four you carry*, not what you can afford. Do not reintroduce the term without reading TD-091.
 
 **Blessing**
 A pre-expedition rite: each Seeker petitions and *receives* (unchosen) an ephemeral
@@ -113,7 +114,9 @@ swing of a correct read. Per-Seeker, one expedition, never persistent power.
 
 **Surety**
 The stake placed when a contract is accepted. Makes acceptance a real decision and
-gives preparation teeth.
+gives preparation teeth. *Open (TD-091): whether the stake is a flat cost in Collegium
+standing or an amount the party sizes is undecided. With the Stipend retired there is no
+currency to pay it in, so standing is the default — but this is not yet ruled.*
 
 **Recant**
 Abandoning an accepted contract. Allowed, but it forfeits the Surety and costs some

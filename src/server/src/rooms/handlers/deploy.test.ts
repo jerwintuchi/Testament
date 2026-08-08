@@ -332,3 +332,86 @@ describe('handleDeploy — field space (R85)', () => {
     }
   });
 });
+
+// ── Preparation Phase 0 (TD-092) ────────────────────────────────────────────
+
+// T338 (R327, P152) — the party cannot be deployed unprepared. Until this landed,
+// `allReady` was reachable only from the legacy acceptContract path, so on the live
+// path a leader could deploy four empty bags past a decorative ready toggle (A5).
+describe('handleDeploy — readiness gate (R327)', () => {
+  it('refuses to launch while a connected player is not ready, and mutates nothing', () => {
+    const { mgr, store, room } = twoPlayerDeploying('not-ready');
+    room.players[1]!.readyState = false;
+    const { fn: emit, calls } = makeEmit();
+    const { fn: emitTo, calls: emitToCalls } = makeEmitTo();
+
+    handleDeploy('host', mgr, store, emit, emitTo, noBroadcast);
+
+    expect(room.phase).toBe('DEPLOYING');          // unmutated
+    expect(room.fieldData).toBeNull();
+    expect(emitToCalls.filter(([, t]) => t === 'FIELD_STARTED')).toHaveLength(0);
+    // Error goes to the requesting socket only (I2).
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.[0]).toBe('LOBBY_ERROR');
+    expect((calls[0]?.[1] as { code: string }).code).toBe('NOT_ALL_READY');
+  });
+
+  it('a ghost does not block deployment — a held seat must never veto (TD-032)', () => {
+    const { mgr, store, room } = twoPlayerDeploying('ghost-ready');
+    room.players[1]!.readyState   = false;
+    room.players[1]!.disconnectedAt = Date.now();   // dropped, still holding a seat
+    const { fn: emitTo, calls } = makeEmitTo();
+
+    handleDeploy('host', mgr, store, () => {}, emitTo, noBroadcast);
+
+    expect(room.phase).toBe('FIELD');
+    expect(calls.filter(([, t]) => t === 'FIELD_STARTED').length).toBeGreaterThan(0);
+  });
+
+  it('a fully ready party deploys', () => {
+    const { mgr, store, room } = twoPlayerDeploying('all-ready');
+    handleDeploy('host', mgr, store, () => {}, makeEmitTo().fn, noBroadcast);
+    expect(room.phase).toBe('FIELD');
+  });
+});
+
+// T339 (R328) — NOT YET FIXED. These tests pin the CURRENT behaviour and the reason
+// the obvious fix was rejected, so the defect cannot be quietly forgotten (A7/A9, TD-092).
+describe('handleDeploy — isSolo counts LISTED players (A7, known defect)', () => {
+  it('a true solo reads every tier channel free (TD-008)', () => {
+    const { mgr, store, room } = setupDeployingRoom();
+    room.players[0]!.bag = [];
+    const { fn: emitTo, calls } = makeEmitTo();
+
+    handleDeploy('host', mgr, store, () => {}, emitTo, noBroadcast);
+
+    // channelsForTier adds REACTION unconditionally, even at Apprentice where
+    // deriveReaction can only ever return no-reaction.
+    const started = calls.find(([, t]) => t === 'FIELD_STARTED')![2] as { perceivedChannels: string[] };
+    expect(started.perceivedChannels).toEqual(['RESIDUE', 'STRESS_MARK', 'REACTION', 'OMEN']);
+  });
+
+  it('a duo with a ghost does NOT get the solo grant — the survivor reads only their bag', () => {
+    const { mgr, store, room } = twoPlayerDeploying('ghost-harsh');
+    room.players[1]!.disconnectedAt = Date.now();
+    room.players[0]!.bag = ['ashen-lens'];
+    const { fn: emitTo, calls } = makeEmitTo();
+
+    handleDeploy('host', mgr, store, () => {}, emitTo, noBroadcast);
+
+    const started = calls.find(([sid, t]) => t === 'FIELD_STARTED' && sid === 'host')![2] as { perceivedChannels: string[] };
+    expect(started.perceivedChannels).toEqual(['RESIDUE']);
+  });
+
+  it('REGRESSION GUARD: perceivedChannels is assigned to ghosts too, and reconnect never recomputes it (A9) — this is why counting connected players would hand a disconnecting duo full coverage', () => {
+    const { mgr, store, room } = twoPlayerDeploying('ghost-snapshot');
+    room.players[1]!.disconnectedAt = Date.now();
+    room.players[1]!.bag = [];
+
+    handleDeploy('host', mgr, store, () => {}, makeEmitTo().fn, noBroadcast);
+
+    // The ghost carries a perception snapshot it never asked for and will keep on
+    // reconnect. Any future isSolo change must reckon with this line.
+    expect(room.players[1]!.perceivedChannels).toEqual([]);
+  });
+});
