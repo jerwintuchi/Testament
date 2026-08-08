@@ -13,16 +13,32 @@ Manifestations. The institutional frame for contracts, ranks, and the Archive.
 A player character. Not a hero and not a class. A field investigator who survives
 by understanding. Roles emerge from the loadout, not from a class pick.
 
+**Collegium Rank — the ladder of standing (TD-094)**
+What *you* are. Five bands, escalating in **authority over what is known**, never in
+combat power (TD-012). Rank gates which contract **Tier** you may accept — see *Tier*,
+and note the two ladders are named apart on purpose: a Rank names a person, a Tier names
+a place. Never borrow a word across.
+
 **Aspirant**
-A Collegium member before initiation. Not yet a Seeker.
+A Collegium member before initiation. Not yet a Seeker. Accepts no contracts.
 
 **Seeker**
-A confirmed hunter-scholar; the baseline player identity. Named for the Collegium
-creed, *"we seek truth, not certainty."*
+A confirmed hunter-scholar; the baseline player identity, and the one band that is
+never renamed. Named for the Collegium creed, *"we seek truth, not certainty."*
+May accept a **Vigil**.
 
 **Witness**
 The earned honorific for a Seeker who has survived expeditions, "because they have
-seen." Aligns with the higher Collegium Rank bands. A title, never a class.
+seen." A title, never a class. May accept an **Interdict**.
+
+**Confessor**
+One whose testimony has stood under trial. Where a Witness reports what they saw, a
+Confessor's account is entered as evidence. May accept an **Anathema**.
+
+**Hierophant**
+*One who reveals what is sacred.* The apex of the order is not its best hunter but the
+Seeker whose account the Collegium **records as true** — their reading becomes the
+Archive. May accept an **Apocrypha**.
 
 **Choir**
 A historical generation of hunters, a lineage within the Collegium. Choirs are
@@ -145,7 +161,22 @@ knowledge enters the Archive. The namesake of the game (Pillar 5).
 
 **Collegium Rank**
 A persistent measure of standing that gates access to higher-tier contracts and
-prestige. It grants *access and options*, not raw combat power.
+prestige. It grants *access and options*, not raw combat power. Its bands are
+Aspirant → Seeker → Witness → Confessor → Hierophant (above). **Not yet built.**
+
+**Tier**
+What the Collegium has declared about *a place* — how deep a given contract goes, and
+therefore how much of the Incarnate is manifest. Carried per writ on the contract, and
+gated by the reader's Collegium **Rank**. Four bands (TD-094), each named for the
+order's formal declaration rather than for the hunter who answers it:
+
+- **Vigil** — *we are sending someone to watch.* Aspect, Frailty and Tell only. There is
+  no Ward, so a probe has nothing to find: you were sent to observe.
+- **Interdict** — *we forbid this place.* Ward and Disposition wake; probing becomes real.
+- **Anathema** — *we condemn this thing.* The Rite-key wakes; it can be banished, not only killed.
+- **Apocrypha** — *we no longer trust our own record of it.* Every axis is live and
+  **Mutations** are stacked, so signs may be masked, inverted or invented. The word means
+  writings of doubtful authenticity; at this Tier the evidence itself is suspect.
 
 **Site / Condition**
 The Site is the biome an expedition takes place in (route topology + modifiers). The

@@ -121,7 +121,7 @@ is not implemented.
 
 | Value | Token | What is seen | The step |
 |---|---|---|---|
-| EMBER | `spalled-stone` | dressed stone flaked into shallow dishes | only sudden great heat spalls worked stone — something burned without a fire |
+| EMBER | `run-wax` | candles slumped and pooled that were never lit | something here burned without a fire |
 | FROST | `heaved-mortar` | joints split and pushed proud | water froze inside the wall and split it |
 | ROT | `bloomed-iron` | nails and hinges flowered with rust a century early | matter here ages out of season |
 | MIRE | ▪ `weeping-clay` | the floor gives up water it should not hold | it drags the bog with it; footing fails where it stood |
@@ -172,9 +172,13 @@ is not implemented.
 | RECOIL | ▪ `backward-step-brace` |
 | SHUDDER | ▪ `full-body-tremor` |
 
-**Coin-flips offered, not decided:** `spalled-stone` vs `run-wax` for EMBER (forensic vs
-ecclesiastical register); `fever-sweat` vs `will-not-clot` for COLD, if the collision with the EMBER
-*aspect* reads badly.
+**EMBER settled (author, 2026-08-08): `run-wax`.** `spalled-stone` was rejected on the spec's own
+criterion rather than on taste — *spalling* is masonry jargon, so its inferential step is recoverable
+only by domain knowledge, not "by reasoning about the world" (R339). `run-wax` is plain sight plus
+common sense, and sits in the Collegium's ecclesiastical register rather than a forensics manual.
+**The same test retires any future token that leans on a technical term.**
+
+**COLD is still open** — see the note under FRAILTY.
 
 ---
 

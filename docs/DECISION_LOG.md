@@ -3751,3 +3751,89 @@ standing clean-tree capture diff is **not** required for this work.
 collapse coupled to a probe record); the prose split; whether the Librarium's no-translation-table
 rule is recorded as a non-negotiable; and confirmation that coarse/fine ambiguity is deferred rather
 than dropped.
+
+## 2026-08-08 — TD-094: two ladders, named apart — contract Tier and Collegium Rank
+
+**Why.** The author asked for cooler tier names and a fourth tier. Pulling the thread found that the
+naming was not merely bland but *off-register*, and that the project has **two ladders** which the
+code half-acknowledges and the naming actively confuses.
+
+**The distinction, which is already canon and must stay visible.**
+
+| | measures | lives on | built? |
+|---|---|---|---|
+| **Tier** | how deep *this contract* goes — how much of the Incarnate is manifest | `ContractRecord.tier`, per writ | yes |
+| **Collegium Rank** | *your* standing, which **gates which tiers you may accept** | persistent account layer | **no** — `grep` finds nothing |
+
+`generateBoard.ts:11` already says it out loud: *"Collegium Rank gates tier (TD-012); until Rank
+exists the whole board is APPRENTICE."* This is the Warhammer shape — the **mission** carries a
+difficulty rating, the **character** carries a rank that unlocks access to it. The author identified
+it unprompted, which is the check that the shape reads correctly from outside.
+
+**Consequence for naming, and it is the load-bearing rule:** a Tier name describes **what the
+Collegium has declared about a place**. A Rank name describes **a person's standing**. The two
+vocabularies must never be borrowed across, or the ladders merge. This is why `Aspirant / Seeker /
+Witness` was *rejected* for Tier despite being canon and available — those name the hunter.
+
+**Decision 1 — Tier becomes `VIGIL / INTERDICT / ANATHEMA / APOCRYPHA`.** `APPRENTICE / JOURNEYMAN /
+MASTER` is **craft-guild** vocabulary (blacksmiths, carpenters) in a game about hunter-scholars of an
+ecclesiastical order. The replacement is the order's escalating formal response, and each name states
+what the tier *is* rather than decorating it:
+
+| tier | declaration | live axes | what the name tells you |
+|---|---|---|---|
+| **VIGIL** | we are sending someone to watch | Aspect, Frailty, Tell | observe — **no Ward, so probing does nothing** |
+| **INTERDICT** | we forbid this place | + Ward, Disposition | probing becomes real |
+| **ANATHEMA** | we condemn this thing | + Rite-key | banishment becomes possible |
+| **APOCRYPHA** | we no longer trust our own record of it | all six **+ Mutations** | **the signs may lie** |
+
+The naming pays for itself immediately: TD-092's A-register recorded that a probe kit at the lowest
+tier is a **guaranteed null with no feedback** distinguishing "no ward" from "ward inactive at this
+rank" — a bet against a hidden rule. Calling that tier a **Vigil** converts the hidden rule into the
+premise. You were sent to watch; of course there is nothing to test yet.
+
+**Decision 2 — the fourth tier is Mutations, not more axes.** All six axes are live at the old
+`MASTER`, so a fourth tier *cannot* add more to read. The escalation is the GLOSSARY's already-canon,
+entirely unbuilt **Mutation**: "a modifier stacked onto an Incarnate that **masks, inverts, or adds
+signs**." At `APOCRYPHA` the evidence itself becomes unreliable — the player stops reading the
+Incarnate and starts reading *whether the reading can be trusted*. That is the correct apex for a
+diagnosis game, and `apocrypha` means writings **of doubtful authenticity**, so the tier is named for
+its own mechanic.
+
+**This is a system, not a rename**, and it is scoped separately. Note one collision to design
+deliberately: a **masked** Ward and an absent Ward would both present as `no-reaction`, colliding with
+the existing deliberate ambiguity (R55/R56). And a fourth tier does **not** fix the scarcity the sweep
+measured (`6 SLOTS SPARE` at a full party) — that still needs the instrument allowance (R336).
+
+**Decision 3 — the Rank ladder speaks escalating authority, and it is epistemic.** `Aspirant /
+Seeker / Witness` stops short: it never reaches a rank whose word carries weight. Extended:
+
+| rank | what it means | may accept |
+|---|---|---|
+| **Aspirant** | before initiation | — |
+| **Seeker** | you look. *"We seek truth, not certainty."* | Vigil |
+| **Witness** | you have seen | Interdict |
+| **Confessor** | your testimony stood under trial | Anathema |
+| **Hierophant** | *one who reveals what is sacred* — your word becomes the Archive | Apocrypha |
+
+The escalation is **authority over what is known**, not power — which is TD-012's "access and
+options, not raw combat power" and Pillar 2 in one ladder. The apex of the order is not the best
+fighter; it is the one whose account the Collegium records as true. **Seeker is unchanged** — it is
+the baseline identity, tied to the creed, and load-bearing across the whole codebase.
+
+`Confessor` and `Hierophant` were checked against the authored NPC tables and are free. `Magister`
+and `Archivist` were **rejected for collision** — both already appear as petitioner names/roles in
+`generateContract.ts`, and a rank that is also an NPC's job title reads as a mistake.
+
+**Cost, measured rather than estimated.** The Tier rename touches **27 files, ~124 literal sites** —
+mostly tests, plus `src/shared/src/signs.ts` (the `Tier` union), `types.ts` (`ACTIVE_AXES` /
+`AMBIENT_AXES` keys), and two client files with hand-written tier literals (`board/notice.gd`'s
+`PLEA` table and `main.gd`'s preview fixtures). **No codegen regeneration**: `Tier` never reaches
+`client/protocol/protocol.gd` — an earlier estimate of 39 files including the generated protocol was
+wrong, produced by `MASTER` matching `NOT_AT_QUARTERMASTER`. The Rank ladder is **docs-only today**,
+because Collegium Rank does not exist in code.
+
+**Consequences.** GLOSSARY gains the two ladders stated apart, with the borrowing rule. New spec
+`specs/tiers/` for the rename plus the fourth tier; the Mutation system is named there as a hard
+dependency of `APOCRYPHA` and may ship after the rename. `specs/sign-lexicon/` and
+`specs/preparation/` are unaffected — no token, axis or channel changes here.
