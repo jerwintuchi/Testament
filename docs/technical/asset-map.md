@@ -274,15 +274,15 @@
 - `client/scripts/stations/quartermaster/pack.gd:167` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:181` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:197` — `load/preload SLOT`
-- `client/scripts/stations/quartermaster/register.gd:116` — `load/preload SHEET`
-- `client/scripts/stations/quartermaster/room.gd:87` — `load/preload WALL`
-- `client/scripts/stations/quartermaster/room.gd:191` — `load/preload PROPS`
-- `client/scripts/stations/quartermaster/room.gd:217` — `load/preload path`
+- `client/scripts/stations/quartermaster/register.gd:117` — `load/preload SHEET`
+- `client/scripts/stations/quartermaster/room.gd:96` — `load/preload WALL`
+- `client/scripts/stations/quartermaster/room.gd:211` — `load/preload PROPS`
+- `client/scripts/stations/quartermaster/room.gd:259` — `load/preload path`
 - `client/scripts/stations/quartermaster/seal_rite.gd:40` — `load/preload SEAL_TEX`
-- `client/scripts/stations/quartermaster/shelf.gd:173` — `load/preload STOCK`
-- `client/scripts/stations/quartermaster/shelf.gd:208` — `load/preload STOCK`
-- `client/scripts/stations/quartermaster/shelf.gd:263` — `load/preload ICONS`
-- `client/scripts/ui/fonts.gd:37` — `load/preload path`
+- `client/scripts/stations/quartermaster/shelf.gd:205` — `load/preload STOCK`
+- `client/scripts/stations/quartermaster/shelf.gd:240` — `load/preload STOCK`
+- `client/scripts/stations/quartermaster/shelf.gd:295` — `load/preload ICONS`
+- `client/scripts/ui/fonts.gd:56` — `load/preload path`
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
 - `client/scripts/ui/writ_form.gd:260` — `load/preload PARCH`

@@ -30,11 +30,16 @@ const LABEL_M   := 7
 const COUNTER_M := 16
 const PROP_PX   := 24
 
+# Dust motes in the candle's reach. Declared here so `tools/qm_budget.py` can read it.
+const DUST_COUNT := 14
+
 # Prop indices in qm_props.png.
 const P_LEDGER := 0
 const P_CANDLE := 1
 const P_INK    := 2
 const P_SCALE  := 3
+const P_WAX    := 4
+const P_PAPERS := 5
 
 # ── the room's geometry, in fractions of the viewport ────────────────────────
 # Fractions, never fixed pixels: the canon is that anything on screen is sized from
@@ -48,6 +53,10 @@ const SHELVES_Y := 0.135
 const SHELVES_H := 0.415
 const COUNTER_Y := 0.590
 const COUNTER_H := 0.190
+# The right column runs nearly to the foot of the frame: at 0.72 it left a band of
+# dead black under the rite while the RECORD — the thing with the most to say — was
+# squeezed to 119px and hid its WARNING behind a scroll (R374/§19).
+const RIGHT_H   := 0.800
 
 # The ink of this room. Warmer and darker than the writ's parchment, because you are
 # in a cellar store rather than reading a document.
@@ -62,7 +71,7 @@ static func build(host: Control, vp: Vector2) -> Dictionary:
 
 	var shelf_rect := Rect2(vp.x * LEFT_X, vp.y * SHELVES_Y, vp.x * LEFT_W, vp.y * SHELVES_H)
 	var counter_rect := Rect2(vp.x * LEFT_X, vp.y * COUNTER_Y, vp.x * LEFT_W, vp.y * COUNTER_H)
-	var right_rect := Rect2(vp.x * RIGHT_X, vp.y * SHELVES_Y, vp.x * RIGHT_W, vp.y * 0.72)
+	var right_rect := Rect2(vp.x * RIGHT_X, vp.y * SHELVES_Y, vp.x * RIGHT_W, vp.y * RIGHT_H)
 
 	_header(host, vp)
 	var shelving := _shelving(host, shelf_rect)
@@ -176,13 +185,24 @@ static func _counter(host: Control, rect: Rect2) -> void:
 	c.size = rect.size
 	host.add_child(c)
 
-	# Four props, and only four. The brief is explicit that the counter must not be
-	# cluttered (§8) — the object under inspection is the thing that matters.
-	_prop(host, P_LEDGER, Vector2(rect.position.x + 10.0, rect.position.y - 12.0))
-	_prop(host, P_INK,    Vector2(rect.position.x + 38.0, rect.position.y - 10.0))
-	_prop(host, P_SCALE,  Vector2(rect.end.x - 40.0, rect.position.y - 14.0))
-	var candle := _prop(host, P_CANDLE, Vector2(rect.end.x - 72.0, rect.position.y - 16.0))
+	# THREE ZONES (R371), so the bench reads as a place someone works rather than a
+	# plank with ornaments on it: the Quartermaster WRITES on the left, the instrument
+	# is inspected in the middle, and the SEALING tools live on the right, next to the
+	# light. The centre is deliberately clear — that space is where the object lands.
+	#
+	# Every prop is scenery: ignore-filtered, unfocusable, no tooltip (P169). A room
+	# must not offer an affordance it will not honour.
+	var top := rect.position.y - 19.0
+	# left — the writing end
+	_prop(host, P_PAPERS, Vector2(rect.position.x + 8.0,  top + 2.0))
+	_prop(host, P_LEDGER, Vector2(rect.position.x + 32.0, top))
+	_prop(host, P_INK,    Vector2(rect.position.x + 58.0, top + 1.0))
+	# right — the sealing end, and the light that serves it
+	_prop(host, P_SCALE,  Vector2(rect.end.x - 34.0, top - 1.0))
+	_prop(host, P_WAX,    Vector2(rect.end.x - 60.0, top + 2.0))
+	var candle := _prop(host, P_CANDLE, Vector2(rect.end.x - 88.0, top - 2.0))
 	_flicker(candle)
+	_dust(host, rect)
 
 
 static func _prop(host: Control, index: int, at: Vector2) -> TextureRect:
@@ -198,6 +218,28 @@ static func _prop(host: Control, index: int, at: Vector2) -> TextureRect:
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(t)
 	return t
+
+
+## A little dust in the candle's reach — the room is old and worked in (R377). Kept
+## to a handful and confined to the counter's warm end: this is a dusty storeroom, not
+## weather, and the brief is explicit that fog is wrong for it.
+static func _dust(host: Control, rect: Rect2) -> void:
+	var p := CPUParticles2D.new()
+	p.amount = DUST_COUNT
+	p.lifetime = 9.0
+	p.preprocess = 6.0
+	p.position = Vector2(rect.end.x - 70.0, rect.position.y - 6.0)
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(58.0, 26.0)
+	p.direction = Vector2(-1, -0.35)
+	p.spread = 26.0
+	p.gravity = Vector2(0, -1.5)
+	p.initial_velocity_min = 1.5
+	p.initial_velocity_max = 4.0
+	p.scale_amount_min = 1.0
+	p.scale_amount_max = 1.0
+	p.color = Color(0.86, 0.76, 0.56, 0.30)
+	host.add_child(p)
 
 
 ## The room's one moving thing. A looping tween, NOT a particle emitter and NOT

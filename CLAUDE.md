@@ -588,6 +588,23 @@ two torch gutters** (~0.47% control floor) — not one on a writ. **P166 measure
 pixel-identical apart from the shell's status line. **Still needs a human:** hover and click-through,
 which a capture can do neither of (the standing TD-074 gap). DECISION_LOG **TD-101** + addendum.
 
+Completed: **`specs/quartermaster-feel/`** (TD-102) — polish on TD-101 to the author's brief; the
+data model, capacity, flow and seal rite are untouched. **The brief's "large conventional UI arrow"
+was an ICON, found by measuring:** `cantors-ear` was 204 px in 4 colours dominated by `#A6803A`, the
+goldest object on screen, and at 24px read as a chevron — simultaneously a gold-discipline breach.
+All ten icons re-authored in **Aseprite** as hand-placed 24×24 ASCII maps (TD-057/TD-077), **zero
+bright-gold pixels**, `.aseprite` source in `art/src/`. Wall quietened (one course per tile, recessed
+joints), counter given **three zones** + two props, record gains a **WARNING** block, `SEAL & DEPART`
+subdued→gold only when issuable, 14 budgeted dust motes. 191 nodes/220.
+**⚠ FOUND, NOT FIXED — `theme/custom_font` has NEVER applied.** Godot's project-settings parser folds
+a preceding `#` comment block into the next key's name, so the project default face has silently been
+Godot's fallback **sans** since TD-097 — which is what "the board's small text is the default sans"
+was recording. Proven twice: deleting the comment flips the board to Almendra (**29% of pixels
+differ**, `minhit` 80x53→80x51), and a re-import rewrote the folded key out as garbage, deleting the
+setting. Left unfixed **on purpose**: it re-flows the Contract Board and changes type game-wide —
+the author's call. `project.godot` reverted to HEAD byte-for-byte; finding recorded atop `fonts.gd`.
+**Rule: no comments inside a `project.godot` section.** DECISION_LOG **TD-102**.
+
 @specs/quartermaster-room/requirements.md
 @specs/quartermaster-room/design.md
 @specs/quartermaster-room/tasks.md

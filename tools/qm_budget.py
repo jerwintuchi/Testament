@@ -84,6 +84,9 @@ def findings(srcs):
     numeric = [
         ("node budget", const(reg, "NODE_BUDGET"), MAX_NODES),
         ("particle budget", const(reg, "PARTICLE_BUDGET"), MAX_PARTICLES),
+        # The live emitter, not just the ceiling: a budget nobody spends against is a
+        # number in a comment.
+        ("dust motes emitted", const(srcs["room.gd"], "DUST_COUNT"), MAX_PARTICLES),
     ]
 
     structural = [
@@ -112,9 +115,11 @@ def findings(srcs):
 
         # Particles must stay declared rather than sprinkled: if an emitter ever
         # appears it has to be counted against PARTICLE_BUDGET, not added silently.
-        ("no undeclared particle emitter",
-         "CPUParticles" not in joined or "PARTICLE_BUDGET" in joined,
-         "an emitter must be budgeted against PARTICLE_BUDGET"),
+        # An emitter may exist, but only a DECLARED one: its amount must come from a
+        # named constant the budget can read, never a literal at the call site.
+        ("emitter amount comes from a constant",
+         "CPUParticles" not in joined or re.search(r"\.amount\s*=\s*DUST_COUNT", joined) is not None,
+         "a particle amount must be a named constant, or the budget cannot see it"),
 
         # THE ONE THIS PROJECT KEEPS RELEARNING. TD-064, TD-065 and TD-068 are three
         # separate fixes for a local change rebuilding a whole screen. Selecting an
@@ -187,6 +192,14 @@ def selftest():
     unprinted = dict(srcs)
     unprinted["register.gd"] = srcs["register.gd"].replace("qm nodes=", "qm silent=")
     assert not findings(unprinted)[1][1][1], "the print rule must catch a silent measurement"
+
+    dusty = dict(srcs)
+    dusty["room.gd"] = srcs["room.gd"].replace("const DUST_COUNT := 14", "const DUST_COUNT := 500")
+    assert findings(dusty)[0][2][1] > MAX_PARTICLES, "the dust ceiling must catch an over-budget emitter"
+
+    literal = dict(srcs)
+    literal["room.gd"] = srcs["room.gd"].replace("p.amount = DUST_COUNT", "p.amount = 500")
+    assert not findings(literal)[1][4][1], "the emitter rule must catch a literal amount"
 
     per_frame = dict(srcs)
     per_frame["room.gd"] = srcs["room.gd"] + "\nfunc _process(_d: float) -> void:\n\tpass\n"

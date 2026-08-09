@@ -25,6 +25,8 @@ const STOCK  := "res://assets/ui/stations/qm_stock.png"
 const STOCK_PX := 16
 const STOCK_N  := 8
 const ICON_PX  := 24
+# The category plaque's width, so the upper dressing row can start clear of it.
+const PLAQUE_W := 112.0
 
 # ── the item state machine (P164) ────────────────────────────────────────────
 enum { AVAILABLE, HOVERED, SELECTED, ON_COUNTER, PACKING, PACKED, REMOVING }
@@ -45,11 +47,17 @@ static func next_state(state: int, event: String) -> int:
 	return -1
 
 
-# Hover is restrained on purpose (R364): a small lift, a slight brightening, a shadow
-# that tightens. No outline, no glow, no particles — the brief forbids all three.
-const LIFT_PX   := 3.0
-const T_HOVER   := 0.09
-const HOVER_TINT := Color(1.18, 1.13, 1.02)
+# Hover is restrained on purpose (R373): a small lift, a warm brightening, a shadow
+# that tightens, and a one-pixel Collegium-gold outline. No glow, no neon, no particle
+# burst — and no marker or arrow, which the brief rules out explicitly.
+#
+# The outline is drawn by a second copy of the icon behind the first, offset by one
+# pixel in four directions and tinted gold. That reads at low resolution where a
+# shader-based outline would smear, and it costs one extra TextureRect per instrument.
+const LIFT_PX    := 3.0
+const T_HOVER    := 0.09
+const HOVER_TINT := Color(1.14, 1.09, 1.00)
+const GOLD_EDGE  := Color(0.84, 0.68, 0.36, 0.95)
 
 
 static func build(host: Control, view: Dictionary, units: Array,
@@ -72,7 +80,7 @@ static func build(host: Control, view: Dictionary, units: Array,
 		# just above the instruments it sat on top of the upper shelf's stock instead.
 		var lp: Vector2 = (Vector2(frames[u].position.x + 7.0, frames[u].position.y + 3.0)
 			if u < frames.size() else Vector2(unit.position.x, unit.position.y - 15.0))
-		Room.label_plate(host, String(kinds[u]["label"]), lp, 108.0)
+		Room.label_plate(host, String(kinds[u]["label"]), lp, PLAQUE_W - 6.0)
 
 		var n := ids.size()
 		var pitch := unit.size.x / float(n)
@@ -86,7 +94,11 @@ static func build(host: Control, view: Dictionary, units: Array,
 		# The upper board carries stock only — never an instrument, so a player never
 		# has to hunt two rows for something they can actually take.
 		if u < dress.size():
-			_fill(host, dress[u], u + 40)
+			# Clear of the plaque: the label is nailed to the same rail, and stock drawn
+			# under it read as clutter behind a sign rather than as stored goods.
+			var band: Rect2 = dress[u]
+			_fill(host, Rect2(band.position + Vector2(PLAQUE_W, 0.0),
+				Vector2(band.size.x - PLAQUE_W, band.size.y)), u + 40)
 
 		# Even pitch across the unit, computed from the count — so six instruments and
 		# four instruments both sit centred on their own board.
@@ -125,6 +137,24 @@ static func _object(host: Control, view: Dictionary, id: String, home: Vector2,
 	host.add_child(shadow)
 	host.move_child(shadow, max(b.get_index() - 1, 0))
 
+	# The gold edge: four offset copies behind the icon, revealed on hover. Built once
+	# and shown/hidden, so hovering allocates nothing.
+	var edge := Control.new()
+	edge.set_anchors_preset(Control.PRESET_FULL_RECT)
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	edge.modulate = GOLD_EDGE
+	edge.visible = false
+	b.add_child(edge)
+	for off in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+		var e := TextureRect.new()
+		e.texture = _icon(id)
+		e.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		e.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		e.set_anchors_preset(Control.PRESET_FULL_RECT)
+		e.position = off
+		e.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		edge.add_child(e)
+
 	var ic := TextureRect.new()
 	ic.texture = _icon(id)
 	ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -133,7 +163,8 @@ static func _object(host: Control, view: Dictionary, id: String, home: Vector2,
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(ic)
 
-	var rec := {"node": b, "icon": ic, "shadow": shadow, "home": home, "state": AVAILABLE}
+	var rec := {"node": b, "icon": ic, "edge": edge, "shadow": shadow,
+		"home": home, "state": AVAILABLE}
 
 	b.mouse_entered.connect(func(): _set_hover(view, rec, true))
 	b.mouse_exited.connect(func(): _set_hover(view, rec, false))
@@ -151,6 +182,7 @@ static func _set_hover(view: Dictionary, rec: Dictionary, on: bool) -> void:
 	var b: Control = rec["node"]
 	var shadow: Control = rec["shadow"]
 	var home: Vector2 = rec["home"]
+	(rec["edge"] as Control).visible = on
 
 	if bool(view.get("reduced", false)):
 		b.position = home + (Vector2(0, -LIFT_PX) if on else Vector2.ZERO)

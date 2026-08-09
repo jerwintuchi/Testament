@@ -1,4 +1,23 @@
 extends RefCounted
+## ⚠ FINDING, NOT YET FIXED — `theme/custom_font` HAS NEVER APPLIED (TD-102).
+##
+## `project.godot` sets `gui/theme/custom_font` to Almendra with an explanatory `#`
+## comment block directly above it. Godot's project-settings parser **folds those
+## comment lines into the following key's name**, so the key it actually reads is not
+## `theme/custom_font` — and the project default has silently stayed Godot's fallback
+## SANS since TD-097. Proven twice: deleting the comment flips the Contract Board to
+## Almendra (29% of pixels differ, `minhit` 80x53 → 80x51), and a re-import rewrote the
+## folded key back out as one long garbage key.
+##
+## So today: call sites asking `Fonts.body()/heading()/ornament()` DO get Almendra;
+## anything relying on the project default (e.g. `Widgets.card_label`) gets the sans.
+## CLAUDE.md's "the board's small text is the default sans" recorded the symptom.
+##
+## NOT fixed here on purpose: removing the comment re-flows the Contract Board, which is
+## finished work, and changes type across the whole game — the author's call, not a
+## side effect of a Quartermaster pass. `notice_card.gd` measures writs against
+## `ThemeDB.fallback_font` while `card_label` renders with the default, so the pairing
+## (P111) survives either way; only the face changes.
 ## Shared font builders (TD-067, retypeset TD-097). Preloaded as `Fonts`, never a global
 ## class_name so a headless parse/import resolves it (TD-029/30).
 ##

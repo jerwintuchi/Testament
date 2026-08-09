@@ -4232,3 +4232,55 @@ them in rows 716–719, which is the shell's status line at the bottom of the fr
 **Still needs a human, and named as such:** hover feedback and clicking through every instrument. A
 capture can neither hover nor click — the same standing gap TD-074 recorded for the board's two-client
 seal split, not a new one.
+
+## 2026-08-09 — TD-102: the Quartermaster's feel, and a font that was never applied
+
+**Why.** Author polish brief on TD-101 with an explicit constraint: preserve the working
+functionality and data model; change how the room reads, not what it does. Nothing in `src/**`
+moved, the 4-slot capacity and the seal rite are untouched, and the flow is exactly as it was.
+
+**The brief's "large conventional UI arrow" was an ICON, and measuring found it.** §5 asked to
+remove an arrow used as the hover indicator; there was no arrow in the code — hover was a lift plus
+a brighten. Auditing the icon sheet found what the brief was actually looking at: `cantors-ear` was
+**204 opaque pixels in 4 colours dominated by `#A6803A`** — the goldest object on the entire screen —
+and at 24px a filled chevron reads as an arrow. So the finding was simultaneously a §16 violation:
+**gold is supposed to mean authority, selection and the seal**, not an ordinary item on a shelf. All
+ten icons were re-authored in Aseprite as hand-placed 24×24 ASCII maps (TD-057's ruling, TD-077's
+precedent), with **zero bright-gold pixels** across the sheet, and the `.aseprite` source kept so the
+author can edit by hand.
+
+Two of the first ten failed and were caught by *looking*: the fetish read as a **brush** (parallel
+strokes; talons need a curve, a taper and unequal lengths) and the censer became the **brightest
+thing on screen** (flame belongs to the lantern and the seal, not to a shelf item).
+
+**Everything else was hierarchy.** The wall repeated four times per tile and read as brick wallpaper
+— now one course per tile edge, the joint a recess rather than a lit line, one tonal step instead of
+two, because contrast in the backdrop is contrast stolen from the instruments. The counter gained two
+props and **three zones** (writing left, inspection centre, sealing right) so it reads as a bench
+someone works at. The record's handling note was promoted to a **WARNING** under its own heading. And
+**SEAL & DEPART** is subdued until the pack can be issued, then takes gold and a doubled border — the
+one action that earns it.
+
+**THE FINDING THAT MATTERS MOST, and it is not fixed.** Chasing a 2px change in the board's `minhit`
+readout uncovered that **`gui/theme/custom_font` has never applied**. Godot's project-settings parser
+**folds a preceding `#` comment block into the following key's name**, so the key it reads is not
+`theme/custom_font` — and the project's default face has silently been Godot's fallback **sans**
+since TD-097, which claims in canon that "Testament is set in Almendra" and that "the default face is
+a PROJECT SETTING."
+
+Proven twice, both reproducible across repeated runs: deleting the comment flips the Contract Board
+to Almendra — **29% of pixels differ**, `minhit` 80x53 → 80x51 — and a re-import rewrote the folded
+key back out as one long garbage key, deleting the setting outright. Call sites asking
+`Fonts.body()/heading()` were always fine; only the *default* was wrong. CLAUDE.md's note that "the
+board's small text is the default sans" was recording the symptom without recognising it.
+
+**Deliberately left unfixed.** The correction re-flows the Contract Board — finished work, whose
+writs are measured by `_fit_writ` against the font they render in — and changes type across the whole
+game. That is the author's call, not a side effect of a Quartermaster pass. `project.godot` is
+reverted to HEAD byte-for-byte, and the finding is recorded at the top of `fonts.gd` where the next
+person to touch typography will meet it. **Rule for anyone editing `project.godot`: no comments
+inside a section.**
+
+**Budget.** 191 nodes / 220 (the gold hover edge costs 5 per instrument), 14 dust motes / 20. The
+emitter's amount is a named constant so the budget can read it — `qm_budget.py` now fails if a
+literal appears at the call site.

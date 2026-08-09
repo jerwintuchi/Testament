@@ -35,8 +35,11 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 	titles.add_theme_constant_override("separation", 0)
 	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(titles)
-	var name_l := Widgets.card_label("", 14, PopupTheme.INK, false, false)
-	var class_l := Widgets.card_label("", 9, PopupTheme.INK_DIM, false, false)
+	# Name large and prominent; classification smaller and GOLD, because a Collegium
+	# classification is an assertion by the order (R374/R376).
+	var name_l := Widgets.card_label("", 15, PopupTheme.INK, false, false)
+	name_l.add_theme_font_override("font", Fonts.heading())
+	var class_l := Widgets.card_label("", 9, Color(0.44, 0.34, 0.14), false, false)
 	titles.add_child(name_l)
 	titles.add_child(class_l)
 
@@ -47,6 +50,11 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 	var note := Widgets.card_label("", 9, PopupTheme.INK_DIM, true, false)
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(note)
+	# The handling note is a WARNING and is labelled as one: a heading, then the text,
+	# in muted burgundy. Unheaded, it read as one more line of description.
+	var warn_head := Widgets.card_label("WARNING", 8, Color(0.46, 0.19, 0.15), false, false)
+	warn_head.add_theme_font_override("font", Fonts.heading())
+	root.add_child(warn_head)
 	var care := Widgets.card_label("", 8, Color(0.44, 0.20, 0.16, 0.90), true, false)
 	care.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(care)
@@ -68,8 +76,8 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 	(action_host if action_host != null else root).add_child(act)
 
 	return {"root": root, "icon": icon, "name": name_l, "class": class_l,
-		"asks": asks, "note": note, "care": care, "party": party, "foot": foot,
-		"foot_rule": foot_rule, "action": act}
+		"asks": asks, "note": note, "care": care, "warn_head": warn_head,
+		"party": party, "foot": foot, "foot_rule": foot_rule, "action": act}
 
 
 ## `state` is "shelf" (can be packed), "packed" (can be removed) or "full".
@@ -85,6 +93,7 @@ static func show_item(view: Dictionary, item: Dictionary, tex: Texture2D,
 	(view["asks"] as Label).text = "\"%s\"" % rec["asks"]
 	(view["note"] as Label).text = String(rec["note"])
 	(view["care"] as Label).text = String(rec["care"])
+	(view["warn_head"] as Control).visible = not String(rec["care"]).is_empty()
 	(view["foot"] as Label).text = Lore.FOOTER
 	(view["foot_rule"] as Control).visible = true
 
@@ -124,6 +133,7 @@ static func clear(view: Dictionary) -> void:
 	(view["asks"] as Label).text = ""
 	(view["note"] as Label).text = "Choose an instrument from the register to read its record."
 	(view["care"] as Label).text = ""
+	(view["warn_head"] as Control).visible = false
 	(view["party"] as Label).text = ""
 	(view["foot"] as Label).text = ""
 	(view["foot_rule"] as Control).visible = false

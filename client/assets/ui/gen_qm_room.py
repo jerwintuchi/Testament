@@ -82,27 +82,34 @@ def _rnd(x, y, seed=0):
 # course. Kept DARK on purpose — it is the backdrop, and the instruments are what the
 # eye must find. Detail is joint lines plus a two-step grain, never per-pixel noise.
 WALL_W = WALL_H = 64
-COURSE = 16
-BLOCK = 32
+COURSE = 32
+BLOCK = 64
 
 
 def _wall(x, y):
+    """Larger, quieter ashlar (R370).
+
+    The first pass laid 16px courses of 32px blocks, which repeats four times across a
+    64px tile and reads as brick wallpaper — the eye lands on the wall before it lands
+    on the shelves. Now: one course and one block per tile edge, so the pattern repeats
+    once; the joint is a two-pixel RECESS rather than a bright line; and the tonal
+    spread is one step instead of two, because contrast here is contrast stolen from
+    the instruments.
+    """
     course = y // COURSE
     ly = y % COURSE
-    # Every other course is offset half a block, the way ashlar is actually laid.
     off = (BLOCK // 2) if (course % 2) else 0
     lx = (x + off) % BLOCK
 
-    if ly == 0 or lx == 0:
-        return _op(WALL_JOINT)          # mortar: a recess, so it reads as a shadow
-    if ly == 1:
-        return _op(WALL_MID)            # the lit top lip of each block
-    # Blocks vary by one step so the wall is not a flat field, chosen per BLOCK
-    # (not per pixel) so the variation lands on stone edges — the TD-075 rule.
+    # A recess: two dark pixels, no highlight. A lit joint is what made it read as brick.
+    if ly <= 1 or lx <= 1:
+        return _op(WALL_JOINT)
+    # Blocks vary by ONE step, chosen per block so the change lands on a stone edge.
     v = _rnd(x // BLOCK + off, course, 7)
-    base = WALL_BASE if v > 0.42 else WALL_DARK
-    if ly >= COURSE - 2:
-        return _op(WALL_DARK)           # each block sits in its own shadow
+    base = WALL_BASE if v > 0.62 else WALL_DARK
+    # A slight worn patch low on some blocks — irregularity without noise.
+    if ly > COURSE - 6 and v > 0.80:
+        return _op(WALL_DARK)
     return _op(base)
 
 
@@ -358,7 +365,7 @@ def _stock(x, y):
 # Four only. The brief is explicit that the counter must not be cluttered (§8): the
 # object under inspection is what matters, and these frame it.
 PROP_TILE = 24
-PROP_N = 4
+PROP_N = 6
 PROP_W, PROP_H = PROP_TILE * PROP_N, PROP_TILE
 
 
@@ -432,7 +439,32 @@ def _scale(x, y):
     return CLEAR
 
 
-PROPS = [_ledger, _candle, _inkwell, _scale]
+def _wax(x, y):
+    """A stick of sealing wax and a stamp — the tools the rite actually uses."""
+    if 9 <= x <= 13 and 4 <= y <= 15:
+        return _op(WAX_RED if x in (10, 11, 12) else A.RAMP["wax"][0])
+    if 6 <= x <= 16 and 16 <= y <= 18:
+        return _op(BRASS if y == 16 else BRASS_DIM)      # the stamp's collar
+    if 8 <= x <= 14 and 19 <= y <= 21:
+        return _op(BRASS_DIM if y == 21 else BRASS)      # its face
+    return CLEAR
+
+
+def _papers(x, y):
+    """A leaning stack of filed paperwork. Three sheets, offset."""
+    for i, (ox, oy) in enumerate(((0, 0), (2, -3), (1, -6))):
+        left, right = 3 + ox, 19 + ox
+        top = 18 + oy
+        if left <= x <= right and top <= y <= top + 3:
+            if y == top:
+                return _op(PARCH_HI)
+            if y == top + 3 or x in (left, right):
+                return _op(PARCH_DEEP)
+            return _op(PARCH if (x + i) % 6 else INK)
+    return CLEAR
+
+
+PROPS = [_ledger, _candle, _inkwell, _scale, _wax, _papers]
 
 
 def _props(x, y):

@@ -44,7 +44,7 @@ const SHEET := "res://assets/ui/board/parch_v1_0.png"
 # capture cannot show a frame cost, so the room counts itself once at build and warns
 # if it has grown. `tools/qm_budget.py` proves these constants are load-bearing.
 const NODE_BUDGET     := 220   # every Control the room instantiates, counted once
-const PARTICLE_BUDGET := 20    # dust in the lamp light; the room ships with zero
+const PARTICLE_BUDGET := 20    # dust in the lamp light (Room.DUST_COUNT)
 
 # What an instrument settles, in a hunter's words — never the wire enum (R320).
 const ANSWERS := {
@@ -90,7 +90,8 @@ static func build(body: Node, host: Node, selected: Array,
 ## and it is printed rather than trusted (performance.md P3).
 static func _report_budget(root: Control) -> void:
 	var n := _descendants(root)
-	print("[client] qm nodes=%d/%d particles=0/%d" % [n, NODE_BUDGET, PARTICLE_BUDGET])
+	print("[client] qm nodes=%d/%d particles=%d/%d"
+		% [n, NODE_BUDGET, Room.DUST_COUNT, PARTICLE_BUDGET])
 	if n > NODE_BUDGET:
 		push_warning("Quartermaster room over node budget: %d > %d" % [n, NODE_BUDGET])
 
@@ -208,10 +209,12 @@ static func refresh(view: Dictionary) -> void:
 			node.visible = true
 			shadow.visible = true
 
-	(view["packed_label"] as Label).text = "PACKED  %d / %d" % [packed.size(), Catalog.BAG_SLOTS]
+	(view["packed_label"] as Label).text = "EXPEDITION PACK — %d / %d" % [packed.size(), Catalog.BAG_SLOTS]
 	(view["shape_label"] as Label).text = _shape(packed)
 	var issuable: bool = view["can_issue"]
-	(view["seal"] as Button).disabled = view["sealed"] or not issuable or packed.is_empty()
+	var seal_btn: Button = view["seal"]
+	seal_btn.disabled = view["sealed"] or not issuable or packed.is_empty()
+	_seal_state(seal_btn, not seal_btn.disabled)
 	(view["gate_label"] as Label).text = ("" if issuable else
 		"The Collegium issues instruments against a contract.\nTake one from the board first.")
 
@@ -355,24 +358,33 @@ static func _seal(view: Dictionary) -> void:
 static func _seal_ink(b: Button) -> void:
 	# The rite's own button: brass on dark wood, not ink on paper — it belongs to the
 	# room, not to the record.
-	b.add_theme_stylebox_override("normal", _plate(Color(0.42, 0.33, 0.18, 0.85)))
-	for st in ["hover", "pressed", "focus"]:
-		b.add_theme_stylebox_override(st, _plate(Color(0.62, 0.49, 0.26, 0.95)))
-	b.add_theme_stylebox_override("disabled", _plate(Color(0.30, 0.24, 0.14, 0.40)))
-	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(st, Room.INK_WARM)
+	b.add_theme_stylebox_override("disabled", _plate(Color(0.30, 0.24, 0.14, 0.40), 1))
 	b.add_theme_color_override("font_disabled_color", Color(0.52, 0.46, 0.36, 0.45))
 	b.add_theme_font_size_override("font_size", 11)
 	var f := Fonts.heading()
 	if f != null:
 		b.add_theme_font_override("font", f)
+	_seal_state(b, false)
 
 
-static func _plate(edge: Color) -> StyleBoxFlat:
+## Departure is the one action that earns Collegium gold (R376). While the pack cannot
+## be issued the plate stays subdued and low-contrast; when it can, the border thickens
+## and takes gold. Restrained — a stronger edge and a warmer letter, never a flash.
+static func _seal_state(b: Button, ready: bool) -> void:
+	var edge := Color(0.72, 0.57, 0.26, 0.95) if ready else Color(0.34, 0.28, 0.18, 0.70)
+	var lit := Color(0.86, 0.70, 0.34, 1.0) if ready else Color(0.46, 0.38, 0.24, 0.85)
+	b.add_theme_stylebox_override("normal", _plate(edge, 2 if ready else 1))
+	for st in ["hover", "pressed", "focus"]:
+		b.add_theme_stylebox_override(st, _plate(lit, 2))
+	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(st, Color(0.92, 0.80, 0.52) if ready else Room.INK_FAINT)
+
+
+static func _plate(edge: Color, width: int = 1) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.09, 0.07, 0.05, 0.80)
 	sb.border_color = edge
-	sb.set_border_width_all(1)
+	sb.set_border_width_all(width)
 	sb.set_content_margin_all(5)
 	return sb
 
