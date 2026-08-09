@@ -4449,3 +4449,37 @@ room again**, which is the failure TD-104 had just corrected.
 
 Board re-checked after the shared-code change: `keepout live=8 ok=true minhit=80x51 hit_ok=true`,
 eight writs live. Budget 192 nodes / 220, 14 particles / 20.
+
+## 2026-08-09 — TD-106: the Contract Board drew from the corner, and it was mine
+
+**The author reported the board "messed up" and asked what I had done to it — expecting only a font
+change.** They were right to. This was a **regression I introduced in TD-101**, not a consequence of
+the font, and I had twice attributed board differences to the font without checking the other change
+I had made to shared code.
+
+**Cause.** Every station shares one popup. TD-101 made the Quartermaster ask for the whole viewport
+so the stores could be a room. `custom_minimum_size` is a **floor, not a size**: setting a smaller one
+afterwards does not shrink a control that has already been laid out larger. So the popup stayed
+viewport-sized for the rest of the session, and `_slide_popup_in` centres with
+`(vp - _popup.size) * 0.5` — which for a viewport-sized popup is **(0,0)**. The board rendered from
+the top-left corner: header clipped by the screen edge, no carved frame, no gutters or banners, the
+Hall's floor visible beneath it.
+
+**Fix.** Zero the shared popup's minimum *and* its current size before each station applies its own,
+so a station gets the popup at ITS size rather than at the largest size any previously-opened station
+asked for.
+
+**Why every check I ran missed it, which is the part worth keeping.** All eight of my board captures
+opened the board **directly** — `--board-preview` builds it from a cold screen. A player never does
+that: they walk the Hall and open stations in sequence, and the defect only exists in the *second*
+station opened. Isolated verification of a screen that shares state with other screens is not
+verification at all; it tests the screen and not the sharing.
+
+So the guard is a new debug flag, **`--board-after-qm`**, which opens the Quartermaster, closes it,
+and then opens the board — the exact route that breaks it — and it is kept permanently. Verified
+after the fix: board-after-Quartermaster is identical to board-direct, with frame, gutters, banners
+and header all present and `keepout live=8 ok=true`; the Quartermaster and Deploy Gate are unchanged.
+
+**The wider lesson:** I told the author twice that a board difference was "the font re-flowing text",
+once correctly (TD-102) and once as a cover for this. When a shared surface changes, the question is
+not "did my intended change do this?" but "what ELSE did I touch that this screen depends on?"

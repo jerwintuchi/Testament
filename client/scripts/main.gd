@@ -420,6 +420,16 @@ func _ready() -> void:
 	# state, and nothing is ever sent from it.
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--lobby-preview"):
 		call_deferred("_lobby_preview")
+	# `-- --board-after-qm` opens the QUARTERMASTER first and the Contract Board second,
+	# which is the route a real player takes. The two stations share one popup, so this
+	# is the only way to catch state leaking from one into the other (TD-106).
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--board-after-qm"):
+		get_tree().create_timer(0.6).timeout.connect(_begin_new_expedition)
+		get_tree().create_timer(2.0).timeout.connect(func():
+			_snapshot["phase"] = Protocol.PHASE_WAITING
+			_open_station("QUARTERMASTER"))
+		get_tree().create_timer(3.4).timeout.connect(func(): _close_station())
+		get_tree().create_timer(4.0).timeout.connect(_board_preview)
 	# `-- --field-preview` shows the FIELD page over fixture signs, so the prose layer
 	# (TD-093) is capturable with no server and no deployment.
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--field-preview"):
@@ -1626,6 +1636,21 @@ func _open_station(kind: String) -> void:
 	# station keeps the shared scrolling body.
 	_popup_scroll.vertical_scroll_mode = (ScrollContainer.SCROLL_MODE_DISABLED
 		if kind == "QUARTERMASTER" else ScrollContainer.SCROLL_MODE_AUTO)
+	# RESET THE SHARED POPUP BEFORE THE NEW STATION SIZES IT (TD-106).
+	#
+	# `custom_minimum_size` is a FLOOR, not a size: setting a smaller one does not shrink
+	# a control that has already been laid out larger. The Quartermaster asks for the
+	# whole viewport, so after visiting it the popup stayed viewport-sized — and
+	# `_slide_popup_in` centres with `(vp - _popup.size) * 0.5`, which for a
+	# viewport-sized popup is (0,0). The Contract Board then drew from the top-left
+	# corner with its header cut off by the screen edge.
+	#
+	# Zeroing both the minimum and the current size makes the container recompute from
+	# nothing, so each station gets the popup at ITS size rather than at the largest size
+	# any previous station asked for.
+	_popup_scroll.custom_minimum_size = Vector2.ZERO
+	_popup_scroll.size = Vector2.ZERO
+	_popup.size = Vector2.ZERO
 	if kind == "CONTRACT_BOARD":
 		# Transparent panel that only supplies the content inset (the frame is drawn by the
 		# shader-lit _board_frame overlay); keeps the canvas layout identical to the old skin.

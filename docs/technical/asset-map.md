@@ -272,8 +272,8 @@
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
-- `client/scripts/main.gd:2027` — `load/preload path`
-- `client/scripts/main.gd:2031` — `load/preload normal_path`
+- `client/scripts/main.gd:2052` — `load/preload path`
+- `client/scripts/main.gd:2056` — `load/preload normal_path`
 - `client/scripts/stations/quartermaster/pack.gd:81` — `load/preload CLASP`
 - `client/scripts/stations/quartermaster/pack.gd:167` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:181` — `load/preload path`

@@ -166,6 +166,28 @@
       construction — but a room with a working light and a fill has to be able to say which is which.
       Board re-checked: `keepout live=8 ok=true minhit=80x51 hit_ok=true`. Budget 192 / 220.
 
+## Regression, found by the author
+
+- [x] T399 — **The Contract Board drew from the top-left corner with its header cut off, after
+      visiting the Quartermaster.** A regression I introduced in **TD-101**, and NOT the font change
+      I had been blaming layout shifts on.
+      **Cause:** the stations share one popup. TD-101 made the Quartermaster ask for the whole
+      viewport, and `custom_minimum_size` is a **floor, not a size** — setting a smaller one does not
+      shrink a control already laid out larger. So the popup stayed viewport-sized, and
+      `_slide_popup_in` centres with `(vp - _popup.size) * 0.5`, which for a viewport-sized popup is
+      **(0,0)**. The board then rendered from the corner: header clipped by the screen edge, no
+      gutters, no banners, Hall floor showing beneath.
+      **Fix:** zero the shared popup's minimum AND its current size before each station applies its
+      own, so every station gets the popup at ITS size rather than at the largest size any previously
+      opened station asked for.
+      **Why my checks missed it:** every board capture I took opened the board **directly**. A player
+      does not — they walk the Hall and visit stations in sequence. New debug flag
+      **`--board-after-qm`** opens the Quartermaster, closes it, then opens the board, which is the
+      route that breaks it; it is kept as a standing regression guard for shared-popup state.
+      Verified after: board-after-QM is identical to board-direct (frame, gutters, banners, header
+      all present, `keepout live=8 ok=true`), and the Quartermaster and Deploy Gate still render
+      correctly.
+
 ## Do not re-invent
 
 - **The data model, capacity, flow and seal rite are TD-101's and are not re-opened.**
@@ -175,3 +197,6 @@
 - **`project.godot` must stay comment-free inside a section.** See T390.
 - **Antialiasing off ≠ subpixel positioning off.** Text faces need Auto; only ornament keeps it
   disabled. See T391.
+- **The stations share ONE popup.** `custom_minimum_size` is a floor; a station that grows it must
+  not leave it grown. Capture stations **in sequence** (`--board-after-qm`), never only in isolation.
+  See T399.
