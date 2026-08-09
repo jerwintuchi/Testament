@@ -4347,3 +4347,51 @@ live; the board legend and the Quartermaster record both read with correct word 
 **The lesson, plainly:** when checking whether text renders correctly, look at **lowercase running
 text**, not a heading in capitals. Capitals hide advance-rounding artifacts because their advances
 are wider and more uniform — which is exactly why the first check passed and the defect shipped.
+
+## 2026-08-09 — TD-103: the Quartermaster gets the board's register, and its own light
+
+**Why.** Author brief: remodel the gears, make the room detailed and textured "to look like
+hand-painted", and remove the floating hover so only an outline remains.
+
+**The two briefs looked contradictory and were not.** TD-102 asked for "chunky readable pixel
+clusters, no smooth digital painting"; this one asks for "hand-painted". TD-046 settles it: Testament's
+single register **is** "hand-painted raster 2D pixel art", and the **Contract Board is the shipped
+example** — baked AO, carved bevels, weathered parchment, normal-mapped surfaces lit by a live rig.
+The Quartermaster beside it was flat colour bands with no AO and no light. So "hand-painted" here
+meant *bring the room up to the board's register*, not adopt a new style — which is what shipped.
+
+**One height field drives both the paint and the relief.** Every surface now has an `_h()` function,
+and the diffuse is `ramp_shade`d from it while the normal map is Sobel'd from the same values. Paint
+and relief therefore cannot disagree: the pixel the generator darkens as a recess is the pixel the
+normal tilts away from the light. That coupling is what makes the board's wood read as carved rather
+than as a picture of wood.
+
+**The room borrows the board's shader rather than inventing a second lighting path.**
+`board_surface.gdshader` exists because `Light2D` cannot reach `Control` nodes (TD-047, re-confirmed
+TD-083). `surface_material()` gains an **optional `rig`** defaulting to the board's torches — every
+existing call byte-for-byte unchanged — and the stores pass a candle rig with a far wider radius than
+the board's tight 0.24 sconce halo, because a board wants its wall dungeon-dark around a framed
+object while a **workroom must read as occupied**: the light has to reach the shelves the player is
+being asked to browse.
+
+**Two placement bugs, one cause.** The light's position was declared and the candle prop placed
+separately, so the warm pool sat a tenth of a frame left of the flame casting it, and the candle
+floated seven pixels above the bench. Fixed by making `candle_pos()` authoritative and **deriving its
+vertical position from `COUNTER_Y`** — a candle stands on a surface, so only the flame's height above
+its base is a free constant. Same lesson as the board's sconce/`torch_rig` coupling (P95): when two
+things must occupy one point, one of them has to be computed from the other.
+
+**The gears were remodelled by naming substances, not colours.** Each glyph letter now means glass,
+iron, brass, wood, bone, wax or flame, and a **form-aware shading pass** picks light/mid/dark from
+that substance's triple by looking at the pixel's neighbours — lit where nothing sits above-left,
+occluded where nothing sits below-right. That is how a pixel artist renders a small object, and it is
+precisely why the previous set still read as icons: every glyph was one flat tone inside an outline.
+4–7 tones each now, up from 3–5, and **still zero bright-gold** — that ramp stays reserved (P168).
+
+**Hover is an outline and nothing else** (author ruling). An object that rises under the cursor reads
+as a UI element answering a mouse; one that catches an edge of light reads as an object the
+Quartermaster has noticed. It also stops the shelf twitching under the cursor and runs no tween.
+
+**Containment:** `board_decor.gd` is shared, so the board was re-checked rather than assumed —
+`keepout live=8 ok=true minhit=80x51 hit_ok=true`, eight writs live. Budget holds: 191 nodes / 220,
+14 particles / 20.

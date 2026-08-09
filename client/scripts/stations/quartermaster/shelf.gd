@@ -47,17 +47,17 @@ static func next_state(state: int, event: String) -> int:
 	return -1
 
 
-# Hover is restrained on purpose (R373): a small lift, a warm brightening, a shadow
-# that tightens, and a one-pixel Collegium-gold outline. No glow, no neon, no particle
-# burst — and no marker or arrow, which the brief rules out explicitly.
+# Hover is a Collegium-gold OUTLINE AND NOTHING ELSE (author ruling, TD-103).
 #
-# The outline is drawn by a second copy of the icon behind the first, offset by one
-# pixel in four directions and tinted gold. That reads at low resolution where a
-# shader-based outline would smear, and it costs one extra TextureRect per instrument.
-const LIFT_PX    := 3.0
-const T_HOVER    := 0.09
-const HOVER_TINT := Color(1.14, 1.09, 1.00)
-const GOLD_EDGE  := Color(0.84, 0.68, 0.36, 0.95)
+# The lift and the warm tint are gone. An object that rises under the cursor reads as a
+# UI element responding to a mouse; an object that catches an edge of light reads as one
+# the Quartermaster has noticed — which is the difference the room is built on. It also
+# stops the shelf twitching as the cursor crosses it.
+#
+# The outline is four one-pixel offset copies of the icon behind it, tinted gold: that
+# reads at low resolution where a shader outline would smear, and it is built once and
+# toggled, so hovering allocates nothing and runs no tween at all.
+const GOLD_EDGE := Color(0.86, 0.70, 0.38, 1.0)
 
 
 static func build(host: Control, view: Dictionary, units: Array,
@@ -174,29 +174,14 @@ static func _object(host: Control, view: Dictionary, id: String, home: Vector2,
 	return rec
 
 
-static func _set_hover(view: Dictionary, rec: Dictionary, on: bool) -> void:
+static func _set_hover(_view: Dictionary, rec: Dictionary, on: bool) -> void:
 	var want := next_state(int(rec["state"]), "hover" if on else "unhover")
 	if want < 0:
 		return                      # only AVAILABLE objects respond; nothing else moves
 	rec["state"] = want
-	var b: Control = rec["node"]
-	var shadow: Control = rec["shadow"]
-	var home: Vector2 = rec["home"]
+	# The whole of it. No tween, no movement, no tint — the instrument stays exactly
+	# where it was placed and simply takes an edge of light.
 	(rec["edge"] as Control).visible = on
-
-	if bool(view.get("reduced", false)):
-		b.position = home + (Vector2(0, -LIFT_PX) if on else Vector2.ZERO)
-		b.modulate = HOVER_TINT if on else Color.WHITE
-		return
-
-	var tw := b.create_tween().set_parallel(true)
-	tw.tween_property(b, "position", home + (Vector2(0, -LIFT_PX) if on else Vector2.ZERO), T_HOVER)
-	tw.tween_property(b, "modulate", HOVER_TINT if on else Color.WHITE, T_HOVER)
-	# The shadow tightens as the object rises — the cheapest possible cue that it left
-	# the board, and the one a player reads without being told.
-	tw.tween_property(shadow, "size", Vector2(ICON_PX - (10.0 if on else 6.0), 2.0), T_HOVER)
-	tw.tween_property(shadow, "position",
-		Vector2(home.x + (5.0 if on else 3.0), shadow.position.y), T_HOVER)
 
 
 # ── dressing: scenery, never an item (R363 / P167) ──────────────────────────

@@ -28,6 +28,7 @@ files named below.
       -> stations/qm_props.png     96x24   4 counter props
 """
 import ashember as A
+from gen_normals import _normal_pixel
 
 # ── the room's tones, named so the intent is readable ────────────────────────
 # Deep end of navestone: this is a cellar-level store, lit by one lamp.
@@ -86,6 +87,32 @@ COURSE = 32
 BLOCK = 64
 
 
+def _wall_h(x, y):
+    """Height field for the wall — drives both its shading and its normal map.
+
+    Painting and relief come from ONE function so they cannot disagree: the pixel a
+    generator darkens as a recess is the same pixel the normal map tilts away from the
+    light. That is what the board's surfaces do, and it is why they read as carved.
+    """
+    course = y // COURSE
+    ly = y % COURSE
+    off = (BLOCK // 2) if (course % 2) else 0
+    lx = (x + off) % BLOCK
+    if ly <= 1 or lx <= 1:
+        return 0.10                     # the joint: a deep recess
+    v = _rnd(x // BLOCK + off, course, 7)
+    hgt = 0.62 + 0.10 * v               # each block sits a little proud, by its own amount
+    if ly == 2 or lx == 2:
+        hgt += 0.22                     # the chamfer catching light at the block's top-left
+    if ly >= COURSE - 3 or lx >= BLOCK - 3:
+        hgt -= 0.16                     # and falling away at the bottom-right
+    # Pitting: shallow, sparse, and per-block-seeded so it reads as worn stone rather
+    # than as noise sprayed over everything.
+    if _rnd(x, y, 31) > 0.955:
+        hgt -= 0.14
+    return max(0.0, min(1.0, hgt))
+
+
 def _wall(x, y):
     """Larger, quieter ashlar (R370).
 
@@ -95,22 +122,16 @@ def _wall(x, y):
     once; the joint is a two-pixel RECESS rather than a bright line; and the tonal
     spread is one step instead of two, because contrast here is contrast stolen from
     the instruments.
-    """
-    course = y // COURSE
-    ly = y % COURSE
-    off = (BLOCK // 2) if (course % 2) else 0
-    lx = (x + off) % BLOCK
 
-    # A recess: two dark pixels, no highlight. A lit joint is what made it read as brick.
-    if ly <= 1 or lx <= 1:
-        return _op(WALL_JOINT)
-    # Blocks vary by ONE step, chosen per block so the change lands on a stone edge.
-    v = _rnd(x // BLOCK + off, course, 7)
-    base = WALL_BASE if v > 0.62 else WALL_DARK
-    # A slight worn patch low on some blocks — irregularity without noise.
-    if ly > COURSE - 6 and v > 0.80:
-        return _op(WALL_DARK)
-    return _op(base)
+    Painted, not flat-filled (TD-103): the height field above is shaded along the
+    `navestone` ramp, so a block carries a lit chamfer, a body tone of its own, and a
+    shadowed foot — the same construction the Contract Board's masonry uses. The
+    surface is ALSO normal-mapped and lit at run time, so this diffuse stays a
+    material rather than a painted-in lighting scheme.
+    """
+    hgt = _wall_h(x, y)
+    # Deep end of the ramp: this is a cellar wall, and it must not out-shout the shelves.
+    return _op(A.quantize(A.ramp_shade("navestone", 0.06 + hgt * 0.42)))
 
 
 # ── qm_board.png — one shelf plank ───────────────────────────────────────────
@@ -119,21 +140,44 @@ def _wall(x, y):
 BOARD_W, BOARD_H, BOARD_M = 16, 12, 4
 
 
-def _board(x, y):
+def _board_h(x, y):
+    """Height for a shelf plank: a rounded front edge over a shadowed underside."""
     if y == 0:
-        return _op(WOOD_LIT)            # the edge the lamp catches
+        return 0.86                     # the top arris, catching the room's light
     if y == 1:
-        return _op(WOOD_BASE)
-    if y in (2, 3):
-        return _op(WOOD_DARK)
+        return 0.94                     # the crown of the rounded edge
+    if y == 2:
+        return 0.80
+    if y == 3:
+        return 0.62
     if y == 4:
-        return _op(WOOD_DEEP)           # the front face falling into shadow
+        return 0.42                     # rolling under
     if y == 5:
-        return _op(BLACK_SOFT)
-    # Under the plank: the shadow it throws onto whatever is below, fading out.
-    fall = (y - 6) / float(BOARD_H - 6)
-    a = int(150 * (1.0 - fall))
-    return (BLACK[0], BLACK[1], BLACK[2], max(a, 0))
+        return 0.20
+    return 0.0
+
+
+def _board(x, y):
+    """One shelf plank, painted along the wood ramp with grain (TD-103).
+
+    The first pass was five flat bands. A plank has a rounded front arris, end grain,
+    and a shadow it throws on whatever is beneath — all of which the height field above
+    now carries, so the normal map tilts with the paint.
+    """
+    if y >= 6:
+        # Under the plank: the shadow it throws, fading out. Alpha, not a colour, so it
+        # darkens whatever it happens to fall across.
+        fall = (y - 6) / float(BOARD_H - 6)
+        return (BLACK[0], BLACK[1], BLACK[2], max(int(155 * (1.0 - fall)), 0))
+    hgt = _board_h(x, y)
+    # Grain runs ALONG the plank in long strokes, never as scattered dots — a modulo on
+    # (x + y) makes diagonal hatching, which is what an earlier pass shipped by accident.
+    grain = 0.0
+    if _rnd(x // 3, y, 17) > 0.72:
+        grain -= 0.07
+    if y in (1, 2) and _rnd(x // 5, 0, 23) > 0.80:
+        grain += 0.06                   # a bright fleck where the arris is worn through
+    return _op(A.quantize(A.ramp_shade("wood", 0.10 + hgt * 0.72 + grain)))
 
 
 # ── qm_shelf.png — the shelving frame ────────────────────────────────────────
@@ -143,39 +187,43 @@ SHELF_W = SHELF_H = 48
 SHELF_M = 16
 
 
-def _shelf(x, y):
+def _shelf_h(x, y):
     right = SHELF_W - 1 - x
     bottom = SHELF_H - 1 - y
     edge_x = min(x, right)
     edge_y = min(y, bottom)
-
-    # The back of the case: almost black, so an instrument in front of it pops.
     if edge_x >= 6 and edge_y >= 5:
-        return _op(BLACK_SOFT)
-
-    # Uprights: a post with a lit inner edge and a dark outer one.
-    if edge_x < 6:
-        if edge_x == 0:
-            return _op(WOOD_DEEP)
-        if edge_x == 5:
-            return _op(WOOD_LIT)        # the inner face the lamp reaches
-        if edge_x in (1, 2):
-            return _op(WOOD_DARK)
-        return _op(WOOD_BASE)
-
-    # Top rail carries iron brackets; the base rail is plain and dark.
-    if y < 5:
-        if y == 0:
-            return _op(WOOD_DEEP)
-        if y == 1:
-            return _op(WOOD_HI)         # the top edge, catching the lamp
-        # Iron strap every 8px along the rail.
+        return 0.02                     # the back of the case, deep in shadow
+    if edge_x < 6:                      # an upright: rounded, proud of the back
+        return [0.30, 0.58, 0.74, 0.86, 0.92, 0.72][edge_x]
+    if y < 5:                           # the top rail
         if y >= 2 and (x % 8) in (3, 4):
-            return _op(IRON if y == 2 else IRON_DARK)
-        return _op(WOOD_BASE if y == 2 else WOOD_DARK)
+            return 0.34                 # an iron strap, recessed into the wood
+        return [0.34, 0.94, 0.82, 0.60, 0.40][y]
     if bottom < 5:
-        return _op(WOOD_DEEP if bottom < 2 else WOOD_DARK)
-    return _op(BLACK_SOFT)
+        return [0.24, 0.34, 0.48, 0.40, 0.30][bottom]
+    return 0.02
+
+
+def _shelf(x, y):
+    """The shelving frame, painted with lit arrises and pooled shadow (TD-103)."""
+    right = SHELF_W - 1 - x
+    bottom = SHELF_H - 1 - y
+    edge_x = min(x, right)
+    edge_y = min(y, bottom)
+    hgt = _shelf_h(x, y)
+
+    # The back of the case reads as depth, not as a black fill: it still carries a
+    # faint tone so the shelf has an interior rather than a hole in it.
+    if edge_x >= 6 and edge_y >= 5:
+        return _op(A.quantize(A.ramp_shade("navestone", 0.02 + 0.05 * _rnd(x, y, 5))))
+
+    # Iron straps stay iron — a different material, so a different ramp.
+    if 2 <= y < 5 and edge_x >= 6 and (x % 8) in (3, 4):
+        return _op(A.quantize(A.ramp_shade("stone", 0.18 + 0.24 * (1.0 - (y - 2) / 3.0))))
+
+    grain = -0.06 if _rnd(x, y // 4, 19) > 0.78 else 0.0
+    return _op(A.quantize(A.ramp_shade("wood", 0.06 + hgt * 0.70 + grain)))
 
 
 # ── qm_label.png — a shelf's label plate ─────────────────────────────────────
@@ -210,39 +258,48 @@ def _label(x, y):
 CTR_W, CTR_H, CTR_M = 64, 40, 16
 
 
-def _counter(x, y):
+def _counter_h(x, y):
     right = CTR_W - 1 - x
     bottom = CTR_H - 1 - y
     edge_x = min(x, right)
-
-    # The top surface: the brightest wood in the room, because this is where you look.
-    if y == 0:
-        return _op(WOOD_BASE)
-    if y in (1, 2):
-        return _op(WOOD_HI)             # the lit working surface
-    if y == 3:
-        return _op(WOOD_LIT)
-    if y == 4:
-        return _op(WOOD_BASE)
-    if y == 5:
-        return _op(WOOD_DEEP)           # the lip's shadow, separating top from front
-    # The panelled front: a recessed panel with a bevel, not a flat slab.
-    # Grain runs in LINES along the plank, never as scattered dots — a modulo on
-    # (x*3+y) makes a regular polka pattern, which is what the first pass shipped.
-    if bottom >= 4:
+    if y <= 5:                          # the working surface and its front lip
+        return [0.66, 0.96, 0.90, 0.78, 0.58, 0.26][y]
+    if bottom >= 4:                     # the panelled front
         if edge_x < 3:
-            return _op(WOOD_DARK)
+            return 0.52                 # the stile
         if edge_x == 3:
-            return _op(WOOD_BASE)       # the panel's raised bevel
+            return 0.70                 # the panel's raised bevel
         if edge_x == 4:
-            return _op(WOOD_DEEP)
+            return 0.34
         if y in (9, 10):
-            return _op(WOOD_DARK)       # a rail across the panel's head
-        return _op(WOOD_DARK if (y % 5 == 2) else WOOD_DEEP)
-    # Iron feet at the corners; deep shadow between them.
-    if edge_x < 5:
-        return _op(IRON_DARK if bottom == 0 else IRON)
-    return _op(BLACK_SOFT)
+            return 0.56                 # a rail across the panel's head
+        return 0.40                     # the recessed field
+    return 0.16 if edge_x < 5 else 0.04  # iron feet, and deep shadow between them
+
+
+def _counter(x, y):
+    """The inspection counter, painted to the board's register (TD-103).
+
+    The top is the brightest wood in the room because it is where you look; the panel
+    recedes; the feet are iron. Wear concentrates at the FRONT EDGE, where a
+    quartermaster's forearms have rested for a century — wear that is even across a
+    surface reads as noise, wear with a cause reads as age.
+    """
+    bottom = CTR_H - 1 - y
+    edge_x = min(x, CTR_W - 1 - x)
+    hgt = _counter_h(x, y)
+
+    if bottom < 4 and edge_x >= 5:
+        return _op(BLACK_SOFT)
+    if bottom < 4:
+        return _op(A.quantize(A.ramp_shade("stone", 0.10 + hgt * 0.9)))
+
+    grain = 0.0
+    if y > 5 and _rnd(x // 2, y, 11) > 0.80:
+        grain -= 0.05                   # grain in the panel, running with the plank
+    if y in (1, 2) and _rnd(x, 0, 41) > 0.62:
+        grain += 0.07                   # the polished front edge, rubbed lighter
+    return _op(A.quantize(A.ramp_shade("wood", 0.08 + hgt * 0.74 + grain)))
 
 
 # ── qm_stock.png — dressing. NEVER interactive (R363/P167) ───────────────────
@@ -471,6 +528,25 @@ def _props(x, y):
     return PROPS[x // PROP_TILE](x % PROP_TILE, y)
 
 
+# ── normal maps ─────────────────────────────────────────────────────────────
+# Emitted from the SAME height functions that drive the paint, so relief and shading
+# can never disagree. The room's surfaces are then lit at run time by the Contract
+# Board's own shader (`board_surface.gdshader`) from a candle rig — Light2D cannot
+# reach Control nodes (TD-047), which is exactly why that shader exists.
+NORMALS = [
+    ("stations/qm_wall_n.png",    WALL_W,  WALL_H,  _wall_h,    2.6),
+    ("stations/qm_shelf_n.png",   SHELF_W, SHELF_H, _shelf_h,   3.0),
+    ("stations/qm_board_n.png",   BOARD_W, BOARD_H, _board_h,   3.0),
+    ("stations/qm_counter_n.png", CTR_W,   CTR_H,   _counter_h, 2.4),
+]
+
+
+def _emit_normal(path, w, h, hfn, strength):
+    lum = [hfn(x, y) for y in range(h) for x in range(w)]
+    A.write_png(path, w, h, _normal_pixel(w, h, lum, strength))
+    print("wrote %s (%dx%d) normal" % (path, w, h))
+
+
 TARGETS = [
     ("stations/qm_wall.png",    WALL_W,  WALL_H,  _wall),
     ("stations/qm_shelf.png",   SHELF_W, SHELF_H, _shelf),
@@ -505,5 +581,7 @@ if __name__ == "__main__":
     for path, w, h, fn in TARGETS:
         A.write_png(path, w, h, fn)
         print("wrote %s (%dx%d)" % (path, w, h))
+    for path, w, h, hfn, strength in NORMALS:
+        _emit_normal(path, w, h, hfn, strength)
     print("9-slice margins: shelf=%d board=%d label=%d counter=%d"
           % (SHELF_M, BOARD_M, LABEL_M, CTR_M))

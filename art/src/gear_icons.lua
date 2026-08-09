@@ -17,23 +17,29 @@
 --   b bronze dim   B bronze       i iron         I iron lit
 --   r wax red      f flame        s salt/bone
 
-local PAL = {
-  k = Color{ r=0x1C, g=0x18, b=0x13 },   -- black[2]
-  d = Color{ r=0x2A, g=0x1B, b=0x10 },   -- wood[0]
-  m = Color{ r=0x5A, g=0x3D, b=0x28 },   -- wood[2]
-  l = Color{ r=0x7A, g=0x53, b=0x34 },   -- wood[3]
-  g = Color{ r=0x3C, g=0x42, b=0x48 },   -- stone[2]
-  G = Color{ r=0x61, g=0x6A, b=0x72 },   -- stone[4]
-  p = Color{ r=0xA8, g=0x94, b=0x6A },   -- parchment[1]
-  P = Color{ r=0xCB, g=0xB5, b=0x83 },   -- parchment[2]
-  b = Color{ r=0x6E, g=0x54, b=0x26 },   -- gold[0]  dim bronze
-  B = Color{ r=0x8C, g=0x6C, b=0x30 },   -- gold[1]  muted brass (the ceiling for items)
-  i = Color{ r=0x2B, g=0x2F, b=0x33 },   -- stone[1]
-  I = Color{ r=0x4C, g=0x54, b=0x5A },   -- stone[3]
-  r = Color{ r=0x8F, g=0x2F, b=0x2A },   -- wax[1]
-  f = Color{ r=0xE8, g=0x97, b=0x3C },   -- flame[0]
-  s = Color{ r=0xE0, g=0xCF, b=0x9F },   -- parchment[3]
+-- MATERIALS, not colours (TD-103). Each letter names a substance; the shading pass
+-- below picks the light, mid or dark tone from its triple by looking at the pixel's
+-- NEIGHBOURS. That is how a pixel artist renders a small object — form first, fill
+-- second — and it is why the previous sheet read as icons: every glyph was one flat
+-- tone inside an outline, so nothing had a lit side or an occluded one.
+--
+-- Light comes from the upper-left, the convention the rest of the game's sprites use.
+-- Gold's bright stops (#B08A3E, #D6AE5C) remain BANNED here: they belong to selection,
+-- headings, the insignia and the seal (P168).
+local MAT = {
+  w = { "#7A5334", "#5A3D28", "#2A1B10" },   -- wood / horn
+  g = { "#616A72", "#4C545A", "#2B2F33" },   -- glass
+  i = { "#4C545A", "#2B2F33", "#22242A" },   -- iron
+  b = { "#8C6C30", "#6E5426", "#3A2617" },   -- brass, capped below the bright gold
+  n = { "#E0CF9F", "#CBB583", "#A8946A" },   -- bone / salt / parchment
+  r = { "#C65A4E", "#8F2F2A", "#5E1D1A" },   -- wax / ember
+  f = { "#F9DCA6", "#F0B25F", "#E8973C" },   -- flame, used sparingly
 }
+local OUTLINE = "#1C1813"
+
+local function hexc(h)
+  return Color{ r = tonumber(h:sub(2,3),16), g = tonumber(h:sub(4,5),16), b = tonumber(h:sub(6,7),16) }
+end
 
 -- Each glyph: 24 rows of 24 chars. '.' is transparent.
 local ICONS = {}
@@ -45,8 +51,8 @@ ICONS[1] = {
 "........kkkkkk..........",
 "......kkggggggkk........",
 ".....kggggggggggk.......",
-"....kggGGgggggggk.......",
-"....kgGGgggggggggk......",
+"....kgggggggggggk.......",
+"....kggggggggggggk......",
 "...kggggggggggggggk.....",
 "...kggggggggggggggk.....",
 "...kggggggggggggggk.....",
@@ -55,12 +61,12 @@ ICONS[1] = {
 ".....kgggggggggggk......",
 "......kkgggggggkk.......",
 "........kkkkkkk.........",
-"..........kmmk..........",
-"...........kmmk.........",
-"............kmmk........",
-".............kmmk.......",
-"..............kmmk......",
-"...............kmk......",
+"..........kwwk..........",
+"...........kwwk.........",
+"............kwwk........",
+".............kwwk.......",
+"..............kwwk......",
+"...............kwk......",
 "................k.......",
 "........................",
 "........................",
@@ -71,24 +77,24 @@ ICONS[2] = {
 "........................",
 "........................",
 "........kkkkkk..........",
-"......kkGGGGGGkk........",
-".....kGGGGiGGGGGk.......",
-"....kGGGGGiGGGGGk.......",
-"....kGGGGGiGGGGGGk......",
-"...kGGGGGGiGGGGGGGk.....",
+"......kkggggggkk........",
+".....kggggigggggk.......",
+"....kgggggigggggk.......",
+"....kgggggiggggggk......",
+"...kggggggigggggggk.....",
 "...kiiiiiiiiiiiiiik.....",
-"...kGGGGGGiGGGGGGGk.....",
-"....kGGGGGiGGGGGGk......",
-"....kGGGGGiGGGGGk.......",
-".....kGGGGiGGGGk........",
-"......kkGGGGGkk.........",
+"...kggggggigggggggk.....",
+"....kgggggiggggggk......",
+"....kgggggigggggk.......",
+".....kggggiggggk........",
+"......kkgggggkk.........",
 "........kkkkk...........",
-"..........kmmk..........",
-"...........kmmk.........",
-"............kmmk........",
-".............kmmk.......",
-"..............kmmk......",
-"...............kmk......",
+"..........kwwk..........",
+"...........kwwk.........",
+"............kwwk........",
+".............kwwk.......",
+"..............kwwk......",
+"...............kwk......",
 "................k.......",
 "........................",
 "........................",
@@ -99,21 +105,21 @@ ICONS[3] = {
 "........................",
 "........................",
 "..........kk............",
-".........kGGk...........",
-".........kGGGk..........",
-"........kGGGGk..........",
-"........kGgGGGk.........",
-".......kGGgGGGk.........",
-".......kGGgGGGGk........",
-"......kGGGgGGGGk........",
-"......kGGGgGGGGGk.......",
-".....kGGGGgGGGGGk.......",
-".....kGGGGgGGGGGGk......",
-"....kGGGGGgGGGGGGk......",
+".........kggk...........",
+".........kgggk..........",
+"........kggggk..........",
+"........kgggggk.........",
+".......kggggggk.........",
+".......kgggggggk........",
+"......kggggggggk........",
+"......kgggggggggk.......",
+".....kggggggggggk.......",
+".....kgggggggggggk......",
+"....kggggggggggggk......",
 "....kkkkkkkkkkkkkk......",
 ".....kiiiiiiiiiik.......",
-"......kmmmmmmmmk........",
-".......kmmmmmmk.........",
+"......kwwwwwwwwk........",
+".......kwwwwwwk.........",
 "........kkkkkk..........",
 "........................",
 "........................",
@@ -126,23 +132,23 @@ ICONS[3] = {
 ICONS[4] = {
 "........................",
 "..........kk............",
-".........kmmk...........",
-".........kmmk...........",
-"........kkmmkk..........",
-".......kmllllmk.........",
-"......kmllllllmk........",
-"......kmllllllmk........",
-".......kmllllmk.........",
+".........kwwk...........",
+".........kwwk...........",
+"........kkwwkk..........",
+".......kwwwwwwk.........",
+"......kwwwwwwwwk........",
+"......kwwwwwwwwk........",
+".......kwwwwwwk.........",
 "........kkkkkk..........",
 ".......k..k..k..........",
-"......ks.ks.ks..........",
-"......ks.ks.ks..........",
-".....ks..ks..ks.........",
-".....ks..ks..ks.........",
-"....ks...ks...ks........",
-"....kss..kss..kss.......",
-"...kss...kss...kss......",
-"...ks.....ks....ks......",
+"......kn.kn.kn..........",
+"......kn.kn.kn..........",
+".....kn..kn..kn.........",
+".....kn..kn..kn.........",
+"....kn...kn...kn........",
+"....knn..knn..knn.......",
+"...knn...knn...knn......",
+"...kn.....kn....kn......",
 "..kk......kk....kk......",
 "........................",
 "........................",
@@ -158,20 +164,20 @@ ICONS[5] = {
 "........................",
 "........................",
 "....................kk..",
-"..................kkbBk.",
-"................kkbBBBk.",
-"..............kkbBBBBBk.",
-"...........kkkbBBBbbbBk.",
-".....kkkkkkbBBbbk...kBk.",
-"...kkbbbbbBBbkk.....kBk.",
-"..kbbkkkkbBbk.......kBk.",
-"..kbk...kbBk........kBk.",
-"..kbk...kbBbk.......kBk.",
-"..kbbkkkkbBBbkk.....kBk.",
-"...kkbbbbbBBbbBBk...kBk.",
-".....kkkkkkbBBBBBBBBBBk.",
-"..............kkbBBBBBk.",
-"................kkbBBk..",
+"..................kkbbk.",
+"................kkbbbbk.",
+"..............kkbbbbbbk.",
+"...........kkkbbbbbbbbk.",
+".....kkkkkkbbbbbk...kbk.",
+"...kkbbbbbbbbkk.....kbk.",
+"..kbbkkkkbbbk.......kbk.",
+"..kbk...kbbk........kbk.",
+"..kbk...kbbbk.......kbk.",
+"..kbbkkkkbbbbkk.....kbk.",
+"...kkbbbbbbbbbbbk...kbk.",
+".....kkkkkkbbbbbbbbbbbk.",
+"..............kkbbbbbbk.",
+"................kkbbbk..",
 "..................kkk...",
 "........................",
 "........................",
@@ -183,22 +189,22 @@ ICONS[5] = {
 -- 6. Augur's Bead — weighted lead on a cord: a plumb bob, hanging.
 ICONS[6] = {
 "..........kk............",
-"..........ks............",
-"..........ks............",
-"..........ks............",
-"..........ks............",
-"..........ks............",
-"..........ks............",
+"..........kn............",
+"..........kn............",
+"..........kn............",
+"..........kn............",
+"..........kn............",
+"..........kn............",
 ".........kkkk...........",
-"........kiIIik..........",
-".......kiIIIIik.........",
-"......kiIIIIIIik........",
-"......kiIIIIIIik........",
-"......kiIIIIIIik........",
-"......kiIIIIIIik........",
-".......kiIIIIik.........",
-".......kiIIIIik.........",
-"........kiIIik..........",
+"........kiiiik..........",
+".......kiiiiiik.........",
+"......kiiiiiiiik........",
+"......kiiiiiiiik........",
+"......kiiiiiiiik........",
+"......kiiiiiiiik........",
+".......kiiiiiik.........",
+".......kiiiiiik.........",
+"........kiiiik..........",
 ".........kiik...........",
 "..........kk............",
 "........................",
@@ -217,15 +223,15 @@ ICONS[7] = {
 "......k........k........",
 ".....kbkkkkkkkkbk.......",
 ".....kbbbbbbbbbbk.......",
-"......kbBBBBBBbk........",
-"......kbBBrrBBbk........",
-".....kbBBrrrrBBbk.......",
-".....kbBBrfrrBBbk.......",
-"....kbBBBrrrrBBBbk......",
-"....kbBBBBrrBBBBbk......",
-"....kbBBBBBBBBBBbk......",
-".....kbBBBBBBBBbk.......",
-".....kkbBBBBBBbkk.......",
+"......kbbbbbbbbk........",
+"......kbbbrrbbbk........",
+".....kbbbrrrrbbbk.......",
+".....kbbbrfrrbbbk.......",
+"....kbbbbrrrrbbbbk......",
+"....kbbbbbrrbbbbbk......",
+"....kbbbbbbbbbbbbk......",
+".....kbbbbbbbbbbk.......",
+".....kkbbbbbbbbkk.......",
 ".......kbbbbbbk.........",
 "........kkkkkk..........",
 "..........kk............",
@@ -240,22 +246,22 @@ ICONS[7] = {
 ICONS[8] = {
 "........................",
 "........kkkk............",
-"........kmmk............",
-"........kmmk............",
+"........kwwk............",
+"........kwwk............",
 "........kkkk............",
-".......kkGGkk...........",
-".......kGGGGk...........",
-"......kGGGGGGk..........",
-".....kGGGGGGGGk.........",
-".....kGGGGGGGGk.........",
-".....kGGIIIIGGk.........",
-".....kGIIIIIIGk.........",
-".....kGIIIIIIGk.........",
-".....kGIIIIIIGk.........",
-".....kGIIIIIIGk.........",
-".....kGGIIIIGGk.........",
-"......kGGGGGGk..........",
-"......kkGGGGkk..........",
+".......kkggkk...........",
+".......kggggk...........",
+"......kggggggk..........",
+".....kggggggggk.........",
+".....kggggggggk.........",
+".....kggiiiiggk.........",
+".....kgiiiiiigk.........",
+".....kgiiiiiigk.........",
+".....kgiiiiiigk.........",
+".....kgiiiiiigk.........",
+".....kggiiiiggk.........",
+"......kggggggk..........",
+"......kkggggkk..........",
 ".......kkkkkk...........",
 "........................",
 "........................",
@@ -270,18 +276,18 @@ ICONS[9] = {
 "........................",
 "........................",
 "........................",
-"..........ss............",
-".........ssss...........",
-"........ssssss..........",
-".......ssssssss.........",
-"......sssssssssss.......",
-".....kssssssssssk.......",
-"....kmssssssssssmk......",
-"...kmmmmmmmmmmmmmmk.....",
-"...kmmmmmmmmmmmmmmk.....",
-"....kmmmmmmmmmmmmk......",
-".....kmmmmmmmmmmk.......",
-"......kmmmmmmmmk........",
+"..........nn............",
+".........nnnn...........",
+"........nnnnnn..........",
+".......nnnnnnnn.........",
+"......nnnnnnnnnnn.......",
+".....knnnnnnnnnnk.......",
+"....kwnnnnnnnnnnwk......",
+"...kwwwwwwwwwwwwwwk.....",
+"...kwwwwwwwwwwwwwwk.....",
+"....kwwwwwwwwwwwwk......",
+".....kwwwwwwwwwwk.......",
+"......kwwwwwwwwk........",
 ".......kkkkkkkk.........",
 "........................",
 "........................",
@@ -300,17 +306,17 @@ ICONS[10] = {
 "........kiiiik..........",
 ".......kiiiiiik.........",
 "......kiiiiiiiik........",
-"......kiIIIIIIik........",
-"......kiIffffIik........",
-"......kiIffffIik........",
-"......kiIffffIik........",
-"......kiIffffIik........",
-"......kiIffffIik........",
-"......kiIffffIik........",
-"......kiIIIIIIik........",
+"......kiiiiiiiik........",
+"......kiiffffiik........",
+"......kiiffffiik........",
+"......kiiffffiik........",
+"......kiiffffiik........",
+"......kiiffffiik........",
+"......kiiffffiik........",
+"......kiiiiiiiik........",
 "......kiiiiiiiik........",
 ".....kiiiiiiiiiik.......",
-".....kiIIIIIIIIik.......",
+".....kiiiiiiiiiik.......",
 ".....kiiiiiiiiiik.......",
 "......kkkkkkkkkk........",
 "........................",
@@ -328,18 +334,46 @@ sprite.filename = app.params["out"] or "gear_icons.png"
 local img = Image(sprite.width, sprite.height, ColorMode.RGB)
 img:clear(Color{ r=0, g=0, b=0, a=0 })
 
+-- Form-aware shading: a pixel is LIT if nothing sits above-left of it (so it is on the
+-- surface facing the light), SHADED if nothing sits below-right (an edge rolling away),
+-- and MID otherwise. `k` stays a hard outline — the pixel-art register keeps its edges.
+local function at(glyph, x, y)
+  if y < 1 or y > #glyph then return "." end
+  local row = glyph[y]
+  if x < 1 or x > #row then return "." end
+  return row:sub(x, x)
+end
+
+local function solid(ch) return ch ~= "." end
+
 for n = 1, N do
   local glyph = ICONS[n]
   local ox = (n - 1) * W
-  for y = 1, math.min(#glyph, H) do
-    local row = glyph[y]
-    for x = 1, math.min(#row, W) do
-      local ch = row:sub(x, x)
+  for y = 1, H do
+    for x = 1, W do
+      local ch = at(glyph, x, y)
       if ch ~= "." then
-        local c = PAL[ch]
-        if c ~= nil then
-          img:drawPixel(ox + x - 1, y - 1, c)
+        local col
+        if ch == "k" then
+          col = hexc(OUTLINE)
+        else
+          local m = MAT[ch]
+          if m == nil then m = MAT.w end
+          local up = at(glyph, x, y - 1)
+          local left = at(glyph, x - 1, y)
+          local down = at(glyph, x, y + 1)
+          local right = at(glyph, x + 1, y)
+          local lit = (not solid(up)) or up == "k" or (not solid(left)) or left == "k"
+          local dark = (not solid(down)) or down == "k" or (not solid(right)) or right == "k"
+          if lit and not dark then
+            col = hexc(m[1])
+          elseif dark and not lit then
+            col = hexc(m[3])
+          else
+            col = hexc(m[2])
+          end
         end
+        img:drawPixel(ox + x - 1, y - 1, col)
       end
     end
   end

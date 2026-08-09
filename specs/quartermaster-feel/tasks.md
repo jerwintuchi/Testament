@@ -97,6 +97,42 @@
       a heading in capitals — capitals hide advance-rounding because their advances are wider and
       more uniform, which is exactly how this passed the first check.
 
+## Rehaul — painted register + real light (TD-103, author brief)
+
+- [x] T392 — **The room is lit by the Contract Board's own shader.** `board_surface.gdshader` exists
+      precisely because `Light2D` cannot reach `Control` (TD-047), and it was already packing torch
+      lights from a rig. `surface_material()` takes an **optional** `rig` (defaulting to the board's
+      torches, so every existing call is byte-for-byte unchanged) and the stores pass a **candle
+      rig**. Wall, shelving, planks and counter are now normal-mapped and lit: warm near the flame,
+      falling to dark at the edges.
+      **Candle and light share ONE source.** The first pass declared the light's position and placed
+      the prop separately — the warm pool sat a tenth of a frame left of the flame casting it, and
+      the candle floated seven pixels above the bench. `candle_pos()` is now authoritative and its
+      VERTICAL position is *derived* from `COUNTER_Y`, because a candle stands on a surface.
+
+- [x] T393 — **Surfaces repainted to the board's register.** Every surface now has a **height field**
+      that drives BOTH its shading and its normal map, so paint and relief cannot disagree — which is
+      what makes the board's wood read as carved. Lit arrises, pooled shadow, grain running along the
+      plank, wear concentrated at the counter's front edge where forearms have rested (wear that is
+      even reads as noise; wear with a cause reads as age).
+
+- [x] T394 — **The gears remodelled with material and form.** Glyph letters now name a **substance**
+      (glass, iron, brass, wood, bone, wax, flame) and a **form-aware shading pass** picks light, mid
+      or dark from that substance's triple by looking at each pixel's neighbours: lit where nothing
+      sits above-left, occluded where nothing sits below-right. That is how a pixel artist renders a
+      small object, and it is why the previous set read as icons — every glyph was one flat tone
+      inside an outline. 4–7 tones each, up from 3–5 flat. **Still zero bright-gold** (P168).
+
+- [x] T395 — **Hover is an outline and nothing else** (author ruling). The lift and the warm tint are
+      gone: an object that rises under the cursor reads as a UI element answering a mouse; one that
+      catches an edge of light reads as an object the Quartermaster has noticed. It also stops the
+      shelf twitching as the cursor crosses it, and now runs **no tween at all**.
+
+- [x] T396 — **Containment.** `board_decor.gd` is shared and was touched, so the board was re-checked
+      rather than assumed: `keepout live=8 ok=true minhit=80x51 hit_ok=true`, eight writs live. The
+      `rig` parameter defaults to `torch_rig`, so the board's lighting call is unchanged. Budget holds
+      at 191 nodes / 220 and 14 particles / 20; `qm_budget --selftest` green.
+
 ## Do not re-invent
 
 - **The data model, capacity, flow and seal rite are TD-101's and are not re-opened.**

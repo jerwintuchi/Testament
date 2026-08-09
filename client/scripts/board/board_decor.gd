@@ -50,14 +50,21 @@ static func torch_rig(vp: Vector2) -> Array:
 # Homed here (TD-067 T231) rather than in the shell: it packs `torch_rig` into the shader's
 # uniforms, so it belongs beside the rig it reads. Both the Contract Board's surfaces and the
 # menu/lobby masonry take their light from this one function, which is what keeps them coherent.
-static func surface_material(vp: Vector2, normal_path: String, ambient: float = 0.42, diffuse_gain: float = 1.0, tile: Vector2 = Vector2.ONE, radius_scale: float = 1.0) -> ShaderMaterial:
+## `rig` is OPTIONAL and defaults to the board's own torches, so every existing call is
+## byte-for-byte unchanged. It exists because the Quartermaster's stores are a DIFFERENT
+## ROOM with a different light — one candle, not two sconces — and the alternative was
+## copying this packing logic beside a second rig. P72 said one rig feeds every surface
+## *of the board*; a second room having its own light source is not a violation of that,
+## it is the reason the parameter is a parameter.
+static func surface_material(vp: Vector2, normal_path: String, ambient: float = 0.42, diffuse_gain: float = 1.0, tile: Vector2 = Vector2.ONE, radius_scale: float = 1.0, rig: Array = []) -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://assets/ui/board/board_surface.gdshader") as Shader
 	mat.set_shader_parameter("normal_tex", load(normal_path) as Texture2D)
 	mat.set_shader_parameter("ambient", ambient)
 	mat.set_shader_parameter("diffuse_gain", diffuse_gain)
 	mat.set_shader_parameter("tile_scale", tile)   # >1 tiles a small seamless texture (the stone brick)
-	var rig := torch_rig(vp)
+	if rig.is_empty():
+		rig = torch_rig(vp)
 	var uvs := PackedVector2Array()
 	var cols := PackedColorArray()
 	var rads := PackedFloat32Array()

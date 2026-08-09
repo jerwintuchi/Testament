@@ -125,7 +125,7 @@
 - **`client/scripts/board/board_decor.gd`**
   - loads: `banner_v1.png`, `board_surface.gdshader`, `spark.png`, `torch_flame.png`, `torch_glow.png`, `torch_sconce.png`
   - preloads: `board_geometry.gd`
-  - loaded-by: `client/scripts/board/board_header.gd` (preload), `client/scripts/board/contract_board.gd` (preload), `client/scripts/main.gd` (preload)
+  - loaded-by: `client/scripts/board/board_header.gd` (preload), `client/scripts/board/contract_board.gd` (preload), `client/scripts/main.gd` (preload), `client/scripts/stations/quartermaster/room.gd` (preload)
 - **`client/scripts/board/board_geometry.gd`**
   - loaded-by: `client/scripts/board/board_bar.gd` (preload), `client/scripts/board/board_decor.gd` (preload), `client/scripts/board/board_header.gd` (preload), `client/scripts/board/contract_board.gd` (preload), `client/scripts/board/notice_card.gd` (preload), `client/scripts/board/notice_reader.gd` (preload), `client/scripts/main.gd` (preload)
 - **`client/scripts/board/board_header.gd`**
@@ -180,7 +180,7 @@
   - preloads: `catalog.gd`, `counter.gd`, `lore.gd`, `pack.gd`, `record.gd`, `room.gd`, `seal_rite.gd`, `shelf.gd`, `fonts.gd`, `popup_theme.gd`, `widgets.gd`
   - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/stations/quartermaster/room.gd`**
-  - preloads: `fonts.gd`, `widgets.gd`
+  - preloads: `board_decor.gd`, `fonts.gd`, `widgets.gd`
   - loaded-by: `client/scripts/stations/quartermaster/register.gd` (preload), `client/scripts/stations/quartermaster/shelf.gd` (preload)
 - **`client/scripts/stations/quartermaster/seal_rite.gd`**
   - preloads: `wax_seal.gd`, `rite_banner.gd`
@@ -247,12 +247,16 @@
 - `client/assets/ui/stations/pack_clasp.png`
 - `client/assets/ui/stations/pack_slot.png`
 - `client/assets/ui/stations/qm_board.png`
+- `client/assets/ui/stations/qm_board_n.png`
 - `client/assets/ui/stations/qm_counter.png`
+- `client/assets/ui/stations/qm_counter_n.png`
 - `client/assets/ui/stations/qm_label.png`
 - `client/assets/ui/stations/qm_props.png`
 - `client/assets/ui/stations/qm_shelf.png`
+- `client/assets/ui/stations/qm_shelf_n.png`
 - `client/assets/ui/stations/qm_stock.png`
 - `client/assets/ui/stations/qm_wall.png`
+- `client/assets/ui/stations/qm_wall_n.png`
 - `client/assets/ui/stations/quartermaster.png`
 - `client/assets/ui/title/title_air.gdshader`
 
@@ -264,7 +268,7 @@
 
 ## Unresolved dynamic references (path built from a variable — scanner blind spots)
 
-- `client/scripts/board/board_decor.gd:56` — `load/preload normal_path`
+- `client/scripts/board/board_decor.gd:62` — `load/preload normal_path`
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
@@ -275,13 +279,13 @@
 - `client/scripts/stations/quartermaster/pack.gd:181` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:197` — `load/preload SLOT`
 - `client/scripts/stations/quartermaster/register.gd:117` — `load/preload SHEET`
-- `client/scripts/stations/quartermaster/room.gd:96` — `load/preload WALL`
-- `client/scripts/stations/quartermaster/room.gd:211` — `load/preload PROPS`
-- `client/scripts/stations/quartermaster/room.gd:259` — `load/preload path`
+- `client/scripts/stations/quartermaster/room.gd:142` — `load/preload WALL`
+- `client/scripts/stations/quartermaster/room.gd:268` — `load/preload PROPS`
+- `client/scripts/stations/quartermaster/room.gd:322` — `load/preload path`
 - `client/scripts/stations/quartermaster/seal_rite.gd:40` — `load/preload SEAL_TEX`
-- `client/scripts/stations/quartermaster/shelf.gd:205` — `load/preload STOCK`
-- `client/scripts/stations/quartermaster/shelf.gd:240` — `load/preload STOCK`
-- `client/scripts/stations/quartermaster/shelf.gd:295` — `load/preload ICONS`
+- `client/scripts/stations/quartermaster/shelf.gd:190` — `load/preload STOCK`
+- `client/scripts/stations/quartermaster/shelf.gd:225` — `load/preload STOCK`
+- `client/scripts/stations/quartermaster/shelf.gd:280` — `load/preload ICONS`
 - `client/scripts/ui/fonts.gd:67` — `load/preload path`
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`
