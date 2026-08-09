@@ -58,7 +58,7 @@ describe('FieldSnapshot shape', () => {
     const snap: FieldSnapshot = {
       fieldData:         { fieldId: 'FIELD-001', siteName: 'Site', incarnateName: 'Target' },
       archiveEntries:    [],
-      signs:             [{ channel: 'OMEN', token: 'full-body-tremor' }],
+      signs:             [{ channel: 'OMEN', token: 'a-sign-token' }],
       perceivedChannels: ['OMEN', 'RESIDUE'],
       site:              { grid: { width: 1, height: 1, rows: ['.'] }, nodes: [] },
       positions:         {},

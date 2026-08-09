@@ -11,6 +11,19 @@ export type DispositionValue = 'STALKER' | 'AMBUSHER' | 'TERRITORIAL' | 'FRENZIE
 export type RiteKeyValue     = 'PENANCE' | 'IMMOLATION' | 'INTERMENT' | 'SILENCE';
 export type TellValue        = 'LUNGE'   | 'SWEEP'      | 'RECOIL'    | 'SHUDDER';
 
+// The runtime enumeration of each axis's values. A union type cannot be walked at
+// run time, and three places need to: the trait roll's draw, the lexicon's
+// completeness check, and P154's no-self-naming rule. One list, so a new value is
+// drawn, demanded of the lexicon, and forbidden from its own token, all at once.
+export const AXIS_VALUES = {
+  ASPECT:      ['EMBER', 'FROST', 'ROT', 'MIRE'],
+  FRAILTY:     ['FLAME', 'COLD', 'SALT', 'LIGHT'],
+  WARD:        ['FLAME', 'COLD', 'SALT', 'LIGHT'],
+  DISPOSITION: ['STALKER', 'AMBUSHER', 'TERRITORIAL', 'FRENZIED'],
+  RITE_KEY:    ['PENANCE', 'IMMOLATION', 'INTERMENT', 'SILENCE'],
+  TELL:        ['LUNGE', 'SWEEP', 'RECOIL', 'SHUDDER'],
+} as const satisfies Record<TraitAxis, ReadonlyArray<string>>;
+
 export type TraitRoll = {
   aspect:       AspectValue;
   frailty:      FrailtyValue;

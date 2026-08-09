@@ -10,6 +10,9 @@ import { ReconnectTokenStore } from '../ReconnectTokenStore.js';
 import { stationCenterPx } from '../stations.js';
 import type { EmitFn, EmitToFn } from '../types.js';
 import type { Channel, ProbeResultPayload } from '@testament/shared';
+import { tokenFor } from '../../incarnate/lexicon.js';
+import { NO_REACTION_SIGN } from '../../incarnate/deriveReaction.js';
+import { expectNoTraitValues, expectNoServerOnlyKeys } from '../../incarnate/containment.testkit.js';
 
 function standAt(mgr: RoomManager, socketId: string, kind: 'CONTRACT_BOARD' | 'QUARTERMASTER' | 'DEPLOY_GATE'): void {
   const room = mgr.getRoomBySocketId(socketId)!;
@@ -123,7 +126,7 @@ describe('handleProbe — success path (R54, R57)', () => {
     const payload = sent[0]?.[2] as ProbeResultPayload;
     expect(payload.playerId).toBe(room.players[0]!.playerId);
     expect(payload.stimulus).toBe('COLD');
-    expect(payload.sign).toEqual({ channel: 'REACTION', token: 'drinks-cold' });
+    expect(payload.sign).toEqual({ channel: 'REACTION', token: tokenFor('WARD', 'COLD') });
     expect(payload.exposure).toBe(1);
   });
 
@@ -134,7 +137,7 @@ describe('handleProbe — success path (R54, R57)', () => {
     handleProbe('host', { stimulus: 'FLAME' }, mgr, () => {}, emitTo);
 
     const payload = sent[0]?.[2] as ProbeResultPayload;
-    expect(payload.sign).toEqual({ channel: 'REACTION', token: 'no-reaction' });
+    expect(payload.sign).toEqual({ channel: 'REACTION', token: NO_REACTION_SIGN.token });
     expect(room.exposure).toBe(1);
   });
 
@@ -160,8 +163,8 @@ describe('handleProbe — success path (R54, R57)', () => {
 
     expect(room.exposure).toBe(3);
     expect(room.revealedSigns).toEqual([
-      { channel: 'REACTION', token: 'drinks-cold' },
-      { channel: 'REACTION', token: 'no-reaction' },
+      { channel: 'REACTION', token: tokenFor('WARD', 'COLD') },
+      { channel: 'REACTION', token: NO_REACTION_SIGN.token },
     ]);
   });
 });
@@ -202,7 +205,7 @@ describe('handleProbe — gear gating (T73, R67, P33)', () => {
     handleProbe('host', { stimulus: 'COLD' }, mgr, () => {}, emitTo);
 
     const payload = sent[0]?.[2] as ProbeResultPayload;
-    expect(payload.sign).toEqual({ channel: 'REACTION', token: 'drinks-cold' });
+    expect(payload.sign).toEqual({ channel: 'REACTION', token: tokenFor('WARD', 'COLD') });
     expect(room.exposure).toBe(1);
   });
 });
@@ -219,7 +222,7 @@ describe('handleProbe — per-player perception filtering (T65, R62, P28)', () =
     const byId = new Map(sent.map(([sid, , p]) => [sid, p as ProbeResultPayload]));
     // The prober rang the bell blind: they cannot read the response.
     expect(byId.get('host')?.sign).toBeNull();
-    expect(byId.get('p2-sock')?.sign).toEqual({ channel: 'REACTION', token: 'drinks-cold' });
+    expect(byId.get('p2-sock')?.sign).toEqual({ channel: 'REACTION', token: tokenFor('WARD', 'COLD') });
     // Everyone still sees who probed, with what, and the cost.
     for (const p of byId.values()) {
       expect(p.playerId).toBe(room.players[0]!.playerId);
@@ -246,12 +249,10 @@ describe('handleProbe — trait containment (R56, P21)', () => {
 
     handleProbe('host', { stimulus: 'LIGHT' }, mgr, () => {}, emitTo);
 
-    const json = JSON.stringify(sent[0]?.[2]);
-    expect(json).not.toContain('COLD');
-    expect(json).not.toContain('cold');
-    expect(json).not.toContain('traitRoll');
-    expect(json).not.toContain('expeditionSeed');
-    expect(json).not.toContain('"ward"');
+    // Every trait value, case-insensitive and unquoted (P156). LIGHT is allowed only
+    // because the party chose it and PROBE_RESULT echoes it back — not a leak.
+    expectNoTraitValues(sent[0]?.[2], ['LIGHT']);
+    expectNoServerOnlyKeys(sent[0]?.[2]);
   });
 
   it('the sign carries exactly channel and token', () => {

@@ -48,6 +48,9 @@ authorized before any state changes (I2).
 - AC: When the Ward axis is active for the contract tier and
   `traits.ward === stimulus`, the result is the `REACTION` lexicon sign for that
   ward value (e.g. ward `FLAME` + stimulus `FLAME` → token `drinks-flame`).
+  *(Token superseded — TD-093: that token named its own answer, and is now
+  `swallowed-the-brand`, which names the instrument presented. The AC itself — exact
+  match yields the REACTION lexicon sign — is unchanged.)*
 - AC: When the Ward axis is active and `traits.ward !== stimulus`, or the Ward
   axis is not active for the tier (Apprentice), the result is the fixed
   no-reaction sign `{ channel: 'REACTION', token: 'no-reaction' }`.

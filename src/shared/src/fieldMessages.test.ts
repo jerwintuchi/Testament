@@ -17,7 +17,7 @@ describe('FieldStartedPayload', () => {
     const payload: FieldStartedPayload = {
       fieldData:         { fieldId: 'FIELD-001', siteName: 'Site', incarnateName: 'Target' },
       reconnectToken:    'some-uuid',
-      signs:             [{ channel: 'RESIDUE', token: 'scorched-wax' }],
+      signs:             [{ channel: 'RESIDUE', token: 'a-sign-token' }],
       perceivedChannels: ['RESIDUE', 'OMEN'],
       site:              { grid: { width: 3, height: 2, rows: ['###', '#.#'] }, nodes: [{ kind: 'APPROACH', x: 1, y: 1 }] },
       positions:         { 'player-1': { x: 24, y: 24 } },
@@ -88,7 +88,7 @@ describe('ProbeResultPayload', () => {
     const payload: ProbeResultPayload = {
       playerId: 'player-1',
       stimulus: 'COLD',
-      sign:     { channel: 'REACTION', token: 'no-reaction' },
+      sign:     { channel: 'REACTION', token: 'a-sign-token' },
       exposure: 1,
     };
     expect(Object.keys(payload).sort()).toEqual(['exposure', 'playerId', 'sign', 'stimulus']);

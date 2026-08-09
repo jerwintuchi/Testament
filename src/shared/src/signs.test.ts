@@ -4,6 +4,12 @@ import { describe, it, expect } from 'vitest';
 import type { Channel, Sign, Tier, SignToken, Stimulus } from './signs.js';
 import { STIMULI, CHANNELS } from './signs.js';
 
+// Token values here are the deliberately synthetic 'a-sign-token', never a real
+// lexicon entry (T350, TD-093). `SignToken` is `string`, so these assert wire SHAPE
+// and the value is arbitrary — and `src/shared` cannot import the lexicon to use
+// `tokenFor` without inverting the trust boundary (S1/I4). A fixture that looked
+// like a real token invited exactly the mass edit this spec exists to stop.
+
 // T39(a): Channel is a union of exactly 6 literals.
 function assertChannelExhaustive(c: Channel): string {
   switch (c) {
@@ -28,12 +34,12 @@ function assertTierExhaustive(t: Tier): string {
 // T39(b): Sign satisfies { channel: Channel; token: SignToken }.
 const _signShape = {
   channel: 'RESIDUE' as Channel,
-  token:   'scorched-wax' as SignToken,
+  token:   'a-sign-token' as SignToken,
 } satisfies Sign;
 
 // T39(d): Sign with an extra 'axis' field does not satisfy Sign.
 // @ts-expect-error — extra field 'axis' is not part of Sign
-const _badSign: Sign = { channel: 'RESIDUE', token: 'scorched-wax', axis: 'ASPECT' };
+const _badSign: Sign = { channel: 'RESIDUE', token: 'a-sign-token', axis: 'ASPECT' };
 
 // T39(a redux): a 7th Channel literal is rejected.
 // @ts-expect-error — 'AURA' is not a valid Channel
@@ -90,13 +96,13 @@ describe('Stimulus / STIMULI (R53)', () => {
 
 describe('Sign', () => {
   it('round-trips channel and token', () => {
-    const sign: Sign = { channel: 'OMEN', token: 'drawn-breath-and-lean' };
+    const sign: Sign = { channel: 'OMEN', token: 'a-sign-token' };
     expect(sign.channel).toBe('OMEN');
-    expect(sign.token).toBe('drawn-breath-and-lean');
+    expect(sign.token).toBe('a-sign-token');
   });
 
   it('has exactly two keys', () => {
-    const sign: Sign = { channel: 'RESIDUE', token: 'frost-rime' };
+    const sign: Sign = { channel: 'RESIDUE', token: 'a-sign-token' };
     expect(Object.keys(sign).sort()).toEqual(['channel', 'token']);
   });
 });

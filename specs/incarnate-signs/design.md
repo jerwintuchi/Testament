@@ -34,7 +34,9 @@ export type Channel =
   | 'LITURGY'       // RiteKey axis — sigils and devotional resonance
   | 'OMEN';         // Tell axis    — wind-up cue before lethal strike
 
-export type SignToken = string;  // opaque slug, e.g. 'weeping-wax', 'frost-rime'
+export type SignToken = string;  // opaque slug, e.g. 'run-wax', 'heaved-mortar'
+                                 // (examples re-authored TD-093; type unchanged, and
+                                 //  'opaque' is now load-bearing — never rendered raw)
 
 export type Sign = {
   channel: Channel;
@@ -97,6 +99,22 @@ export type LexiconEntry = {
   token:   SignToken;
 };
 
+// ⚠ SUPERSEDED IN PLACE by `specs/sign-lexicon/` (TD-093). 17 of the 24 tokens below
+// were re-authored; the table is kept as the historical record, not as the current
+// lexicon — read `src/server/src/incarnate/lexicon.ts` for that.
+//
+// WHY, in one line: measured against "no token may contain a value of its own axis or
+// a Stimulus literal", **11 of these 24 entries fail** — `flinch-from-flame` hands the
+// player the answer, so no interpretation happens and Pillar 3 is unimplemented on that
+// axis. The whole FRAILTY and WARD sets, both `frost-rime`/`rot-bloom`, and `flame-rune`.
+//
+// The 7 that SURVIVED are `weeping-clay`, `still-spoor`, `voided-glyph`, and all four
+// TELL/OMEN entries — the last kept **verbatim and deliberately** (R341: the Tell is read
+// at wind-up speed, so its interpretation budget is zero and transparency is correct).
+//
+// The SHAPE below is unchanged and still current: `{axis, value, channel, token}`, one
+// entry per pair, `deriveSigns`/`deriveReaction` looking up by (axis, value) and
+// hard-coding no token. That is why the re-authoring was a one-file change.
 export const SIGN_LEXICON: ReadonlyArray<LexiconEntry> = [
   // ASPECT → RESIDUE
   { axis: 'ASPECT', value: 'EMBER', channel: 'RESIDUE',     token: 'scorched-wax'        },

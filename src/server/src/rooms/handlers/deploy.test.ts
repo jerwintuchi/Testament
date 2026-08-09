@@ -9,6 +9,8 @@ import { RoomManager } from '../RoomManager.js';
 import { ReconnectTokenStore } from '../ReconnectTokenStore.js';
 import { stationCenterPx } from '../stations.js';
 import type { EmitFn, EmitToFn, BroadcastFn } from '../types.js';
+import { NO_REACTION_SIGN } from '../../incarnate/deriveReaction.js';
+import { expectNoTraitValues } from '../../incarnate/containment.testkit.js';
 
 function standAt(mgr: RoomManager, socketId: string, kind: 'CONTRACT_BOARD' | 'QUARTERMASTER' | 'DEPLOY_GATE'): void {
   const room = mgr.getRoomBySocketId(socketId)!;
@@ -89,6 +91,18 @@ describe('handleDeploy', () => {
     // signs is present and is an array.
     const signs = payload['signs'] as Array<Record<string, unknown>>;
     expect(Array.isArray(signs)).toBe(true);
+
+    // T352/P156 — the ambient signs are where the trait roll actually reaches the
+    // wire, and until TD-093 nothing here checked their VALUES: `flinch-from-flame`
+    // shipped the frailty in plain text past a key-level assertion. Now every trait
+    // value, case-insensitively and unquoted.
+    //
+    // Scoped to the signs rather than the whole payload ON PURPOSE. `fieldData`
+    // carries authored names — "The Rot-Bloom", "The Weeping Mire", "The Salt Marsh"
+    // — drawn INDEPENDENTLY of the trait roll (generateContract), so a name that
+    // happens to match the aspect is coincidence, not a leak. Asserting over them
+    // would fail on a fixture rather than on a defect.
+    expectNoTraitValues(signs);
     expect(signs.length).toBe(3);  // Vigil tier: RESIDUE, STRESS_MARK, OMEN
     // Each sign has exactly channel and token.
     for (const sign of signs) {
@@ -107,7 +121,7 @@ describe('handleDeploy', () => {
     const { mgr, store } = setupDeployingRoom();
     const room = mgr.getRoomBySocketId('host')!;
     room.exposure = 7;
-    room.revealedSigns = [{ channel: 'REACTION', token: 'no-reaction' }];
+    room.revealedSigns = [{ channel: 'REACTION', token: NO_REACTION_SIGN.token }];
 
     handleDeploy('host', mgr, store, () => {}, () => {}, noBroadcast);
 

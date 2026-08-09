@@ -109,7 +109,7 @@ reconnecting player recovers exactly what the room has learned (I6 resync).
 | Direction | Type | Payload |
 |-----------|------|---------|
 | C → S | `PROBE` | `{ "stimulus": "FLAME" \| "COLD" \| "SALT" \| "LIGHT" }` |
-| S → room | `PROBE_RESULT` | `{ "playerId": "…", "stimulus": "FLAME", "sign": { "channel": "REACTION", "token": "drinks-flame" }, "exposure": 3 }` |
+| S → room | `PROBE_RESULT` | `{ "playerId": "…", "stimulus": "FLAME", "sign": { "channel": "REACTION", "token": "swallowed-the-brand" }, "exposure": 3 }` |  *(token re-authored TD-093; shape unchanged)*
 | S → sender | `LOBBY_ERROR` | existing codes `INVALID_PAYLOAD`, `NOT_IN_ROOM`, `WRONG_PHASE` — no new codes |
 
 Signs cross the wire; trait rolls never do.

@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { channelsForTier, perceivedChannelsFor, hasProbeKit, filterSigns } from './perception.js';
 import type { Sign, Tier } from '@testament/shared';
 import { CHANNELS } from '@testament/shared';
+import { tokenFor } from '../incarnate/lexicon.js';
 
 const TIERS: Tier[] = ['VIGIL', 'INTERDICT', 'ANATHEMA'];
 
@@ -73,16 +74,16 @@ describe('hasProbeKit (T69, R67)', () => {
 
 describe('filterSigns', () => {
   const signs: Sign[] = [
-    { channel: 'RESIDUE',     token: 'scorched-wax' },
-    { channel: 'STRESS_MARK', token: 'flinch-from-flame' },
-    { channel: 'OMEN',        token: 'drawn-breath-and-lean' },
-    { channel: 'REACTION',    token: 'drinks-cold' },
+    { channel: 'RESIDUE',     token: tokenFor('ASPECT', 'EMBER') },
+    { channel: 'STRESS_MARK', token: tokenFor('FRAILTY', 'FLAME') },
+    { channel: 'OMEN',        token: tokenFor('TELL', 'LUNGE') },
+    { channel: 'REACTION',    token: tokenFor('WARD', 'COLD') },
   ];
 
   it('keeps exactly the in-set signs, preserving order (P28)', () => {
     expect(filterSigns(signs, ['RESIDUE', 'REACTION'])).toEqual([
-      { channel: 'RESIDUE',  token: 'scorched-wax' },
-      { channel: 'REACTION', token: 'drinks-cold' },
+      { channel: 'RESIDUE',  token: tokenFor('ASPECT', 'EMBER') },
+      { channel: 'REACTION', token: tokenFor('WARD', 'COLD') },
     ]);
   });
 

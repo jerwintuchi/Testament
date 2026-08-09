@@ -9,6 +9,9 @@ import { SessionArchive } from './SessionArchive.js';
 import { routeMessage } from './messageRouter.js';
 import { handleSocketDisconnect } from './handlers/disconnect.js';
 import { stationCenterPx } from './stations.js';
+import { tokenFor } from '../incarnate/lexicon.js';
+import { NO_REACTION_SIGN } from '../incarnate/deriveReaction.js';
+import { expectNoTraitValues, expectNoServerOnlyKeys } from '../incarnate/containment.testkit.js';
 
 type Msg = { type: string; payload: unknown };
 
@@ -486,16 +489,14 @@ describe('T61: probe integration — miss, match, reconnect, extraction', () => 
     expect(missHost.stimulus).toBe('FLAME');
     expect(missHost.sign).toBeNull();  // host cannot read REACTION (R62)
     expect(missHost.exposure).toBe(1);
-    expect(missP2.sign).toEqual({ channel: 'REACTION', token: 'no-reaction' });
+    expect(missP2.sign).toEqual({ channel: 'REACTION', token: NO_REACTION_SIGN.token });
     expect(missP2.exposure).toBe(1);
-    // A miss betrays nothing about the actual ward (R56, P21).
-    const missJson = JSON.stringify(miss2.payload);
-    expect(missJson).not.toContain('COLD');
-    expect(missJson).not.toContain('traitRoll');
-    expect(missJson).not.toContain('expeditionSeed');
-    expect(missJson).not.toContain('"ward"');
+    // A miss betrays nothing about the actual ward (R56, P21). Every trait value,
+    // case-insensitive and unquoted (P156); FLAME is the party's own echoed choice.
+    expectNoTraitValues(miss2.payload, ['FLAME']);
+    expectNoServerOnlyKeys(miss2.payload);
 
-    // 2. Leader probes the match: the prober rang the bell blind — only p2 reads drinks-cold.
+    // 2. Leader probes the match: the prober rang the bell blind — only p2 reads the ward's token.
     host.send('PROBE', { stimulus: 'COLD' });
     const match1 = await host.next();
     const match2 = await p2.next();
@@ -503,7 +504,7 @@ describe('T61: probe integration — miss, match, reconnect, extraction', () => 
     const matchP2 = match2.payload as { sign: { channel: string; token: string } | null; exposure: number };
     expect(matchHost.sign).toBeNull();
     expect(matchHost.exposure).toBe(2);
-    expect(matchP2.sign).toEqual({ channel: 'REACTION', token: 'drinks-cold' });
+    expect(matchP2.sign).toEqual({ channel: 'REACTION', token: tokenFor('WARD', 'COLD') });
 
     // 3. Host reconnects: snapshot is filtered to the host's set — same channels as
     // before the disconnect (P29), no revealed REACTION signs for a non-perceiver (R63).

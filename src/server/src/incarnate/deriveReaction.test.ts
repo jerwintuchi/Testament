@@ -1,9 +1,11 @@
 // T56: deriveReaction — probe reaction from the hidden Ward (R55, R56, P20, P21)
 import { describe, it, expect } from 'vitest';
 import { deriveReaction, NO_REACTION_SIGN, PROBE_EXPOSURE_COST } from './deriveReaction.js';
+import { expectNoTraitValues } from './containment.testkit.js';
 import type { TraitRoll } from './types.js';
 import type { Stimulus } from '@testament/shared';
 import { STIMULI } from '@testament/shared';
+import { tokenFor } from './lexicon.js';
 
 const FULL_ROLL: TraitRoll = {
   aspect:      'EMBER',
@@ -17,13 +19,13 @@ const FULL_ROLL: TraitRoll = {
 describe('deriveReaction', () => {
   it('matching stimulus at Interdict returns the ward lexicon REACTION sign', () => {
     const sign = deriveReaction(FULL_ROLL, 'INTERDICT', 'COLD');
-    expect(sign).toEqual({ channel: 'REACTION', token: 'drinks-cold' });
+    expect(sign).toEqual({ channel: 'REACTION', token: tokenFor('WARD', 'COLD') });
   });
 
   it('matching stimulus at Anathema returns the ward lexicon REACTION sign', () => {
     const roll: TraitRoll = { ...FULL_ROLL, ward: 'SALT' };
     const sign = deriveReaction(roll, 'ANATHEMA', 'SALT');
-    expect(sign).toEqual({ channel: 'REACTION', token: 'drinks-salt' });
+    expect(sign).toEqual({ channel: 'REACTION', token: tokenFor('WARD', 'SALT') });
   });
 
   it('non-matching stimulus returns NO_REACTION_SIGN (a miss reveals nothing)', () => {
@@ -54,8 +56,8 @@ describe('deriveReaction', () => {
     for (const stimulus of stimuli) {
       const sign = deriveReaction(FULL_ROLL, 'INTERDICT', stimulus);
       expect(Object.keys(sign).sort()).toEqual(['channel', 'token']);
-      expect(JSON.stringify(sign)).not.toContain('COLD');
-      expect(JSON.stringify(sign)).not.toContain('cold');
+      // Every trait value, case-insensitive and unquoted (P156) — not just the ward's.
+      expectNoTraitValues(sign);
     }
   });
 });

@@ -1,21 +1,20 @@
 import type { Tier } from '@testament/shared';
 import type { Rng } from '../rng/seeded.js';
-import type {
-  TraitRoll,
-  AspectValue,
-  FrailtyValue,
-  WardValue,
-  DispositionValue,
-  RiteKeyValue,
-  TellValue,
-} from './types.js';
+import type { TraitRoll } from './types.js';
+import { AXIS_VALUES } from './types.js';
 
-const ASPECT_VALUES:      readonly AspectValue[]      = ['EMBER', 'FROST', 'ROT', 'MIRE'];
-const FRAILTY_VALUES:     readonly FrailtyValue[]     = ['FLAME', 'COLD', 'SALT', 'LIGHT'];
-const TELL_VALUES:        readonly TellValue[]        = ['LUNGE', 'SWEEP', 'RECOIL', 'SHUDDER'];
-const WARD_VALUES:        readonly WardValue[]        = ['FLAME', 'COLD', 'SALT', 'LIGHT'];
-const DISPOSITION_VALUES: readonly DispositionValue[] = ['STALKER', 'AMBUSHER', 'TERRITORIAL', 'FRENZIED'];
-const RITE_KEY_VALUES:    readonly RiteKeyValue[]     = ['PENANCE', 'IMMOLATION', 'INTERMENT', 'SILENCE'];
+// One runtime list of each axis's values (types.ts), shared with the lexicon's
+// completeness and no-self-naming checks — so a new value cannot be drawable
+// without also being demanded of the lexicon. Order is load-bearing: `rng.pick`
+// indexes into these, so reordering re-rolls every seeded expedition (I3).
+const {
+  ASPECT:      ASPECT_VALUES,
+  FRAILTY:     FRAILTY_VALUES,
+  TELL:        TELL_VALUES,
+  WARD:        WARD_VALUES,
+  DISPOSITION: DISPOSITION_VALUES,
+  RITE_KEY:    RITE_KEY_VALUES,
+} = AXIS_VALUES;
 
 export function generateTraitRoll(rng: Rng, tier: Tier): TraitRoll {
   const roll: TraitRoll = {

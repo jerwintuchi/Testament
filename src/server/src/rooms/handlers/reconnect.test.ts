@@ -7,6 +7,7 @@ import { SessionArchive } from '../SessionArchive.js';
 import type { EmitFn, BroadcastFn } from '../types.js';
 import { generateSite } from '../../site/generateSite.js';
 import { createRng, hashSeed } from '../../rng/seeded.js';
+import { tokenFor } from '../../incarnate/lexicon.js';
 
 function makeEmit(): { fn: EmitFn; calls: Array<[string, unknown]> } {
   const calls: Array<[string, unknown]> = [];
@@ -84,7 +85,7 @@ describe('handleReconnect', () => {
     room.site = generateSite(createRng(hashSeed('reconnect-site')));
     room.players[0]!.pos = { x: 100, y: 100 };
     room.players[0]!.perceivedChannels = ['RESIDUE', 'REACTION'];
-    room.revealedSigns = [{ channel: 'REACTION', token: 'drinks-cold' }];
+    room.revealedSigns = [{ channel: 'REACTION', token: tokenFor('WARD', 'COLD') }];
     room.players[0]!.socketId = '';
     room.players[0]!.disconnectedAt = Date.now();
 
@@ -97,8 +98,8 @@ describe('handleReconnect', () => {
     const fs = (resync?.[1] as { fieldSnapshot: { signs: Array<{ channel: string; token: string }>; perceivedChannels: string[] } }).fieldSnapshot;
     expect(fs.perceivedChannels).toEqual(['RESIDUE', 'REACTION']);
     expect(fs.signs).toEqual([
-      { channel: 'RESIDUE',  token: 'scorched-wax' },
-      { channel: 'REACTION', token: 'drinks-cold' },
+      { channel: 'RESIDUE',  token: tokenFor('ASPECT', 'EMBER') },
+      { channel: 'REACTION', token: tokenFor('WARD', 'COLD') },
     ]);
   });
 

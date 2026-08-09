@@ -55,6 +55,7 @@
 - [x] T61 [R53–R58, P20–P24] — Integration test: extend
   `src/server/src/rooms/field.integration.test.ts` with the full probe flow —
   deploy, a non-leader probes a miss (no-reaction, exposure 1), probes the ward
-  match (drinks-X, exposure 2), a player reconnects and the snapshot carries
+  match (the ward's token, exposure 2 — `drinks-X` at the time, re-authored TD-093),
+  a player reconnects and the snapshot carries
   ambient + revealed signs, then extraction still works. Trait containment
   asserted on every wire payload seen.

@@ -8,6 +8,8 @@ import { CHANNELS } from '@testament/shared';
 import { generateSite } from '../site/generateSite.js';
 import { createRng, hashSeed } from '../rng/seeded.js';
 import { COLLEGIUM } from '../collegium/collegium.js';
+import { tokenFor } from '../incarnate/lexicon.js';
+import { NO_REACTION_SIGN } from '../incarnate/deriveReaction.js';
 
 const STUB_CONTRACT_RECORD: ContractRecord = {
   contractId:     'c-001',
@@ -211,14 +213,14 @@ describe('buildFieldSnapshot', () => {
     const archive = new SessionArchive();
     const room = makeFieldRoom();
     room.revealedSigns = [
-      { channel: 'REACTION', token: 'no-reaction' },
-      { channel: 'REACTION', token: 'drinks-cold' },
+      { channel: 'REACTION', token: NO_REACTION_SIGN.token },
+      { channel: 'REACTION', token: tokenFor('WARD', 'COLD') },
     ];
     const snap = buildFieldSnapshot(room, archive, 'p1');
     expect(snap?.signs.map(s => s.channel)).toEqual(
       ['RESIDUE', 'STRESS_MARK', 'OMEN', 'REACTION', 'REACTION'],
     );
-    expect(snap?.signs.slice(3).map(s => s.token)).toEqual(['no-reaction', 'drinks-cold']);
+    expect(snap?.signs.slice(3).map(s => s.token)).toEqual([NO_REACTION_SIGN.token, tokenFor('WARD', 'COLD')]);
   });
 
   // T66: per-player filtering on reconnect (R63, P28)
@@ -236,7 +238,7 @@ describe('buildFieldSnapshot', () => {
     const archive = new SessionArchive();
     const room = makeFieldRoom();
     room.players[0]!.perceivedChannels = ['RESIDUE', 'STRESS_MARK', 'OMEN'];
-    room.revealedSigns = [{ channel: 'REACTION', token: 'drinks-cold' }];
+    room.revealedSigns = [{ channel: 'REACTION', token: tokenFor('WARD', 'COLD') }];
     const snap = buildFieldSnapshot(room, archive, 'p1');
     expect(snap?.signs.every(s => s.channel !== 'REACTION')).toBe(true);
   });
@@ -245,9 +247,9 @@ describe('buildFieldSnapshot', () => {
     const archive = new SessionArchive();
     const room = makeFieldRoom();
     room.players[0]!.perceivedChannels = ['REACTION'];
-    room.revealedSigns = [{ channel: 'REACTION', token: 'drinks-cold' }];
+    room.revealedSigns = [{ channel: 'REACTION', token: tokenFor('WARD', 'COLD') }];
     const snap = buildFieldSnapshot(room, archive, 'p1');
-    expect(snap?.signs).toEqual([{ channel: 'REACTION', token: 'drinks-cold' }]);
+    expect(snap?.signs).toEqual([{ channel: 'REACTION', token: tokenFor('WARD', 'COLD') }]);
   });
 
   it('returns null for a playerId not in the room', () => {
