@@ -4073,3 +4073,64 @@ the bug; the word appearing in a string does not mean it is doing the same job.
 
 `Notice.charge()` keeps its name — an identifier is not player-facing, and renaming it is churn on
 finished work with nothing visible to show for it.
+
+## 2026-08-09 — TD-100: a sign names what was seen, not what it means (the lexicon re-authored)
+
+**Why.** `specs/sign-lexicon/` (TD-093) was parked on four author rulings. All four were answered
+today, as recommended, and the spec shipped. The finding it rests on was **measured, not argued**:
+apply *"no token may contain, case-insensitively, a value of its own axis or a `Stimulus` literal"*
+to the 24-entry `SIGN_LEXICON` and **11 fail** — the whole `FRAILTY` set, the whole `WARD` set,
+`frost-rime`, `rot-bloom`, and `flame-rune`. A player read `[STRESS_MARK] flinch-from-flame` and
+performed no inferential step, so for two of six axes the reading problem — which `vision.md` calls
+"the soul, and the hardest part" — was **not implemented**. 17 tokens changed; 7 were kept.
+
+**The rulings.** WARD is **reworded, not collapsed** (`swallowed-the-brand / -rime / -grain / -lamp`
+name the instrument presented): collapsing would have lost *which* ward matched on reconnect, since
+`revealedSigns` dedupes by token. The token stays a **terse wire identifier with prose on the
+client** — a token is a contract, prose is presentation, and Origin-as-dialect is impossible if the
+token *is* the string the player reads. The **Librarium may never hold a translation table**, now a
+non-negotiable beside "no knowledge as a number". Coarse/fine ambiguity is **deferred, not dropped**,
+and if built must be a *different token*, never a confidence field.
+
+**What kept the fix from over-correcting.** The **interpretation budget follows the clock**: the
+`TELL`/OMEN set is kept **verbatim** because the Tell is read at wind-up speed, where a player cannot
+deduce (TD-013). And the `FRAILTY` set carries a **law** rather than four strings — *a wound names
+the substance; the substance names the remedy* — which is also how the lexicon must grow. That law
+settled the last open coin-flip on the spec's own criterion instead of taste: **`fever-sweat`**, not
+`will-not-clot`, because the latter names no substance and so breaks the law it should obey. The same
+test had already retired `spalled-stone` for leaning on masonry jargon.
+
+**The honest assertion mattered more than the table.** `expect(json).not.toContain('"FLAME"')` passed
+only because `flinch-from-flame` carried `flame` lowercase and unquoted — the **letter** of I5 held
+while the spirit did not, which is why nobody noticed for eleven specs. Containment is now
+case-insensitive and unquoted over every trait value. **And the gap was not where the spec pointed:**
+the three named sites all inspect *probe* payloads, but the token that leaked was FRAILTY, which
+rides `FIELD_STARTED` — a payload only ever checked at **key** level. Nothing had looked at its
+values. The new check is scoped to `signs`, not the whole payload, because `fieldData` carries
+authored names (*The Rot-Bloom*, *The Weeping Mire*, *The Salt Marsh*) drawn independently of the
+trait roll, so a collision there is coincidence and asserting over it would fail on a fixture.
+
+**`tokenFor` paid for itself inside one spec.** ~25 assertions across 8 files pinned token literals;
+after routing them through a lookup, re-authoring 17 tokens needed **no test edit at all**. The
+design's migration plan was wrong about `src/shared`, though, and the correction is the rule: shared
+cannot import the server without inverting the trust boundary (S1/I4), and those four sites were
+**type-shape fixtures** where `SignToken = string` makes the value arbitrary. They now use a
+synthetic `'a-sign-token'` — a fixture that *looks* real is what invites the mass edit.
+
+**Two findings on the client.** `you perceive: RESIDUE, STRESS_MARK, …` was printing wire identifiers
+to the player — the same defect as the tokens, one line from the code fixing them. Routing it through
+the prose layer then **broke TD-098**: six sentence-length headings ran off the right edge. Fixed the
+canon's way (a short form, an explicit `\n`, never autowrap) and re-captured to prove it. The field
+page also had no capture flag at all, so V2 was unverifiable as written; `--field-preview` /
+`--field-foot` now make it checkable without a server.
+
+**New tooling, and why a tool rather than a test.** `tools/lexicon_check.py` guards the seam neither
+suite can reach — the table is TypeScript, the prose is GDScript — asserting P155 (no client string
+names an axis or trait value) **and coverage** (every token has prose, the prose invents none).
+Coverage is the load-bearing half: the missing-prose fallback is deliberately *not* the raw token, so
+a hole would ship silently. It carries a `--selftest` over fixtures, because `asset_map.py`'s sat red
+for eleven specs while `--check` stayed green (TD-069).
+
+**Not done, and named:** the **Field Testament** at extraction is still `outcome: 'success'`
+hard-coded. It is the answer key delivered after the bet is settled — Record closing the loop — and
+it should come before any Librarium, or a failed hunt teaches nothing.

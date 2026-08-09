@@ -159,9 +159,11 @@
   - loaded-by: `client/scripts/core/settings.gd` (load), `client/scripts/main.gd` (preload)
 - **`client/scripts/core/station_names.gd`**
   - loaded-by: `client/scripts/main.gd` (preload), `client/scripts/world/space_view.gd` (preload)
+- **`client/scripts/field/sign_prose.gd`**
+  - loaded-by: `client/scripts/main.gd` (preload)
 - **`client/scripts/main.gd`**
   - loads: `collegium_logo.png`, `frame_v1.png`, `stone_tile.png`, `player.tscn`
-  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `contract_board.gd`, `notice.gd`, `notice_card.gd`, `notice_reader.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `settings.gd`, `station_names.gd`, `register.gd`, `fonts.gd`, `pause_menu.gd`, `popup_theme.gd`, `rite_banner.gd`, `title_scene.gd`, `widgets.gd`, `writ_form.gd`
+  - preloads: `protocol.gd`, `board_bar.gd`, `board_decor.gd`, `board_geometry.gd`, `contract_board.gd`, `notice.gd`, `notice_card.gd`, `notice_reader.gd`, `ornament_scrollbar.gd`, `verb_badge.gd`, `wax_seal.gd`, `settings.gd`, `station_names.gd`, `sign_prose.gd`, `register.gd`, `fonts.gd`, `pause_menu.gd`, `popup_theme.gd`, `rite_banner.gd`, `title_scene.gd`, `widgets.gd`, `writ_form.gd`
   - loaded-by: `client/scenes/main.tscn` (ext_resource)
 - **`client/scripts/stations/quartermaster/lore.gd`**
   - loaded-by: `client/scripts/stations/quartermaster/record.gd` (preload), `client/scripts/stations/quartermaster/register.gd` (preload)
@@ -250,8 +252,8 @@
 - `client/scripts/board/verb_badge.gd:34` — `load/preload BADGE_TEX[_verb]`
 - `client/scripts/board/wax_seal.gd:21` — `load/preload SEAL_TEX`
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
-- `client/scripts/main.gd:1949` — `load/preload path`
-- `client/scripts/main.gd:1953` — `load/preload normal_path`
+- `client/scripts/main.gd:1996` — `load/preload path`
+- `client/scripts/main.gd:2000` — `load/preload normal_path`
 - `client/scripts/stations/quartermaster/pack.gd:70` — `load/preload CLASP`
 - `client/scripts/stations/quartermaster/pack.gd:156` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:170` — `load/preload path`

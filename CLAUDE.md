@@ -503,11 +503,40 @@ you cannot ask a player to deduce while something is swinging (TD-013). The `FRA
 **WARD is a confirmation channel** (the party supplies the hypothesis by choosing the stimulus), so its
 four tokens are flavour — but the redundancy is **load-bearing**: `revealedSigns` dedupes by token and
 is what reconnect restores, so collapsing them would silently lose the ward (A8 from a new direction).
-**BLOCKED on four rulings**: the WARD form, the prose split (terse token + client prose, which
-everything about Origin dialect depends on), whether the **Librarium's no-translation-table rule** is a
-non-negotiable, and confirming coarse/fine ambiguity is deferred not dropped. **Named but not this
-spec's work: the Field Testament at extraction is the real teacher** — the answer key after the bet is
-settled — and it is a stub (`outcome: 'success'` hard-coded). Build it before any Librarium.
+**ALL FOUR RULINGS ANSWERED 2026-08-09 (author, all as recommended) and the spec is COMPLETE
+(T349–T354, 6 of 6, DECISION_LOG TD-100).** WARD is **reworded, not collapsed**
+(`swallowed-the-brand / -rime / -grain / -lamp` name the instrument presented, so P157 holds with no
+durable probe record); the token is a **terse wire identifier with prose on the client**
+(`client/scripts/field/sign_prose.gd` — a token is a contract, prose is presentation, and
+Origin-as-dialect is impossible if the token *is* the displayed string); the **Librarium may never
+hold a translation table** (now a non-negotiable in `sign-language.md`); coarse/fine is **deferred,
+not dropped** and must be a *different token*, never a confidence field. The last coin-flip settled on
+the spec's own criterion, not taste: **COLD is `fever-sweat`** because `will-not-clot` names no
+substance and so breaks the very law the set exists to teach.
+**`tokenFor` paid for itself inside one spec** — after routing ~25 pinned literals through a lookup,
+re-authoring 17 tokens needed **no test edit at all**. But the design's migration plan was **wrong
+about `src/shared`**: shared cannot import the server without inverting the trust boundary (S1/I4),
+and those four sites were **type-shape fixtures** (`SignToken = string`), now a synthetic
+`'a-sign-token'` — a fixture that looks real is what invites the mass edit.
+**The honest containment assertion found the gap in a different place than the spec pointed:** the
+three named sites all inspect *probe* payloads, but the token that leaked was FRAILTY, which rides
+`FIELD_STARTED` — a payload only ever checked at **key** level, never at value level. The new check is
+scoped to `signs`, not the whole payload, because `fieldData` carries authored names (*The Rot-Bloom*,
+*The Weeping Mire*, *The Salt Marsh*) drawn **independently** of the trait roll, so a collision is
+coincidence and asserting over it would fail on a fixture instead of a defect. Proven to bite:
+restoring `flinch-from-flame` fails exactly the P154 test and that one, and nothing else.
+**Two client findings:** `you perceive: RESIDUE, STRESS_MARK, …` was printing wire identifiers to the
+player (same defect, one line away), and fixing it **broke TD-098** — six sentence-length headings ran
+off the right edge, repaired the canon's way (short form + explicit `\n`, never autowrap). The field
+page had **no capture flag at all**, so V2 was unverifiable as written; `--field-preview` /
+`--field-foot` now make it checkable with no server.
+New tooling: **`tools/lexicon_check.py`** guards the seam neither suite can reach (TS table vs GDScript
+prose) — P155 **and coverage**, the latter load-bearing because the missing-prose fallback is
+deliberately *not* the raw token, so a hole would ship silently. `--selftest` over fixtures, because
+`asset_map.py`'s sat red for eleven specs while `--check` stayed green (TD-069).
+**Named but not this spec's work: the Field Testament at extraction is the real teacher** — the answer
+key after the bet is settled — and it is a stub (`outcome: 'success'` hard-coded). Build it before any
+Librarium.
 
 Parked: **`specs/preparation/`** (TD-092) — **preparation stops being a solved packing
 problem.** The finding that opened it: `ACTIVE_AXES` is fixed by tier and public, `AXIS_TO_CHANNEL` is

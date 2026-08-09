@@ -204,17 +204,30 @@ common sense, and sits in the Collegium's ecclesiastical register rather than a 
 
 ---
 
-## Blocking rulings
+## Blocking rulings — **ALL ANSWERED 2026-08-09 (author), all as recommended**
 
-1. **WARD form** — reword now (R342, recommended), or collapse to one token *coupled in the same
-   commit* to a durable probe record that survives reconnect?
-2. **Prose split** — terse token + client prose (R343, recommended), or a readable token? Everything
-   about Origin dialect and site dialect depends on this.
-3. **The Librarium** — is "no translation table, ever" recorded as a **non-negotiable**? A room
-   printing `tallow-sweat = frail to flame` hands over the exact step this spec creates. It may hold
-   laws, case histories, and which instrument reads which channel; nothing else.
-4. **Coarse/fine ambiguity** — confirm it is **deferred, not dropped**. If built, it must be a
-   *different token* naming a coarser observation, never the same token with a confidence field.
+1. **WARD form** — **REWORD** (R342). The four tokens name the instrument presented
+   (`swallowed-the-brand / -rime / -grain / -lamp`), never the element, so P154 holds. They stay
+   per-element rather than collapsing, so P157 holds with no durable probe record needed.
+2. **Prose split** — **TERSE TOKEN + CLIENT PROSE** (R343). The token is an opaque wire identifier a
+   player never sees; `sign_prose.gd` authors what they read. This is what Origin and site dialect
+   depend on: a presentation modifier cannot be applied to a token that *is* the displayed string.
+3. **The Librarium** — **YES, NON-NEGOTIABLE.** A room printing `tallow-sweat = frail to flame`
+   hands over the exact step this spec creates. It may hold laws, case histories, and which
+   instrument reads which channel; **nothing else.** Recorded in `sign-language.md`'s
+   non-negotiable rules, beside "no knowledge as a number".
+4. **Coarse/fine ambiguity** — **DEFERRED, NOT DROPPED.** If built it must be a *different token*
+   naming a coarser observation ("something beads at the wound"), never the same token with a
+   confidence or clarity field — that is knowledge-as-a-number.
+
+### Decided while building, on the spec's own criteria
+
+- **COLD is `fever-sweat`**, not `will-not-clot`. R340 requires all four Stress-marks to follow one
+  law — *a wound names the substance; the substance names the remedy*. `will-not-clot` names no
+  substance, so it breaks the law it exists to obey. Same test that retired `spalled-stone`.
+- **`src/shared`'s four pin sites are NOT routed through `tokenFor`** — shared cannot import the
+  server without inverting the trust boundary (S1/I4). They were type-shape fixtures, not lexicon
+  assertions, and now use a synthetic `'a-sign-token'`.
 
 ## Not in this spec, but named because it comes first
 

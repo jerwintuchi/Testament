@@ -30,6 +30,7 @@ const TitleScene = preload("res://scripts/ui/title_scene.gd")   # the title's la
 const WritForm = preload("res://scripts/ui/writ_form.gd")       # the join / name writ (TD-080)
 const Settings = preload("res://scripts/core/settings.gd")      # persisted options (TD-084)
 const PauseMenu = preload("res://scripts/ui/pause_menu.gd")     # the Escape menu (TD-085)
+const SignProse = preload("res://scripts/field/sign_prose.gd")  # authored prose over sign tokens (TD-093)
 const StationNames = preload("res://scripts/core/station_names.gd")  # station kind -> player-facing name
 
 const SERVER_URL := "ws://localhost:3001"
@@ -419,6 +420,10 @@ func _ready() -> void:
 	# state, and nothing is ever sent from it.
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--lobby-preview"):
 		call_deferred("_lobby_preview")
+	# `-- --field-preview` shows the FIELD page over fixture signs, so the prose layer
+	# (TD-093) is capturable with no server and no deployment.
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--field-preview"):
+		call_deferred("_field_preview")
 	# `--title-preview` is handled ABOVE, before the first `_show_title()`. (It supersedes TD-071
 	# Phase B's `--menu-preview`: Phase D made the first screen the title, and moved the name/code
 	# plates behind `--setup-create` / `--setup-join`.)
@@ -623,6 +628,38 @@ func _board_preview() -> void:
 		_reader_cycle.call_deferred()
 	_log("board preview: %d fixture contracts" % pv_board.size())
 
+func _field_preview() -> void:
+	# `-- --field-preview` shows the FIELD page over fixture signs, so T354's claim —
+	# that no raw token ever reaches a player — is checkable by capture instead of by
+	# reading the source (V2). Same discipline as `_board_preview`: a fabricated
+	# *display* snapshot, never game state, and nothing is ever sent from it.
+	#
+	# The fixture spans four channels ON PURPOSE, including a probed REACTION and a
+	# miss, so the capture exercises every heading and both probe-log branches.
+	_field = {"fieldId": "pv-field", "siteName": "The Gall Road Ossuary", "incarnateName": "The Drowned Choir"}
+	_channels = ["RESIDUE", "STRESS_MARK", "REACTION", "OMEN"]
+	_signs = [
+		{"channel": "RESIDUE",     "token": "bloomed-iron"},
+		{"channel": "STRESS_MARK", "token": "clear-weep"},
+		{"channel": "OMEN",        "token": "wide-shoulder-coil"},
+		{"channel": "REACTION",    "token": "swallowed-the-grain"},
+	]
+	_exposure = 3
+	_probe_log = [
+		SignProse.probe_line("Aldric", "FLAME", null),
+		SignProse.probe_line("Wren", "SALT", {"channel": "REACTION", "token": "swallowed-the-grain"}),
+	]
+	_show_field()
+	# `-- --field-foot` scrolls to the probe log, which sits below the fold — the same
+	# problem `--reader-foot` solved for the writ: an unattended capture only ever sees
+	# the top of a screen that scrolls.
+	if OS.get_cmdline_user_args().has("--field-foot"):
+		await get_tree().process_frame
+		var sc := _root.get_parent() as ScrollContainer
+		if sc != null:
+			sc.scroll_vertical = int(_root.size.y)
+	_log("field preview: %d signs, %d probe lines" % [_signs.size(), _probe_log.size()])
+
 func _reader_cycle() -> void:
 	_select_board_card(_PREVIEW_BOARD[1])
 	for _i in 20:
@@ -801,11 +838,11 @@ func _ingest_probe_result(payload: Dictionary) -> void:
 	var line: String
 	if payload["sign"] != null:
 		var sign_data: Dictionary = payload["sign"]
-		line = "%s presented %s: [%s] %s" % [who, payload["stimulus"], sign_data["channel"], sign_data["token"]]
+		line = SignProse.probe_line(who, str(payload["stimulus"]), sign_data)
 		if not _signs.any(func(s): return s["channel"] == sign_data["channel"] and s["token"] == sign_data["token"]):
 			_signs.append(sign_data)
 	else:
-		line = "%s presented %s: you cannot read it" % [who, payload["stimulus"]]
+		line = SignProse.probe_line(who, str(payload["stimulus"]), null)
 	_probe_log.append(line)
 	if _screen == Screen.FIELD:
 		_show_field()
@@ -1223,14 +1260,24 @@ func _show_field() -> void:
 	_clear()
 	Widgets.h1(_root, "The Field: %s" % _field.get("siteName", "?"))
 	_label("target: %s" % _field.get("incarnateName", "?"))
-	_label("you perceive: %s" % (", ".join(_channels) if not _channels.is_empty() else "nothing (you packed no perception gear)"))
+	# The channels you can read, in the Collegium's language. `STRESS_MARK` is a wire
+	# identifier, and printing it to a player is the same defect T354 fixed for tokens —
+	# so it goes through the same prose layer, hard-broken to stay on screen (TD-098).
+	_label("you can read: %s" % SignProse.readable_list(_channels))
 	_label("party exposure: %d" % _exposure)
 	_label("")
-	_h2("Signs you can read")
+	_h2("What you have written down")
 	if _signs.is_empty():
 		_label("(nothing yet; observe, then probe)")
+	# Grouped under the channel it was read through, as field notes rather than a
+	# readout — the raw token is never shown to a player (R343/T354).
+	var seen_headings: Array[String] = []
 	for s in _signs:
-		_label("[%s]  %s" % [s["channel"], s["token"]])
+		var head: String = SignProse.heading(str(s["channel"]))
+		if not seen_headings.has(head):
+			seen_headings.append(head)
+			_label("%s —" % head)
+		_label("    %s" % SignProse.note(s))
 	_label("")
 	_h2("Probe (needs the matching kit)")
 	var row := HBoxContainer.new()
