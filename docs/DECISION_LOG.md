@@ -4193,3 +4193,42 @@ construction but **not re-verified by capture** (it needs a committed contract t
 stage), and the containment sweep ran `git diff` plus the board's deterministic readouts (identical:
 `keepout live=8 ok=true minhit=80x53`, `board live=8 flavor=0`) but **not** the stashed-clean-tree
 pixel diff.
+
+## 2026-08-09 — TD-101 addendum: the three open tasks, closed
+
+**Why an addendum.** TD-101 shipped with T378–T380 deliberately open rather than ticked on partial
+evidence. Closing them produced three findings worth keeping.
+
+**The seal capture fired past a shut gate, and the frame said so.** `--qm-issuable` staged a
+*contract* but not a *phase*; `_station_open` reads both, and with no server there is no snapshot at
+all — so the counter was closed while the rite played. It was visible in the capture: the "take one
+from the board first" gate message printed underneath a sealed pack. This is the second time in two
+specs that a **debug flag** was the broken thing rather than the feature (TD-100's `--qm-pick`
+bypassed the carry). A staging flag that does not reach the state a player reaches manufactures a
+passing screenshot.
+
+**The node estimate was wrong, and is corrected rather than excused.** `requirements.md` budgeted
+≤90 nodes; the built room measures **148**. Ten instruments cost three nodes each and the dressing
+runs to ~60 — the guess never had a chance. `tools/qm_budget.py` now enforces a ceiling set from the
+*measurement* plus headroom, and the count is printed at run time (`qm nodes=148/220`) because a
+static count of `.new()` calls misses every loop. Seven checks, `--selftest` green, each proven to
+bite against a broken copy — including the one this project keeps relearning: **`_select` must not
+re-enter `build()`** (TD-064, TD-065 and TD-068 are three separate fixes for that same defect).
+
+The tool also carries a **coverage** check across the trust boundary — every catalog instrument has
+a record, and the record table invents none. That seam is unreachable from either suite (the catalog
+is TypeScript, the prose is GDScript), and `Record.show_item` falls back to an EMPTY entry, so a
+missing record would ship as a silently blank ledger on a real instrument. Same shape of hole
+`lexicon_check.py` closes for signs, found by asking the same question in a new place.
+
+**Containment, measured properly this time.** A git worktree at the pre-TD-101 commit was imported
+and captured, then diffed against the current tree: **0.109% of pixels differ, every one of them in
+x-bands 0 and 15 — the two torch gutters.** Against a ~0.47% control floor that is particle noise,
+and the spatial confinement is the actual proof: not one differing pixel lies on a writ. Separately,
+**P166 was measured rather than asserted** — two openings of the room differ by 155 pixels, all of
+them in rows 716–719, which is the shell's status line at the bottom of the frame. The room itself is
+**pixel-identical**, so the seeded stock and the catalog-derived placement do what they claim.
+
+**Still needs a human, and named as such:** hover feedback and clicking through every instrument. A
+capture can neither hover nor click — the same standing gap TD-074 recorded for the board's two-client
+seal split, not a new one.

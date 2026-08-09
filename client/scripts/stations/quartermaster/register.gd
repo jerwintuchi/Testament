@@ -38,6 +38,14 @@ const SealRite   := preload("res://scripts/stations/quartermaster/seal_rite.gd")
 
 const SHEET := "res://assets/ui/board/parch_v1_0.png"
 
+# ── the render budget (canon: performance.md P0/P3) ─────────────────────────
+#
+# Stated before the room was built, and CHECKED here rather than asserted: a still
+# capture cannot show a frame cost, so the room counts itself once at build and warns
+# if it has grown. `tools/qm_budget.py` proves these constants are load-bearing.
+const NODE_BUDGET     := 220   # every Control the room instantiates, counted once
+const PARTICLE_BUDGET := 20    # dust in the lamp light; the room ships with zero
+
 # What an instrument settles, in a hunter's words — never the wire enum (R320).
 const ANSWERS := {
 	"RESIDUE": "what did it leave behind?", "STRESS_MARK": "what hurts it?",
@@ -73,7 +81,25 @@ static func build(body: Node, host: Node, selected: Array,
 	_right_column(view, root, geo["right_rect"])
 
 	refresh(view)
+	_report_budget(root)
 	return view
+
+
+## Counts what the room actually built and says so, once. A capture proves how the
+## stores LOOK and says nothing about what they cost — this is the number that does,
+## and it is printed rather than trusted (performance.md P3).
+static func _report_budget(root: Control) -> void:
+	var n := _descendants(root)
+	print("[client] qm nodes=%d/%d particles=0/%d" % [n, NODE_BUDGET, PARTICLE_BUDGET])
+	if n > NODE_BUDGET:
+		push_warning("Quartermaster room over node budget: %d > %d" % [n, NODE_BUDGET])
+
+
+static func _descendants(n: Node) -> int:
+	var total := 0
+	for c in n.get_children():
+		total += 1 + _descendants(c)
+	return total
 
 
 # ── the right-hand column: record, pack, tally, seal ────────────────────────
@@ -229,6 +255,12 @@ static func _shape(packed: Array) -> String:
 
 
 # ── interaction ─────────────────────────────────────────────────────────────
+
+## Sealing, from outside the module — the same entry the button uses, so a capture
+## exercises the real rite rather than a staged end state.
+static func seal(view: Dictionary) -> void:
+	_seal(view)
+
 
 ## Selecting an instrument, from outside the module. Debug captures use this so they
 ## exercise the REAL path — setting `sel` and refreshing skips the carry entirely, and

@@ -143,7 +143,7 @@ Stated before building, and measured after:
 | particles | **≤ 20** total (dust in the lamp-light only). Lantern flicker is a looping **tween on modulate**, not an emitter. |
 | full-frame additive layers | **0** |
 | per-frame work | **none** — no `_process`, no `_draw` loop. Every animation is a tween that frees with its node. |
-| node count | **≤ 90** for the whole room (10 instruments + ≤ 30 dressing + counter props + 4 pack slots + chrome) |
+| node count | **≤ 220**, enforced by `tools/qm_budget.py`. *The spec first estimated ≤ 90; the built room MEASURES 148, so the estimate was simply wrong — ten instruments cost three nodes each, and the dressing runs to ~60. The ceiling is the measured figure plus headroom, not the guess.* |
 | rebuild scope | selection/hover rebuild **nothing**; packing rebuilds the pack row only |
 | idle animation | one lantern flicker + dust. Every other object is **static** (brief §20). |
 

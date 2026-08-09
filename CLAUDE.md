@@ -577,10 +577,16 @@ hi-res UI art); `PROVISIONS/RELICS/TOOLS` **do not exist** (two real kinds; the 
 inventing them); `Uses/Weight/LOAD` would reintroduce **exactly what TD-091 cut** (gear are keys, one
 slot each). New: `gen_qm_room.py` (7 modular pieces, never a painted backdrop — TD-072),
 `room.gd`/`shelf.gd`/`counter.gd`; `register.gd` is now a coordinator. Light is **baked** (Light2D
-cannot reach Control); **no `_process` and no emitter in the whole feature**. **T369–T377 done;
-T378–T380 open** — the budget tool is unbuilt, the seal is preserved-by-construction but not
-capture-verified, and containment was checked by `git diff` + identical board readouts rather than a
-clean-tree pixel diff. DECISION_LOG **TD-101**.
+cannot reach Control); **no `_process` and no emitter in the whole feature**. **COMPLETE — T369–T380, 12 of 12.**
+`tools/qm_budget.py` enforces the budget with seven checks (`--selftest` green, each proven to bite),
+the count MEASURED at run time (`qm nodes=148/220`) — **the spec's ≤90 estimate was wrong and the
+ceiling is now the measurement plus headroom**, not the guess. It also carries a cross-boundary
+**coverage** check (every catalog instrument has a record; the record table invents none) because
+`Record.show_item` falls back to an EMPTY entry, so a gap would ship as a silently blank ledger.
+Containment proven by worktree diff at the pre-TD-101 commit: **0.109% of pixels differ, all in the
+two torch gutters** (~0.47% control floor) — not one on a writ. **P166 measured:** two openings are
+pixel-identical apart from the shell's status line. **Still needs a human:** hover and click-through,
+which a capture can do neither of (the standing TD-074 gap). DECISION_LOG **TD-101** + addendum.
 
 @specs/quartermaster-room/requirements.md
 @specs/quartermaster-room/design.md

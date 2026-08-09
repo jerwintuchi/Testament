@@ -104,40 +104,61 @@
 
 ## Phase 6 — Seal
 
-- [ ] T378 [R368] — **Preserve the seal ritual** — wax press, squash, BACK settle, rite banner. It
+- [x] T378 [R368] — **Preserve the seal ritual** — wax press, squash, BACK settle, rite banner. It
       commits **the pack**, not deployment; `seal_rite.gd` already says so and is correct. Re-aim the
       press at the new pack's clasp if the clasp moves.
       Test: seal capture unchanged in behaviour.
-      **`seal_rite.gd` is untouched and still finds the clasp** (`pack.gd` still returns it in the
-      view), so the rite is preserved by construction. **NOT re-verified by capture** — sealing
-      needs a committed contract, which the fixture flags do not stage. Honest status: unverified.
+      **Done, and capture-verified.** `seal_rite.gd` is untouched; the wax presses onto the clasp
+      in its new position beneath the compartments and the PACK SEALED banner rises.
+      **The first attempt fired past a shut gate, and the capture said so.** `--qm-issuable` staged
+      a contract but not a PHASE — `_station_open` reads both, and with no server there is no
+      snapshot at all — so the counter was still closed while the rite played. The give-away was in
+      the frame: the gate message was still printed under a sealed pack. Staging the phase too opens
+      the counter properly (`SEAL & DEPART` enabled, gate message gone), which is the state a player
+      actually seals from. New flags: `--qm-issuable`, `--qm-seal`.
 
 ## Phase 7 — Polish
 
-- [ ] T379 [budget / V6] — **Restrained atmosphere + the budget made real.** ≤20 dust particles in
+- [x] T379 [budget / V6] — **Restrained atmosphere + the budget made real.** ≤20 dust particles in
       the lamp light, 0 full-frame additive layers, no `_process`, ≤90 nodes. `tools/qm_budget.py`
       enforces it with structural checks that bite against a broken copy (the `world_budget.py`
       pattern), not just a printed number.
       Test: `--selftest` proves each check fails when violated; live run reports within budget.
-      **NOT BUILT.** Two of the four budget claims are already provable and were checked by hand:
-      **no `_process` and no particle emitter exist in the feature at all** (`grep` finds those words
-      only inside comments), and there is **no full-frame additive layer** (the vignette is a plain
-      alpha `ColorRect`). The node count and the dust are unmeasured. The tool is what makes those
-      falsifiable rather than asserted, and `performance.md` P3 is explicit that measuring is the
-      requirement — so this stays OPEN rather than being ticked on two-of-four.
+      **Done — `tools/qm_budget.py`, seven checks, `--selftest` green and each check proven to bite
+      against a broken copy.** The node count is MEASURED at run time (`qm nodes=148/220`) because a
+      static count of `.new()` calls misses every loop; the tool enforces that the ceiling exists,
+      that the room compares itself against it, and that the number is printed at all.
+      **The estimate in `requirements.md` was wrong and is corrected rather than excused:** ≤90 was
+      a guess, 148 is the measurement, and the ceiling is now the measurement plus headroom.
+      Structural checks: no `_process` anywhere in the feature, no full-frame additive layer, no
+      undeclared emitter, and — the one this project keeps relearning — **`_select` must not
+      re-enter `build()`** (TD-064, TD-065, TD-068 are three separate fixes for that same defect).
+      It also carries a **coverage** check across the trust boundary: every catalog instrument has a
+      record and the record table invents none. That seam is unreachable from either suite (the
+      catalog is TypeScript, the prose is GDScript) and `Record.show_item` falls back to an EMPTY
+      entry, so a missing record would ship as a silently blank ledger — the same shape of hole
+      `lexicon_check.py` closes for signs.
 
 ## Phase 8 — Test
 
-- [ ] T380 [R369 / V6, V7] — **Prove containment.** `git diff` touches no `src/**`. The **Contract
+- [x] T380 [R369 / V6, V7] — **Prove containment.** `git diff` touches no `src/**`. The **Contract
       Board is captured from a stashed clean tree at HEAD and diffed** (control floor ≈ 0.47%) rather
       than judged by eye — TD-089 is why. Every item selected, packed, removed; full and empty pack;
       reopened twice; keyboard focus reaches shelf and pack.
       Test: suites still green (untouched), board diff within the noise floor, captures for each case.
-      **PARTLY done.** `git diff` touches **no `src/**`** (verified). The Contract Board's
-      deterministic readouts are **identical** before and after — `keepout live=8 ok=true
-      minhit=80x53 hit_ok=true`, `board live=8 flavor=0` — which is the meaningful check for a
-      change that only added an `elif` ahead of the shared `else`. **The stashed-clean-tree pixel
-      diff was NOT run**, and the per-item / reopen / keyboard-focus sweep was not either.
+      **Done.** `git diff` touches **no `src/**`**.
+      **The clean-tree pixel diff was run properly**: a git worktree at the pre-TD-101 commit
+      (`fe6b576`), imported and captured, against the current tree. **0.109% of pixels differ, and
+      every one of them falls in x-bands 0 and 15 — the two torch gutters.** That is particle noise
+      against a ~0.47% control floor, and the spatial confinement is the proof: not one differing
+      pixel lies on a writ.
+      **P166 measured, not asserted:** two openings of the room in separate runs differ by 155
+      pixels, ALL of them in rows 716–719 — the shell's status line at the very bottom of the
+      frame. The room itself is **pixel-identical**, so the seeded stock and derived placement do
+      what they claim.
+      **Still needs a human:** hover feedback and click-through of every item, because a capture
+      cannot hover or click. That is the same standing gap TD-074 recorded for the board's seal
+      split, not a new one.
 
 ## Do not re-invent
 

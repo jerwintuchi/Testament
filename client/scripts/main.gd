@@ -458,7 +458,26 @@ func _ready() -> void:
 				_snapshot["players"] = ps
 			if OS.get_cmdline_user_args().has("--qm-full"):
 				_selected_items = ["ashen-lens", "chirurgeons-glass", "censer-of-embers", "consecrated-salt"]
+			# `--qm-issuable` fakes a taken-up contract, which is what `_station_open`
+			# reads — without one the counter is shut and the rite can never be captured.
+			# A DISPLAY fixture only: the server still refuses a real REQUISITION it did
+			# not authorise, so this stages the screen, never the permission (I1/I2).
+			if OS.get_cmdline_user_args().has("--qm-issuable"):
+				# The PHASE as well as the contract. `_station_open` reads both, and with
+				# no server there is no snapshot at all — staging only the contract left
+				# the counter shut and the first seal capture fired past a closed gate.
+				_snapshot["phase"] = Protocol.PHASE_WAITING
+				_snapshot["contract"] = {
+					"contractId": "pv-c1", "tier": "VIGIL", "origin": "SIN",
+					"targetName": "The Drowned Choir", "siteName": "Hollowmere Crossing",
+					"primaryVerb": "INVESTIGATE",
+				}
 			_open_station("QUARTERMASTER")
+			# `--qm-seal` performs the closing rite, so the wax press and the banner are
+			# capturable. Needs `--qm-issuable` and a packed bag, exactly as a player does.
+			if OS.get_cmdline_user_args().has("--qm-seal") and not _qm_view.is_empty():
+				get_tree().create_timer(0.8).timeout.connect(func():
+					Quartermaster.seal(_qm_view))
 			# `--qm-pick` also selects one, so the field record is capturable — it only
 			# fills once something is chosen, and a capture cannot click.
 			if OS.get_cmdline_user_args().has("--qm-pick") and not _qm_view.is_empty():
