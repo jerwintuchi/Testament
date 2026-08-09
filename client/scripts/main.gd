@@ -462,8 +462,11 @@ func _ready() -> void:
 			# `--qm-pick` also selects one, so the field record is capturable — it only
 			# fills once something is chosen, and a capture cannot click.
 			if OS.get_cmdline_user_args().has("--qm-pick") and not _qm_view.is_empty():
-				_qm_view["sel"] = "witness-prism"
-				Quartermaster.refresh(_qm_view))
+				# The REAL selection path, so the capture shows the instrument that was
+				# actually carried to the counter. Setting `sel` and refreshing skips the
+				# carry, and the first capture proved it: a filled record beside an object
+				# still standing on its shelf.
+				Quartermaster.select(_qm_view, "witness-prism"))
 	# `--qm-open` walks the REAL route — board, take a charge, counter — so the flow
 	# TD-096 opened is capturable end to end rather than approximated by a fixture.
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--qm-open"):
@@ -1614,12 +1617,21 @@ func _open_station(kind: String) -> void:
 		_popup_scroll.custom_minimum_size = _board_inner_size()
 		_board_frame.material = BoardDecor.surface_material(get_viewport_rect().size, "res://assets/ui/board/frame_v1_n.png", 0.40, 1.0)
 		_board_frame.visible = true
+	elif kind == "QUARTERMASTER":
+		# The stores are a ROOM, not a sheet on a table (TD-101): they take the whole
+		# frame, and the room draws its own wall, so the popup contributes nothing but
+		# the space. Inset, the record's text clipped at the right edge and the shelf
+		# was sliced mid-row — the composition could not be fixed inside it.
+		var clear_qm := StyleBoxFlat.new()
+		clear_qm.bg_color = Color(0, 0, 0, 0)
+		clear_qm.set_content_margin_all(0)
+		_popup.add_theme_stylebox_override("panel", clear_qm)
+		_popup_scroll.custom_minimum_size = get_viewport_rect().size
+		if _board_frame != null:
+			_board_frame.visible = false
 	else:
 		_popup.remove_theme_stylebox_override("panel")
-		var vp := get_viewport_rect().size
-		_popup_scroll.custom_minimum_size = (
-			Vector2(vp.x * 0.86, vp.y * 0.62)
-			if kind == "QUARTERMASTER" else Vector2(400, 240))
+		_popup_scroll.custom_minimum_size = Vector2(400, 240)
 		if _board_frame != null:
 			_board_frame.visible = false
 	_clear_popup_body()

@@ -37,7 +37,7 @@ static func build(host: Node, slot_count: int) -> Dictionary:
 	host.add_child(root)
 
 	var label := _nine(LABEL, LABEL_M)
-	label.custom_minimum_size = Vector2(0, 14)
+	label.custom_minimum_size = Vector2(0, 13)
 	root.add_child(label)
 	var cap := Widgets.card_label("EXPEDITION PACK", 9, PopupTheme.INK, false, true)
 	cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -49,13 +49,24 @@ static func build(host: Node, slot_count: int) -> Dictionary:
 	# zero-height panel — the case texture was drawing all along, at no size, while the
 	# compartments floated in front of it. A PanelContainer sizes to its child and
 	# applies the stylebox's content margins, which is what the insets should have been.
-	var case_panel := _nine_container(CASE, CASE_M, 15, 14)
+	var case_panel := _nine_container(CASE, CASE_M, 12, 7)
 	case_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(case_panel)
 
-	var col := VBoxContainer.new()
+	# A PanelContainer takes ONE child, so the case holds a column: the compartments
+	# across the top, the clasp beneath them.
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 2)
+	case_panel.add_child(stack)
+
+	# Compartments run ACROSS, not down. A satchel's slots sit side by side, and a
+	# stacked column was also half as tall again as the space the room gives it — it
+	# overran the tally and drew the seal through itself.
+	var col := HBoxContainer.new()
 	col.add_theme_constant_override("separation", 3)
-	case_panel.add_child(col)
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stack.add_child(col)
 
 	var slots: Array = []
 	for i in range(slot_count):
@@ -63,16 +74,16 @@ static func build(host: Node, slot_count: int) -> Dictionary:
 		col.add_child(s)
 		slots.append(s)
 
-	# The clasp: the case's closure, and what the seal rite presses. LAID OUT as the
-	# last child inside the case rather than anchored — an anchored overlay on a Panel
-	# landed over the label instead of the foot, and layout is the predictable tool.
+	# The clasp: the case's closure, and what the seal rite presses. It belongs BELOW
+	# the compartments — inside the row it read as a fifth slot, which is worse than
+	# not drawing it at all.
 	var clasp := TextureRect.new()
 	clasp.texture = load(CLASP) as Texture2D
 	clasp.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	clasp.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-	clasp.custom_minimum_size = Vector2(0, 16)
+	clasp.custom_minimum_size = Vector2(0, 11)
 	clasp.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(clasp)
+	stack.add_child(clasp)
 
 	return {"root": root, "case": case_panel, "slots": slots, "clasp": clasp}
 
@@ -178,7 +189,8 @@ static func _compartment() -> Button:
 	# A Button, so a packed instrument can be taken back out by clicking it and so the
 	# pack is reachable by keyboard — the shelf and the pack are both focusable columns.
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(0, ICON_PX + 4)
+	b.custom_minimum_size = Vector2(ICON_PX + 6, ICON_PX + 6)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	b.focus_mode = Control.FOCUS_ALL
 	var sb := StyleBoxTexture.new()

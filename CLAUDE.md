@@ -565,9 +565,26 @@ allowance or Pillar 4 inverts. **Charges are NOT the anti-brute-force fix** (TD-
 four kits are four *different* stimuli and duplicates are already rejected, so one charge each is
 exactly the sweep).
 
-@specs/rank-gate/requirements.md
-@specs/rank-gate/design.md
-@specs/rank-gate/tasks.md
+Active spec: **`specs/quartermaster-room/`** (TD-101) — **the Quartermaster becomes a room.** Author
+brief + reference image: the screen still read as a conventional RPG inventory, and the ask is a
+*presentation and interaction* change, not an architectural one. **The audit reframed it:** three of
+the brief's eight phases were ALREADY BUILT — `pack.fly_in()` already ran at the brief's own timings,
+removal-by-click worked, and `seal_rite.gd` was already a wax ceremony (TD-063's vocabulary);
+`lore.gd` already held the ledger prose. So the work is the **room, the objects, the counter and the
+frame**. `src/**` untouched; no second inventory. Three reference-vs-tree conflicts resolved on
+existing precedent: painted reference → **composition only** (TD-075, and TD-055 already rejected
+hi-res UI art); `PROVISIONS/RELICS/TOOLS` **do not exist** (two real kinds; the brief's own §4 forbids
+inventing them); `Uses/Weight/LOAD` would reintroduce **exactly what TD-091 cut** (gear are keys, one
+slot each). New: `gen_qm_room.py` (7 modular pieces, never a painted backdrop — TD-072),
+`room.gd`/`shelf.gd`/`counter.gd`; `register.gd` is now a coordinator. Light is **baked** (Light2D
+cannot reach Control); **no `_process` and no emitter in the whole feature**. **T369–T377 done;
+T378–T380 open** — the budget tool is unbuilt, the seal is preserved-by-construction but not
+capture-verified, and containment was checked by `git diff` + identical board readouts rather than a
+clean-tree pixel diff. DECISION_LOG **TD-101**.
+
+@specs/quartermaster-room/requirements.md
+@specs/quartermaster-room/design.md
+@specs/quartermaster-room/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

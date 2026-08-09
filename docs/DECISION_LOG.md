@@ -4134,3 +4134,62 @@ for eleven specs while `--check` stayed green (TD-069).
 **Not done, and named:** the **Field Testament** at extraction is still `outcome: 'success'`
 hard-coded. It is the answer key delivered after the bet is settled — Record closing the loop — and
 it should come before any Librarium, or a failed hunt teaches nothing.
+
+## 2026-08-09 — TD-101: the Quartermaster becomes a room
+
+**Why.** Author brief with a reference image: the screen still read as a conventional RPG inventory.
+The ask is a *presentation and interaction* change — the player should feel they are standing in the
+Collegium's stores, handling equipment, not operating a list.
+
+**The audit reframed the work, and that was the most valuable half hour of it.** Three of the brief's
+eight phases were **already built**: `pack.fly_in()` already ran at the brief's own timings (lift
+0.12 / carry 0.28 / settle 0.12 against a requested 80–120 / 250–400 / 100–150 ms), removal-by-click
+already worked, and `seal_rite.gd` was already a wax ceremony reusing TD-063's vocabulary. `lore.gd`
+already held exactly the ledger prose §9 describes. So this was the **room, the objects, the counter
+and the frame** — not a rewrite, and no second inventory architecture was created. `src/**` is
+untouched.
+
+**Three conflicts between the reference and the tree, each resolved on an existing precedent rather
+than on taste.** The reference is a painted image; Testament renders 640×360 NEAREST — so composition
+came from the reference and render from the board and the Great Hall, which is exactly TD-075's
+ruling for the title screen, and TD-055 already rejected hi-res UI art. The reference's
+`PROVISIONS / RELICS / TOOLS` shelves **do not exist** — the catalog has two kinds, and the brief's own
+§4 forbids inventing categories. And `Uses ◆◆◆` / `Weight I` / `LOAD LIGHT` would have reintroduced
+precisely what TD-091 cut: gear are *keys*, not power levels, every instrument costs exactly one slot,
+so a weight is either a no-op or the forbidden ladder. `_shape()`'s Observe/Test split stays.
+
+**What the room is made of.** `gen_qm_room.py` emits seven modular pieces — tiling ashlar, a shelving
+9-slice, a plank, a label plate, a counter, a stock atlas and a prop atlas — never a single painted
+backdrop, which the brief forbids (§17) and which TD-072 already recorded as a structural failure.
+`navestone` is reused so the stores and the title hall are the same building (TD-081). Light is baked,
+because **`Light2D` cannot reach `Control`** (TD-047/TD-083); the one moving thing is a candle
+flickering on a looping tween, so the feature contains **no `_process` and no emitter at all**.
+
+**Four art defects were caught by looking at a 4× contact sheet before any code consumed the PNGs** —
+the cheap place to catch them. A modulo on `x*3+y` scatters *dots* across a counter front where grain
+must run in lines; an `(x+y)` modulo draws diagonal *stripes* across a label; the scale's pans were one
+row tall and disappeared at display size; and two stock pieces used the cold `stone` ramp, which reads
+blue in a lamp-lit wooden room and pulled the eye harder than the real instruments did.
+
+**Three code lessons, two of them repeats of lessons already written down.**
+- **`Panel` does not lay out its children.** The record's anchored column ignored the stylebox's
+  content margin and its text ran off both edges of the paper. `pack.gd` already carries a comment
+  about this exact trap; it was hit again in a new file. `PanelContainer` fixes it.
+- **Build order beats z-shuffling.** The shelf stock did not appear at all: `move_child(t, 0)` was
+  meant to put it behind the instruments and put it behind the **wall**, because index 0 is the
+  backdrop. Placing stock *before* instruments is deterministic and needs no reordering.
+- **Size bands from what they contain, not as fractions.** A fractional band gave the pack 61px for
+  76px of case, and it drew straight through the tally beneath it.
+
+**A capture flag can be the thing that is broken.** `--qm-pick` set `sel` and called `refresh()`,
+bypassing the carry entirely — so the first capture showed a filled record beside an object still
+standing on its shelf. The flag now drives the real `select()` path. A debug affordance that does not
+exercise the real path is worse than none: it manufactures a passing screenshot.
+
+**Not done, and named rather than quietly dropped:** the budget tool (`tools/qm_budget.py`) is
+**unbuilt**, so two of four budget claims are hand-checked and two are unmeasured — `performance.md`
+P3 says measuring is the requirement, so the task stays open. The seal rite is preserved by
+construction but **not re-verified by capture** (it needs a committed contract the fixtures do not
+stage), and the containment sweep ran `git diff` plus the board's deterministic readouts (identical:
+`keepout live=8 ok=true minhit=80x53`, `board live=8 flavor=0`) but **not** the stashed-clean-tree
+pixel diff.

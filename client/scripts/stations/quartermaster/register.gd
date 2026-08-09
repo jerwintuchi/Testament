@@ -1,38 +1,42 @@
 extends RefCounted
-## The Quartermaster's Register — the whole screen, and the coordinator for its parts.
+## The Quartermaster — the Collegium's stores, and the coordinator for its parts.
 ##
-## Composition: the shelf of available instruments on the left, the expedition pack on
-## the right, the field record beneath, and the seal at the foot. Selection inspects;
-## the record commits. Click-to-assign rather than drag-and-drop, because mobile is a
-## target platform (TD-042) and a drag breaks the keyboard focus the board already uses.
+## TD-101 turned this from a writ with a list on it into a ROOM: shelving on the left,
+## an inspection counter beneath it, the record and the expedition pack on the right.
+## The interaction is physical throughout — browse, handle, inspect, pack, seal — and
+## this file owns none of it directly. It wires:
+##
+##   room.gd     the environment (wall, shelving, counter, lamp)
+##   shelf.gd    the instruments as objects, hover, and the item state machine
+##   counter.gd  the carry to and from the inspection surface
+##   record.gd   the ledger entry for whatever is on the counter
+##   pack.gd     the expedition pack and the flight into it
+##   seal_rite.gd the closing ceremony
+##
+## Dependencies run ONE WAY (register → the rest), so no `preload` is cyclic — the
+## trap TD-067 recorded when `main.gd` was decomposed.
 ##
 ## Render + intent only (S3.5): it never touches `_net`. `on_requisition` carries the
-## sealed pack out; the shell owns the socket, and the server validates regardless —
-## this screen is an affordance (P148).
+## sealed pack out; the shell owns the socket and the server validates regardless, so
+## everything here is an affordance (P148).
 ##
 ## What sealing does NOT do: deploy. Requisition stays reversible until the leader
-## deploys at the Deploy Gate, which is a server phase gate and the deliberate
-## commitment boundary (you may re-pack freely, but never after seeing a sign). So the
-## rite commits THE PACK and says so.
+## deploys at the Deploy Gate, which is the server's phase gate and the deliberate
+## commitment boundary. The rite commits THE PACK, and says so.
 
 const Widgets    := preload("res://scripts/ui/widgets.gd")
 const PopupTheme := preload("res://scripts/ui/popup_theme.gd")
 const Fonts      := preload("res://scripts/ui/fonts.gd")
 const Catalog    := preload("res://scripts/core/catalog.gd")
+const Room       := preload("res://scripts/stations/quartermaster/room.gd")
+const Shelf      := preload("res://scripts/stations/quartermaster/shelf.gd")
+const Counter    := preload("res://scripts/stations/quartermaster/counter.gd")
 const Pack       := preload("res://scripts/stations/quartermaster/pack.gd")
 const Record     := preload("res://scripts/stations/quartermaster/record.gd")
 const Lore       := preload("res://scripts/stations/quartermaster/lore.gd")
 const SealRite   := preload("res://scripts/stations/quartermaster/seal_rite.gd")
 
-const ICONS   := "res://assets/ui/stations/gear_icons.png"
-const ICON_PX := 24
-
-const ICON_INDEX := {
-	"ashen-lens": 0, "chirurgeons-glass": 1, "witness-prism": 2, "trackers-fetish": 3,
-	"cantors-ear": 4, "augurs-bead": 5,
-	"censer-of-embers": 6, "phial-of-hoarfrost": 7, "consecrated-salt": 8,
-	"lantern-of-the-creed": 9,
-}
+const SHEET := "res://assets/ui/board/parch_v1_0.png"
 
 # What an instrument settles, in a hunter's words — never the wire enum (R320).
 const ANSWERS := {
@@ -45,98 +49,116 @@ const ANSWERS := {
 static func build(body: Node, host: Node, selected: Array,
 		on_change: Callable, on_requisition: Callable, reduced: bool,
 		can_issue: bool = true, party: Array = []) -> Dictionary:
+	var vp: Vector2 = (host as Node).get_viewport().get_visible_rect().size
+
+	# One root, filling the frame, holding the whole room. Objects are positioned
+	# ABSOLUTELY inside it — see shelf.gd for why a container would break the carry.
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.custom_minimum_size = vp
+	body.add_child(root)
+
 	var view := {
-		"host": host, "packed": selected, "sel": "", "sealed": false,
+		"host": host, "root": root, "vp": vp,
+		"packed": selected, "sel": "", "sealed": false,
 		"on_change": on_change, "on_requisition": on_requisition, "reduced": reduced,
-		"can_issue": can_issue, "party": party, "rows": {},
+		"can_issue": can_issue, "party": party, "items": {},
 	}
 
-	var cols := HBoxContainer.new()
-	cols.add_theme_constant_override("separation", 14)
-	cols.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cols.custom_minimum_size = Vector2(0, 180)   # bounded: the record below must stay visible
-	cols.size_flags_vertical = Control.SIZE_SHRINK_BEGIN   # a minimum, not a licence to grow
-	body.add_child(cols)
+	var geo := Room.build(root, vp)
+	view["counter"] = Counter.build(root, geo["counter_rect"])
+	view["items"] = Shelf.build(root, view, geo["units"],
+		func(id): _select(view, String(id)), geo["dress"], geo["frames"])
 
-	# ── left: the register of what may be drawn ──────────────────────────────
-	var left_col := VBoxContainer.new()
-	left_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left_col.size_flags_stretch_ratio = 1.30
-	left_col.add_theme_constant_override("separation", 2)
-	cols.add_child(left_col)
-	left_col.add_child(_heading("AVAILABLE INSTRUMENTS"))
-	# The register is longer than the sheet, so IT scrolls — not the whole writ. The
-	# pack, the record and the rite stay put while the shelf is browsed.
-	var shelf_scroll := ScrollContainer.new()
-	shelf_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	shelf_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	left_col.add_child(shelf_scroll)
-	var left := VBoxContainer.new()
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", 1)
-	shelf_scroll.add_child(left)
-	Widgets.ink_scrollbar(shelf_scroll.get_v_scroll_bar())
-	view["shelf_scroll"] = shelf_scroll
-	_shelf_group(left, "Instruments of Sight", "PERCEPTION", view)
-	_shelf_group(left, "Instruments of Trial", "PROBE", view)
+	_right_column(view, root, geo["right_rect"])
 
-	# ── right: the pack itself ───────────────────────────────────────────────
-	var right := VBoxContainer.new()
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.custom_minimum_size = Vector2(112, 0)
-	cols.add_child(right)
-	view["pack"] = Pack.build(right, Catalog.BAG_SLOTS)
+	refresh(view)
+	return view
 
-	# ── third column: the field record ───────────────────────────────────────
-	# The brief stacks the record UNDER the columns. At this game's logical 640x360
-	# that composition is ~370 units tall against a ~250-unit sheet, so it cannot fit
-	# and the rite would sit permanently below the fold. Three columns is the honest
-	# adaptation: the record keeps its own space, and the decision stays on screen.
-	var rec_col := VBoxContainer.new()
-	rec_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rec_col.size_flags_stretch_ratio = 1.25
-	rec_col.add_theme_constant_override("separation", 2)
-	cols.add_child(rec_col)
-	rec_col.add_child(_heading("SELECTED INSTRUMENT"))
-	# The record scrolls inside its column too. A long record is what pushed the rite
-	# below the fold twice: whichever column is tallest sets the row height, so NONE of
-	# them may grow without bound.
-	var rec_scroll := ScrollContainer.new()
-	rec_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	rec_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	rec_col.add_child(rec_scroll)
-	Widgets.ink_scrollbar(rec_scroll.get_v_scroll_bar())
-	view["record"] = Record.build(rec_scroll, rec_col)   # body scrolls, action stays put
 
-	body.add_child(Widgets.hrule(PopupTheme.RULE))
+# ── the right-hand column: record, pack, tally, seal ────────────────────────
+
+static func _right_column(view: Dictionary, root: Control, rect: Rect2) -> void:
+	# The record sits on the board's own parchment — the one paper object in a room
+	# made of wood and iron, which is what a filed document should look like.
+	# A PanelContainer, NOT a Panel. A Panel does not lay out its children, so an
+	# anchored column ignores the stylebox's content margin and the record's text runs
+	# off both edges of the paper — which is exactly what the first pass shipped, and
+	# exactly the trap `pack.gd` already carries a comment about.
+	var sheet := PanelContainer.new()
+	var sb := StyleBoxTexture.new()
+	sb.texture = load(SHEET) as Texture2D
+	for side in ["left", "top", "right", "bottom"]:
+		sb.set("texture_margin_" + side, 18.0)
+	sb.set_content_margin_all(11.0)
+	sheet.add_theme_stylebox_override("panel", sb)
+	# The three bands are computed from what they CONTAIN, not as fractions of the
+	# column. Fractions put the pack's 76px of case into a 61px slot, and it drew
+	# straight through the tally beneath it — the record simply takes what is left.
+	var pack_h := 76.0
+	var foot_h := 52.0
+	var record_h := maxf(rect.size.y - pack_h - foot_h - 12.0, 60.0)
+
+	sheet.position = rect.position
+	sheet.size = Vector2(rect.size.x, record_h)
+	root.add_child(sheet)
+
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 2)
+	sheet.add_child(col)
+
+	# The record's BODY scrolls; its action is pinned beneath. A long note otherwise
+	# grows the column past the paper and the decision walks off the sheet — the same
+	# failure the writ version hit, for the same reason.
+	var body_scroll := ScrollContainer.new()
+	body_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	col.add_child(body_scroll)
+	Widgets.ink_scrollbar(body_scroll.get_v_scroll_bar())
+	view["record"] = Record.build(body_scroll, col)
+
+	# The pack, below the record. Its own object, in leather and iron.
+	var pack_host := Control.new()
+	pack_host.position = Vector2(rect.position.x, rect.position.y + record_h + 5.0)
+	pack_host.size = Vector2(rect.size.x, pack_h)
+	root.add_child(pack_host)
+	var pack_col := VBoxContainer.new()
+	pack_col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pack_col.add_theme_constant_override("separation", 2)
+	pack_host.add_child(pack_col)
+	view["pack"] = Pack.build(pack_col, Catalog.BAG_SLOTS)
+
+	# The tally and the rite, at the foot.
+	var foot := VBoxContainer.new()
+	foot.position = Vector2(rect.position.x, rect.position.y + record_h + pack_h + 11.0)
+	foot.size = Vector2(rect.size.x, foot_h)
+	foot.add_theme_constant_override("separation", 1)
+	root.add_child(foot)
 
 	var tally := HBoxContainer.new()
 	tally.alignment = BoxContainer.ALIGNMENT_CENTER
-	tally.add_theme_constant_override("separation", 18)
-	body.add_child(tally)
-	var packed_l := Widgets.card_label("", 10, PopupTheme.INK, false, false)
-	var shape_l := Widgets.card_label("", 10, PopupTheme.INK_DIM, false, false)
+	tally.add_theme_constant_override("separation", 14)
+	foot.add_child(tally)
+	var packed_l := Widgets.card_label("", 9, Room.INK_WARM, false, false)
+	var shape_l := Widgets.card_label("", 9, Room.INK_FAINT, false, false)
 	tally.add_child(packed_l); tally.add_child(shape_l)
 	view["packed_label"] = packed_l
 	view["shape_label"] = shape_l
 
-	# Why the counter cannot issue yet. The server refuses REQUISITION outside DEPLOYING
-	# (R65 — the bag is a bet on the contract's intel), and the station is reachable
-	# before then, so the reason is stated instead of discovered as an error toast.
-	var gate := Widgets.card_label("", 9, Color(0.44, 0.20, 0.16, 0.95), true, true)
+	# Why the counter cannot issue yet. The server refuses REQUISITION outside
+	# DEPLOYING (R65 — the bag is a bet on the contract's intel) and the station is
+	# reachable before then, so the reason is stated rather than discovered as an error.
+	var gate := Widgets.card_label("", 8, Color(0.72, 0.42, 0.34), true, true)
 	gate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(gate)
+	foot.add_child(gate)
 	view["gate_label"] = gate
 
 	var seal := Button.new()
-	seal.text = "Seal Expedition Pack"
-	Record._ink(seal)
+	seal.text = "SEAL & DEPART"
+	_seal_ink(seal)
 	seal.pressed.connect(func(): _seal(view))
-	body.add_child(seal)
+	foot.add_child(seal)
 	view["seal"] = seal
-
-	refresh(view)
-	return view
 
 
 static func refresh(view: Dictionary) -> void:
@@ -146,55 +168,50 @@ static func refresh(view: Dictionary) -> void:
 	Pack.refresh(view["pack"], packed, func(id): return icon_for(id),
 		func(id): _remove(view, String(id)))
 
-	for id in view["rows"].keys():
-		var row: Button = view["rows"][id]["row"]
+	# A packed instrument is IN THE CASE, so it is not on the shelf either. Hidden
+	# rather than dimmed: the room is physical, and a thing cannot be in two places.
+	for id in view["items"].keys():
+		var rec: Dictionary = view["items"][id]
 		var on: bool = String(id) in packed
-		# Packed instruments leave the register — they are in the case now. Dimmed
-		# rather than removed, so the shelf never reflows under the cursor.
-		row.modulate = Color(1, 1, 1, 0.35) if on else (Color(1, 1, 1, 0.55) if full else Color(1, 1, 1, 1))
-		var who := _carried_by(view, String(id))
-		var mark: Label = view["rows"][id]["state"]
+		var node: Control = rec["node"]
+		var shadow: Control = rec["shadow"]
 		if on:
-			mark.text = "packed"
-			mark.add_theme_color_override("font_color", Color(0.44, 0.34, 0.18, 0.95))
-		elif not who.is_empty():
-			# A second copy is a wasted slot, so it is called what it is.
-			mark.text = "held"   # shorter than "carried", which clipped against the scrollbar
-			mark.add_theme_color_override("font_color", Color(0.30, 0.42, 0.34, 0.95))
-		else:
-			mark.text = ""
+			node.visible = false
+			shadow.visible = false
+		elif String(view["sel"]) != String(id):
+			node.visible = true
+			shadow.visible = true
 
-	(view["packed_label"] as Label).text = "PACKED: %d / %d" % [packed.size(), Catalog.BAG_SLOTS]
+	(view["packed_label"] as Label).text = "PACKED  %d / %d" % [packed.size(), Catalog.BAG_SLOTS]
 	(view["shape_label"] as Label).text = _shape(packed)
 	var issuable: bool = view["can_issue"]
 	(view["seal"] as Button).disabled = view["sealed"] or not issuable or packed.is_empty()
 	(view["gate_label"] as Label).text = ("" if issuable else
-		"The Collegium issues instruments against a contract. Take one from the board first.")
+		"The Collegium issues instruments against a contract.\nTake one from the board first.")
 
 	var sel := String(view["sel"])
 	if sel == "":
 		Record.clear(view["record"])
+		Counter.set_caption(view["counter"], "")
 	else:
 		var item := Catalog.item_by_id(sel)
 		var state := "packed" if sel in packed else ("full" if full else "shelf")
 		Record.show_item(view["record"], item, icon_for(sel), state,
 			func(): _act(view, sel), _carried_by(view, sel))
+		Counter.set_caption(view["counter"], String(item.get("name", "")).to_upper())
 
 
+## The instrument icons. Delegated to `shelf.gd`, which owns the sheet — kept here as
+## a forward because `pack.gd` and `record.gd` are handed a callable, not a module.
 static func icon_for(item_id: String) -> AtlasTexture:
-	var sheet := load(ICONS) as Texture2D
-	if sheet == null or not ICON_INDEX.has(item_id):
-		return null
-	var at := AtlasTexture.new()
-	at.atlas = sheet
-	at.region = Rect2(int(ICON_INDEX[item_id]) * ICON_PX, 0, ICON_PX, ICON_PX)
-	return at
+	return Shelf.icon_for(item_id)
 
 
 ## The pack's SHAPE, which the tally cannot say. Burden was considered and rejected:
 ## every instrument costs exactly one slot, so a weight would either restate
-## "PACKED: n/4" or reintroduce the per-item cost TD-091 cut. What is actually worth
-## knowing is the Observe/Test split — the real tradeoff the two groups exist to make.
+## "PACKED n/4" or reintroduce the per-item cost TD-091 cut — and the reference's
+## `Uses`/`Weight`/`LOAD` are the same forbidden ladder. What is actually worth knowing
+## is the Observe/Test split, the real tradeoff the two shelves exist to make.
 static func _shape(packed: Array) -> String:
 	if packed.is_empty():
 		return ""
@@ -213,9 +230,36 @@ static func _shape(packed: Array) -> String:
 
 # ── interaction ─────────────────────────────────────────────────────────────
 
+## Selecting an instrument, from outside the module. Debug captures use this so they
+## exercise the REAL path — setting `sel` and refreshing skips the carry entirely, and
+## the first `--qm-pick` capture showed a record filled for an object still on its shelf.
+static func select(view: Dictionary, id: String) -> void:
+	_select(view, id)
+
+
+## Selecting brings the object to the counter. The previous one goes back to its exact
+## shelf position FIRST — the counter holds one thing, and nothing is ever destroyed
+## to make room for the next (R365).
 static func _select(view: Dictionary, id: String) -> void:
+	if view["sealed"] or String(view["sel"]) == id:
+		return
+	var prev := String(view["sel"])
+	var items: Dictionary = view["items"]
+	var reduced: bool = view["reduced"]
+
+	if prev != "" and items.has(prev) and not (prev in view["packed"]):
+		Counter.carry_out(items[prev], reduced)
+
 	view["sel"] = id
-	refresh(view)
+	if not items.has(id):
+		refresh(view)
+		return
+
+	# The record fills when the instrument LANDS, so the screen keeps pace with the
+	# hand rather than running ahead of it.
+	Counter.carry_in(view["counter"], items[id], reduced, func():
+		items[id]["state"] = Shelf.ON_COUNTER
+		refresh(view))
 
 
 static func _act(view: Dictionary, id: String) -> void:
@@ -229,21 +273,38 @@ static func _pack(view: Dictionary, id: String) -> void:
 	var packed: Array = view["packed"]
 	if view["sealed"] or id in packed or packed.size() >= Catalog.BAG_SLOTS:
 		return
-	var from: Control = view["rows"][id]["icon"] if view["rows"].has(id) else null
+	# The flight starts from the COUNTER, because that is where the object is — it was
+	# carried there when it was chosen. Flying it from the shelf would contradict what
+	# the player is looking at.
+	var items: Dictionary = view["items"]
+	var from: Control = items[id]["node"] if items.has(id) else null
 	var slot_index := packed.size()
-	# The state changes when the instrument LANDS, so the pack fills as it is watched.
 	Pack.fly_in(view["host"], view["pack"], from, icon_for(id), slot_index, view["reduced"],
 		func():
+			if items.has(id):
+				items[id]["state"] = Shelf.PACKED
 			packed.append(id)
+			view["sel"] = ""
 			(view["on_change"] as Callable).call(packed)
 			refresh(view))
 
 
+## Taking an instrument back out returns it to its shelf position. It never blinks
+## out: the physical illusion is the whole point of the redesign (R367).
 static func _remove(view: Dictionary, id: String) -> void:
 	if view["sealed"]:
 		return
 	var packed: Array = view["packed"]
 	packed.erase(id)
+	var items: Dictionary = view["items"]
+	if items.has(id):
+		var rec: Dictionary = items[id]
+		rec["state"] = Shelf.AVAILABLE
+		(rec["node"] as Control).position = rec["home"]
+		(rec["node"] as Control).visible = true
+		(rec["shadow"] as Control).visible = true
+	if String(view["sel"]) == id:
+		view["sel"] = ""
 	(view["on_change"] as Callable).call(packed)
 	refresh(view)
 
@@ -259,62 +320,29 @@ static func _seal(view: Dictionary) -> void:
 
 # ── builders ────────────────────────────────────────────────────────────────
 
-static func _heading(text: String) -> Label:
-	var l := Widgets.card_label(text, 9, PopupTheme.INK_DIM, false, false)
-	l.add_theme_constant_override("line_spacing", 2)
-	return l
+static func _seal_ink(b: Button) -> void:
+	# The rite's own button: brass on dark wood, not ink on paper — it belongs to the
+	# room, not to the record.
+	b.add_theme_stylebox_override("normal", _plate(Color(0.42, 0.33, 0.18, 0.85)))
+	for st in ["hover", "pressed", "focus"]:
+		b.add_theme_stylebox_override(st, _plate(Color(0.62, 0.49, 0.26, 0.95)))
+	b.add_theme_stylebox_override("disabled", _plate(Color(0.30, 0.24, 0.14, 0.40)))
+	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		b.add_theme_color_override(st, Room.INK_WARM)
+	b.add_theme_color_override("font_disabled_color", Color(0.52, 0.46, 0.36, 0.45))
+	b.add_theme_font_size_override("font_size", 11)
+	var f := Fonts.heading()
+	if f != null:
+		b.add_theme_font_override("font", f)
 
 
-static func _shelf_group(host: Node, title: String, kind: String, view: Dictionary) -> void:
-	var h := Widgets.card_label(title, 8, Color(PopupTheme.INK_DIM.r, PopupTheme.INK_DIM.g, PopupTheme.INK_DIM.b, 0.8), false, false)
-	host.add_child(h)
-	for item in Catalog.GEAR:
-		if String(item["kind"]) != kind:
-			continue
-		var id := String(item["id"])
-		var built := _row(item, view)
-		host.add_child(built["row"])
-		view["rows"][id] = built
-
-
-static func _row(item: Dictionary, view: Dictionary) -> Dictionary:
-	var id := String(item["id"])
-	var b := Button.new()
-	b.custom_minimum_size = Vector2(0, ICON_PX + 6)
-	b.focus_mode = Control.FOCUS_ALL
-	b.add_theme_stylebox_override("normal", PopupTheme.ruled(Color(0, 0, 0, 0)))
-	for st in ["hover", "pressed"]:
-		b.add_theme_stylebox_override(st, PopupTheme.ruled(PopupTheme.RULE_LIT))
-	b.add_theme_stylebox_override("focus", Widgets.focus_ring())
-	b.pressed.connect(func(): _select(view, id))
-	b.tooltip_text = "Read its record."
-
-	var box := HBoxContainer.new()
-	box.set_anchors_preset(Control.PRESET_FULL_RECT)
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_theme_constant_override("separation", 7)
-	b.add_child(box)
-
-	var ic := TextureRect.new()
-	ic.texture = icon_for(id)
-	ic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	ic.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-	ic.custom_minimum_size = Vector2(ICON_PX, ICON_PX)
-	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(ic)
-
-	var col := VBoxContainer.new()
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.add_theme_constant_override("separation", 0)
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(col)
-	col.add_child(Widgets.card_label(String(item["name"]), 11, PopupTheme.INK, false, false))
-	col.add_child(Widgets.card_label(_says(item), 8, PopupTheme.INK_DIM, false, false))
-
-	var state := Widgets.card_label("", 8, Color(0.44, 0.34, 0.18, 0.95), false, true)
-	state.custom_minimum_size = Vector2(34, 0)
-	box.add_child(state)
-	return {"row": b, "icon": ic, "state": state}
+static func _plate(edge: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.09, 0.07, 0.05, 0.80)
+	sb.border_color = edge
+	sb.set_border_width_all(1)
+	sb.set_content_margin_all(5)
+	return sb
 
 
 ## Names of other Seekers already carrying `id`. Empty when nobody is.
@@ -330,3 +358,12 @@ static func _says(item: Dictionary) -> String:
 	if String(item["kind"]) == "PERCEPTION":
 		return String(ANSWERS.get(String(item["channel"]), "?"))
 	return "offer it %s, and watch" % String(item["stimulus"]).to_lower()
+
+
+## Ids the lore table is missing — the two halves cannot drift apart silently.
+static func missing_ids() -> Array:
+	var missing: Array = []
+	for item in Catalog.GEAR:
+		if Lore.of(String(item["id"])).is_empty():
+			missing.append(String(item["id"]))
+	return missing
