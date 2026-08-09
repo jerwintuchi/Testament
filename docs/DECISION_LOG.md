@@ -4594,3 +4594,42 @@ different opinion.
 **The general lesson, which is the reason this is worth a log entry:** a generated artefact is only
 as trustworthy as the check that fails when it rots. The repo had three derived views — a markdown
 report, an HTML page, and a published artifact — and had guarded exactly the one that nobody reads.
+
+## 2026-08-09 — TD-110: toward the reference, and a 9-slice lesson learned twice in one hour
+
+**Why.** The author's reference image for the Quartermaster, with four rulings: instruments stay
+**24px** and gain density; the crimson counter cloth **is the inspection surface**; new dressing is
+**baked** into composites rather than costing a node each; and all four scene groups are in scope.
+The reference's bottom instruction row is explicitly **not** built.
+
+**Measured before deciding.** The reference's shelf objects are ~50px in a 1536px image — **~21px at
+our 640×360** — so the reference is already 640×360-class art and 24px is the right canvas. The gap
+is detail *density*, not size, which is why the instruments are not being grown. The reference also
+depicts objects the catalog does not have (a telescope, a horned skull, a spiked orb); `gear.ts` is
+authoritative, so our ten keep their identities and gain the fidelity — TD-075's ruling again.
+
+**THE LESSON, and it cost two separate failures: a 9-slice stretches its CENTRE.**
+
+The altar cloth shipped as a 9-slice, and its gold crosses live in the middle — they smeared into
+streaks. Re-authored at display size and drawn 1:1 (TD-050/TD-055), they are crisp. Then the record's
+divider shipped as a 9-slice with the ornament at its centre, which is *by definition* the stretched
+region, and the cross became a heavy bar across the sheet. It is now a stretching rule with a glyph
+laid over it — two nodes, and correct. Stated plainly so it is not learned a third time: **a 9-slice
+is for a frame whose middle is a uniform fill.** A pattern, or a centred ornament, needs either
+display-size authoring or separate nodes.
+
+**A second gotcha, cheap but confusing:** after regenerating the cloth at 128×80 it still drew at
+half size, because Godot was serving the **cached 48×40** texture. Regenerating a PNG does not change
+its dimensions as far as the engine is concerned until `--import` runs.
+
+**Shipped:** the cloth as the derived inspection surface (`Counter.rest_point` reads
+`Room.cloth_rect`, so the instrument cannot land beside it — the TD-105 coupling), the record's
+ornamented dividers and QUARTERMASTER RECORD heading, and the pack's crimson plaque with numbered
+slots. The plaque restores an object TD-107 deleted, and correctly: what was redundant then was the
+*words*, not the plaque.
+
+**Not shipped, and left open rather than implied:** instrument density, the rest of the bench, the
+record's seal medallion, the pack's trim, and the room's lantern/notes/banner/floor/rite-plate. The
+room is at **204 of 220 nodes**, which is why every one of those must arrive as a **baked composite**
+rather than a node per object — the headroom is now the binding constraint, exactly as the budget
+was designed to make visible.

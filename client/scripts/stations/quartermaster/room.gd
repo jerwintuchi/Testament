@@ -24,11 +24,13 @@ const BOARD   := "res://assets/ui/stations/qm_board.png"
 const LABEL   := "res://assets/ui/stations/qm_label.png"
 const COUNTER := "res://assets/ui/stations/qm_counter.png"
 const PROPS   := "res://assets/ui/stations/qm_props.png"
+const CLOTH   := "res://assets/ui/stations/qm_cloth.png"
 
 const SHELF_M   := 16      # 9-slice margins, matching gen_qm_room.py
 const BOARD_M   := 4
 const LABEL_M   := 7
 const COUNTER_M := 16
+const CLOTH_PX  := Vector2(128, 80)   # matches gen_qm_room.CLOTH_W/H
 const PROP_PX   := 24
 
 # Dust motes in the candle's reach. Declared here so `tools/qm_budget.py` can read it.
@@ -264,6 +266,16 @@ static func _shelving(host: Control, rect: Rect2) -> Array:
 	return [units, dress, frames]
 
 
+## Where the cloth is draped, and therefore where an instrument is set down. ONE
+## definition, read by the room that draws it and by the counter that rests on it.
+static func cloth_rect(counter_rect: Rect2) -> Rect2:
+	# The cloth's OWN authored size, drawn 1:1 — never scaled to fit the counter,
+	# because scaling is what destroyed its crosses the first time.
+	return Rect2(
+		counter_rect.position.x + counter_rect.size.x * 0.5 - CLOTH_PX.x * 0.5,
+		counter_rect.position.y - 7.0, CLOTH_PX.x, CLOTH_PX.y)
+
+
 ## A shelf's label plate. Public so `shelf.gd` can name each unit from the catalog's
 ## own kinds rather than from a string this file invented.
 static func label_plate(host: Control, text: String, at: Vector2, width: float) -> Control:
@@ -288,6 +300,22 @@ static func _counter(host: Control, rect: Rect2) -> void:
 	c.size = rect.size
 	c.material = lit(vp_of(host), "res://assets/ui/stations/qm_counter_n.png", 0.32)
 	host.add_child(c)
+
+	# The altar cloth. NOT decoration (author ruling, TD-110): this is the inspection
+	# surface, and `Counter.rest_point` derives from this SAME rect — so the chosen
+	# instrument cannot land beside the thing it is meant to be set down on (P176).
+	# The same coupling the candle and its light needed in TD-105.
+	# A TextureRect at 1:1, NOT a 9-slice: the crosses live in the middle, which is
+	# exactly the region a 9-slice stretches — it smeared them into gold streaks.
+	var cl := TextureRect.new()
+	cl.texture = load(CLOTH) as Texture2D
+	cl.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	cl.stretch_mode = TextureRect.STRETCH_KEEP
+	var cr := cloth_rect(rect)
+	cl.position = cr.position
+	cl.size = cr.size
+	cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(cl)
 
 	# THREE ZONES (R371), so the bench reads as a place someone works rather than a
 	# plank with ornaments on it: the Quartermaster WRITES on the left, the instrument

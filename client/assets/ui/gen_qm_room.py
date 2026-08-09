@@ -630,6 +630,59 @@ def _satchel(x, y):
     return _op(A.quantize(A.ramp_shade("navestone", 0.03 + hgt * 0.10)))
 
 
+# ── qm_cloth.png — the altar cloth over the bench ───────────────────────────
+# The reference's most striking counter element, and NOT decoration: this is the
+# inspection surface (author ruling, TD-110) — the instrument the player chooses is
+# set down on it. Crimson with gold crosses, darker folds at the sides, and a fringed
+# hem living in the 9-slice's BOTTOM border so it never stretches.
+# AUTHORED AT DISPLAY SIZE and drawn 1:1 NEAREST (TD-050/TD-055). The first pass made
+# it a 9-slice and the crosses live in the centre — which is the region a 9-slice
+# STRETCHES, so they smeared into gold streaks. A 9-slice is for frames whose middle is
+# a uniform fill; a patterned cloth has to be drawn at the size it is shown.
+CLOTH_W, CLOTH_H = 128, 80
+FRINGE = 11           # rows of loose thread at the hem
+
+
+def _cross(lx, ly, size):
+    """A Collegium cross in a size x size box, as a boolean stamp."""
+    c = size // 2
+    arm = max(1, size // 8)
+    if abs(lx - c) <= arm and 0 <= ly < size:
+        return True                                   # the upright
+    if abs(ly - (c - size // 8)) <= arm and 1 <= lx < size - 1:
+        return True                                   # the crossbar
+    return False
+
+
+def _cloth(x, y):
+    right = CLOTH_W - 1 - x
+    bottom = CLOTH_H - 1 - y
+    edge_x = min(x, right)
+
+    # The fringe: loose threads, each column its own length, so the hem reads as
+    # thread rather than as a serrated edge.
+    if bottom < FRINGE:
+        depth = FRINGE - 1 - bottom
+        length = 3 + int(_rnd(x, 0, 91) * 7.0)
+        if depth >= length or (x % 2 and depth >= length - 1):
+            return CLEAR
+        return _op(A.RAMP["gold"][0] if depth >= length - 1 else A.RAMP["wax"][0])
+
+    # Deep oxblood, not pillar-box red: the reference's cloth is nearly brown in the
+    # folds and only the gold lifts it.
+    t = 0.20 - 0.10 * (edge_x < 10) - 0.06 * (edge_x < 5)
+    t += 0.10 * (1.0 - y / float(CLOTH_H))
+    if _rnd(x // 2, y // 2, 71) > 0.92:
+        t -= 0.06                                     # a slub in the weave
+
+    # Gold crosses, one per repeat, laid on the field.
+    if _cross((x - 18) % 44, (y - 12) % 40, 17) and 8 <= x < CLOTH_W - 8 and y >= 8:
+        return _op(A.RAMP["gold"][1] if (x + y) % 5 else A.RAMP["gold"][0])
+    if bottom == FRINGE:
+        return _op(A.RAMP["gold"][0])                 # a gold band above the hem
+    return _op(A.quantize(A.ramp_shade("wax", max(0.05, min(0.95, t)))))
+
+
 # ── normal maps ─────────────────────────────────────────────────────────────
 # Emitted from the SAME height functions that drive the paint, so relief and shading
 # can never disagree. The room's surfaces are then lit at run time by the Contract
@@ -657,6 +710,7 @@ TARGETS = [
     ("stations/qm_label.png",   LABEL_W, LABEL_H, _label),
     ("stations/qm_counter.png", CTR_W,   CTR_H,   _counter),
     ("stations/qm_satchel.png", SATCH_W, SATCH_H, _satchel),
+    ("stations/qm_cloth.png",   CLOTH_W, CLOTH_H, _cloth),   # 1:1, never 9-sliced
     ("stations/qm_stock.png",   STOCK_W, STOCK_H, _stock),
     ("stations/qm_props.png",   PROP_W,  PROP_H,  _props),
 ]

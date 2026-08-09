@@ -14,6 +14,36 @@ const Lore       := preload("res://scripts/stations/quartermaster/lore.gd")
 const ICON_PX := 24
 
 
+## A divider with a cross at its heart: a rule that STRETCHES with a glyph laid over
+## its centre, which does not.
+##
+## NOT a 9-slice. A 9-slice stretches its CENTRE, and the centre is precisely where the
+## ornament has to sit — the first attempt smeared the cross across the whole width as
+## a heavy bar. `qm_rule.png` is retired; two nodes cost less than a texture that
+## cannot be drawn correctly.
+static func _ornament_rule() -> Control:
+	var wrap := Control.new()
+	wrap.custom_minimum_size = Vector2(0, 9)
+	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var line := ColorRect.new()
+	line.color = Color(PopupTheme.RULE.r, PopupTheme.RULE.g, PopupTheme.RULE.b, 0.55)
+	line.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	line.offset_top = 4.0
+	line.offset_bottom = 5.0
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(line)
+
+	var cross := Widgets.card_label("\u2720", 9, Color(0.34, 0.26, 0.14), false, true)
+	cross.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cross.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(cross)
+	return wrap
+
+
+
 ## `host` takes the scrolling body; `action_host` takes the commit button, which is
 ## pinned OUTSIDE the scroll — a long record must never carry the decision off-screen.
 static func build(host: Node, action_host: Node = null) -> Dictionary:
@@ -43,15 +73,21 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 	titles.add_child(name_l)
 	titles.add_child(class_l)
 
-	root.add_child(Widgets.hrule(PopupTheme.RULE))
+	root.add_child(_ornament_rule())
 	var asks := Widgets.card_label("", 11, PopupTheme.INK, true, false)
 	asks.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(asks)
+	root.add_child(_ornament_rule())
+	# The body is filed under a heading, the way a record actually is.
+	var rec_head := Widgets.card_label("QUARTERMASTER RECORD", 8, Color(0.34, 0.26, 0.14), false, false)
+	rec_head.add_theme_font_override("font", Fonts.heading())
+	root.add_child(rec_head)
 	var note := Widgets.card_label("", 9, PopupTheme.INK_DIM, true, false)
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(note)
 	# The handling note is a WARNING and is labelled as one: a heading, then the text,
 	# in muted burgundy. Unheaded, it read as one more line of description.
+	root.add_child(_ornament_rule())
 	var warn_head := Widgets.card_label("WARNING", 8, Color(0.46, 0.19, 0.15), false, false)
 	warn_head.add_theme_font_override("font", Fonts.heading())
 	root.add_child(warn_head)

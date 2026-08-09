@@ -11,6 +11,7 @@ extends RefCounted
 ## that vanished would break the physical illusion the whole redesign rests on.
 
 const Widgets := preload("res://scripts/ui/widgets.gd")
+const Room    := preload("res://scripts/stations/quartermaster/room.gd")
 
 const ICON_PX := 24
 
@@ -23,34 +24,29 @@ const T_SETTLE := 0.13
 const LIFT_H   := 9.0
 
 
-## The resting place for the inspected object: centred on the counter's surface,
-## standing on it rather than floating over it.
+## The resting place for the inspected object: on the ALTAR CLOTH, derived from the
+## cloth's own rect (TD-110/P176). Deriving rather than declaring is what stops the
+## instrument landing beside the cloth it is supposed to be set down on — the same
+## mistake the candle and its light made in TD-105.
 static func rest_point(counter_rect: Rect2) -> Vector2:
-	return Vector2(
-		counter_rect.position.x + counter_rect.size.x * 0.5 - ICON_PX * 0.5,
-		counter_rect.position.y + 4.0)
+	var cloth := Room.cloth_rect(counter_rect)
+	return Vector2(cloth.position.x + cloth.size.x * 0.5 - ICON_PX * 0.5,
+		cloth.position.y + 7.0)
 
 
 ## Builds the mat the instrument is set down on — a small leather square, so the
 ## surface reads as a place to put something rather than as empty wood.
 static func build(host: Control, counter_rect: Rect2) -> Dictionary:
 	var at := rest_point(counter_rect)
-	# Leather, not a void. At near-black it read as a hole punched in the counter
-	# rather than as something laid on it.
-	var mat := ColorRect.new()
-	mat.color = Color(0.22, 0.15, 0.10, 0.72)
-	mat.position = Vector2(at.x - 8.0, at.y + 2.0)
-	mat.size = Vector2(ICON_PX + 16.0, ICON_PX - 2.0)
-	mat.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(mat)
-
+	# No mat: the altar cloth IS the surface now (TD-110), drawn by the room, so a
+	# second rectangle under the instrument would be a mat laid on a cloth.
 	var caption := Widgets.card_label("", 8, Color(0.70, 0.62, 0.46), false, true)
 	caption.position = Vector2(counter_rect.position.x, counter_rect.position.y + counter_rect.size.y - 14.0)
 	caption.size = Vector2(counter_rect.size.x, 10.0)
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(caption)
 
-	return {"mat": mat, "caption": caption, "rest": at, "holding": ""}
+	return {"caption": caption, "rest": at, "holding": ""}
 
 
 ## Carries `rec`'s object from wherever it stands to the counter. `done` fires when it

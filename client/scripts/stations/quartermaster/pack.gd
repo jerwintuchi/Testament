@@ -38,7 +38,24 @@ static func build(host: Node, slot_count: int) -> Dictionary:
 	root.add_theme_constant_override("separation", 4)
 	host.add_child(root)
 
-	# NO TITLE STRIP (TD-107). The tally beneath already reads "EXPEDITION PACK — n / 4",
+	# The plaque, in the shelves' own crimson-and-gold signage so the room speaks one
+	# language (TD-110). It replaces the plain strip TD-107 deleted: what was redundant
+	# was the WORDS, not the object.
+	var plate := Panel.new()
+	var psb := StyleBoxTexture.new()
+	psb.texture = load("res://assets/ui/stations/qm_label.png") as Texture2D
+	for side in ["left", "top", "right", "bottom"]:
+		psb.set("texture_margin_" + side, 7.0)
+	plate.add_theme_stylebox_override("panel", psb)
+	plate.custom_minimum_size = Vector2(0, 13)
+	root.add_child(plate)
+	var pcap := Widgets.card_label("EXPEDITION PACK", 8, Color(0.78, 0.64, 0.34), false, true)
+	pcap.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pcap.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pcap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.add_child(pcap)
+
+	# NO SECOND TITLE STRIP (TD-107). The tally beneath already reads "EXPEDITION PACK — n / 4",
 	# so a strip above saying "EXPEDITION PACK" was the same words twice — and the brief
 	# is explicit that the scene must not be cluttered. Dropping it also gives the bag
 	# the vertical room to show its folded-back flap, which is what makes it read OPEN.
@@ -95,11 +112,14 @@ static func refresh(view: Dictionary, packed: Array, icon_of: Callable, on_remov
 		var slot: Button = slots[i]
 		var held: TextureRect = slot.get_node("Held")
 		var tag: Label = slot.get_node("Tag")
+		var num: Label = slot.get_node("Num")
+		num.text = str(i + 1)
 		if i < packed.size():
 			var id := String(packed[i])
 			held.texture = icon_of.call(id)
 			held.visible = true
 			tag.text = ""
+			num.visible = false
 			slot.disabled = false
 			slot.tooltip_text = "Take it back out of the pack."
 			if not slot.pressed.is_connected(on_remove):
@@ -110,7 +130,8 @@ static func refresh(view: Dictionary, packed: Array, icon_of: Callable, on_remov
 		else:
 			held.texture = null
 			held.visible = false
-			tag.text = "empty"
+			tag.text = "\u2720"
+			num.visible = true
 			slot.disabled = true
 			slot.tooltip_text = ""
 			for c in slot.pressed.get_connections():
@@ -210,7 +231,16 @@ static func _compartment() -> Button:
 	held.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(held)
 
-	var tag := Widgets.card_label("empty", 8, Color(0.62, 0.55, 0.42, 0.55), false, true)
+	# A numeral, so the pack reads as four ISSUED places rather than four blanks. It is
+	# drawn under the instrument and hidden when one lands.
+	var num := Widgets.card_label("", 7, Color(0.60, 0.52, 0.38, 0.60), false, true)
+	num.name = "Num"
+	num.set_anchors_preset(Control.PRESET_FULL_RECT)
+	num.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	num.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(num)
+
+	var tag := Widgets.card_label("\u2720", 10, Color(0.55, 0.48, 0.36, 0.40), false, true)
 	tag.name = "Tag"
 	tag.set_anchors_preset(Control.PRESET_FULL_RECT)
 	tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
