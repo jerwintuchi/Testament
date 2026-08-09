@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from datetime import date
 
@@ -343,10 +344,124 @@ def build() -> str:
     )
 
 
+def _committed_rows(path: str):
+    """The row data embedded in a built page, or None if it cannot be read.
+
+    Parsed out of `const ROWS = [...], BUILT = "..."` rather than compared byte for
+    byte, because the page stamps `date.today()` into itself — a whole-file compare
+    would fail every day for no reason and train everyone to ignore it. What matters
+    is whether the page's DATA still matches the tree; the build date is not data.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            html = fh.read()
+    except OSError:
+        return None
+    m = re.search(r"const ROWS = (\[.*?\]), BUILT = ", html, re.S)
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(1))
+    except ValueError:
+        return None
+
+
+# Fields that are a function of WHEN YOU LOOK rather than of the tree. `days` is
+# days-since-touched and ticks over on its own; comparing it makes the check fire on
+# the passage of time, which is the false positive that teaches everyone to ignore a
+# check. A real staleness transition still lands, because crossing the threshold
+# changes `flags`, and flags ARE compared.
+VOLATILE = ("days",)
+
+
+def _stable(rows):
+    return [{k: v for k, v in r.items() if k not in VOLATILE} for r in rows]
+
+
+def check(out: str) -> int:
+    """Exit 1 if the committed page disagrees with the tree.
+
+    `spec_status.py --check` has guarded the markdown since TD-074, but nothing
+    guarded this page or the artifact built from it — so both drifted, the artifact by
+    two weeks and fifteen specs (TD-108). The two derived views a human is most likely
+    to actually LOOK at were the two with no staleness check on them.
+    """
+    have = _committed_rows(out)
+    if have is None:
+        print("%s is MISSING or unreadable — run: python3 tools/spec_status_html.py" % out)
+        return 1
+    want = collect()
+    have, want = _stable(have), _stable(want)
+    if have == want:
+        print("%s is current (%d specs)." % (out, len(want)))
+        return 0
+
+    names_have = {r["name"] for r in have}
+    names_want = {r["name"] for r in want}
+    added, gone = sorted(names_want - names_have), sorted(names_have - names_want)
+    changed = sorted(
+        r["name"] for r in want
+        if r["name"] in names_have
+        and r != next(h for h in have if h["name"] == r["name"])
+    )
+    print("%s is STALE — run: python3 tools/spec_status_html.py" % out)
+    if added:
+        print("  missing from the page: %s" % ", ".join(added))
+    if gone:
+        print("  no longer in the tree: %s" % ", ".join(gone))
+    if changed:
+        print("  changed since it was built: %s" % ", ".join(changed))
+    print("  then REPUBLISH the artifact — the page and the published copy are separate.")
+    return 1
+
+
+def selftest() -> int:
+    """Assert the rule, and that it can fail — a check that cannot fail is a comment."""
+    rows = collect()
+    page = build()
+    parsed = re.search(r"const ROWS = (\[.*?\]), BUILT = ", page, re.S)
+    assert parsed, "a freshly built page must expose its rows"
+    assert json.loads(parsed.group(1)) == rows, "a fresh page must match the tree"
+
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        fresh = os.path.join(d, "fresh.html")
+        with open(fresh, "w", encoding="utf-8") as fh:
+            fh.write(page)
+        assert check(fresh) == 0, "a fresh page must pass"
+
+        # Time passing must NOT fail: a page whose only difference is `days` is still
+        # telling the truth about the tree, and firing on it would train everyone to
+        # ignore the check (found the moment this was first run — TD-109).
+        aged = os.path.join(d, "aged.html")
+        bumped = json.dumps([{**r, "days": r["days"] + 1} for r in rows], separators=(",", ":"))
+        with open(aged, "w", encoding="utf-8") as fh:
+            fh.write(page.replace(json.dumps(rows, separators=(",", ":")), bumped))
+        assert check(aged) == 0, "a page differing only in `days` must still pass"
+
+        # A page built before a spec existed must FAIL, which is exactly how the
+        # published artifact sat fifteen specs behind without complaint.
+        stale = os.path.join(d, "stale.html")
+        dropped = json.dumps(rows[1:], separators=(",", ":"))
+        with open(stale, "w", encoding="utf-8") as fh:
+            fh.write(page.replace(json.dumps(rows, separators=(",", ":")), dropped))
+        assert check(stale) == 1, "a page missing a spec must fail"
+
+        missing = os.path.join(d, "nope.html")
+        assert check(missing) == 1, "a missing page must fail"
+
+    print("selftest: OK  (fresh passes, aged passes, stale fails, missing fails)")
+    return 0
+
+
 def main() -> int:
     out = DEFAULT_OUT
     if "--out" in sys.argv:
         out = sys.argv[sys.argv.index("--out") + 1]
+    if "--selftest" in sys.argv:
+        return selftest()
+    if "--check" in sys.argv:
+        return check(out)
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, "w", encoding="utf-8") as fh:
         fh.write(build())

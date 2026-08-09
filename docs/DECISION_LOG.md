@@ -4561,3 +4561,36 @@ a shadow cannot end up under the wrong object.
 (`keepout live=8 ok=true`), which is the guard TD-106 added the last time "no shared surface, so the
 board is fine" turned out to be wrong. Budget 189 nodes / 220: a `ColorRect` became a `TextureRect`,
 so nothing was added.
+
+## 2026-08-09 — TD-109: the derived views a human actually reads were the two nothing guarded
+
+**Why.** TD-108 found the published spec registry two weeks and **fifteen specs** behind, while every
+`--check` in the repo stayed green. The markdown report has been guarded since TD-074; the HTML page
+and the published artifact never were — and those are precisely the two a person is most likely to
+open.
+
+**`spec_status_html.py --check` now guards the page**, with `--selftest` proving it can fail. Two
+design points, both learned by running it:
+
+**It compares DATA, not bytes.** The page stamps `date.today()` into itself, so a whole-file compare
+would fail every day for no reason. The check parses the embedded `ROWS` and compares those.
+
+**And it ignores `days`.** The first run flagged `seal-rite` as drifted — the only difference being
+days-since-touched, which had ticked from 18 to 19 while I worked. That is a function of *when you
+look*, not of the tree, and a check that fires on the passage of time is the exact false positive
+that teaches everyone to ignore it. `days` is excluded; a genuine staleness transition still lands,
+because crossing the 45-day threshold changes `flags`, and flags are compared. The selftest pins
+this: a page differing **only** in `days` must still pass.
+
+**`tools/spec_artifact_hook.py` covers the part a check cannot.** Only the Artifact tool can publish,
+so no shell hook can keep the artifact fresh — it can only surface the need. This one fires on a
+spec-file edit, **runs the real check**, and stays silent when the page already matches the tree.
+That is deliberately quieter than `board_artifact_hook.py`, which nags on every `main.gd` edit
+whether the board changed or not: a reminder that fires when nothing is wrong is one people learn to
+skip, which is the same failure mode as a flaky test. It shells out to the tool rather than
+reimplementing staleness, so there is one definition and it cannot drift into a second quietly
+different opinion.
+
+**The general lesson, which is the reason this is worth a log entry:** a generated artefact is only
+as trustworthy as the check that fails when it rots. The repo had three derived views — a markdown
+report, an HTML page, and a published artifact — and had guarded exactly the one that nobody reads.

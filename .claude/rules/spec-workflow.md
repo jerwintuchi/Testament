@@ -80,11 +80,22 @@ carried open boxes for work that had shipped, and `station-ui` was summarised in
 shipping a Stipend economy that was never built. So spec status is **derived, never asserted**:
 
 ```bash
-python3 tools/spec_status.py            # regenerate docs/technical/spec-status.md
-python3 tools/spec_status.py --check    # exit 1 if the committed report is stale
-python3 tools/spec_status.py --selftest # assert the RULES (not any live finding)
-python3 tools/spec_status_html.py       # the same data as a page you can look at
+python3 tools/spec_status.py             # regenerate docs/technical/spec-status.md
+python3 tools/spec_status.py --check     # exit 1 if the committed report is stale
+python3 tools/spec_status.py --selftest  # assert the RULES (not any live finding)
+
+python3 tools/spec_status_html.py            # the same data as a page you can look at
+python3 tools/spec_status_html.py --check    # exit 1 if the committed PAGE is stale
+python3 tools/spec_status_html.py --selftest # assert those rules too
 ```
+
+**Then RE-PUBLISH the page.** The file and the published artifact are separate things:
+regenerating `spec-status.html` does not update the artifact, and only the Artifact tool can
+publish. That gap is how the published registry once sat **two weeks and fifteen specs behind**
+while every `--check` in the repo stayed green (TD-108) — the two views a human is most likely to
+actually look at were the two nothing guarded. `tools/spec_artifact_hook.py` now nudges when a spec
+file changes AND the page has genuinely drifted; it stays silent otherwise, because a reminder that
+fires when nothing is wrong is one people learn to skip.
 
 It reports **disagreements between a spec and the tree** — `CLAIM` (CLAUDE.md says complete,
 tasks are open), `MISSING` (an open task names a file that does not exist), `LIKELY-SHIPPED` (an
