@@ -4312,3 +4312,38 @@ for free, which is usually a sign the two were the same problem.
 folds a preceding `#` block into the following key's name, and its writer then rewrites the folded
 result as one long garbage key, deleting the setting outright. The reasons live in `fonts.gd`, which
 a parser cannot corrupt.
+
+## 2026-08-09 — TD-102, second addendum: words were breaking apart, and I called it wrong once
+
+**The author caught a defect I had dismissed.** After the font fix I compared the board's legend at
+3× and concluded the tighter spacing was "a typographic difference, not a defect." That was **wrong**,
+and the method error is worth recording: I magnified a line of **capitals** (`PETITION TYPES`) and
+never looked at lowercase, where the real artifact lives. The author's crop of the Quartermaster's
+WARNING made it obvious — the gaps are not at word boundaries at all, they are **inside words**:
+`WA RNING`, `Carry one b etween y ou`, `th at offers a nd c annot`, `h as s pent`.
+
+**Cause, found by elimination rather than by theory.** Three candidates were tested against captures:
+
+- `keep_rounding_remainders` — flipped to false: **no change**.
+- `hinting` — tried 0, 1 and 2: **no change** at any value. (It was `3`, which is **out of range** for
+  Godot's 0–2 enum, so it had been undefined all along; now `0`.)
+- `subpixel_positioning=0` — **this was it.** Disabled, every glyph advance rounds to a whole pixel,
+  and Almendra's fractional advances at 7–9px accumulate into visible 1px gaps at arbitrary points
+  inside a word. Set to `1` (Auto), words hold together.
+
+**This amends TD-077, which was right about antialiasing and overreached about subpixel
+positioning.** TD-077 set both to zero across every face to get cut-stone edges on the title — correct
+for a *display* face used large, wrong for a *text* face used at 7px. The two settings do different
+jobs: antialiasing decides whether a glyph's edge is soft; subpixel positioning decides whether it may
+start at a fractional x. Only the first one costs crispness.
+
+So: `Almendra` and `Almendra-Bold` take `subpixel_positioning=1`; **`AlmendraDisplay` keeps it
+disabled**, being ornament-only at ≥21px where an integer advance is a fraction of a glyph.
+**Antialiasing remains 0 everywhere** — re-captured the title to confirm the type is still hard-edged.
+
+**Re-checked after:** Contract Board `keepout live=8 ok=true minhit=80x51 hit_ok=true`, eight writs
+live; the board legend and the Quartermaster record both read with correct word spacing.
+
+**The lesson, plainly:** when checking whether text renders correctly, look at **lowercase running
+text**, not a heading in capitals. Capitals hide advance-rounding artifacts because their advances
+are wider and more uniform — which is exactly why the first check passed and the defect shipped.

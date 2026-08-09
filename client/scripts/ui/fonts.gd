@@ -17,6 +17,18 @@ extends RefCounted
 ## `keepout ok=true`, `hit_ok=true`, all eight writs live. Put the reasons HERE, in a file
 ## a parser cannot corrupt, never beside the key.
 ##
+## ⚠ AND THE FIX EXPOSED A SECOND DEFECT (TD-102). With Almendra finally rendering the
+## default, words broke apart: `WA RNING`, `b etween`, `c annot`. Cause: TD-077 set
+## `subpixel_positioning=0` on every face, so glyph advances round to WHOLE PIXELS, and
+## Almendra's fractional advances at 7–9px spill into 1px gaps mid-word. Hinting was not
+## the cause (0, 1 and 2 all showed it) and neither was `keep_rounding_remainders`.
+##
+## So: `Almendra` and `Almendra-Bold` now use `subpixel_positioning=1` (Auto).
+## `AlmendraDisplay` keeps it DISABLED — ornament-only at ≥21px, where an integer advance
+## is a fraction of a glyph and crispness is the reason the face is used at all.
+## **Antialiasing stays 0 everywhere**; that half of TD-077 was never in question, and the
+## type is still hard-edged (title re-captured to prove it).
+##
 ## Shared font builders (TD-067, retypeset TD-097). Preloaded as `Fonts`, never a global
 ## class_name so a headless parse/import resolves it (TD-029/30).
 ##

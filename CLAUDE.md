@@ -776,8 +776,13 @@ ask for a role, never a weight number (Almendra has no variable axis — weight 
   TD-097 until then. **Never put a comment inside a `project.godot` section.** `notice_card.gd` measures writs against `ThemeDB.fallback_font` while
   `Widgets.card_label` renders with the default, so measure and render stay the same font by
   construction (P111). Overriding fonts per call site breaks that pairing — the TD-089 trap again.
-- **No antialiasing, no subpixel positioning**, enforced in the `.ttf.import` files so no call site
-  can opt back in (the rule TD-077 established).
+- **No antialiasing** — still absolute, enforced in every `.ttf.import` so no call site can opt back
+  in (TD-077). **Subpixel positioning is a different question and TD-077's blanket ban was wrong for
+  a TEXT face (TD-102):** disabled, glyph advances round to whole pixels, and Almendra's fractional
+  advances at 7–9px spilled into **1px gaps inside words** — `WA RNING`, `b etween`, `c annot`. So
+  `Almendra` and `Almendra-Bold` use `subpixel_positioning=1` (Auto); **`AlmendraDisplay` keeps it
+  disabled**, being ornament-only at ≥21px where crispness is the whole point. `hinting` was `3` on
+  all three — **out of range** for Godot's 0–2 enum, i.e. undefined — and is now `0` (None).
 - Changing the face **re-flows the Contract Board**. Re-capture and check `keepout ok=true` before
   believing it fits.
 

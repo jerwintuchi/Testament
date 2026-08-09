@@ -70,14 +70,32 @@
       **Board verified, not assumed:** `keepout live=8 ok=true minhit=80x51 hit_ok=true`, all eight
       writs live and nothing clipped. Writs measure slightly SHORTER in Almendra (80x53 → 80x51), so
       the re-flow gained room rather than costing it.
-      **A 1× read said the word spaces had collapsed** ("PETITIONTYPES"); magnifying to 3× showed
-      they are present and simply narrower than the sans — a typographic difference, not a defect.
-      Checked by looking closer instead of acting on the first impression.
+      **⚠ THIS CHECK WAS WRONG, and the author caught it (see T391).** A 1× read suggested collapsed
+      word spaces; magnifying to 3× I judged them merely narrow and moved on. I had magnified a line
+      of CAPITALS and never looked at lowercase, where the real artifact was — gaps *inside* words.
       **A bonus fell out of it:** Almendra is narrower, so the Quartermaster record's note now fits in
       fewer lines and the **WARNING block is visible without scrolling** — which is what R374 wanted
       and T386 could not quite reach. The title screen is unaffected (it names its faces explicitly).
       **The rule that comes out of this:** `project.godot` must stay comment-free inside a section;
       the reasons live in `fonts.gd`, which a parser cannot corrupt.
+
+- [x] T391 — **Words were breaking apart; `subpixel_positioning` was the cause.** With Almendra
+      finally rendering the default, running text showed 1px gaps INSIDE words (`WA RNING`,
+      `b etween`, `c annot`). Found by elimination against captures, not by theory:
+      `keep_rounding_remainders=false` — no change; `hinting` 0/1/2 — no change at any value (it had
+      been `3`, **out of range** for Godot's 0–2 enum, so undefined all along; now `0`);
+      **`subpixel_positioning=0` was it** — disabled, every advance rounds to a whole pixel and
+      Almendra's fractional advances at 7–9px accumulate into visible gaps.
+      **Amends TD-077**, which was right about antialiasing and overreached about subpixel
+      positioning: the two settings do different jobs, and only antialiasing costs crispness.
+      `Almendra`/`Almendra-Bold` → `subpixel_positioning=1`; **`AlmendraDisplay` stays disabled**
+      (ornament-only at ≥21px). **Antialiasing remains 0 everywhere** — title re-captured to prove
+      the type is still hard-edged.
+      Re-checked: board `keepout live=8 ok=true minhit=80x51 hit_ok=true`, legend and record both
+      spaced correctly.
+      **Method lesson:** to check whether text renders correctly, read **lowercase running text**, not
+      a heading in capitals — capitals hide advance-rounding because their advances are wider and
+      more uniform, which is exactly how this passed the first check.
 
 ## Do not re-invent
 
@@ -86,3 +104,5 @@
 - **Aseprite owns sprites; Python owns surfaces** (TD-057). Neither generates art in Godot at run
   time — every PNG is authored offline and imported Nearest.
 - **`project.godot` must stay comment-free inside a section.** See T390.
+- **Antialiasing off ≠ subpixel positioning off.** Text faces need Auto; only ornament keeps it
+  disabled. See T391.
