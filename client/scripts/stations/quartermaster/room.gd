@@ -69,19 +69,28 @@ const P_LAMP   := 6
 # ── the room's geometry, in fractions of the viewport ────────────────────────
 # Fractions, never fixed pixels: the canon is that anything on screen is sized from
 # the viewport so it cannot run off it (TD-098).
+# TWO ROWS, both columns aligned (author's composition, TD-107):
+#   row 1   storage wall  |  inspection record
+#   row 2   counter       |  open satchel
+#   foot    SEAL & DEPART, spanning the full width
+#
+# The seal takes the whole width because it is the commitment — tucked into the right
+# column it read as one more control in a stack, which is what a menu does.
 const HEADER_H  := 0.115
 const LEFT_X    := 0.030
-const LEFT_W    := 0.585
-const RIGHT_X   := 0.635
-const RIGHT_W   := 0.340
+const LEFT_W    := 0.575
+const RIGHT_X   := 0.625
+const RIGHT_W   := 0.347
 const SHELVES_Y := 0.135
 const SHELVES_H := 0.415
-const COUNTER_Y := 0.590
-const COUNTER_H := 0.190
+const COUNTER_Y  := 0.590
+const COUNTER_H2 := 0.255      # row 2's height, shared by the counter and the satchel
+const SEAL_Y     := 0.875      # the rite, spanning the full width beneath both columns
+const SEAL_H     := 0.085
 # The right column runs nearly to the foot of the frame: at 0.72 it left a band of
 # dead black under the rite while the RECORD — the thing with the most to say — was
 # squeezed to 119px and hid its WARNING behind a scroll (R374/§19).
-const RIGHT_H   := 0.800
+const RIGHT_H   := 0.415       # the record occupies ROW 1 only now
 
 # The ink of this room. Warmer and darker than the writ's parchment, because you are
 # in a cellar store rather than reading a document.
@@ -148,8 +157,12 @@ static func build(host: Control, vp: Vector2) -> Dictionary:
 	_wall(host, vp)
 
 	var shelf_rect := Rect2(vp.x * LEFT_X, vp.y * SHELVES_Y, vp.x * LEFT_W, vp.y * SHELVES_H)
-	var counter_rect := Rect2(vp.x * LEFT_X, vp.y * COUNTER_Y, vp.x * LEFT_W, vp.y * COUNTER_H)
+	var counter_rect := Rect2(vp.x * LEFT_X, vp.y * COUNTER_Y, vp.x * LEFT_W, vp.y * COUNTER_H2)
+	# Row 1 right: the record. Row 2 right: the satchel, level with the counter.
 	var right_rect := Rect2(vp.x * RIGHT_X, vp.y * SHELVES_Y, vp.x * RIGHT_W, vp.y * RIGHT_H)
+	var satchel_rect := Rect2(vp.x * RIGHT_X, vp.y * COUNTER_Y, vp.x * RIGHT_W, vp.y * COUNTER_H2)
+	var seal_rect := Rect2(vp.x * LEFT_X, vp.y * SEAL_Y,
+		vp.x * (RIGHT_X + RIGHT_W) - vp.x * LEFT_X, vp.y * SEAL_H)
 
 	_header(host, vp)
 	var shelving := _shelving(host, shelf_rect)
@@ -159,6 +172,8 @@ static func build(host: Control, vp: Vector2) -> Dictionary:
 		"shelf_rect": shelf_rect,
 		"counter_rect": counter_rect,
 		"right_rect": right_rect,
+		"satchel_rect": satchel_rect,
+		"seal_rect": seal_rect,
 		"units": shelving[0],    # one rect per shelf unit: where instruments may stand
 		"dress": shelving[1],    # the upper boards: stock only, never an instrument
 		"frames": shelving[2],   # the shelving units themselves, for their labels
@@ -256,7 +271,10 @@ static func label_plate(host: Control, text: String, at: Vector2, width: float) 
 	plate.position = at
 	plate.size = Vector2(width, 14)
 	host.add_child(plate)
-	var l := Widgets.card_label(text, 8, Color(0.20, 0.16, 0.10), false, true)
+	# Aged gold on crimson. Gold is scarce in this room by rule (P168) and a category
+	# plaque is a HEADING — the one place besides the seal and the ready state where the
+	# order puts gold on something.
+	var l := Widgets.card_label(text, 8, Color(0.78, 0.64, 0.34), false, true)
 	l.set_anchors_preset(Control.PRESET_FULL_RECT)
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE

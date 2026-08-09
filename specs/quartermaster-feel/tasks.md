@@ -188,6 +188,33 @@
       all present, `keepout live=8 ok=true`), and the Quartermaster and Deploy Gate still render
       correctly.
 
+## Composition rehaul (TD-107, author's reference layout)
+
+- [x] T400 — **The room is two rows and a full-width foot**, per the author's composition:
+      storage wall | inspection record on top, counter | **open satchel** beneath, and
+      **SEAL & DEPART spanning the whole width**. The satchel moved from under the record to
+      *beside the counter* — that is where a bag being loaded actually is, on the same surface as
+      the hands loading it. The seal takes the full width because it is the commitment; tucked in
+      a column it read as one more control in a stack, which is what a menu does.
+
+- [x] T401 — **The category plaques are signage, not tabs.** Painted crimson board with a gold-leaf
+      border and aged-gold lettering. Crimson is already the Collegium's own cloth — the banners
+      flanking the Contract Board are this same `wax` ramp — so a plaque nailed to a shelf in the
+      same building reads as belonging to the *order* rather than to the interface. Gold on a
+      category heading is consistent with P168, which reserves it for headings, the seal and the
+      ready state.
+
+- [x] T402 — **The pack is an OPEN satchel.** A closed case says "storage"; an open bag says "being
+      loaded", which is what the screen is for. Flap folded back with a stitched hem, a dark gaping
+      mouth (the darkest band on the object, so it reads open), lit inner lip, compartments inside.
+      **Its title strip was deleted:** the tally beneath already reads `EXPEDITION PACK — n / 4`, so
+      the strip was the same words twice, and the brief is explicit that the scene must not be
+      cluttered. Removing it also gave the bag the vertical room to show the flap at all.
+
+- [x] T403 — **Verified.** `--board-after-qm` still green (`keepout live=8 ok=true`), so the shared
+      popup fix holds; budget 189 nodes / 220, 14 particles / 20; no shared surface touched, so the
+      Contract Board is unaffected by construction.
+
 ## Do not re-invent
 
 - **The data model, capacity, flow and seal rite are TD-101's and are not re-opened.**

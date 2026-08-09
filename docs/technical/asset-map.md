@@ -252,6 +252,8 @@
 - `client/assets/ui/stations/qm_counter_n.png`
 - `client/assets/ui/stations/qm_label.png`
 - `client/assets/ui/stations/qm_props.png`
+- `client/assets/ui/stations/qm_satchel.png`
+- `client/assets/ui/stations/qm_satchel_n.png`
 - `client/assets/ui/stations/qm_shelf.png`
 - `client/assets/ui/stations/qm_shelf_n.png`
 - `client/assets/ui/stations/qm_stock.png`
@@ -274,14 +276,14 @@
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
 - `client/scripts/main.gd:2052` — `load/preload path`
 - `client/scripts/main.gd:2056` — `load/preload normal_path`
-- `client/scripts/stations/quartermaster/pack.gd:81` — `load/preload CLASP`
-- `client/scripts/stations/quartermaster/pack.gd:167` — `load/preload path`
-- `client/scripts/stations/quartermaster/pack.gd:181` — `load/preload path`
-- `client/scripts/stations/quartermaster/pack.gd:197` — `load/preload SLOT`
-- `client/scripts/stations/quartermaster/register.gd:117` — `load/preload SHEET`
-- `client/scripts/stations/quartermaster/room.gd:174` — `load/preload WALL`
-- `client/scripts/stations/quartermaster/room.gd:302` — `load/preload PROPS`
-- `client/scripts/stations/quartermaster/room.gd:356` — `load/preload path`
+- `client/scripts/stations/quartermaster/pack.gd:80` — `load/preload CLASP`
+- `client/scripts/stations/quartermaster/pack.gd:166` — `load/preload path`
+- `client/scripts/stations/quartermaster/pack.gd:180` — `load/preload path`
+- `client/scripts/stations/quartermaster/pack.gd:196` — `load/preload SLOT`
+- `client/scripts/stations/quartermaster/register.gd:118` — `load/preload SHEET`
+- `client/scripts/stations/quartermaster/room.gd:189` — `load/preload WALL`
+- `client/scripts/stations/quartermaster/room.gd:320` — `load/preload PROPS`
+- `client/scripts/stations/quartermaster/room.gd:374` — `load/preload path`
 - `client/scripts/stations/quartermaster/seal_rite.gd:40` — `load/preload SEAL_TEX`
 - `client/scripts/stations/quartermaster/shelf.gd:190` — `load/preload STOCK`
 - `client/scripts/stations/quartermaster/shelf.gd:225` — `load/preload STOCK`

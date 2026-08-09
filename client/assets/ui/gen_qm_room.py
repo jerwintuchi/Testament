@@ -239,25 +239,38 @@ def _shelf(x, y):
 LABEL_W, LABEL_H, LABEL_M = 24, 14, 7
 
 
+def _label_h(x, y):
+    right, bottom = LABEL_W - 1 - x, LABEL_H - 1 - y
+    edge_x, edge_y = min(x, right), min(y, bottom)
+    if edge_x == 0 or edge_y == 0:
+        return 0.30                     # the plate's outer edge, turned down
+    if edge_x == 1 or edge_y == 1:
+        return 0.92                     # a bright bevel catching the room
+    return 0.60
+
+
 def _label(x, y):
-    right = LABEL_W - 1 - x
-    bottom = LABEL_H - 1 - y
-    edge_x = min(x, right)
-    edge_y = min(y, bottom)
-    if edge_y == 0 or edge_x == 0:
-        return _op(BRASS_DIM)           # the brass rim
-    if edge_y == 1 and edge_x >= 1:
-        return _op(BRASS if y < LABEL_H // 2 else BRASS_DIM)
-    if edge_x == 1:
-        return _op(BRASS_DIM)
-    # The card itself, darker at the foot so it reads as a plate with depth.
-    # FLAT, deliberately: an (x+y) modulo draws diagonal stripes across the plate,
-    # which is what the first pass shipped and read as hatching, not paper.
-    if bottom <= 3:
-        return _op(PARCH_DEEP)
-    if y == LABEL_H - 5:
-        return _op(PARCH)               # one ruled line under the heading
-    return _op(PARCH_HI)
+    """A category plaque: a painted crimson board with a gold-leaf border (TD-107).
+
+    SIGNAGE, not a UI tab. Crimson is already the Collegium's own cloth — the banners
+    flanking the Contract Board are this same `wax` ramp — so a plaque nailed to a
+    shelf in the same building reads as belonging to the order rather than to the
+    interface, which is the whole distinction the brief is drawing.
+    """
+    right, bottom = LABEL_W - 1 - x, LABEL_H - 1 - y
+    edge_x, edge_y = min(x, right), min(y, bottom)
+
+    if edge_x == 0 or edge_y == 0:
+        return _op(A.RAMP["wax"][0])               # the turned edge, deepest crimson
+    if edge_x == 1 or edge_y == 1:
+        return _op(BRASS)                          # a thin line of gold leaf
+    if edge_x == 2 or edge_y == 2:
+        return _op(A.RAMP["wax"][0])
+    # The painted field, lit from above so it reads as a board and not a swatch.
+    t = 0.30 + 0.34 * (1.0 - (y / float(LABEL_H)))
+    if _rnd(x, y, 61) > 0.93:
+        t -= 0.10                                  # flaked paint, sparse
+    return _op(A.quantize(A.ramp_shade("wax", t)))
 
 
 # ── qm_counter.png — the inspection counter ──────────────────────────────────
@@ -567,6 +580,46 @@ def _props(x, y):
     return PROPS[x // PROP_TILE](x % PROP_TILE, y)
 
 
+# ── qm_satchel.png — the pack, OPEN ─────────────────────────────────────────
+# A closed case says "storage". An OPEN satchel says "being loaded", which is what
+# this screen is for (author brief): the flap is folded back over the top, the mouth
+# gapes, and the compartments inside are what the instruments drop into.
+SATCH_W, SATCH_H, SATCH_M = 64, 48, 18
+
+
+def _satchel_h(x, y):
+    edge_x = min(x, SATCH_W - 1 - x)
+    if y <= 6:
+        return 0.86 - 0.05 * y          # the flap, folded back and catching light
+    if y == 7:
+        return 0.20                     # the fold's shadow
+    if y <= 10:
+        return 0.12                     # the open mouth, dark
+    if edge_x < 4:
+        return 0.62                     # the bag's sides
+    return 0.26                         # the interior
+
+
+def _satchel(x, y):
+    edge_x = min(x, SATCH_W - 1 - x)
+    bottom = SATCH_H - 1 - y
+    hgt = _satchel_h(x, y)
+
+    if y <= 7:                                     # the folded-back flap
+        if y == 6 and (x % 4) in (1, 2):
+            return _op(A.RAMP["parchment"][0])     # a stitch line along the hem
+        return _op(A.quantize(A.ramp_shade("wood", 0.16 + hgt * 0.62)))
+    if y <= 10:                                    # the mouth: darkest band on the
+        return _op(BLACK_SOFT if y < 10 else WOOD_DEEP)   # object, so it reads OPEN
+    if edge_x < 4:
+        if edge_x == 3:
+            return _op(WOOD_BASE)                  # the lit inner lip
+        return _op(A.quantize(A.ramp_shade("wood", 0.10 + hgt * 0.55)))
+    if bottom < 3:
+        return _op(A.quantize(A.ramp_shade("wood", 0.10 + (3 - bottom) * 0.12)))
+    return _op(A.quantize(A.ramp_shade("navestone", 0.03 + hgt * 0.10)))
+
+
 # ── normal maps ─────────────────────────────────────────────────────────────
 # Emitted from the SAME height functions that drive the paint, so relief and shading
 # can never disagree. The room's surfaces are then lit at run time by the Contract
@@ -577,6 +630,7 @@ NORMALS = [
     ("stations/qm_shelf_n.png",   SHELF_W, SHELF_H, _shelf_h,   3.0),
     ("stations/qm_board_n.png",   BOARD_W, BOARD_H, _board_h,   3.0),
     ("stations/qm_counter_n.png", CTR_W,   CTR_H,   _counter_h, 2.4),
+    ("stations/qm_satchel_n.png", SATCH_W, SATCH_H, _satchel_h, 2.6),
 ]
 
 
@@ -592,6 +646,7 @@ TARGETS = [
     ("stations/qm_board.png",   BOARD_W, BOARD_H, _board),
     ("stations/qm_label.png",   LABEL_W, LABEL_H, _label),
     ("stations/qm_counter.png", CTR_W,   CTR_H,   _counter),
+    ("stations/qm_satchel.png", SATCH_W, SATCH_H, _satchel),
     ("stations/qm_stock.png",   STOCK_W, STOCK_H, _stock),
     ("stations/qm_props.png",   PROP_W,  PROP_H,  _props),
 ]

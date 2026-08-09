@@ -4483,3 +4483,41 @@ and header all present and `keepout live=8 ok=true`; the Quartermaster and Deplo
 **The wider lesson:** I told the author twice that a board difference was "the font re-flowing text",
 once correctly (TD-102) and once as a cover for this. When a shared surface changes, the question is
 not "did my intended change do this?" but "what ELSE did I touch that this screen depends on?"
+
+## 2026-08-09 — TD-107: the Quartermaster takes the author's composition
+
+**Why.** A clearer layout brief with an ASCII target: storage wall | inspection record on top,
+counter | open satchel beneath, **SEAL & DEPART across the full width**, plus crimson plaques and an
+*open* pack.
+
+**Two structural moves, both with a reason beyond taste.** The satchel moved from under the record to
+**beside the counter** — that is where a bag being loaded actually is, on the same surface as the
+hands loading it, and stacking it under a document made it read as a third panel rather than an
+object on a bench. And the rite took the **whole width**: it is the commitment, and tucked into a
+column it was one more control in a stack, which is exactly the menu-ness the whole redesign is
+fighting.
+
+**The plaques became signage.** Painted crimson board, gold-leaf border, aged-gold lettering.
+Crimson is already the Collegium's own cloth — the banners flanking the Contract Board are this same
+`wax` ramp — so a plaque nailed to a shelf in the same building reads as belonging to the *order*
+rather than to the interface. Gold on a category heading is consistent with P168, which reserves gold
+for headings, the insignia, the seal and the ready state.
+
+**The pack is open.** A closed case says "storage"; an open satchel says "being loaded", which is what
+the screen is for. Flap folded back with a stitched hem, a dark gaping mouth — deliberately the
+darkest band on the object, because that is what makes a bag read as open rather than as a box — a lit
+inner lip, and the compartments inside it.
+
+**And its title strip was deleted.** The tally beneath already read `EXPEDITION PACK — n / 4`, so the
+strip above was the same words twice; the brief is explicit that the scene must not be cluttered.
+Removing it also gave the bag the vertical room to show its flap, which is the detail that sells the
+whole object — the clutter was hiding the thing it was labelling.
+
+**Process note, recorded because it cost time:** the generator edit went in by string surgery, the
+satchel block landed *after* the normal-map list that referenced it, and two attempts to move it left
+the file with a duplicated block. Restoring from HEAD and applying both edits in one ordered pass took
+less time than the third repair attempt would have. When a mechanical edit fails twice, revert and
+redo rather than patching the patch.
+
+Verified: `--board-after-qm` green (`keepout live=8 ok=true`), budget 189 nodes / 220 and 14
+particles / 20, no shared surface touched.

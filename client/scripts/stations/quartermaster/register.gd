@@ -78,7 +78,7 @@ static func build(body: Node, host: Node, selected: Array,
 	view["items"] = Shelf.build(root, view, geo["units"],
 		func(id): _select(view, String(id)), geo["dress"], geo["frames"])
 
-	_right_column(view, root, geo["right_rect"])
+	_right_column(view, root, geo["right_rect"], geo["satchel_rect"], geo["seal_rect"])
 
 	refresh(view)
 	_report_budget(root)
@@ -105,13 +105,14 @@ static func _descendants(n: Node) -> int:
 
 # ── the right-hand column: record, pack, tally, seal ────────────────────────
 
-static func _right_column(view: Dictionary, root: Control, rect: Rect2) -> void:
-	# The record sits on the board's own parchment — the one paper object in a room
-	# made of wood and iron, which is what a filed document should look like.
+static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
+		satchel_rect: Rect2, seal_rect: Rect2) -> void:
+	# Row 1 right — the record, on the board's own parchment: the one paper object in a
+	# room of wood and iron, which is what a filed document should look like.
+	#
 	# A PanelContainer, NOT a Panel. A Panel does not lay out its children, so an
 	# anchored column ignores the stylebox's content margin and the record's text runs
-	# off both edges of the paper — which is exactly what the first pass shipped, and
-	# exactly the trap `pack.gd` already carries a comment about.
+	# off both edges of the paper — the trap `pack.gd` already carries a comment about.
 	var sheet := PanelContainer.new()
 	var sb := StyleBoxTexture.new()
 	sb.texture = load(SHEET) as Texture2D
@@ -119,15 +120,8 @@ static func _right_column(view: Dictionary, root: Control, rect: Rect2) -> void:
 		sb.set("texture_margin_" + side, 18.0)
 	sb.set_content_margin_all(11.0)
 	sheet.add_theme_stylebox_override("panel", sb)
-	# The three bands are computed from what they CONTAIN, not as fractions of the
-	# column. Fractions put the pack's 76px of case into a 61px slot, and it drew
-	# straight through the tally beneath it — the record simply takes what is left.
-	var pack_h := 76.0
-	var foot_h := 52.0
-	var record_h := maxf(rect.size.y - pack_h - foot_h - 12.0, 60.0)
-
-	sheet.position = rect.position
-	sheet.size = Vector2(rect.size.x, record_h)
+	sheet.position = rec_rect.position
+	sheet.size = rec_rect.size
 	root.add_child(sheet)
 
 	var col := VBoxContainer.new()
@@ -135,8 +129,7 @@ static func _right_column(view: Dictionary, root: Control, rect: Rect2) -> void:
 	sheet.add_child(col)
 
 	# The record's BODY scrolls; its action is pinned beneath. A long note otherwise
-	# grows the column past the paper and the decision walks off the sheet — the same
-	# failure the writ version hit, for the same reason.
+	# grows the column past the paper and the decision walks off the sheet.
 	var body_scroll := ScrollContainer.new()
 	body_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -144,10 +137,12 @@ static func _right_column(view: Dictionary, root: Control, rect: Rect2) -> void:
 	Widgets.ink_scrollbar(body_scroll.get_v_scroll_bar())
 	view["record"] = Record.build(body_scroll, col)
 
-	# The pack, below the record. Its own object, in leather and iron.
+	# Row 2 right — the open satchel, level with the counter. It sits BESIDE the bench
+	# rather than under the record because that is where a bag being loaded actually is:
+	# on the same surface as the hands loading it.
 	var pack_host := Control.new()
-	pack_host.position = Vector2(rect.position.x, rect.position.y + record_h + 5.0)
-	pack_host.size = Vector2(rect.size.x, pack_h)
+	pack_host.position = satchel_rect.position
+	pack_host.size = satchel_rect.size
 	root.add_child(pack_host)
 	var pack_col := VBoxContainer.new()
 	pack_col.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -155,26 +150,27 @@ static func _right_column(view: Dictionary, root: Control, rect: Rect2) -> void:
 	pack_host.add_child(pack_col)
 	view["pack"] = Pack.build(pack_col, Catalog.BAG_SLOTS)
 
-	# The tally and the rite, at the foot.
-	var foot := VBoxContainer.new()
-	foot.position = Vector2(rect.position.x, rect.position.y + record_h + pack_h + 11.0)
-	foot.size = Vector2(rect.size.x, foot_h)
-	foot.add_theme_constant_override("separation", 1)
-	root.add_child(foot)
-
 	var tally := HBoxContainer.new()
 	tally.alignment = BoxContainer.ALIGNMENT_CENTER
 	tally.add_theme_constant_override("separation", 14)
-	foot.add_child(tally)
+	pack_col.add_child(tally)
 	var packed_l := Widgets.card_label("", 9, Room.INK_WARM, false, false)
 	var shape_l := Widgets.card_label("", 9, Room.INK_FAINT, false, false)
 	tally.add_child(packed_l); tally.add_child(shape_l)
 	view["packed_label"] = packed_l
 	view["shape_label"] = shape_l
 
+	# The foot — the rite, spanning the WHOLE width. It is the commitment, and tucked
+	# into a column it read as one more control in a stack, which is what a menu does.
+	var foot := VBoxContainer.new()
+	foot.position = seal_rect.position
+	foot.size = seal_rect.size
+	foot.add_theme_constant_override("separation", 1)
+	root.add_child(foot)
+
 	# Why the counter cannot issue yet. The server refuses REQUISITION outside
 	# DEPLOYING (R65 — the bag is a bet on the contract's intel) and the station is
-	# reachable before then, so the reason is stated rather than discovered as an error.
+	# reachable before then, so the reason is stated rather than met as an error.
 	var gate := Widgets.card_label("", 8, Color(0.72, 0.42, 0.34), true, true)
 	gate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	foot.add_child(gate)
@@ -182,6 +178,7 @@ static func _right_column(view: Dictionary, root: Control, rect: Rect2) -> void:
 
 	var seal := Button.new()
 	seal.text = "SEAL & DEPART"
+	seal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_seal_ink(seal)
 	seal.pressed.connect(func(): _seal(view))
 	foot.add_child(seal)

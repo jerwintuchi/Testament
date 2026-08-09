@@ -15,12 +15,14 @@ const Widgets    := preload("res://scripts/ui/widgets.gd")
 const PopupTheme := preload("res://scripts/ui/popup_theme.gd")
 const Fonts      := preload("res://scripts/ui/fonts.gd")
 
-const CASE  := "res://assets/ui/stations/pack_case.png"
+# The OPEN satchel (TD-107): a closed case says "storage", an open bag says "being
+# loaded", which is what this screen is for.
+const CASE  := "res://assets/ui/stations/qm_satchel.png"
 const SLOT  := "res://assets/ui/stations/pack_slot.png"
 const CLASP := "res://assets/ui/stations/pack_clasp.png"
 const LABEL := "res://assets/ui/stations/label_strip.png"
 
-const CASE_M  := 20      # 9-slice margins, matching gen_quartermaster.py
+const CASE_M  := 18      # 9-slice margins, matching gen_qm_room.py
 const SLOT_M  := 12
 const LABEL_M := 8
 const ICON_PX := 24
@@ -36,20 +38,17 @@ static func build(host: Node, slot_count: int) -> Dictionary:
 	root.add_theme_constant_override("separation", 4)
 	host.add_child(root)
 
-	var label := _nine(LABEL, LABEL_M)
-	label.custom_minimum_size = Vector2(0, 13)
-	root.add_child(label)
-	var cap := Widgets.card_label("EXPEDITION PACK", 9, PopupTheme.INK, false, true)
-	cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.add_child(cap)
-	cap.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# NO TITLE STRIP (TD-107). The tally beneath already reads "EXPEDITION PACK — n / 4",
+	# so a strip above saying "EXPEDITION PACK" was the same words twice — and the brief
+	# is explicit that the scene must not be cluttered. Dropping it also gives the bag
+	# the vertical room to show its folded-back flap, which is what makes it read OPEN.
 
 	# A PanelContainer, NOT a Panel. A Panel does not lay out its children, so the
 	# anchored column fell back on its own minimum size and rendered OUTSIDE a
 	# zero-height panel — the case texture was drawing all along, at no size, while the
 	# compartments floated in front of it. A PanelContainer sizes to its child and
 	# applies the stylebox's content margins, which is what the insets should have been.
-	var case_panel := _nine_container(CASE, CASE_M, 12, 7)
+	var case_panel := _nine_container(CASE, CASE_M, 10, 6)
 	case_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(case_panel)
 
