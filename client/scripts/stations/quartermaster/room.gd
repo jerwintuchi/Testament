@@ -96,8 +96,8 @@ static func candle_rig(vp: Vector2) -> Array:
 	var flame := candle_pos(vp) + Vector2(PROP_PX * 0.5, FLAME_UP)
 	return [{
 		"uv": Vector2(flame.x / vp.x, flame.y / vp.y),
-		"color": Color(1.0, 0.76, 0.46),
-		"radius": 0.62,
+		"color": Color(1.0, 0.74, 0.44),
+		"radius": 0.44,
 	}]
 
 
@@ -146,14 +146,14 @@ static func _wall(host: Control, vp: Vector2) -> void:
 	w.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Tiled sampling: the shader repeats the 64px stone across the frame, so the wall is
 	# one draw and one small texture rather than a screen-sized image.
-	w.material = lit(vp, "res://assets/ui/stations/qm_wall_n.png", 0.30, 1.0,
+	w.material = lit(vp, "res://assets/ui/stations/qm_wall_n.png", 0.22, 1.0,
 		Vector2(vp.x / 64.0, vp.y / 64.0))
 	host.add_child(w)
 
 	# The room falls off into darkness at the edges, so the lamp-lit middle is where
 	# the eye settles. One baked gradient, not a full-frame additive layer.
 	var vig := ColorRect.new()
-	vig.color = Color(0, 0, 0, 0.34)
+	vig.color = Color(0, 0, 0, 0.26)
 	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(vig)
@@ -186,7 +186,7 @@ static func _shelving(host: Control, rect: Rect2) -> Array:
 		var frame := _nine(SHELF, SHELF_M)
 		frame.position = Vector2(rect.position.x, top)
 		frame.size = Vector2(rect.size.x, unit_h - 3.0)
-		frame.material = lit(vp_of(host), "res://assets/ui/stations/qm_shelf_n.png", 0.20)
+		frame.material = lit(vp_of(host), "res://assets/ui/stations/qm_shelf_n.png", 0.13)
 		host.add_child(frame)
 		frames.append(Rect2(frame.position, frame.size))
 
@@ -197,7 +197,7 @@ static func _shelving(host: Control, rect: Rect2) -> Array:
 		var upper := _nine(BOARD, BOARD_M)
 		upper.position = Vector2(rect.position.x + 5.0, top + 24.0)
 		upper.size = Vector2(rect.size.x - 10.0, board_h)
-		upper.material = lit(vp_of(host), "res://assets/ui/stations/qm_board_n.png", 0.30)
+		upper.material = lit(vp_of(host), "res://assets/ui/stations/qm_board_n.png", 0.24)
 		host.add_child(upper)
 		dress.append(Rect2(
 			upper.position.x + 6.0, upper.position.y - 16.0,
@@ -207,7 +207,7 @@ static func _shelving(host: Control, rect: Rect2) -> Array:
 		var board := _nine(BOARD, BOARD_M)
 		board.position = Vector2(rect.position.x + 5.0, top + unit_h - board_h - 9.0)
 		board.size = Vector2(rect.size.x - 10.0, board_h)
-		board.material = lit(vp_of(host), "res://assets/ui/stations/qm_board_n.png", 0.30)
+		board.material = lit(vp_of(host), "res://assets/ui/stations/qm_board_n.png", 0.24)
 		host.add_child(board)
 
 		# Objects stand ON the board's lit top edge.
@@ -236,7 +236,7 @@ static func _counter(host: Control, rect: Rect2) -> void:
 	var c := _nine(COUNTER, COUNTER_M)
 	c.position = rect.position
 	c.size = rect.size
-	c.material = lit(vp_of(host), "res://assets/ui/stations/qm_counter_n.png", 0.38)
+	c.material = lit(vp_of(host), "res://assets/ui/stations/qm_counter_n.png", 0.32)
 	host.add_child(c)
 
 	# THREE ZONES (R371), so the bench reads as a place someone works rather than a

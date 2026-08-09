@@ -193,7 +193,9 @@ def _shelf_h(x, y):
     edge_x = min(x, right)
     edge_y = min(y, bottom)
     if edge_x >= 6 and edge_y >= 5:
-        return 0.02                     # the back of the case, deep in shadow
+        # Deepest at the top, lifting toward the foot where the board bounces light.
+        down = (y - 5) / float(SHELF_H - 10)
+        return 0.02 + 0.10 * max(0.0, min(1.0, down))
     if edge_x < 6:                      # an upright: rounded, proud of the back
         return [0.30, 0.58, 0.74, 0.86, 0.92, 0.72][edge_x]
     if y < 5:                           # the top rail
@@ -213,10 +215,16 @@ def _shelf(x, y):
     edge_y = min(y, bottom)
     hgt = _shelf_h(x, y)
 
-    # The back of the case reads as depth, not as a black fill: it still carries a
-    # faint tone so the shelf has an interior rather than a hole in it.
+    # The interior is a SHADOW, not a void (TD-104). A single near-black tone reads as
+    # a hole cut in the wall; a shadow has a gradient — deepest where the case is
+    # deepest, lifting where the board beneath bounces light back up — and it keeps a
+    # trace of the material it is made of. The shader's cool ambient then tints it away
+    # from the candle, which is what gives the room its warm/cool depth.
     if edge_x >= 6 and edge_y >= 5:
-        return _op(A.quantize(A.ramp_shade("navestone", 0.02 + 0.05 * _rnd(x, y, 5))))
+        down = (y - 5) / float(SHELF_H - 10)
+        lift = 0.10 * max(0.0, min(1.0, down))
+        grain = 0.02 if _rnd(x // 2, y // 2, 5) > 0.70 else 0.0
+        return _op(A.quantize(A.ramp_shade("navestone", 0.015 + lift + grain)))
 
     # Iron straps stay iron — a different material, so a different ramp.
     if 2 <= y < 5 and edge_x >= 6 and (x % 8) in (3, 4):

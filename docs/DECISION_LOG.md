@@ -4395,3 +4395,31 @@ Quartermaster has noticed. It also stops the shelf twitching under the cursor an
 **Containment:** `board_decor.gd` is shared, so the board was re-checked rather than assumed —
 `keepout live=8 ok=true minhit=80x51 hit_ok=true`, eight writs live. Budget holds: 191 nodes / 220,
 14 particles / 20.
+
+## 2026-08-09 — TD-104: a light that reaches everywhere casts no shadow anywhere
+
+**Author ruling on TD-103: moodier shelf interiors, candle dialled back.** Both were right, and the
+second is the more general lesson.
+
+**The interiors were a void, not a shadow.** The case backs rendered as one near-black tone plus
+noise. A real shelf interior is deepest at the top and **lifts toward the foot**, where the board
+beneath bounces light back up. That gradient now lives in the height field, so the normal map tilts
+with it and the shader's cool ambient tints it away from the flame — which is what makes it read as a
+space an object stands *inside* rather than a hole cut in the wall. Depth, not darkness, is what
+"moodier" actually asked for.
+
+**The candle reached 0.62 and lit the whole left half of the frame evenly.** That is bright but not
+atmospheric: **a light that reaches everywhere casts no shadow anywhere**, and the room had no falloff
+to read distance by. Pulled to **0.44** — still far wider than the Contract Board's tight 0.24 sconce,
+because a board wants its wall dark around a framed object while a workroom must look usable, but now
+the shelves fade with distance and the bench is plainly *the lit place*. Ambients came down with it
+and the flat vignette eased from 0.34 to 0.26, since the light is doing that work properly now.
+
+**One deliberate inconsistency, recorded so it is not "fixed" later.** The instruments stay **unlit
+sprites**. Physically, an object far from the candle should dim — but these are exactly the things the
+player is being asked to browse and choose between, and readability of the interactive objects beats
+strict lighting consistency. The darker interiors give them *more* contrast, not less, so the change
+helps them rather than hurting them.
+
+No shared surface was touched, so the Contract Board is unaffected by construction. Budget unchanged:
+191 nodes / 220, 14 particles / 20.

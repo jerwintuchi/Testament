@@ -133,6 +133,22 @@
       `rig` parameter defaults to `torch_rig`, so the board's lighting call is unchanged. Budget holds
       at 191 nodes / 220 and 14 particles / 20; `qm_budget --selftest` green.
 
+- [x] T397 [author ruling] — **Moodier interiors, and the candle pulled back.** The case backs were
+      one near-black tone plus noise — a *void*, not a shadow. A shelf's interior is deepest at the
+      top and lifts toward the foot, where the board beneath bounces light back up; that gradient
+      (carried in the height field, so the normal map tilts with it) is what makes it read as a space
+      an object stands **inside** rather than a hole cut in the wall.
+      The candle's reach went **0.62 → 0.44**: at 0.62 it lit the whole left half of the frame
+      evenly, which is bright but not atmospheric — **a light that reaches everywhere casts no shadow
+      anywhere**. Still far wider than the board's 0.24 sconce, because a workroom must read as
+      usable, but the shelves now fall off into dark with distance and the bench is plainly the lit
+      place. Ambients down across the room (wall 0.30→0.22, shelf 0.20→0.13, plank 0.30→0.24,
+      counter 0.38→0.32) and the flat vignette eased 0.34→0.26, since the light is doing that work now.
+      **Deliberate exception:** the instruments themselves stay UNLIT sprites. Physically an object
+      far from the candle should dim, but these are the things the player is being asked to browse
+      and choose between — readability of the interactive objects beats strict lighting consistency,
+      and the darker interiors give them *more* contrast, not less.
+
 ## Do not re-invent
 
 - **The data model, capacity, flow and seal rite are TD-101's and are not re-opened.**
