@@ -21,7 +21,9 @@ const Widgets := preload("res://scripts/ui/widgets.gd")
 const Catalog := preload("res://scripts/core/catalog.gd")
 const Room    := preload("res://scripts/stations/quartermaster/room.gd")
 
-const STOCK  := "res://assets/ui/stations/qm_stock.png"
+const STOCK   := "res://assets/ui/stations/qm_stock.png"
+const SHADOWS := "res://assets/ui/stations/gear_shadows.png"
+const SHADOW_H := 3
 const STOCK_PX := 16
 const STOCK_N  := 8
 const ICON_PX  := 24
@@ -126,13 +128,20 @@ static func _object(host: Control, view: Dictionary, id: String, home: Vector2,
 	b.add_theme_stylebox_override("focus", Widgets.focus_ring())
 	host.add_child(b)
 
-	# The contact shadow sits BEHIND the object and belongs to the shelf, not to the
-	# object — so when the instrument lifts, the shadow stays on the board and only
-	# tightens. That separation is what makes the lift read as physical.
-	var shadow := ColorRect.new()
-	shadow.color = Color(0, 0, 0, 0.45)
-	shadow.position = Vector2(home.x + 3.0, home.y + ICON_PX - 2.0)
-	shadow.size = Vector2(ICON_PX - 6.0, 2.0)
+	# The contact shadow is DERIVED from this instrument's own silhouette (TD-108):
+	# dense where the object actually meets the board, scattering to loose pixels
+	# outward. Every instrument used to cast the same 2px rectangle, which was the
+	# clearest remaining tell that these were UI sprites rather than objects.
+	#
+	# It sits BEHIND the object and belongs to the shelf, not to the object. It does not
+	# animate: hover is an outline only (TD-103), so the instrument never leaves the
+	# board and there is nothing for a shadow to react to.
+	var shadow := TextureRect.new()
+	shadow.texture = shadow_for(id)
+	shadow.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	shadow.stretch_mode = TextureRect.STRETCH_KEEP
+	shadow.position = Vector2(home.x, home.y + ICON_PX - 1.0)
+	shadow.size = Vector2(ICON_PX, SHADOW_H)
 	shadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(shadow)
 	host.move_child(shadow, max(b.get_index() - 1, 0))
@@ -288,3 +297,15 @@ static func icon_for(item_id: String) -> AtlasTexture:
 
 static func _icon(id: String) -> AtlasTexture:
 	return icon_for(id)
+
+
+## The contact shadow for one instrument, from the derived sheet. Indexed by the SAME
+## `ICON_INDEX` as the icon, so a shadow can never end up under the wrong object.
+static func shadow_for(item_id: String) -> AtlasTexture:
+	var sheet := load(SHADOWS) as Texture2D
+	if sheet == null or not ICON_INDEX.has(item_id):
+		return null
+	var at := AtlasTexture.new()
+	at.atlas = sheet
+	at.region = Rect2(int(ICON_INDEX[item_id]) * ICON_PX, 0, ICON_PX, SHADOW_H)
+	return at

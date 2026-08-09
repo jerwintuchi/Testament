@@ -72,6 +72,11 @@
 
 - **`stations`** — produced-by: `client/assets/ui/gen_stations.py` · consumed-by: —
 
+### `client/assets/ui/stations/`
+
+- **`gear_icons.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_qm_shadows.py` (reads)
+- **`gear_shadows.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_qm_shadows.py` (reads)
+
 ### `client/assets/ui/title/`
 
 - **`banner_center.png`** — produced-by: `client/assets/ui/gen_title_furniture.py` · consumed-by: —
@@ -105,6 +110,8 @@
   - loads: `_frame_v1_src.png`, `backing_v1.png`, `badge_banish.png`, `badge_capture.png`, `badge_eliminate.png`, `badge_investigate.png`, `banner_v1.png`, `board_header.png`, `cobweb.png`, `collegium_logo.png`, `parch_flavor_0.png`, `parch_flavor_1.png`, `parch_v1_0.png`, `parch_v1_1.png`, `seal_collegium.png`, `spark.png`, `stone_tile.png`, `tack_nail.png`, `tack_pin.png`, `tack_ribbon.png`, `tack_wax.png`, `torch_flame.png`, `torch_glow.png`, `torch_sconce.png`, `votive.png`
 - **`client/assets/ui/gen_parch_v1.py`**
   - loads: `paper_band1.png`
+- **`client/assets/ui/gen_qm_shadows.py`**
+  - loads: `gear_icons.png`, `gear_shadows.png`
 - **`client/assets/ui/gen_title_furniture.py`**
   - loads: `collegium_logo.png`
 - **`client/protocol/protocol.gd`**
@@ -241,7 +248,6 @@
 - `client/assets/ui/shared/panel.png`
 - `client/assets/ui/stations/contract_board.png`
 - `client/assets/ui/stations/deploy_gate.png`
-- `client/assets/ui/stations/gear_icons.png`
 - `client/assets/ui/stations/label_strip.png`
 - `client/assets/ui/stations/pack_case.png`
 - `client/assets/ui/stations/pack_clasp.png`
@@ -285,9 +291,10 @@
 - `client/scripts/stations/quartermaster/room.gd:320` — `load/preload PROPS`
 - `client/scripts/stations/quartermaster/room.gd:374` — `load/preload path`
 - `client/scripts/stations/quartermaster/seal_rite.gd:40` — `load/preload SEAL_TEX`
-- `client/scripts/stations/quartermaster/shelf.gd:190` — `load/preload STOCK`
-- `client/scripts/stations/quartermaster/shelf.gd:225` — `load/preload STOCK`
-- `client/scripts/stations/quartermaster/shelf.gd:280` — `load/preload ICONS`
+- `client/scripts/stations/quartermaster/shelf.gd:199` — `load/preload STOCK`
+- `client/scripts/stations/quartermaster/shelf.gd:234` — `load/preload STOCK`
+- `client/scripts/stations/quartermaster/shelf.gd:289` — `load/preload ICONS`
+- `client/scripts/stations/quartermaster/shelf.gd:305` — `load/preload SHADOWS`
 - `client/scripts/ui/fonts.gd:67` — `load/preload path`
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`

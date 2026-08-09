@@ -4521,3 +4521,43 @@ redo rather than patching the patch.
 
 Verified: `--board-after-qm` green (`keepout live=8 ok=true`), budget 189 nodes / 220 and 14
 particles / 20, no shared surface touched.
+
+## 2026-08-09 — TD-108: the shelves are cut into the wall, and every instrument casts its own shadow
+
+**Why.** The last two items from the author's reference, both about making objects belong to the room
+rather than sit on top of it. Specced first at the author's request (`specs/quartermaster-alcove/`).
+
+**Author rulings:** an **alcove cut into the stone** (not a wooden carcass sunk into a niche), a
+**4px reveal**, and shadows **derived from each instrument's own silhouette**.
+
+**The reveal is lit by FACING, not by position.** The top face catches light and the bottom face sits
+in shadow *wherever the alcove is*, because that is how a cut in a wall behaves under a light in the
+room. Shading a border by position instead produces a printed frame — which is exactly what the old
+free-standing carcass read as. Stone rather than a lining, deliberately: a lining says "a cabinet was
+fitted here", and the brief asked for shelves cut into the building. Wall, Great Hall and alcove all
+resolve to the same `navestone` ramp (TD-081), so the opening is unmistakably part of the fabric.
+
+Proven by `--lights-off`: the relief **flattens to near-black** (mean luma 16.6 across the shelf
+band). The shader is lighting real geometry from the height field, not a diffuse with the lighting
+painted in — the same test the board's surfaces pass.
+
+**Shadows are derived, and that is what makes the claim checkable.** `gen_qm_shadows.py` reads
+`gear_icons.png`, finds each icon's base silhouette, and emits a cluster: dense at the contact row,
+scattering outward over three rows at three **discrete** alphas. Discrete because a smooth ramp is a
+gradient, and a soft shadow is the one thing that would break this register at 24px.
+
+**A lifted rim casts less than a standing base.** Each column is weighted by how far it sits above the
+contact row, so a magnifier's glass and a lantern's hood do not throw shadow as though they rested on
+the board. Without that weighting the cluster is as wide as the object's widest point — which is what
+the old 2px rectangle already looked like, so the whole exercise would have bought nothing.
+
+Hand-authored shadows were the alternative and were rejected on maintenance grounds, not taste: ten
+drawn shadows need an eleventh drawn by hand the moment an instrument is added, and nothing would
+notice if one drifted from its icon. Deriving makes P173 enforceable — the generator fails if an
+instrument casts nothing, and the consumer indexes shadows by the *same* `ICON_INDEX` as the icons, so
+a shadow cannot end up under the wrong object.
+
+**Containment:** no `src/**`, no shared surface — and `--board-after-qm` re-run green
+(`keepout live=8 ok=true`), which is the guard TD-106 added the last time "no shared surface, so the
+board is fine" turned out to be wrong. Budget 189 nodes / 220: a `ColorRect` became a `TextureRect`,
+so nothing was added.

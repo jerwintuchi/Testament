@@ -187,51 +187,61 @@ SHELF_W = SHELF_H = 48
 SHELF_M = 16
 
 
+# ── the alcove ──────────────────────────────────────────────────────────────
+# The shelves are an OPENING CUT INTO THE WALL, not a carcass standing in front of it
+# (author ruling, TD-108). Rings from the outside in:
+#   0        the shadow line where the cut meets the wall face
+#   1..4     the REVEAL — the wall's own thickness, 4px
+#   5..6     an occlusion ramp falling into the interior
+#   7+       the interior, near-black, lifting a little at the foot
+#
+# The reveal is `navestone`, the same ashlar as the wall and the Great Hall: a wooden
+# lining would say "a cabinet was fitted here", and the brief asks for shelves cut into
+# the building (TD-081 — one stone, one building).
+REVEAL_PX = 4
+
+
+def _alcove_ring(x, y):
+    """Distance in from the opening's edge, in pixels."""
+    return min(min(x, SHELF_W - 1 - x), min(y, SHELF_H - 1 - y))
+
+
 def _shelf_h(x, y):
-    right = SHELF_W - 1 - x
-    bottom = SHELF_H - 1 - y
-    edge_x = min(x, right)
-    edge_y = min(y, bottom)
-    if edge_x >= 6 and edge_y >= 5:
-        # Deepest at the top, lifting toward the foot where the board bounces light.
-        down = (y - 5) / float(SHELF_H - 10)
-        return 0.02 + 0.10 * max(0.0, min(1.0, down))
-    if edge_x < 6:                      # an upright: rounded, proud of the back
-        return [0.30, 0.58, 0.74, 0.86, 0.92, 0.72][edge_x]
-    if y < 5:                           # the top rail
-        if y >= 2 and (x % 8) in (3, 4):
-            return 0.34                 # an iron strap, recessed into the wood
-        return [0.34, 0.94, 0.82, 0.60, 0.40][y]
-    if bottom < 5:
-        return [0.24, 0.34, 0.48, 0.40, 0.30][bottom]
-    return 0.02
+    ring = _alcove_ring(x, y)
+    if ring == 0:
+        return 0.20                     # the cut's outer shadow line
+    if ring <= REVEAL_PX:
+        # The reveal FACES the room. A cut's top face catches light and its bottom face
+        # is in shadow wherever the alcove sits — that is what makes it read as a hole
+        # rather than as a printed border.
+        top = y <= REVEAL_PX
+        bottom = (SHELF_H - 1 - y) <= REVEAL_PX
+        if top:
+            return 0.92 - 0.06 * ring
+        if bottom:
+            return 0.34 - 0.04 * ring
+        return 0.62 - 0.05 * ring       # the side faces, between the two
+    if ring <= REVEAL_PX + 2:
+        return 0.16                     # occlusion ramp into the interior
+    # The interior: darkest at the top, lifting slightly at the foot where the boards
+    # bounce a little light back up (the TD-104 finding, kept).
+    down = y / float(SHELF_H)
+    return 0.02 + 0.07 * down
 
 
 def _shelf(x, y):
-    """The shelving frame, painted with lit arrises and pooled shadow (TD-103)."""
-    right = SHELF_W - 1 - x
-    bottom = SHELF_H - 1 - y
-    edge_x = min(x, right)
-    edge_y = min(y, bottom)
+    """The alcove, painted from the height field that also drives its normal map."""
+    ring = _alcove_ring(x, y)
     hgt = _shelf_h(x, y)
 
-    # The interior is a SHADOW, not a void (TD-104). A single near-black tone reads as
-    # a hole cut in the wall; a shadow has a gradient — deepest where the case is
-    # deepest, lifting where the board beneath bounces light back up — and it keeps a
-    # trace of the material it is made of. The shader's cool ambient then tints it away
-    # from the candle, which is what gives the room its warm/cool depth.
-    if edge_x >= 6 and edge_y >= 5:
-        down = (y - 5) / float(SHELF_H - 10)
-        lift = 0.10 * max(0.0, min(1.0, down))
-        grain = 0.02 if _rnd(x // 2, y // 2, 5) > 0.70 else 0.0
-        return _op(A.quantize(A.ramp_shade("navestone", 0.015 + lift + grain)))
-
-    # Iron straps stay iron — a different material, so a different ramp.
-    if 2 <= y < 5 and edge_x >= 6 and (x % 8) in (3, 4):
-        return _op(A.quantize(A.ramp_shade("stone", 0.18 + 0.24 * (1.0 - (y - 2) / 3.0))))
-
-    grain = -0.06 if _rnd(x, y // 4, 19) > 0.78 else 0.0
-    return _op(A.quantize(A.ramp_shade("wood", 0.06 + hgt * 0.70 + grain)))
+    if ring == 0:
+        return _op(A.RAMP["black"][0])                     # the cut line
+    if ring <= REVEAL_PX:
+        # Stone, and lit by facing. Grain is per-block-ish rather than per-pixel so the
+        # reveal reads as cut masonry and not as noise.
+        grain = -0.04 if _rnd(x // 3, y // 3, 29) > 0.74 else 0.0
+        return _op(A.quantize(A.ramp_shade("navestone", 0.06 + hgt * 0.60 + grain)))
+    return _op(A.quantize(A.ramp_shade("navestone", 0.015 + hgt * 0.30)))
 
 
 # ── qm_label.png — a shelf's label plate ─────────────────────────────────────
