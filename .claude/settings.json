@@ -34,8 +34,22 @@
       "Bash(jq *)",
       "Bash(column *)",
 
-      "Bash(python3 tools/*)",
-      "Bash(python3 /home/jerwin/projects/Testament/tools/*)"
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(perl *)",
+      "Bash(xargs *)",
+
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(touch *)",
+      "Bash(printf *)",
+      "Bash(base64 *)",
+      "Bash(tee *)",
+      "Bash(test *)",
+      "Bash(true)",
+      "Bash(md5sum *)",
+      "Bash(sha256sum *)",
+      "Bash(timeout *)"
     ],
     "deny": [
       "Bash(rm -rf /*)",
