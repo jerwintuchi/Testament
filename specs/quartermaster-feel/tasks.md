@@ -149,6 +149,23 @@
       and choose between — readability of the interactive objects beats strict lighting consistency,
       and the darker interiors give them *more* contrast, not less.
 
+- [x] T398 [author ruling] — **A weak fill light at the shelf end, with a fixture to come from.**
+      Two lights now: the candle (energy 0.9, reach 0.44) and a **lamp** (energy 0.34, reach 0.52,
+      warm-neutral rather than a second flame — two equal candles would flatten the room again).
+      The far instruments lift off black; the bench stays the lit place.
+      **It has a visible source on purpose.** A fill with no fixture is a cheat, and the board
+      couples every flame to its sconce (P95) — so `gen_qm_room.py` gained a small iron wall-lamp
+      and the light is placed from the prop's position.
+      **Corrected on the first capture:** hung at the shelf end the lamp was drawn BEHIND the
+      shelving, which fills that whole side of the room — so the fixture was invisible while its
+      light was not, which is exactly the cheat it was meant to avoid. It now stands on the bench's
+      near end beside the paperwork (which shifted right to make room), with its feet derived from
+      `COUNTER_Y` exactly as the candle's are, so neither can float.
+      **`surface_material` gained per-light energy** (`t.get("energy", 0.9)`): the board's
+      `torch_rig` sets no energy key, so it keeps the old hardcoded 0.9 and is unchanged by
+      construction — but a room with a working light and a fill has to be able to say which is which.
+      Board re-checked: `keepout live=8 ok=true minhit=80x51 hit_ok=true`. Budget 192 / 220.
+
 ## Do not re-invent
 
 - **The data model, capacity, flow and seal rite are TD-101's and are not re-opened.**

@@ -279,9 +279,9 @@
 - `client/scripts/stations/quartermaster/pack.gd:181` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:197` — `load/preload SLOT`
 - `client/scripts/stations/quartermaster/register.gd:117` — `load/preload SHEET`
-- `client/scripts/stations/quartermaster/room.gd:142` — `load/preload WALL`
-- `client/scripts/stations/quartermaster/room.gd:268` — `load/preload PROPS`
-- `client/scripts/stations/quartermaster/room.gd:322` — `load/preload path`
+- `client/scripts/stations/quartermaster/room.gd:174` — `load/preload WALL`
+- `client/scripts/stations/quartermaster/room.gd:302` — `load/preload PROPS`
+- `client/scripts/stations/quartermaster/room.gd:356` — `load/preload path`
 - `client/scripts/stations/quartermaster/seal_rite.gd:40` — `load/preload SEAL_TEX`
 - `client/scripts/stations/quartermaster/shelf.gd:190` — `load/preload STOCK`
 - `client/scripts/stations/quartermaster/shelf.gd:225` — `load/preload STOCK`

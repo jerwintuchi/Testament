@@ -41,6 +41,18 @@ const DUST_COUNT := 14
 # declared: a candle stands ON the surface, so its feet come from `COUNTER_Y` and only
 # the flame's height above them is a constant. Declaring both independently is how the
 # first pass ended up with a candle hovering seven pixels off the bench.
+# The lamp at the NEAR end of the bench. A FILL: weak and wide, so the far instruments
+# are browsable without the bench losing its place as the lit spot. It has a visible
+# fixture on purpose — a light with no source is a cheat, and the board couples every
+# flame to its sconce (P95).
+#
+# It stands on the counter rather than hanging on the wall, and that is a correction:
+# hung at the shelf end it was drawn BEHIND the shelving, which fills that whole side
+# of the room, so the fixture was invisible while its light was not. A lamp standing by
+# the paperwork is both plausible and actually on screen.
+const LAMP_FX     := 0.058
+const LAMP_ENERGY := 0.34
+
 const CANDLE_FX   := 0.500
 const CANDLE_FEET := 5.0     # how far the base sinks into the surface it stands on
 const FLAME_UP    := 4.0     # the flame, measured down from the prop's top edge
@@ -52,6 +64,7 @@ const P_INK    := 2
 const P_SCALE  := 3
 const P_WAX    := 4
 const P_PAPERS := 5
+const P_LAMP   := 6
 
 # ── the room's geometry, in fractions of the viewport ────────────────────────
 # Fractions, never fixed pixels: the canon is that anything on screen is sized from
@@ -92,13 +105,32 @@ static func candle_pos(vp: Vector2) -> Vector2:
 		vp.y * COUNTER_Y - PROP_PX + CANDLE_FEET)
 
 
+static func lamp_pos(vp: Vector2) -> Vector2:
+	# Feet on the counter, derived exactly as the candle's are, so neither can float.
+	return Vector2(vp.x * LAMP_FX - PROP_PX * 0.5,
+		vp.y * COUNTER_Y - PROP_PX + CANDLE_FEET)
+
+
 static func candle_rig(vp: Vector2) -> Array:
 	var flame := candle_pos(vp) + Vector2(PROP_PX * 0.5, FLAME_UP)
-	return [{
-		"uv": Vector2(flame.x / vp.x, flame.y / vp.y),
-		"color": Color(1.0, 0.74, 0.44),
-		"radius": 0.44,
-	}]
+	var lamp := lamp_pos(vp) + Vector2(PROP_PX * 0.44, PROP_PX * 0.5)
+	return [
+		{
+			"uv": Vector2(flame.x / vp.x, flame.y / vp.y),
+			"color": Color(1.0, 0.74, 0.44),
+			"radius": 0.44,
+			"energy": 0.9,
+		},
+		{
+			# The fill. Weak and wide: it lifts the far shelves off black without
+			# competing with the bench, and it is warm-neutral rather than a second
+			# candle, because two equal flames would flatten the room again.
+			"uv": Vector2(lamp.x / vp.x, lamp.y / vp.y),
+			"color": Color(0.92, 0.80, 0.62),
+			"radius": 0.52,
+			"energy": LAMP_ENERGY,
+		},
+	]
 
 
 ## A surface material lit by this room's candle. Thin wrapper so no call site has to
@@ -247,10 +279,12 @@ static func _counter(host: Control, rect: Rect2) -> void:
 	# Every prop is scenery: ignore-filtered, unfocusable, no tooltip (P169). A room
 	# must not offer an affordance it will not honour.
 	var top := rect.position.y - 19.0
-	# left — the writing end
-	_prop(host, P_PAPERS, Vector2(rect.position.x + 8.0,  top + 2.0))
-	_prop(host, P_LEDGER, Vector2(rect.position.x + 32.0, top))
-	_prop(host, P_INK,    Vector2(rect.position.x + 58.0, top + 1.0))
+	# left — the lamp, then the writing set beside it
+	var vp0 := vp_of(host)
+	_flicker(_prop(host, P_LAMP, lamp_pos(vp0)))
+	_prop(host, P_PAPERS, Vector2(rect.position.x + 36.0, top + 2.0))
+	_prop(host, P_LEDGER, Vector2(rect.position.x + 60.0, top))
+	_prop(host, P_INK,    Vector2(rect.position.x + 86.0, top + 1.0))
 	# right — the sealing end, and the light that serves it
 	_prop(host, P_SCALE,  Vector2(rect.end.x - 34.0, top - 1.0))
 	_prop(host, P_WAX,    Vector2(rect.end.x - 62.0, top + 2.0))

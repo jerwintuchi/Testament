@@ -430,7 +430,7 @@ def _stock(x, y):
 # Four only. The brief is explicit that the counter must not be cluttered (§8): the
 # object under inspection is what matters, and these frame it.
 PROP_TILE = 24
-PROP_N = 6
+PROP_N = 7
 PROP_W, PROP_H = PROP_TILE * PROP_N, PROP_TILE
 
 
@@ -529,7 +529,38 @@ def _papers(x, y):
     return CLEAR
 
 
-PROPS = [_ledger, _candle, _inkwell, _scale, _wax, _papers]
+def _lamp(x, y):
+    """A small iron wall-lamp, hung on a bracket.
+
+    It exists because the shelves needed a fill light and **a light with no visible
+    source is a cheat** — the Contract Board couples every flame to its sconce (P95),
+    and this room should not be the exception. Dimmer than the candle by design: it is
+    the far end of the room, and the bench is meant to stay the lit place.
+    """
+    # The bracket, out to the left and hooking over.
+    if 2 <= x <= 4 and 3 <= y <= 5:
+        return _op(IRON_DARK)
+    if 4 <= x <= 10 and y == 3:
+        return _op(IRON if x > 5 else IRON_DARK)
+    if x == 10 and 4 <= y <= 6:
+        return _op(IRON_DARK)
+    # The lamp body: an iron cage over a warm pane.
+    if 6 <= x <= 15 and 7 <= y <= 18:
+        if x in (6, 15) or y in (7, 18):
+            return _op(IRON_DARK)
+        if y == 8 or y == 17:
+            return _op(IRON)
+        if x in (10, 11) and 9 <= y <= 16:
+            return _op(FLAME_LOW)          # the flame seen through the glass
+        if 8 <= x <= 13 and 9 <= y <= 16:
+            return _op(BRASS)              # the warm pane
+        return _op(IRON_DARK)
+    if 8 <= x <= 13 and y == 19:
+        return _op(IRON_DARK)              # the drip lip
+    return CLEAR
+
+
+PROPS = [_ledger, _candle, _inkwell, _scale, _wax, _papers, _lamp]
 
 
 def _props(x, y):

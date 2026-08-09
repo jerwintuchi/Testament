@@ -70,7 +70,10 @@ static func surface_material(vp: Vector2, normal_path: String, ambient: float = 
 	var rads := PackedFloat32Array()
 	for t in rig:
 		uvs.append(t["uv"])
-		var c: Color = t["color"]; c.a = 0.9             # energy in alpha (dimmed for the dungeon grade, TD-048)
+		# Energy rides in the alpha. Per-light now (TD-105), defaulting to the board's
+		# own 0.9 so `torch_rig` is untouched: a room with a bright working light and a
+		# weak fill needs to say which is which, and one shared energy cannot.
+		var c: Color = t["color"]; c.a = float(t.get("energy", 0.9))
 		cols.append(c)
 		# radius_scale widens ONE surface's reach without touching the shared torch_rig (P95/P102):
 		# the board's tight 0.24 halo keeps the wall dungeon-dark, but the banner (hung above its

@@ -4423,3 +4423,29 @@ helps them rather than hurting them.
 
 No shared surface was touched, so the Contract Board is unaffected by construction. Budget unchanged:
 191 nodes / 220, 14 particles / 20.
+
+## 2026-08-09 — TD-105: a fill light, and the fixture it has to come from
+
+**Author ruling:** add the weak fill at the shelf end that TD-104 proposed. Done — and the
+interesting part is what it forced.
+
+**A fill with no visible source is a cheat.** The Contract Board couples every flame to its sconce
+(P95) precisely so light in this game has a cause. Dropping an invisible lifter into the dark corner
+of the stores would have broken that on the room's own terms, so the generator gained a small iron
+wall-lamp and the light is placed **from the prop**, not beside it.
+
+**The first placement made the cheat literal.** Hung at the shelf end, the lamp was drawn *behind*
+the shelving — which fills that entire side of the room — so the fixture was invisible while its light
+plainly was not. Exactly the thing it existed to avoid, and only a capture showed it. It now stands on
+the bench's near end beside the paperwork (shifted right to make room), with its feet derived from
+`COUNTER_Y` the same way the candle's are, so neither can float.
+
+**`surface_material` gained per-light energy.** The energy was hardcoded to 0.9 for every light in the
+rig, which is fine for two matched torches and useless for a room with a working light and a fill.
+It now reads `t.get("energy", 0.9)`, so the board's `torch_rig` — which sets no energy key — keeps the
+old value and is unchanged by construction. The stores run the candle at 0.9 / reach 0.44 and the lamp
+at 0.34 / reach 0.52, warm-neutral rather than a second flame: **two equal candles would flatten the
+room again**, which is the failure TD-104 had just corrected.
+
+Board re-checked after the shared-code change: `keepout live=8 ok=true minhit=80x51 hit_ok=true`,
+eight writs live. Budget 192 nodes / 220, 14 particles / 20.

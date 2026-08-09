@@ -54,7 +54,7 @@ These are disagreements between what a spec says and what the tree contains.
 | `probe-handler` | ✅ done | 8 | 0 | 0 | 2026-08-09 | — |
 | `protocol-contract` | ✅ done | 15 | 0 | 0 | 2026-07-24 | — |
 | `quartermaster` | ✅ done | 6 | 0 | 3 | 2026-08-08 | — |
-| `quartermaster-feel` | ✅ done | 17 | 0 | 0 | 2026-08-09 | — |
+| `quartermaster-feel` | ✅ done | 18 | 0 | 0 | 2026-08-09 | — |
 | `quartermaster-room` | ✅ done | 12 | 0 | 0 | 2026-08-09 | — |
 | `raw-ws-transport` | ✅ done | 5 | 0 | 0 | 2026-06-29 | — |
 | `reader-swap` | ✅ done | 4 | 0 | 0 | 2026-07-23 | — |
