@@ -54,9 +54,9 @@
       expensive re-diff. `qm_budget.py` green (now 10 checks incl. the emitter rule), `--selftest`
       green with every check proven to bite.
 
-## Found, NOT fixed — the author's call
+## The font (author ruled: fix it)
 
-- [ ] T390 — **`theme/custom_font` has never applied.** Godot's project-settings parser folds a
+- [x] T390 — **`theme/custom_font` has never applied.** Godot's project-settings parser folds a
       preceding `#` comment block into the following key's name, so `project.godot`'s
       `gui/theme/custom_font` is not the key Godot reads and **the project default has silently been
       Godot's fallback sans since TD-097**. Proven twice: deleting the comment flips the Contract
@@ -64,9 +64,20 @@
       the folded key back out as one long garbage key.
       Call sites asking `Fonts.body()/heading()` were always fine; only the *default* was wrong —
       which is what CLAUDE.md's "the board's small text is the default sans" was recording.
-      **Deliberately not fixed in this pass:** it re-flows the Contract Board (finished work) and
-      changes type across the whole game. `project.godot` is reverted to HEAD exactly and the finding
-      is recorded in `fonts.gd`.
+      **FIXED on the author's ruling, and the board re-checked.** The comment is deleted; the key
+      applies for the first time since TD-097, so the canon claim "Testament is set in Almendra" is
+      now true in practice rather than only in the document.
+      **Board verified, not assumed:** `keepout live=8 ok=true minhit=80x51 hit_ok=true`, all eight
+      writs live and nothing clipped. Writs measure slightly SHORTER in Almendra (80x53 → 80x51), so
+      the re-flow gained room rather than costing it.
+      **A 1× read said the word spaces had collapsed** ("PETITIONTYPES"); magnifying to 3× showed
+      they are present and simply narrower than the sans — a typographic difference, not a defect.
+      Checked by looking closer instead of acting on the first impression.
+      **A bonus fell out of it:** Almendra is narrower, so the Quartermaster record's note now fits in
+      fewer lines and the **WARNING block is visible without scrolling** — which is what R374 wanted
+      and T386 could not quite reach. The title screen is unaffected (it names its faces explicitly).
+      **The rule that comes out of this:** `project.godot` must stay comment-free inside a section;
+      the reasons live in `fonts.gd`, which a parser cannot corrupt.
 
 ## Do not re-invent
 

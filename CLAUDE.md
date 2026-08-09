@@ -596,14 +596,19 @@ All ten icons re-authored in **Aseprite** as hand-placed 24×24 ASCII maps (TD-0
 bright-gold pixels**, `.aseprite` source in `art/src/`. Wall quietened (one course per tile, recessed
 joints), counter given **three zones** + two props, record gains a **WARNING** block, `SEAL & DEPART`
 subdued→gold only when issuable, 14 budgeted dust motes. 191 nodes/220.
-**⚠ FOUND, NOT FIXED — `theme/custom_font` has NEVER applied.** Godot's project-settings parser folds
+**FIXED 2026-08-09 (author ruling) — `theme/custom_font` had NEVER applied.** Godot's project-settings parser folds
 a preceding `#` comment block into the next key's name, so the project default face has silently been
 Godot's fallback **sans** since TD-097 — which is what "the board's small text is the default sans"
 was recording. Proven twice: deleting the comment flips the board to Almendra (**29% of pixels
 differ**, `minhit` 80x53→80x51), and a re-import rewrote the folded key out as garbage, deleting the
-setting. Left unfixed **on purpose**: it re-flows the Contract Board and changes type game-wide —
-the author's call. `project.godot` reverted to HEAD byte-for-byte; finding recorded atop `fonts.gd`.
-**Rule: no comments inside a `project.godot` section.** DECISION_LOG **TD-102**.
+setting. **Now fixed and the board re-checked:** `keepout live=8 ok=true minhit=80x51 hit_ok=true`, eight
+writs live, nothing clipped — the re-flow **gained** room, since Almendra is narrower than the sans it
+replaced. A 1× read suggested word spaces had collapsed; at 3× they are simply narrower — a
+typographic difference, not a defect. **Bonus:** the narrower face lets the Quartermaster record show
+its WARNING without scrolling, which R374 wanted and the layout work could not reach.
+**Standing rule: NO COMMENTS INSIDE A `project.godot` SECTION** — the parser folds them into the next
+key's name and the writer then rewrites that as garbage, deleting the setting. Reasons live in
+`fonts.gd`. DECISION_LOG **TD-102** + addendum.
 
 @specs/quartermaster-room/requirements.md
 @specs/quartermaster-room/design.md
@@ -766,7 +771,9 @@ ask for a role, never a weight number (Almendra has no variable axis — weight 
   7/9/11/14px it is fringe, resolving only from ~21px. The function falls back to `heading()` below
   the threshold *and warns*, because a silent smear is worse than a substitution.
 - **The default face is a PROJECT SETTING** (`project.godot` → `theme/custom_font`), never a
-  call-site override. `notice_card.gd` measures writs against `ThemeDB.fallback_font` while
+  call-site override. **It only actually took effect on 2026-08-09 (TD-102):** a `#` comment above
+  the key made Godot read a different key name entirely, so the default was the fallback sans from
+  TD-097 until then. **Never put a comment inside a `project.godot` section.** `notice_card.gd` measures writs against `ThemeDB.fallback_font` while
   `Widgets.card_label` renders with the default, so measure and render stay the same font by
   construction (P111). Overriding fonts per call site breaks that pairing — the TD-089 trap again.
 - **No antialiasing, no subpixel positioning**, enforced in the `.ttf.import` files so no call site

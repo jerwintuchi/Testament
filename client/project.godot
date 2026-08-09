@@ -34,11 +34,6 @@ window/stretch/scale_mode="integer"
 
 [gui]
 
-# TD-097: Almendra is the project's default face, set HERE rather than as per-call-site
-# overrides. notice_card.gd measures each writ against ThemeDB.fallback_font while
-# card_label renders with the default — so measure and render stay the same font by
-# construction (P111). Overriding fonts at call sites would have broken that pairing,
-# which is the TD-089 trap in another costume.
 theme/custom_font="res://assets/fonts/Almendra.ttf"
 theme/default_font_antialiasing=0
 theme/default_font_hinting=2

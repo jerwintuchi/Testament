@@ -4284,3 +4284,31 @@ inside a section.**
 **Budget.** 191 nodes / 220 (the gold hover edge costs 5 per instrument), 14 dust motes / 20. The
 emitter's amount is a named constant so the budget can read it — `qm_budget.py` now fails if a
 literal appears at the call site.
+
+## 2026-08-09 — TD-102 addendum: the font fixed, the board re-checked
+
+**Author ruling: fix it.** The comment above `gui/theme/custom_font` is deleted, so the key applies
+for the first time since TD-097. **The canon claim "Testament is set in Almendra" is now true in
+practice rather than only in the document** — until today it described an intent the engine never
+received.
+
+**The board was re-checked, not assumed.** `keepout live=8 ok=true minhit=80x51 hit_ok=true`, all
+eight writs live, nothing clipped. The re-flow **gained** room: writs measure slightly shorter in
+Almendra (80x53 → 80x51), because the face is narrower than the fallback sans it replaced. The Great
+Hall's title screen is unaffected — it names its faces explicitly and never relied on the default.
+
+**One false alarm, corrected by looking closer.** At 1× the legend appeared to have lost its word
+spaces ("PETITIONTYPES", "ACTIVEASSIGNMENT"). Magnified to 3× the spaces are plainly there and simply
+narrower than the sans — a typographic difference, not a defect. Worth recording as a method note:
+the first impression of a 640×360 screen viewed at 1× is not evidence, and the cost of magnifying
+before acting was one command.
+
+**A bonus fell out of it.** Almendra being narrower, the Quartermaster's record now fits its note in
+fewer lines and the **WARNING block is visible without scrolling** — which is exactly what R374 asked
+for and what T386's own layout work could not quite reach. A correctness fix delivered a design goal
+for free, which is usually a sign the two were the same problem.
+
+**The standing rule:** `project.godot` must stay **comment-free inside a section**. Godot's parser
+folds a preceding `#` block into the following key's name, and its writer then rewrites the folded
+result as one long garbage key, deleting the setting outright. The reasons live in `fonts.gd`, which
+a parser cannot corrupt.

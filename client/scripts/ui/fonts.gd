@@ -1,23 +1,22 @@
 extends RefCounted
-## ⚠ FINDING, NOT YET FIXED — `theme/custom_font` HAS NEVER APPLIED (TD-102).
+## ⚠ `project.godot` MUST STAY COMMENT-FREE INSIDE A SECTION (TD-102).
 ##
-## `project.godot` sets `gui/theme/custom_font` to Almendra with an explanatory `#`
-## comment block directly above it. Godot's project-settings parser **folds those
-## comment lines into the following key's name**, so the key it actually reads is not
-## `theme/custom_font` — and the project default has silently stayed Godot's fallback
-## SANS since TD-097. Proven twice: deleting the comment flips the Contract Board to
-## Almendra (29% of pixels differ, `minhit` 80x53 → 80x51), and a re-import rewrote the
-## folded key back out as one long garbage key.
+## Godot's project-settings parser **folds a preceding `#` comment block into the
+## following key's name**. `gui/theme/custom_font` carried an explanatory comment from
+## TD-097 until 2026-08-09, so the key Godot read was not `theme/custom_font` at all and
+## **the project default face was silently Godot's fallback SANS for that entire time** —
+## while the canon below claimed Almendra was the default. Call sites asking
+## `Fonts.body()/heading()/ornament()` were always correct; only the default was wrong.
 ##
-## So today: call sites asking `Fonts.body()/heading()/ornament()` DO get Almendra;
-## anything relying on the project default (e.g. `Widgets.card_label`) gets the sans.
-## CLAUDE.md's "the board's small text is the default sans" recorded the symptom.
+## Proven before fixing, and reproducible: deleting the comment flipped the Contract
+## Board to Almendra (29% of pixels differ, `minhit` 80x53 -> 80x51), and a re-import had
+## already rewritten the folded key back out as one long garbage key, deleting the
+## setting outright.
 ##
-## NOT fixed here on purpose: removing the comment re-flows the Contract Board, which is
-## finished work, and changes type across the whole game — the author's call, not a
-## side effect of a Quartermaster pass. `notice_card.gd` measures writs against
-## `ThemeDB.fallback_font` while `card_label` renders with the default, so the pairing
-## (P111) survives either way; only the face changes.
+## FIXED (author's call): the comment is deleted and the key applies. Board re-checked —
+## `keepout ok=true`, `hit_ok=true`, all eight writs live. Put the reasons HERE, in a file
+## a parser cannot corrupt, never beside the key.
+##
 ## Shared font builders (TD-067, retypeset TD-097). Preloaded as `Fonts`, never a global
 ## class_name so a headless parse/import resolves it (TD-029/30).
 ##
