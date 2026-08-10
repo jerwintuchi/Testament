@@ -28,10 +28,14 @@ const LIFT_H   := 9.0
 ## cloth's own rect (TD-110/P176). Deriving rather than declaring is what stops the
 ## instrument landing beside the cloth it is supposed to be set down on — the same
 ## mistake the candle and its light made in TD-105.
+## The cloth still decides WHERE across the counter (it is the surface, P176); the
+## counter's top plane now decides HOW HIGH. The old offset put the instrument's feet
+## below the arris, i.e. standing on the counter's front face — invisible while the
+## counter was a flat rectangle, wrong the moment it gained planes (TD-112).
 static func rest_point(counter_rect: Rect2) -> Vector2:
 	var cloth := Room.cloth_rect(counter_rect)
 	return Vector2(cloth.position.x + cloth.size.x * 0.5 - ICON_PX * 0.5,
-		cloth.position.y + 7.0)
+		Room.counter_stand_y(counter_rect) - ICON_PX)
 
 
 ## Builds the mat the instrument is set down on — a small leather square, so the
@@ -46,7 +50,26 @@ static func build(host: Control, counter_rect: Rect2) -> Dictionary:
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(caption)
 
-	return {"caption": caption, "rest": at, "holding": ""}
+	# The counter's own contact shadow. The shelf shadow travels with the object only
+	# in the sense that it is switched OFF — so until now an instrument on the counter
+	# cast nothing at all, and floated on the cloth. This one lives on the counter and
+	# is re-textured per instrument, so the shadow always describes the silhouette
+	# standing in it (the P173 rule, applied to the second surface).
+	#
+	# It is WIDER and SHORTER than the shelf's: the counter's top plane recedes, and a
+	# shadow cast across a receding plane foreshortens away from the eye rather than
+	# falling straight down as it does on the near edge of a shelf board.
+	var cshadow := TextureRect.new()
+	cshadow.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	cshadow.stretch_mode = TextureRect.STRETCH_SCALE
+	cshadow.position = Vector2(at.x - 2.0, Room.counter_stand_y(counter_rect) - 1.0)
+	cshadow.size = Vector2(ICON_PX + 4.0, 3.0)
+	cshadow.modulate = Color(1, 1, 1, 0.72)
+	cshadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cshadow.visible = false
+	host.add_child(cshadow)
+
+	return {"caption": caption, "rest": at, "holding": "", "shadow": cshadow}
 
 
 ## Carries `rec`'s object from wherever it stands to the counter. `done` fires when it
@@ -56,9 +79,14 @@ static func carry_in(view: Dictionary, rec: Dictionary, reduced: bool, done: Cal
 	var shadow: Control = rec["shadow"]
 	var target: Vector2 = view["rest"]
 
-	# The object leaves its shelf, so the shelf's contact shadow goes with it.
+	# The object leaves its shelf, so the shelf's contact shadow goes with it — and the
+	# counter's own takes over, wearing this instrument's silhouette.
 	shadow.visible = false
 	node.z_index = 4                     # over the counter and its props while handled
+	var cshadow: Control = view.get("shadow")
+	if cshadow != null:
+		cshadow.texture = shadow.texture
+		cshadow.visible = true
 
 	if reduced:
 		node.position = target
@@ -77,10 +105,17 @@ static func carry_in(view: Dictionary, rec: Dictionary, reduced: bool, done: Cal
 
 ## Returns an object to its exact shelf position. The same journey, reversed — an
 ## instrument that blinked back would undo the physicality the carry just established.
-static func carry_out(rec: Dictionary, reduced: bool, done: Callable = Callable()) -> void:
+## `view` is optional only so existing call sites keep working; pass it whenever the
+## object is leaving the COUNTER, or the counter's contact shadow is left behind
+## describing an instrument that is no longer standing there.
+static func carry_out(rec: Dictionary, reduced: bool, done: Callable = Callable(),
+		view: Dictionary = {}) -> void:
 	var node: Control = rec["node"]
 	var shadow: Control = rec["shadow"]
 	var home: Vector2 = rec["home"]
+	var cshadow: Control = view.get("shadow")
+	if cshadow != null:
+		cshadow.visible = false
 
 	var land := func():
 		node.z_index = 0

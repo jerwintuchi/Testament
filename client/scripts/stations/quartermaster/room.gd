@@ -40,6 +40,13 @@ const BOARD_MB := 3
 const LABEL_M   := 7
 # Per-side, and asymmetric on purpose: the top margin carries the whole receding top
 # plane, the bottom only the plinth. Must match gen_qm_room.CTR_M*.
+# The counter's own plane geometry, mirroring gen_qm_room.CTR_TOP_Y*/CTR_ARRIS. An
+# object set down on the counter stands on the TOP PLANE, so its feet come from here
+# rather than from a hand-picked offset — the coupling P176 already forced between the
+# cloth and the rest point, now extended to the plane the cloth is draped over.
+const COUNTER_TOP_Y1 := 17.0            # the last row of the receding top surface
+const COUNTER_ARRIS  := 18.0            # the lit front edge
+
 const COUNTER_ML := 28
 const COUNTER_MT := 26
 const COUNTER_MR := 28
@@ -329,6 +336,13 @@ static func _shelving(host: Control, rect: Rect2) -> Array:
 
 ## Where the cloth is draped, and therefore where an instrument is set down. ONE
 ## definition, read by the room that draws it and by the counter that rests on it.
+## Where an object's FEET land on the counter — on the top plane, three pixels behind
+## the arris, so some surface reads behind the object and the lit edge reads in front.
+## Landing it past the arris would stand it on the counter's FRONT FACE, i.e. in mid-air.
+static func counter_stand_y(counter_rect: Rect2) -> float:
+	return counter_rect.position.y + COUNTER_TOP_Y1 - 3.0
+
+
 static func cloth_rect(counter_rect: Rect2) -> Rect2:
 	# The cloth's OWN authored size, drawn 1:1 — never scaled to fit the counter,
 	# because scaling is what destroyed its crosses the first time.

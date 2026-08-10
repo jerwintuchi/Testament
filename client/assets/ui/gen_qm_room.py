@@ -99,7 +99,9 @@ def _wall_h(x, y):
     off = (BLOCK // 2) if (course % 2) else 0
     lx = (x + off) % BLOCK
     if ly <= 1 or lx <= 1:
-        return 0.10                     # the joint: a deep recess
+        # The mortar is not a ruled line. Its depth varies along the run, which is
+        # what stops a wall of identical joints reading as printed graph paper.
+        return 0.10 - 0.05 * _rnd(x // 2, y // 2, 67)
     v = _rnd(x // BLOCK + off, course, 7)
     hgt = 0.62 + 0.10 * v               # each block sits a little proud, by its own amount
     if ly == 2 or lx == 2:
@@ -110,6 +112,13 @@ def _wall_h(x, y):
     # than as noise sprayed over everything.
     if _rnd(x, y, 31) > 0.955:
         hgt -= 0.14
+    # CHIPPED ARRISES (R394). Wear is structural: a block loses its corners first,
+    # because that is where two exposed edges meet and nothing supports the stone
+    # behind them. Scattering the same number of dark pixels evenly over the face
+    # would read as dirt; concentrating them on the arrises reads as age.
+    arris = min(ly, COURSE - 1 - ly, lx, BLOCK - 1 - lx)
+    if arris <= 3 and _rnd(x, y, 53) > 0.86:
+        hgt -= 0.18 * (1.0 - arris / 4.0)
     return max(0.0, min(1.0, hgt))
 
 
@@ -263,6 +272,10 @@ def _shelf(x, y):
         # Stone, and lit by facing. Grain is per-block-ish rather than per-pixel so the
         # reveal reads as cut masonry and not as noise.
         grain = -0.04 if _rnd(x // 3, y // 3, 29) > 0.74 else 0.0
+        # The cut's own arris is the most-handled stone in the room — the edge every
+        # hand and every crate corner meets. It chips first, and only there.
+        if ring == 1 and _rnd(x, y, 71) > 0.84:
+            grain -= 0.14
         return _op(A.quantize(A.ramp_shade("navestone", 0.06 + hgt * 0.60 + grain)))
     return _op(A.quantize(A.ramp_shade("navestone", 0.015 + hgt * 0.30)))
 

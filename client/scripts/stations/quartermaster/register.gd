@@ -306,7 +306,7 @@ static func _select(view: Dictionary, id: String) -> void:
 	var reduced: bool = view["reduced"]
 
 	if prev != "" and items.has(prev) and not (prev in view["packed"]):
-		Counter.carry_out(items[prev], reduced)
+		Counter.carry_out(items[prev], reduced, Callable(), view["counter"])
 
 	view["sel"] = id
 	if not items.has(id):

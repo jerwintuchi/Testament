@@ -82,8 +82,8 @@ That is the real cost of this spec: the counter, the alcoves and the floor stop 
 - [x] **T420** — re-author the counter as one perspective sprite: top, front and end faces.
 - [x] **T421** — re-author the alcoves with visible cut thickness and a receding interior.
 - [x] **T422** — re-author the shelf boards with a visible upper surface.
-- [ ] **T423** — raise texture density on wood, stone, iron and brass per R394.
-- [ ] **T424** — move the rest point and contact shadows onto the perspective planes.
+- [x] **T423** — raise texture density on wood, stone, iron and brass per R394.
+- [x] **T424** — move the rest point and contact shadows onto the perspective planes.
 - [ ] **T425** — verify: budget, board guard, captures of empty/picked/full/sealed.
 
 ## Sequencing note
