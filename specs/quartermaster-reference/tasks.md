@@ -33,9 +33,24 @@
 
 ## Open — not started, and not implied
 
-- [ ] T410 [R382 / V1] — **The instruments at reference density.** 8–12 tones each on the same 24px
-      canvas: brass collars, glass rims, banding, a foot to stand on. The ban on bright gold stands
-      (P177). Aseprite, `.aseprite` source kept.
+- [~] T410 [R382 / V1] — **The instruments: PARTLY there, and the halves are worth naming.**
+      **Done — the palette half.** Each material's triple was three neighbouring greys; it now spans
+      a real range, and glass, brass and iron take a **specular**: the one pixel where a curved
+      material catches the room, placed where the lit face meets the top-left corner. Wood, bone and
+      wax stay matte on purpose — a highlight on everything is what makes a sheet read as plastic.
+      Mean tones **5.5 → 6.2**, contrast up on all ten uniformly. **Brass's bright stop returns here
+      and ONLY here:** P177 bans gold as a *field* on an ordinary instrument; a single lit pixel is
+      not a field, it is how metal reads. Field audit still **0 gold pixels** on all ten.
+      **Not done — the drawing half.** Reference density (8–12 tones) needs each glyph to carry
+      MORE MATERIALS, not just more shades of the ones it has: a brass collar on the lens, a foot
+      under the prism, banding on the censer, a stand for the bead. That is per-icon hand editing of
+      ten 24-row maps.
+      **Stopped deliberately rather than done halfway:** a sheet where three instruments are detailed
+      and seven are not reads worse than ten that are uniformly simple, because the eye reads the
+      inconsistency before it reads either. The palette work applies to all ten at once; the drawing
+      work cannot, so it is a whole task or none.
+      The derived contact shadows were regenerated from the new sheet — they are read from the icons,
+      so they cannot go stale silently (P173).
 
 - [ ] T411 [R383] — **The rest of the bench.** Open ledger with a cross on the page, quill standing
       in the inkwell, wax-sealed envelope, brass balance, stacked books, second candle, and drawers
@@ -71,8 +86,8 @@
 
 ## Verified so far
 
-`--board-after-qm` green (`keepout live=8 ok=true`); `qm_budget.py` green at **204 / 220** — note the
-headroom is thinning, which is exactly why T411–T414 must bake rather than add nodes. No `src/**`.
+`--board-after-qm` green (`keepout live=8 ok=true`); `qm_budget.py` green at **208 / 220**. The
+headroom is thinning, which is exactly why T411–T413 must bake rather than add nodes. No `src/**`.
 
 ## Do not re-invent
 

@@ -26,15 +26,26 @@
 -- Light comes from the upper-left, the convention the rest of the game's sprites use.
 -- Gold's bright stops (#B08A3E, #D6AE5C) remain BANNED here: they belong to selection,
 -- headings, the insignia and the seal (P168).
+-- Widened for reference density (TD-110 R382): each material's triple now spans a
+-- wider range, so the form pass has real contrast to work with instead of three
+-- neighbouring greys.
 local MAT = {
-  w = { "#7A5334", "#5A3D28", "#2A1B10" },   -- wood / horn
-  g = { "#616A72", "#4C545A", "#2B2F33" },   -- glass
-  i = { "#4C545A", "#2B2F33", "#22242A" },   -- iron
+  w = { "#916339", "#5A3D28", "#2A1B10" },   -- wood / horn
+  g = { "#8F7A63", "#4C545A", "#22242A" },   -- glass, pale at the lit face
+  i = { "#616A72", "#3C4248", "#22242A" },   -- iron
   b = { "#8C6C30", "#6E5426", "#3A2617" },   -- brass, capped below the bright gold
-  n = { "#E0CF9F", "#CBB583", "#A8946A" },   -- bone / salt / parchment
+  n = { "#F1E4BE", "#CBB583", "#8A7A54" },   -- bone / salt / parchment
   r = { "#C65A4E", "#8F2F2A", "#5E1D1A" },   -- wax / ember
   f = { "#F9DCA6", "#F0B25F", "#E8973C" },   -- flame, used sparingly
 }
+
+-- A SPECULAR pass on top of the form pass: the ONE pixel where a curved material
+-- catches the room. Only glass, brass and iron take one — wood, bone and wax are
+-- matte, and giving everything a highlight is what makes a sheet look like plastic.
+--
+-- Brass's bright stop returns here and ONLY here. P168 bans gold as a FIELD on an
+-- ordinary instrument; a single lit pixel is not a field, it is how metal reads.
+local SPEC = { g = "#F1E4BE", b = "#B08A3E", i = "#8F7A63" }
 local OUTLINE = "#1C1813"
 
 local function hexc(h)
@@ -366,7 +377,15 @@ for n = 1, N do
           local lit = (not solid(up)) or up == "k" or (not solid(left)) or left == "k"
           local dark = (not solid(down)) or down == "k" or (not solid(right)) or right == "k"
           if lit and not dark then
-            col = hexc(m[1])
+            -- The specular sits where the lit face meets the object's top-left
+            -- corner: one pixel, on curved materials only.
+            local u2 = at(glyph, x, y - 1)
+            local l2 = at(glyph, x - 1, y)
+            if SPEC[ch] ~= nil and (not solid(u2)) and (not solid(l2)) then
+              col = hexc(SPEC[ch])
+            else
+              col = hexc(m[1])
+            end
           elseif dark and not lit then
             col = hexc(m[3])
           else

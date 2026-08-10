@@ -4661,3 +4661,32 @@ states rather than two controls that look unrelated.
 
 Verified: `--board-after-qm` green (`keepout live=8 ok=true`), `qm_budget.py` green at 208/220, no
 `src/**`.
+
+## 2026-08-09 — TD-110 (cont.): the instruments' palette, and stopping at the seam
+
+**T410 is half done, and the halves are worth separating.**
+
+**The palette half shipped.** Each material's triple was three neighbouring greys, so the form-aware
+pass had almost nothing to choose between; the ranges are now wide, and glass, brass and iron take a
+**specular** — the single pixel where a curved material catches the room, placed where the lit face
+meets the top-left corner. Wood, bone and wax stay matte deliberately: a highlight on everything is
+what makes a sprite sheet read as plastic. Mean tones 5.5 → 6.2, and contrast is up on all ten.
+
+Brass's bright gold stop returns **here and only here**. P177 bans gold as a *field* on an ordinary
+instrument, because that is what made `cantors-ear` the loudest object on screen (TD-102). A single
+lit pixel is not a field — it is how metal reads — and the field audit still reports **0 gold pixels**
+across the sheet.
+
+**The drawing half did not ship, and I stopped rather than half-do it.** Reference density needs each
+glyph to carry MORE MATERIALS, not more shades of the ones it has: a brass collar on the lens, a foot
+under the prism, banding on the censer. That is per-icon hand editing of ten 24-row maps, and it is
+**all-or-nothing by nature**: a sheet where three instruments are detailed and seven are not reads
+worse than ten that are uniformly simple, because the eye finds the inconsistency before it finds
+either. The palette work applies to all ten in one edit; the drawing work cannot.
+
+Recording the distinction because it generalises: when a change can be applied *uniformly* it can
+ship partially; when it must be applied *per item*, partial delivery is a regression in coherence
+even though every individual item improved.
+
+The derived contact shadows were regenerated from the new sheet — they are read from the icons, so a
+stale shadow is impossible rather than merely unlikely (P173).
