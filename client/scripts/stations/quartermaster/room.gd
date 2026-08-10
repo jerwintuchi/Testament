@@ -25,6 +25,10 @@ const LABEL   := "res://assets/ui/stations/qm_label.png"
 const COUNTER := "res://assets/ui/stations/qm_counter.png"
 const PROPS   := "res://assets/ui/stations/qm_props.png"
 const CLOTH   := "res://assets/ui/stations/qm_cloth.png"
+const LANTERN := "res://assets/ui/stations/qm_lantern.png"
+const BANNER  := "res://assets/ui/stations/qm_banner.png"
+const NOTES   := "res://assets/ui/stations/qm_notes.png"
+const FLOOR   := "res://assets/ui/stations/qm_floor.png"
 
 const SHELF_M   := 16      # 9-slice margins, matching gen_qm_room.py
 const BOARD_M   := 4
@@ -80,14 +84,14 @@ const P_LAMP   := 6
 # column it read as one more control in a stack, which is what a menu does.
 const HEADER_H  := 0.115
 const LEFT_X    := 0.030
-const LEFT_W    := 0.575
+const LEFT_W    := 0.530   # narrowed for the gutter (TD-110 T414)
 const RIGHT_X   := 0.625
 const RIGHT_W   := 0.347
 const SHELVES_Y := 0.135
 const SHELVES_H := 0.415
 const COUNTER_Y  := 0.590
 const COUNTER_H2 := 0.255      # row 2's height, shared by the counter and the satchel
-const SEAL_Y     := 0.875      # the rite, spanning the full width beneath both columns
+const SEAL_Y     := 0.852      # the rite, spanning the full width beneath both columns
 const SEAL_H     := 0.085
 # The right column runs nearly to the foot of the frame: at 0.72 it left a band of
 # dead black under the rite while the RECORD — the thing with the most to say — was
@@ -167,6 +171,7 @@ static func build(host: Control, vp: Vector2) -> Dictionary:
 		vp.x * (RIGHT_X + RIGHT_W) - vp.x * LEFT_X, vp.y * SEAL_H)
 
 	_header(host, vp)
+	_furniture(host, vp, shelf_rect)
 	var shelving := _shelving(host, shelf_rect)
 	_counter(host, counter_rect)
 
@@ -180,6 +185,45 @@ static func build(host: Control, vp: Vector2) -> Dictionary:
 		"dress": shelving[1],    # the upper boards: stock only, never an instrument
 		"frames": shelving[2],   # the shelving units themselves, for their labels
 	}
+
+
+## The room's furniture: banner, hung lantern, pinned notes, floor. Everything here
+## is BAKED or static and costs one node apiece (P175) — only the lantern animates,
+## and it earns its own node by doing so.
+static func _furniture(host: Control, vp: Vector2, shelves: Rect2) -> void:
+	# The banner takes the corner the header used to sit in.
+	_sprite(host, BANNER, Vector2(vp.x * 0.008, vp.y * 0.020))
+
+	# The gutter between the shelves and the record column: the lantern hangs at its
+	# head and the pinned notes sit beneath, exactly as the reference stages them.
+	var gx := shelves.end.x + 8.0
+	var lantern := _sprite(host, LANTERN, Vector2(gx, vp.y * 0.100))
+	_flicker(lantern)
+	_sprite(host, NOTES, Vector2(gx - 6.0, vp.y * 0.400))
+
+	# Flagstones along the foot, tiling across. The room has a floor now, so the frame
+	# stops in a place rather than fading into black.
+	var fl := TextureRect.new()
+	fl.texture = load(FLOOR) as Texture2D
+	fl.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	fl.stretch_mode = TextureRect.STRETCH_TILE
+	fl.position = Vector2(0, vp.y * 0.966)
+	fl.size = Vector2(vp.x, vp.y * 0.034)
+	fl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(fl)
+
+
+## One static sprite drawn 1:1 NEAREST. Never scaled: everything here is authored at
+## the size it is shown, which is what keeps the pixels square (TD-050/TD-055).
+static func _sprite(host: Control, path: String, at: Vector2) -> TextureRect:
+	var t := TextureRect.new()
+	t.texture = load(path) as Texture2D
+	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	t.stretch_mode = TextureRect.STRETCH_KEEP
+	t.position = at
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(t)
+	return t
 
 
 # ── the environment ─────────────────────────────────────────────────────────
@@ -210,7 +254,8 @@ static func _wall(host: Control, vp: Vector2) -> void:
 
 static func _header(host: Control, vp: Vector2) -> void:
 	var box := VBoxContainer.new()
-	box.position = Vector2(vp.x * LEFT_X, vp.y * 0.030)
+	# Shifted right of the banner, which now holds the corner.
+	box.position = Vector2(vp.x * 0.082, vp.y * 0.028)
 	box.add_theme_constant_override("separation", 0)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(box)

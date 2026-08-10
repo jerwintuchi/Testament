@@ -37,6 +37,9 @@ const Lore       := preload("res://scripts/stations/quartermaster/lore.gd")
 const SealRite   := preload("res://scripts/stations/quartermaster/seal_rite.gd")
 
 const SHEET := "res://assets/ui/board/parch_v1_0.png"
+const RITE      := "res://assets/ui/stations/qm_rite.png"
+const RITE_SEAL := "res://assets/ui/stations/qm_rite_seal.png"
+const RITE_M    := 10
 
 # ── the render budget (canon: performance.md P0/P3) ─────────────────────────
 #
@@ -176,13 +179,36 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	foot.add_child(gate)
 	view["gate_label"] = gate
 
+	# The rite, as a crimson plate rather than a bordered box. Its 9-slice CENTRE is a
+	# uniform field, which is the only shape a 9-slice may safely take — the lesson the
+	# altar cloth and the record's divider each taught once (TD-110).
 	var seal := Button.new()
 	seal.text = "SEAL & DEPART"
 	seal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	seal.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_seal_ink(seal)
 	seal.pressed.connect(func(): _seal(view))
 	foot.add_child(seal)
 	view["seal"] = seal
+
+	# The order's disc at the plate's left hand, and the motto beneath it. Both are
+	# scenery: the plate is the control, and a seal you can click would be a second
+	# button that does the same thing.
+	var disc := TextureRect.new()
+	disc.texture = load(RITE_SEAL) as Texture2D
+	disc.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	disc.stretch_mode = TextureRect.STRETCH_KEEP
+	disc.position = Vector2(seal_rect.position.x + 7.0,
+		seal_rect.position.y + seal_rect.size.y * 0.30)
+	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(disc)
+
+	var motto := Widgets.card_label("\u2720   THE COLLEGIUM STANDS WITNESS   \u2720",
+		8, Color(0.66, 0.56, 0.38), false, true)
+	motto.position = Vector2(seal_rect.position.x, seal_rect.end.y + 2.0)
+	motto.size = Vector2(seal_rect.size.x, 10.0)
+	motto.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(motto)
 
 
 static func refresh(view: Dictionary) -> void:
@@ -368,13 +394,19 @@ static func _seal_ink(b: Button) -> void:
 ## be issued the plate stays subdued and low-contrast; when it can, the border thickens
 ## and takes gold. Restrained — a stronger edge and a warmer letter, never a flash.
 static func _seal_state(b: Button, ready: bool) -> void:
-	var edge := Color(0.72, 0.57, 0.26, 0.95) if ready else Color(0.34, 0.28, 0.18, 0.70)
-	var lit := Color(0.86, 0.70, 0.34, 1.0) if ready else Color(0.46, 0.38, 0.24, 0.85)
-	b.add_theme_stylebox_override("normal", _plate(edge, 2 if ready else 1))
-	for st in ["hover", "pressed", "focus"]:
-		b.add_theme_stylebox_override(st, _plate(lit, 2))
+	# READY wears the crimson-and-gold plate; not-ready is the same plate held back to a
+	# dim modulate. One object in two states, rather than two different-looking controls.
+	var sb := StyleBoxTexture.new()
+	sb.texture = load(RITE) as Texture2D
+	for side in ["left", "top", "right", "bottom"]:
+		sb.set("texture_margin_" + side, float(RITE_M))
+	sb.set_content_margin_all(6.0)
+	sb.modulate_color = Color(1, 1, 1, 1) if ready else Color(0.46, 0.44, 0.42, 0.75)
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		b.add_theme_stylebox_override(st, sb)
 	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(st, Color(0.92, 0.80, 0.52) if ready else Room.INK_FAINT)
+		b.add_theme_color_override(st, Color(0.94, 0.82, 0.54) if ready else Color(0.52, 0.46, 0.36))
+	b.add_theme_color_override("font_disabled_color", Color(0.52, 0.46, 0.36))
 
 
 static func _plate(edge: Color, width: int = 1) -> StyleBoxFlat:

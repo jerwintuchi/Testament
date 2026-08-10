@@ -48,10 +48,23 @@
 - [ ] T413 [R385] — **The pack's trim:** brass corner fittings, buckled straps, hanging crimson
       pennant. Baked into one `qm_packtrim.png`.
 
-- [ ] T414 [R386] — **The room:** hanging lantern on a chain (own node, flickers), pinned parchment
-      notes and the crimson wall banner (**baked together**), flagstones along the foot, the
-      `SEAL & DEPART` crimson banner-plate with a seal ornament, and the
-      **THE COLLEGIUM STANDS WITNESS** line beneath it.
+- [x] T414 [R386] — **The room is furnished.** A hanging lantern on a chain (its own node, because
+      it flickers), the crimson banner in the corner, pinned parchment notes, flagstones along the
+      foot, the `SEAL & DEPART` crimson plate with the order's disc at its left hand, and
+      **THE COLLEGIUM STANDS WITNESS** beneath it. **+4 nodes** (204 → 208): everything static is one
+      sprite apiece and the notes are a single baked composite, which is the whole reason the budget
+      still holds.
+      **The composition had to make room for it.** There was no gutter between the shelves and the
+      record column, so `LEFT_W` narrows 0.575 → 0.530 and the header shifts right of the banner —
+      the reference gives the banner that corner, and the title cannot share it.
+      **The lantern was rebuilt once:** the first pass gated the cage on `edge < 6` inside a 20px
+      sprite, so only a narrow strip of it ever drew and it read as two vertical bars. Rebuilt from
+      explicit bands — crown, uprights, pane, flame, base — which is legible to read and to fix.
+      **The rite plate is a 9-slice whose centre is a UNIFORM FIELD**, which is the only shape a
+      9-slice may safely take. Ready wears crimson-and-gold; not-ready is the same plate held back to
+      a dim `modulate` — one object in two states, rather than two different-looking controls.
+      Adjusted after the first capture: the bar sat low enough that the motto ran into the frame edge
+      and the flagstones, so the bar lifted and the floor's band narrowed.
 
 - [ ] T415 [R387 / V4] — **Re-verify at the end.** Budget inside 220 with the baked composites,
       `--board-after-qm` green, no `src/**`.

@@ -4633,3 +4633,31 @@ record's seal medallion, the pack's trim, and the room's lantern/notes/banner/fl
 room is at **204 of 220 nodes**, which is why every one of those must arrive as a **baked composite**
 rather than a node per object — the headroom is now the binding constraint, exactly as the budget
 was designed to make visible.
+
+## 2026-08-09 — TD-110 (cont.): the room is furnished
+
+**T414 shipped.** A hung lantern on a chain, the Collegium's banner in the corner, pinned notes,
+flagstones along the foot, and the rite as a crimson plate with the order's disc and the motto
+beneath it.
+
+**+4 nodes, 204 → 208 of 220.** Every static piece is one sprite, the notes are a single baked
+composite, and only the lantern gets its own node because only the lantern moves. That is the baking
+rule (P175) doing exactly the job it was written for: the reference's furniture arrived without the
+budget moving.
+
+**The composition had to open a gutter.** There was nowhere to hang a lantern — the shelves ran
+straight into the record column — so `LEFT_W` narrows 0.575 → 0.530 and the header shifts right of
+the banner, because the reference gives the banner that corner and a title cannot share it.
+
+**The lantern was rebuilt once, for a familiar reason.** It gated its cage on `edge < 6` inside a
+20px sprite, so only a narrow strip drew and it read as two vertical bars. Rebuilt from explicit
+bands — crown, uprights, pane, flame, base. A condition that *happens* to be true for part of a
+sprite is not a shape; naming the bands is both legible and fixable.
+
+**And the rite plate is a 9-slice whose centre is a uniform field** — the only shape a 9-slice may
+take, stated for the third time in this spec because it caused three separate defects. Ready wears
+crimson-and-gold; not-ready is the same plate held back to a dim modulate, so it is one object in two
+states rather than two controls that look unrelated.
+
+Verified: `--board-after-qm` green (`keepout live=8 ok=true`), `qm_budget.py` green at 208/220, no
+`src/**`.

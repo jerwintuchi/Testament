@@ -683,6 +683,142 @@ def _cloth(x, y):
     return _op(A.quantize(A.ramp_shade("wax", max(0.05, min(0.95, t)))))
 
 
+# ── the room's furniture (TD-110 T414) ──────────────────────────────────────
+# Node budget is the binding constraint here (204/220), so anything that never moves
+# is BAKED into one composite and costs a single node. Only the lantern animates.
+
+# qm_lantern.png — hung on a chain beside the shelves. Its own node: it flickers.
+LANT_W, LANT_H = 20, 60
+
+
+def _lantern(x, y):
+    """A hung lantern: chain, hook, then a caged flame.
+
+    The first pass gated the cage on `edge < 6` inside a 20px sprite, so only a narrow
+    strip of it ever drew — it read as two vertical bars. The cage is now built from
+    explicit bands, which is legible to read and legible to fix.
+    """
+    cx = LANT_W // 2
+    edge = min(x, LANT_W - 1 - x)
+
+    if y < 21:                                   # the chain, links alternating
+        off = 1 if (y // 3) % 2 else -1
+        if abs(x - (cx + off)) <= 1 and (y % 3) != 2:
+            return _op(IRON_DARK if (y % 3) else IRON)
+        return CLEAR
+    if y < 24:                                   # the hook it hangs from
+        return _op(IRON) if abs(x - cx) in (2, 3) else CLEAR
+    if y > 55 or edge < 1:
+        return CLEAR
+
+    if y < 27:                                   # the crown
+        return _op(IRON_DARK if y == 24 else IRON)
+    if y > 51:                                   # the base
+        return _op(IRON_DARK if y == 55 else IRON)
+
+    # The body: iron uprights, a warm pane between, and a flame at its heart.
+    if edge < 3:
+        return _op(IRON_DARK if edge < 2 else IRON)
+    if abs(x - cx) <= 1 and 33 <= y <= 45:
+        return _op(FLAME_HI)
+    if abs(x - cx) <= 3 and 31 <= y <= 48:
+        return _op(FLAME_LOW)
+    return _op(A.quantize(A.ramp_shade("gold", 0.26 + 0.20 * (1.0 - abs(x - cx) / 8.0))))
+
+
+# qm_banner.png — the Collegium's colours at the top-left corner of the room.
+BANN_W, BANN_H = 26, 54
+
+
+def _banner(x, y):
+    if y < 3:                                    # the rod
+        return _op(IRON if y == 1 else IRON_DARK) if 1 <= x < BANN_W - 1 else CLEAR
+    edge = min(x, BANN_W - 1 - x)
+    if edge < 2:
+        return CLEAR
+    # A swallowtail hem: the cloth splits into two points at its foot.
+    if y > BANN_H - 12:
+        depth = y - (BANN_H - 12)
+        if abs(x - BANN_W // 2) < depth - 1:
+            return CLEAR
+    if _cross(x - 5, y - 16, 15):
+        return _op(A.RAMP["gold"][1] if (x + y) % 4 else A.RAMP["gold"][0])
+    t = 0.22 + 0.10 * (1.0 - y / float(BANN_H)) - 0.08 * (edge < 4)
+    return _op(A.quantize(A.ramp_shade("wax", t)))
+
+
+# qm_notes.png — pinned scraps, BAKED as one composite (P175).
+NOTE_W, NOTE_H = 44, 34
+
+
+def _notes(x, y):
+    # Three scraps at slightly different sizes and offsets. Positions are literal
+    # rather than seeded: a wall of notes is arranged by a person, not scattered.
+    for ox, oy, w, h, pin in ((0, 2, 17, 22, True), (19, 0, 14, 18, True), (22, 21, 20, 12, False)):
+        if ox <= x < ox + w and oy <= y < oy + h:
+            lx, ly = x - ox, y - oy
+            if pin and ly == 0 and lx == w // 2:
+                return _op(WAX_RED)              # the wax blob holding it up
+            if lx == 0 or ly == 0 or lx == w - 1 or ly == h - 1:
+                return _op(PARCH_DEEP)
+            # Ruled writing: short ink dashes, never a solid block.
+            if ly % 3 == 1 and 2 <= lx <= w - 3 and (lx + ly) % 7 < 4:
+                return _op(INK)
+            return _op(PARCH if (lx + ly) % 9 else PARCH_HI)
+    return CLEAR
+
+
+# qm_floor.png — flagstones at the foot of the frame. Tiles horizontally.
+FLOOR_W, FLOOR_H = 32, 18
+
+
+def _floor(x, y):
+    if y < 2:
+        return _op(A.RAMP["black"][0])           # where the floor meets the wall
+    lx = (x + (16 if (y // 9) % 2 else 0)) % 16
+    if lx == 0 or y % 9 == 2:
+        return _op(A.RAMP["navestone"][0])       # joints
+    v = _rnd(x // 16, y // 9, 13)
+    return _op(A.quantize(A.ramp_shade("navestone", 0.05 + 0.06 * v)))
+
+
+# qm_rite.png — the SEAL & DEPART plate. A 9-slice whose CENTRE IS A UNIFORM FIELD,
+# which is the only shape a 9-slice may take (the lesson from the cloth and the rule).
+RITE_W, RITE_H, RITE_M = 32, 24, 10
+
+
+def _rite(x, y):
+    right, bottom = RITE_W - 1 - x, RITE_H - 1 - y
+    edge = min(min(x, right), min(y, bottom))
+    if edge == 0:
+        return _op(A.RAMP["black"][0])
+    if edge == 1:
+        return _op(A.RAMP["gold"][1])            # the gold rule
+    if edge == 2:
+        return _op(A.RAMP["gold"][0])
+    if edge == 3:
+        return _op(A.RAMP["wax"][0])
+    return _op(A.quantize(A.ramp_shade("wax", 0.24)))    # uniform field: stretch-safe
+
+
+# qm_rite_seal.png — the disc at the plate's left hand.
+SEAL_W = SEAL_H = 18
+
+
+def _rite_seal(x, y):
+    cx = cy = SEAL_W // 2
+    d = ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5
+    if d > 8.4:
+        return CLEAR
+    if d > 7.0:
+        return _op(A.RAMP["gold"][0])
+    if d > 6.0:
+        return _op(A.RAMP["wax"][0])
+    if _cross(x - cx + 4, y - cy + 5, 10):
+        return _op(A.RAMP["gold"][1])
+    return _op(A.quantize(A.ramp_shade("wax", 0.30 + 0.16 * (1.0 - d / 6.0))))
+
+
 # ── normal maps ─────────────────────────────────────────────────────────────
 # Emitted from the SAME height functions that drive the paint, so relief and shading
 # can never disagree. The room's surfaces are then lit at run time by the Contract
@@ -711,6 +847,12 @@ TARGETS = [
     ("stations/qm_counter.png", CTR_W,   CTR_H,   _counter),
     ("stations/qm_satchel.png", SATCH_W, SATCH_H, _satchel),
     ("stations/qm_cloth.png",   CLOTH_W, CLOTH_H, _cloth),   # 1:1, never 9-sliced
+    ("stations/qm_lantern.png", LANT_W,  LANT_H,  _lantern),
+    ("stations/qm_banner.png",  BANN_W,  BANN_H,  _banner),
+    ("stations/qm_notes.png",   NOTE_W,  NOTE_H,  _notes),
+    ("stations/qm_floor.png",   FLOOR_W, FLOOR_H, _floor),
+    ("stations/qm_rite.png",    RITE_W,  RITE_H,  _rite),
+    ("stations/qm_rite_seal.png", SEAL_W, SEAL_H, _rite_seal),
     ("stations/qm_stock.png",   STOCK_W, STOCK_H, _stock),
     ("stations/qm_props.png",   PROP_W,  PROP_H,  _props),
 ]
