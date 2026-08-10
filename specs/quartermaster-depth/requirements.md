@@ -78,8 +78,8 @@ That is the real cost of this spec: the counter, the alcoves and the floor stop 
 
 ## Tasks
 
-- [ ] **T419** — declare the room's single vanishing point and the plane geometry every surface reads.
-- [ ] **T420** — re-author the counter as one perspective sprite: top, front and end faces.
+- [x] **T419** — declare the room's single vanishing point and the plane geometry every surface reads.
+- [x] **T420** — re-author the counter as one perspective sprite: top, front and end faces.
 - [ ] **T421** — re-author the alcoves with visible cut thickness and a receding interior.
 - [ ] **T422** — re-author the shelf boards with a visible upper surface.
 - [ ] **T423** — raise texture density on wood, stone, iron and brass per R394.

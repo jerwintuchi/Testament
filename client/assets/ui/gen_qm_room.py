@@ -23,7 +23,7 @@ files named below.
       -> stations/qm_shelf.png     48x48   9-slice shelving frame, 16px margins
       -> stations/qm_board.png     16x12   9-slice plank, 4px margins
       -> stations/qm_label.png     24x14   9-slice label plate, 7px margins
-      -> stations/qm_counter.png   64x40   9-slice counter, 16px margins
+      -> stations/qm_counter.png   96x64   9-slice counter (L28 T26 R28 B16), two planes
       -> stations/qm_stock.png    128x16   8 dressing objects (never interactive)
       -> stations/qm_props.png     96x24   4 counter props
 """
@@ -286,51 +286,127 @@ def _label(x, y):
 # ── qm_counter.png — the inspection counter ──────────────────────────────────
 # 9-slice, 16px margins. A worn top surface the lamp lands on, a panelled front, and
 # iron feet. The object under inspection sits ON the top band.
-CTR_W, CTR_H, CTR_M = 64, 40, 16
+CTR_W, CTR_H = 96, 64
+CTR_ML, CTR_MT, CTR_MR, CTR_MB = 28, 26, 28, 16
+
+# The counter is seen from slightly ABOVE, so it shows two planes, not one face:
+# a TOP SURFACE receding away and a FRONT FACE below it, split by a hard lit arris.
+# That split is what gives the object volume — a single shaded rectangle cannot have
+# any, however well it is shaded (TD-112).
+#
+# Why this may still be a 9-slice, when the cloth and the record's rule may not:
+# **the recession runs VERTICALLY.** The plank seams on the top face foreshorten
+# toward the back, which is variation in y and none in x — so the stretched centre
+# regions are uniform along the axis they stretch. The end returns, where the top
+# face narrows into the room, live inside the LEFT and RIGHT margins, which never
+# stretch. A perspective that ran horizontally would have to be authored at display
+# size; this one does not.
+CTR_TOP_Y0, CTR_TOP_Y1 = 2, 17      # the working surface
+CTR_ARRIS = 18                      # the worn front edge, where the lamp lands
+CTR_SEAMS = (5, 9, 14)              # plank joints, spaced 3/4/5 — wider toward the eye
 
 
 def _counter_h(x, y):
-    right = CTR_W - 1 - x
-    bottom = CTR_H - 1 - y
-    edge_x = min(x, right)
-    if y <= 5:                          # the working surface and its front lip
-        return [0.66, 0.96, 0.90, 0.78, 0.58, 0.26][y]
-    if bottom >= 4:                     # the panelled front
-        if edge_x < 3:
-            return 0.52                 # the stile
-        if edge_x == 3:
-            return 0.70                 # the panel's raised bevel
+    """Height field for the normal map. Mirrors the plane structure exactly, so the
+    lit surface and the shading agree about where the object turns."""
+    edge_x = min(x, CTR_W - 1 - x)
+    if y < CTR_TOP_Y0:
+        return 0.0
+    if y <= CTR_TOP_Y1:                         # the top plane, tilting away
+        h = 0.58 + 0.30 * ((y - CTR_TOP_Y0) / float(CTR_TOP_Y1 - CTR_TOP_Y0))
+        return h - 0.10 if y in CTR_SEAMS else h
+    if y == CTR_ARRIS:
+        return 1.00                             # the arris is the room's high point
+    if y == 19:
+        return 0.22                             # and it falls off a cliff
+    if y <= 21:
+        return 0.54                             # the apron
+    if y <= 25:
+        return 0.62 - 0.06 * (y - 22)           # the panel's head bevel
+    if y <= 47:
+        if edge_x < 4:
+            return 0.52                         # the stile
         if edge_x == 4:
-            return 0.34
-        if y in (9, 10):
-            return 0.56                 # a rail across the panel's head
-        return 0.40                     # the recessed field
-    return 0.16 if edge_x < 5 else 0.04  # iron feet, and deep shadow between them
+            return 0.70
+        if edge_x == 5:
+            return 0.30
+        return 0.38                             # the recessed field
+    if y <= 51:
+        return 0.44 if y == 48 else 0.26        # the panel's foot bevel
+    if y <= 59:
+        return 0.30                             # the plinth
+    return 0.16 if edge_x < 7 else 0.04         # iron feet, deep shadow between
+
+
+def _counter_inset(y):
+    """How far the top face is cut in at this row. The back edge is NARROWER than the
+    front, which is the whole reason the surface reads as receding rather than as a
+    stripe. Contained inside the 28px side margins, so it never stretches."""
+    if y < CTR_TOP_Y0 or y > CTR_TOP_Y1:
+        return 0
+    return int(round((CTR_TOP_Y1 - y) / float(CTR_TOP_Y1 - CTR_TOP_Y0) * 7.0))
 
 
 def _counter(x, y):
     """The inspection counter, painted to the board's register (TD-103).
 
-    The top is the brightest wood in the room because it is where you look; the panel
-    recedes; the feet are iron. Wear concentrates at the FRONT EDGE, where a
-    quartermaster's forearms have rested for a century — wear that is even across a
-    surface reads as noise, wear with a cause reads as age.
+    Two planes and a hard edge. The top is the brightest wood in the room because it
+    faces the light and because it is where you look; the front falls into shadow
+    below the arris. Wear concentrates AT THAT ARRIS, where a quartermaster's forearms
+    have rested for a century — wear that is even across a surface reads as noise,
+    wear with a cause reads as age.
+
+    All texture varies in **y only** across the stretched middle (R394): grain is
+    drawn as lines running with the plank, never as per-pixel scatter. Scatter has
+    shipped here twice by accident and is what makes pixel art look dirty rather than
+    detailed — and under a 15x horizontal stretch it would smear into bars.
     """
-    bottom = CTR_H - 1 - y
     edge_x = min(x, CTR_W - 1 - x)
     hgt = _counter_h(x, y)
 
-    if bottom < 4 and edge_x >= 5:
-        return _op(BLACK_SOFT)
-    if bottom < 4:
-        return _op(A.quantize(A.ramp_shade("stone", 0.10 + hgt * 0.9)))
+    if y < CTR_TOP_Y0:
+        return (0, 0, 0, 0)
 
-    grain = 0.0
-    if y > 5 and _rnd(x // 2, y, 11) > 0.80:
-        grain -= 0.05                   # grain in the panel, running with the plank
-    if y in (1, 2) and _rnd(x, 0, 41) > 0.62:
-        grain += 0.07                   # the polished front edge, rubbed lighter
-    return _op(A.quantize(A.ramp_shade("wood", 0.08 + hgt * 0.74 + grain)))
+    # ── the top plane ────────────────────────────────────────────────────────
+    if y <= CTR_TOP_Y1:
+        if edge_x < _counter_inset(y):
+            return (0, 0, 0, 0)                 # the room, seen past the narrowing top
+        t = 0.26 + 0.50 * ((y - CTR_TOP_Y0) / float(CTR_TOP_Y1 - CTR_TOP_Y0))
+        if y in CTR_SEAMS:
+            t -= 0.26                           # the joint between planks
+        elif (y - 1) in CTR_SEAMS:
+            t += 0.11                           # and the lit lip of the next plank
+        if _rnd(0, y, 7) > 0.62:
+            t -= 0.035                          # grain, running WITH the plank
+        if edge_x == _counter_inset(y):
+            t -= 0.20                           # the end return, turning away
+        elif edge_x == _counter_inset(y) + 1:
+            t -= 0.08
+        # One knot, in a corner where nothing stretches.
+        if 11 <= x <= 14 and 9 <= y <= 11:
+            t -= 0.22 if (x + y) % 3 else 0.10
+        return _op(A.quantize(A.ramp_shade("wood", t)))
+
+    # ── the arris, and the cliff below it ────────────────────────────────────
+    if y == CTR_ARRIS:
+        t = 0.88 if _rnd(0, x // 3, 41) > 0.35 else 0.74   # polished unevenly
+        return _op(A.quantize(A.ramp_shade("wood", t)))
+    if y == 19:
+        return _op(A.quantize(A.ramp_shade("wood", 0.12)))
+
+    # ── the plinth and the feet ──────────────────────────────────────────────
+    if y >= 60:
+        if edge_x >= 7:
+            return _op(BLACK_SOFT)
+        return _op(A.quantize(A.ramp_shade("stone", 0.06 + hgt * 0.9)))
+    if y >= 52:
+        return _op(A.quantize(A.ramp_shade("stone", 0.10 + hgt * 0.55)))
+
+    # ── the front face, in shadow ────────────────────────────────────────────
+    t = 0.06 + hgt * 0.52
+    if _rnd(0, y, 11) > 0.80:
+        t -= 0.03                               # grain in the panel, again in lines
+    return _op(A.quantize(A.ramp_shade("wood", t)))
 
 
 # ── qm_stock.png — dressing. NEVER interactive (R363/P167) ───────────────────
@@ -883,5 +959,5 @@ if __name__ == "__main__":
         print("wrote %s (%dx%d)" % (path, w, h))
     for path, w, h, hfn, strength in NORMALS:
         _emit_normal(path, w, h, hfn, strength)
-    print("9-slice margins: shelf=%d board=%d label=%d counter=%d"
-          % (SHELF_M, BOARD_M, LABEL_M, CTR_M))
+    print("9-slice margins: shelf=%d board=%d label=%d counter=L%d,T%d,R%d,B%d"
+          % (SHELF_M, BOARD_M, LABEL_M, CTR_ML, CTR_MT, CTR_MR, CTR_MB))

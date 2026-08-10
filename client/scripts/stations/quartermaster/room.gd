@@ -33,7 +33,12 @@ const FLOOR   := "res://assets/ui/stations/qm_floor.png"
 const SHELF_M   := 16      # 9-slice margins, matching gen_qm_room.py
 const BOARD_M   := 4
 const LABEL_M   := 7
-const COUNTER_M := 16
+# Per-side, and asymmetric on purpose: the top margin carries the whole receding top
+# plane, the bottom only the plinth. Must match gen_qm_room.CTR_M*.
+const COUNTER_ML := 28
+const COUNTER_MT := 26
+const COUNTER_MR := 28
+const COUNTER_MB := 16
 const CLOTH_PX  := Vector2(128, 80)   # matches gen_qm_room.CLOTH_W/H
 const PROP_PX   := 24
 
@@ -340,7 +345,7 @@ static func label_plate(host: Control, text: String, at: Vector2, width: float) 
 
 
 static func _counter(host: Control, rect: Rect2) -> void:
-	var c := _nine(COUNTER, COUNTER_M)
+	var c := _nine4(COUNTER, COUNTER_ML, COUNTER_MT, COUNTER_MR, COUNTER_MB)
 	c.position = rect.position
 	c.size = rect.size
 	c.material = lit(vp_of(host), "res://assets/ui/stations/qm_counter_n.png", 0.32)
@@ -439,6 +444,22 @@ static func _flicker(node: CanvasItem) -> void:
 ## placing lights in screen space, and the sub-builders only receive rects.
 static func vp_of(host: Control) -> Vector2:
 	return host.get_viewport().get_visible_rect().size
+
+
+## A 9-slice with PER-SIDE margins. The counter needs them: its top margin holds a
+## whole receding plane (26px) while its foot holds only the plinth (16px), and a
+## single margin would have to compromise one of them.
+static func _nine4(path: String, l: int, t: int, r: int, b: int) -> Panel:
+	var p := Panel.new()
+	var sb := StyleBoxTexture.new()
+	sb.texture = load(path) as Texture2D
+	sb.texture_margin_left = float(l)
+	sb.texture_margin_top = float(t)
+	sb.texture_margin_right = float(r)
+	sb.texture_margin_bottom = float(b)
+	p.add_theme_stylebox_override("panel", sb)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
 
 
 static func _nine(path: String, margin: int) -> Panel:
