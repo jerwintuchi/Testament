@@ -27,6 +27,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 QM = os.path.join(ROOT, "client", "scripts", "stations", "quartermaster")
 FILES = ["register.gd", "room.gd", "shelf.gd", "counter.gd", "pack.gd", "record.gd"]
 GEAR = os.path.join(ROOT, "src", "shared", "src", "gear.ts")
+ICONS = os.path.join(ROOT, "client", "assets", "ui", "stations", "gear_icons.png")
 LORE = os.path.join(QM, "lore.gd")
 
 # Ceilings. Generous on purpose: these catch the change that adds an emitter per
@@ -74,6 +75,43 @@ def coverage():
     """
     cat, lore = set(catalog_ids()), set(lore_ids())
     return sorted(cat - lore), sorted(lore - cat)
+
+
+# P177: gold is the order's colour — selection, headings, the insignia, the seal, the
+# ready state. An instrument may CATCH gold light on a brass fitting; it may not be
+# MADE of gold. The line is a proportion, not zero: TD-102's audit asserted zero, which
+# was right while the icons were flat fills and wrong the moment brass earned speculars
+# (TD-110). A highlight is a few pixels; a field is a face.
+GOLD_FIELD_MAX = 0.08          # of an instrument's opaque pixels
+BRIGHT_GOLD = ((0xB0, 0x8A, 0x3E), (0xD6, 0xAE, 0x5C))
+
+
+def gold_load():
+    """(name, gold_fraction) per instrument, worst first. Empty if the sheet is absent."""
+    try:
+        sys.path.insert(0, os.path.join(ROOT, "client", "assets", "ui"))
+        from pngio import read_png            # noqa: PLC0415  (tool-only import)
+        w, h, px = read_png(ICONS)
+    except Exception:
+        return []
+    names = [i for i in catalog_ids()]
+    out = []
+    for i, name in enumerate(names):
+        opaque = gold = 0
+        for y in range(h):
+            for x in range(i * h, (i + 1) * h):
+                if x >= w:
+                    break
+                r, g, b, a = px(x, y)
+                if a == 0:
+                    continue
+                opaque += 1
+                if (r, g, b) in BRIGHT_GOLD:
+                    gold += 1
+        if opaque:
+            out.append((name, gold / float(opaque)))
+    out.sort(key=lambda t: -t[1])
+    return out
 
 
 def findings(srcs):
@@ -152,6 +190,18 @@ def report(srcs):
             bad.append(label)
         print("  %s%-34s %s%s" % (GRN if ok else RED, label, "ok" if ok else "FAILED — " + why, OFF))
 
+    loads = gold_load()
+    over = [(n, f) for n, f in loads if f > GOLD_FIELD_MAX]
+    gold_ok = not over
+    if not gold_ok:
+        bad.append("gold discipline")
+    gdetail = ("ok (worst %s at %.1f%%)" % (loads[0][0], loads[0][1] * 100) if loads
+               else "SKIPPED — icon sheet unreadable")
+    if over:
+        gdetail = "FAILED — gold as a field on: %s" % ", ".join(
+            "%s %.1f%%" % (n, f * 100) for n, f in over)
+    print("  %s%-34s %s%s" % (GRN if gold_ok else RED, "gold is a highlight, not a field", gdetail, OFF))
+
     missing, orphan = coverage()
     cov_ok = not missing and not orphan
     if not cov_ok:
@@ -219,6 +269,11 @@ def selftest():
     assert not missing, "every catalog instrument must have a record: %r" % missing
     assert not orphan, "the record table must invent no instrument: %r" % orphan
     assert len(catalog_ids()) == 10, "the catalog should still hold ten instruments"
+
+    loads = gold_load()
+    assert loads, "the icon sheet must be readable"
+    assert all(f <= GOLD_FIELD_MAX for _n, f in loads), \
+        "no instrument may wear gold as a field: %r" % [(n, round(f, 3)) for n, f in loads if f > GOLD_FIELD_MAX]
 
     print("selftest: OK  (ceilings derivable, shipped room passes, and each check bites)")
     return 0

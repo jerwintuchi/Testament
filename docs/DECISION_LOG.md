@@ -4690,3 +4690,30 @@ even though every individual item improved.
 
 The derived contact shadows were regenerated from the new sheet — they are read from the icons, so a
 stale shadow is impossible rather than merely unlikely (P173).
+
+## 2026-08-09 — TD-110 (cont.): detail is more materials, not more shades
+
+**T410's drawing half shipped — all ten at once**, which is how it had to be done (the previous
+entry's finding: a per-item change delivered partially is a regression in coherence).
+
+**The lesson is what "detail" means at 24px.** The palette pass widened each material's range and
+bought 5.5 → 6.2 tones; it could not go further, because an object made of one material has only one
+material's worth of tones no matter how the ramp is cut. What actually produces density is **more
+materials per object**: glass in a brass ring on a wood handle with a ferrule; a prism on a brass
+tripod with iron feet; a phial with a wood stopper, brass collar and iron wire. That took the sheet to
+**10.0 tones mean, every icon 9–11** — the band the reference sits in.
+
+**P177 had to become a rule instead of a number.** TD-102's audit asserted **zero** bright-gold
+pixels, which was right while the icons were flat fills and wrong the moment brass earned a specular:
+a lit pixel on a brass ring is not gilding, it is how metal reads. The intent was always "gold is the
+order's colour — an instrument may catch it, not be made of it", so `qm_budget.py` now enforces
+**bright gold ≤ 8% of an instrument's opaque pixels**, worst case `cantors-ear` at 5.7%, with the
+selftest failing if any instrument crosses it.
+
+That is the more general point: **an assertion of zero is a proxy, and proxies expire.** The zero was
+never the rule — it was a cheap stand-in for the rule that happened to hold under the old art. When
+the art legitimately changed, the check had to be rewritten to say what was actually meant, rather
+than the art bent to keep an obsolete number true.
+
+The derived contact shadows were regenerated from the new sheet, so they cannot go on describing
+silhouettes that no longer exist (P173).

@@ -33,24 +33,24 @@
 
 ## Open — not started, and not implied
 
-- [~] T410 [R382 / V1] — **The instruments: PARTLY there, and the halves are worth naming.**
-      **Done — the palette half.** Each material's triple was three neighbouring greys; it now spans
-      a real range, and glass, brass and iron take a **specular**: the one pixel where a curved
-      material catches the room, placed where the lit face meets the top-left corner. Wood, bone and
-      wax stay matte on purpose — a highlight on everything is what makes a sheet read as plastic.
-      Mean tones **5.5 → 6.2**, contrast up on all ten uniformly. **Brass's bright stop returns here
-      and ONLY here:** P177 bans gold as a *field* on an ordinary instrument; a single lit pixel is
-      not a field, it is how metal reads. Field audit still **0 gold pixels** on all ten.
-      **Not done — the drawing half.** Reference density (8–12 tones) needs each glyph to carry
-      MORE MATERIALS, not just more shades of the ones it has: a brass collar on the lens, a foot
-      under the prism, banding on the censer, a stand for the bead. That is per-icon hand editing of
-      ten 24-row maps.
-      **Stopped deliberately rather than done halfway:** a sheet where three instruments are detailed
-      and seven are not reads worse than ten that are uniformly simple, because the eye reads the
-      inconsistency before it reads either. The palette work applies to all ten at once; the drawing
-      work cannot, so it is a whole task or none.
-      The derived contact shadows were regenerated from the new sheet — they are read from the icons,
-      so they cannot go stale silently (P173).
+
+- [x] T410 [R382, P177 / V1] — **All ten instruments re-authored as constructed objects.**
+      Not more shades of one material — **more materials**, which is what "detail" actually means at
+      24px: smoked glass in a **brass ring** on a **wood** handle with a ferrule; the reticle an
+      **iron** crosshair set in the glass; the prism standing on a **brass tripod with iron feet**;
+      bone talons on a wound leather knot; a brass horn with an iron mouthpiece; a lead bob under a
+      brass cap on a bone cord; a pierced censer with **coals** inside; a phial with a wood stopper,
+      brass collar and iron wire bands; salt heaped in a brass-rimmed wood bowl; an iron lantern with
+      glass panes and a brass crown.
+      **Mean tones 6.2 → 10.0**, every icon in the 9–11 band, which is the reference density the
+      spec asked for. Hand-placed in Aseprite; `.aseprite` and `.lua` sources kept.
+      **P177 had to be re-stated as a rule rather than a number.** The old audit asserted **zero**
+      bright-gold pixels — correct while the icons were flat fills, wrong the moment brass earned a
+      specular, because a lit pixel on a brass ring is how metal reads. `qm_budget.py` now enforces
+      the actual intent: **bright gold ≤ 8% of an instrument's opaque pixels** — a highlight, never a
+      face. Worst is `cantors-ear` at **5.7%**, and the selftest fails if any instrument crosses it.
+      The derived contact shadows were regenerated from the new sheet, so they cannot describe the
+      old silhouettes (P173).
 
 - [ ] T411 [R383] — **The rest of the bench.** Open ledger with a cross on the page, quill standing
       in the inkwell, wax-sealed envelope, brass balance, stacked books, second candle, and drawers

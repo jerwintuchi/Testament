@@ -23,7 +23,7 @@ These are disagreements between what a spec says and what the tree contains.
 | spec | status | done | open | superseded | last touched | flags |
 |---|---|---:|---:|---:|---|---|
 | `mobile-input` | 🟡 dormant | 0 | 10 | 0 | 2026-07-11 | MISSING |
-| `quartermaster-reference` | 🟡 dormant | 4 | 4 | 1 | 2026-08-10 | MISSING, LIKELY-SHIPPED |
+| `quartermaster-reference` | 🟡 dormant | 5 | 4 | 0 | 2026-08-10 | MISSING, LIKELY-SHIPPED |
 | `rank-gate` | 🟢 active | 6 | 1 | 0 | 2026-08-08 | — |
 | `title-scene` | ⛔ blocked | 19 | 1 | 0 | 2026-08-07 | — |
 | `collegium-client` | 🟡 dormant | 6 | 1 | 0 | 2026-07-24 | — |
