@@ -52,35 +52,63 @@ local function hexc(h)
   return Color{ r = tonumber(h:sub(2,3),16), g = tonumber(h:sub(4,5),16), b = tonumber(h:sub(6,7),16) }
 end
 
+
+-- ── HAND-PLACED TONES (TD-111) ─────────────────────────────────────────────
+-- The material letters above hand shading to an ALGORITHM: "this pixel is brass,
+-- work out its shade from its neighbours". That can only ever produce a bevel. Item
+-- sprites in the games this is measured against look the way they do because an artist
+-- places every tone on purpose — the highlight, the terminator, the core shadow, and
+-- the reflected light that keeps a shadow side from going dead.
+--
+-- These letters are absolute colours. A glyph using them skips the neighbour pass
+-- entirely, so the drawing is exactly what is written.
+--
+--   brass  1 dark  2 body  3 lit   4 bright  5 specular
+--   glass  6 dark  7 body  8 lit   9 specular
+--   wood   q dark  w body  e lit
+--   iron   a dark  s body  d lit
+--   bone   z dark  x body  c lit
+--   ember  v dark  V hot
+local TONE = {
+  ["1"]="#3A2617", ["2"]="#6E5426", ["3"]="#8C6C30", ["4"]="#B08A3E", ["5"]="#D6AE5C",
+  ["6"]="#22242A", ["7"]="#2B2F33", ["8"]="#4C545A", ["9"]="#8F7A63",
+  q="#2A1B10", w="#5A3D28", e="#7A5334",
+  a="#22242A", s="#3C4248", d="#616A72",
+  z="#8A7A54", x="#CBB583", c="#F1E4BE",
+  v="#8F2F2A", V="#E8973C",
+}
+
 -- Each glyph: 24 rows of 24 chars. '.' is transparent.
 local ICONS = {}
 
--- 1. Ashen Lens — smoked glass in a brass ring, wood handle, brass ferrule.
+-- 1. Ashen Lens — HAND-SHADED (TD-111): brass ring with a lit crown, a
+--    core shadow at the foot and reflected light under it; smoked glass with a
+--    specular and a dark rim; a wood handle. Every tone placed, none inferred.
 ICONS[1] = {
 "........................",
-"........bbbbbb..........",
-"......bbggggggbb........",
-".....bggggggggggb.......",
-"....bgggggggggggbb......",
-"...bggggggggggggggb.....",
-"...bggggggggggggggb.....",
-"..bgggggggggggggggggb...",
-"..bgggggggggggggggggb...",
-"..bgggggggggggggggggb...",
-"...bggggggggggggggb.....",
-"...bggggggggggggggb.....",
-"....bgggggggggggbb......",
-".....bggggggggggb.......",
-"......bbggggggbb........",
-"........bbbbbb..........",
-".........bbb............",
-".........www............",
-"..........www...........",
-"..........www...........",
-"...........ww...........",
-"...........ww...........",
-"........................",
-"........................",
+"..........kkkkk.........",
+".......kkk44555kkk......",
+".....kk4443332244kk.....",
+"....k43322kkkkk2234k....",
+"...k432kk99988kk234k....",
+"..k432k9988877776k34k...",
+"..k32k988777766667k23k..",
+".k32k88777666666667k23k.",
+".k22k87766666666666k22k.",
+".k22k77666666666666k12k.",
+".k12k76666666666667k12k.",
+".k12k66666666666677k12k.",
+".k11k666666666667788k1k.",
+"..k1k6666666667788k11k..",
+"..kk1k66666677788kk1k...",
+"...k11kk666778kkk11k....",
+"....k111kkkkkk1112k.....",
+".....kk1112221111k......",
+".......kkk1qqkkk........",
+"..........qwek..........",
+"..........qwek..........",
+"...........qek..........",
+"...........kk...........",
 }
 
 -- 2. Chirurgeon's Glass — reticled: an iron crosshair set in the glass.
@@ -365,7 +393,9 @@ for n = 1, N do
       local ch = at(glyph, x, y)
       if ch ~= "." then
         local col
-        if ch == "k" then
+        if TONE[ch] ~= nil then
+          col = hexc(TONE[ch])          -- hand-placed: drawn exactly as written
+        elseif ch == "k" then
           col = hexc(OUTLINE)
         else
           local m = MAT[ch]
