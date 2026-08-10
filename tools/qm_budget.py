@@ -82,8 +82,19 @@ def coverage():
 # MADE of gold. The line is a proportion, not zero: TD-102's audit asserted zero, which
 # was right while the icons were flat fills and wrong the moment brass earned speculars
 # (TD-110). A highlight is a few pixels; a field is a face.
-GOLD_FIELD_MAX = 0.08          # of an instrument's opaque pixels
-BRIGHT_GOLD = ((0xB0, 0x8A, 0x3E), (0xD6, 0xAE, 0x5C))
+#
+# RE-SCOPED at TD-111 (R390), and the re-scope is the point: the rule used to count
+# #B08A3E and #D6AE5C together, which is unsatisfiable for an object MADE of brass.
+# A censer and a salt bowl's rim measured 10.8% and 8.7% with ZERO bright pixels —
+# every one of those was mid-tone brass, i.e. the material the object is made of.
+# What the rule actually protects is that no instrument reads as the goldest thing on
+# screen, and that is a property of the BRIGHTEST stop alone. So:
+#   #D6AE5C  specular only, and tightly capped — a lit pixel, never a face
+#   #B08A3E  a legitimate brass mid-tone, uncapped
+# Enforcing the old combined figure would have forced brass instruments to be painted
+# out of some other metal, which is a worse answer than the rule was ever worth.
+GOLD_FIELD_MAX = 0.04          # of an instrument's opaque pixels (worst ships at 3.4%)
+BRIGHT_GOLD = ((0xD6, 0xAE, 0x5C),)
 
 
 def gold_load():
