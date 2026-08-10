@@ -76,7 +76,7 @@ These are disagreements between what a spec says and what the tree contains.
 | `writ-format` | ✅ done | 6 | 0 | 0 | 2026-07-21 | — |
 | `notice-board` | ⚪ closed | 12 | 0 | 1 | 2026-07-24 | — |
 | `title-hall` | ⚪ closed | 11 | 0 | 6 | 2026-07-25 | — |
-| `quartermaster-depth` | ❔ unknown | 0 | 0 | 0 | — | — |
+| `quartermaster-depth` | ❔ unknown | 0 | 0 | 0 | 2026-08-10 | — |
 | `quartermaster-gear` | ❔ unknown | 0 | 0 | 0 | 2026-08-10 | — |
 
 ## What the statuses mean

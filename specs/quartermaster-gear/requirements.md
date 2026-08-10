@@ -74,10 +74,10 @@ change needed was in how it is used.
 
 - [x] **T416 — the method, proven on one icon.** Tone system built; Ashen Lens hand-shaded at 13
       tones. The live sheet is deliberately untouched (R389).
-- [ ] **T417 — the remaining nine**, same treatment: Chirurgeon's Glass, Witness Prism, Tracker's
+- [x] **T417 — the remaining nine**, same treatment: Chirurgeon's Glass, Witness Prism, Tracker's
       Fetish, Cantor's Ear, Augur's Bead, Censer of Embers, Phial of Hoarfrost, Consecrated Salt,
       Lantern of the Creed.
-- [ ] **T418 — ship the sheet**: install, regenerate shadows, re-scope the gold rule, verify.
+- [x] **T418 — ship the sheet**: install, regenerate shadows, re-scope the gold rule, verify.
 
 ## Not part of this spec
 
