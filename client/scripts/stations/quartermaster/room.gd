@@ -31,7 +31,12 @@ const NOTES   := "res://assets/ui/stations/qm_notes.png"
 const FLOOR   := "res://assets/ui/stations/qm_floor.png"
 
 const SHELF_M   := 16      # 9-slice margins, matching gen_qm_room.py
-const BOARD_M   := 4
+# Per-side, matching gen_qm_room.BOARD_M*. The plank is drawn at exactly its texture
+# height so nothing stretches vertically and its top plane is authored 1:1.
+const BOARD_ML := 4
+const BOARD_MT := 6
+const BOARD_MR := 4
+const BOARD_MB := 3
 const LABEL_M   := 7
 # Per-side, and asymmetric on purpose: the top margin carries the whole receding top
 # plane, the bottom only the plinth. Must match gen_qm_room.CTR_M*.
@@ -293,7 +298,7 @@ static func _shelving(host: Control, rect: Rect2) -> Array:
 		# An UPPER board carrying stock only. A unit tall enough for one row left a
 		# band of dead black above the instruments, which reads as an empty rack rather
 		# than a store — the brief's §4 wants shelving that looks used.
-		var upper := _nine(BOARD, BOARD_M)
+		var upper := _nine4(BOARD, BOARD_ML, BOARD_MT, BOARD_MR, BOARD_MB)
 		upper.position = Vector2(rect.position.x + 5.0, top + 24.0)
 		upper.size = Vector2(rect.size.x - 10.0, board_h)
 		upper.material = lit(vp_of(host), "res://assets/ui/stations/qm_board_n.png", 0.24)
@@ -303,16 +308,22 @@ static func _shelving(host: Control, rect: Rect2) -> Array:
 			upper.size.x - 12.0, 16.0))
 
 		# The plank objects stand on, at the foot of the unit.
-		var board := _nine(BOARD, BOARD_M)
+		var board := _nine4(BOARD, BOARD_ML, BOARD_MT, BOARD_MR, BOARD_MB)
 		board.position = Vector2(rect.position.x + 5.0, top + unit_h - board_h - 9.0)
 		board.size = Vector2(rect.size.x - 10.0, board_h)
 		board.material = lit(vp_of(host), "res://assets/ui/stations/qm_board_n.png", 0.24)
 		host.add_child(board)
 
 		# Objects stand ON the board's lit top edge.
+		# Feet land 2px DOWN the plank's top plane, not on its very top edge. The
+		# plank now has a surface (TD-112 T422), and a thing standing on a surface has
+		# depth — so part of that surface reads behind the object and the lit front
+		# arris reads in front of it. Landing on row 0 would put every instrument on
+		# the plank's back edge, hanging over the alcove.
+		var stand := board.position.y + 2.0
 		units.append(Rect2(
 			board.position.x + 6.0, upper.position.y + board_h,
-			board.size.x - 12.0, board.position.y - (upper.position.y + board_h)))
+			board.size.x - 12.0, stand - (upper.position.y + board_h)))
 	return [units, dress, frames]
 
 

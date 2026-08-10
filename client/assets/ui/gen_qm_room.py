@@ -21,7 +21,7 @@ files named below.
     cd client/assets/ui && python3 gen_qm_room.py
       -> stations/qm_wall.png      64x64   tiling ashlar backdrop
       -> stations/qm_shelf.png     48x48   9-slice shelving frame, 16px margins
-      -> stations/qm_board.png     16x12   9-slice plank, 4px margins
+      -> stations/qm_board.png     16x12   9-slice plank (L4 T6 R4 B3), top plane
       -> stations/qm_label.png     24x14   9-slice label plate, 7px margins
       -> stations/qm_counter.png   96x64   9-slice counter (L28 T26 R28 B16), two planes
       -> stations/qm_stock.png    128x16   8 dressing objects (never interactive)
@@ -137,23 +137,31 @@ def _wall(x, y):
 # ── qm_board.png — one shelf plank ───────────────────────────────────────────
 # 9-slice with 4px margins so it stretches to any shelf width while the lit top edge
 # and the shadow beneath stay one pixel each. Objects STAND on the top edge.
-BOARD_W, BOARD_H, BOARD_M = 16, 12, 4
+BOARD_W, BOARD_H = 16, 12
+# Per-side. Drawn at EXACTLY 12px tall, so nothing stretches vertically and every row
+# below is authored 1:1 — the plank's whole depth is a decision, not a stretch.
+BOARD_ML, BOARD_MT, BOARD_MR, BOARD_MB = 4, 6, 4, 3
+BOARD_SEAM = 1                          # one plank joint, foreshortened toward the eye
 
 
 def _board_h(x, y):
-    """Height for a shelf plank: a rounded front edge over a shadowed underside."""
-    if y == 0:
-        return 0.86                     # the top arris, catching the room's light
-    if y == 1:
-        return 0.94                     # the crown of the rounded edge
-    if y == 2:
-        return 0.80
+    """A plank seen from slightly above: a TOP SURFACE, an arris, and a front edge.
+
+    The old plank was a rounded front edge and nothing else — six rows rolling from
+    light to dark, which is a moulding, not a board. An object standing on it had no
+    surface to stand ON. Rows 0-2 are now the top plane receding away from the eye,
+    row 3 is the lit front arris, and rows 5-9 are the edge falling into shadow.
+    """
+    if y <= 2:                          # the top plane, tilting away toward the wall
+        return [0.46, 0.60, 0.74][y]
     if y == 3:
-        return 0.62
+        return 1.00                     # the front arris: the plank's high point
     if y == 4:
-        return 0.42                     # rolling under
-    if y == 5:
-        return 0.20
+        return 0.24                     # and the cliff below it
+    if y <= 8:
+        return 0.46 - 0.04 * (y - 5)    # the front edge
+    if y == 9:
+        return 0.28                     # the plank's underside arris
     return 0.0
 
 
@@ -164,19 +172,24 @@ def _board(x, y):
     and a shadow it throws on whatever is beneath — all of which the height field above
     now carries, so the normal map tilts with the paint.
     """
-    if y >= 6:
+    if y >= 10:
         # Under the plank: the shadow it throws, fading out. Alpha, not a colour, so it
         # darkens whatever it happens to fall across.
-        fall = (y - 6) / float(BOARD_H - 6)
-        return (BLACK[0], BLACK[1], BLACK[2], max(int(155 * (1.0 - fall)), 0))
+        fall = (y - 10) / float(BOARD_H - 10)
+        return (BLACK[0], BLACK[1], BLACK[2], max(int(165 * (1.0 - fall)), 0))
     hgt = _board_h(x, y)
     # Grain runs ALONG the plank in long strokes, never as scattered dots — a modulo on
     # (x + y) makes diagonal hatching, which is what an earlier pass shipped by accident.
+    # Grain varies in Y ONLY. The centre columns stretch horizontally to the width of
+    # the shelf, so any x-variation there would smear into bars — the same constraint
+    # the counter's top surface works under.
     grain = 0.0
-    if _rnd(x // 3, y, 17) > 0.72:
-        grain -= 0.07
-    if y in (1, 2) and _rnd(x // 5, 0, 23) > 0.80:
-        grain += 0.06                   # a bright fleck where the arris is worn through
+    if _rnd(0, y, 17) > 0.70:
+        grain -= 0.06
+    if y == BOARD_SEAM:
+        grain -= 0.13                   # the joint between planks, foreshortened
+    if y == 3 and _rnd(0, 3, 23) > 0.5:
+        grain += 0.05                   # the arris, worn brighter where hands pass
     return _op(A.quantize(A.ramp_shade("wood", 0.10 + hgt * 0.72 + grain)))
 
 
@@ -216,17 +229,27 @@ def _shelf_h(x, y):
         # rather than as a printed border.
         top = y <= REVEAL_PX
         bottom = (SHELF_H - 1 - y) <= REVEAL_PX
+        # INVERTED at TD-112, and the inversion is the whole point. The cut's TOP
+        # reveal is a face you see the UNDERSIDE of — it points down, away from every
+        # light in the room — while the BOTTOM reveal is the sill, whose top face
+        # catches the lamp. The first pass had it the other way round, which is why
+        # the shelves read as printed borders rather than as holes: a bright band
+        # above and a dark one below is what a raised frame looks like, not a cut.
+        # Same error as the horn's bore, and the same fix — light a face by which way
+        # it points, not by where it sits on the sprite.
         if top:
-            return 0.92 - 0.06 * ring
+            return 0.26 - 0.03 * ring   # the underside of the cut, in its own shadow
         if bottom:
-            return 0.34 - 0.04 * ring
-        return 0.62 - 0.05 * ring       # the side faces, between the two
+            return 0.88 - 0.07 * ring   # the sill, the brightest stone in the alcove
+        return 0.56 - 0.05 * ring       # the side faces, between the two
     if ring <= REVEAL_PX + 2:
         return 0.16                     # occlusion ramp into the interior
-    # The interior: darkest at the top, lifting slightly at the foot where the boards
-    # bounce a little light back up (the TD-104 finding, kept).
+    # The interior RECEDES: the top reveal casts down the back wall, so light falls
+    # off fast going up into the cut and lifts again at the sill where the stone
+    # bounces. A linear ramp read as a flat gradient; squaring it puts the change
+    # where a real cut puts it — hard under the lintel, gentle at the foot.
     down = y / float(SHELF_H)
-    return 0.02 + 0.07 * down
+    return 0.015 + 0.17 * (down * down)
 
 
 def _shelf(x, y):
@@ -959,5 +982,6 @@ if __name__ == "__main__":
         print("wrote %s (%dx%d)" % (path, w, h))
     for path, w, h, hfn, strength in NORMALS:
         _emit_normal(path, w, h, hfn, strength)
-    print("9-slice margins: shelf=%d board=%d label=%d counter=L%d,T%d,R%d,B%d"
-          % (SHELF_M, BOARD_M, LABEL_M, CTR_ML, CTR_MT, CTR_MR, CTR_MB))
+    print("9-slice margins: shelf=%d label=%d board=L%d,T%d,R%d,B%d counter=L%d,T%d,R%d,B%d"
+          % (SHELF_M, LABEL_M, BOARD_ML, BOARD_MT, BOARD_MR, BOARD_MB,
+             CTR_ML, CTR_MT, CTR_MR, CTR_MB))
