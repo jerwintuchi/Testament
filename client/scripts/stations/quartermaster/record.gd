@@ -67,9 +67,19 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 	head.add_child(titles)
 	# Name large and prominent; classification smaller and GOLD, because a Collegium
 	# classification is an assertion by the order (R374/R376).
+	# `clip_text` on every NON-WRAPPING label in this column, and it is load-bearing.
+	# A Label that does not wrap reports its full text width as its MINIMUM width, and
+	# a VBoxContainer is at least as wide as its widest child — so a long instrument
+	# name silently widened the whole record past the sheet, and the wrapping prose
+	# below then wrapped to that wider column and ran off the paper. The visible defect
+	# was a clipped sentence; the cause was a heading three rows above it.
+	# Clipping a name that overruns is the right trade: a name is recognisable from its
+	# first word, a field note is not.
 	var name_l := Widgets.card_label("", 15, PopupTheme.INK, false, false)
 	name_l.add_theme_font_override("font", Fonts.heading())
+	name_l.clip_text = true
 	var class_l := Widgets.card_label("", 9, Color(0.44, 0.34, 0.14), false, false)
+	class_l.clip_text = true
 	titles.add_child(name_l)
 	titles.add_child(class_l)
 
@@ -81,6 +91,7 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 	# The body is filed under a heading, the way a record actually is.
 	var rec_head := Widgets.card_label("QUARTERMASTER RECORD", 8, Color(0.34, 0.26, 0.14), false, false)
 	rec_head.add_theme_font_override("font", Fonts.heading())
+	rec_head.clip_text = true
 	root.add_child(rec_head)
 	var note := Widgets.card_label("", 9, PopupTheme.INK_DIM, true, false)
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -90,6 +101,7 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 	root.add_child(_ornament_rule())
 	var warn_head := Widgets.card_label("WARNING", 8, Color(0.46, 0.19, 0.15), false, false)
 	warn_head.add_theme_font_override("font", Fonts.heading())
+	warn_head.clip_text = true
 	root.add_child(warn_head)
 	var care := Widgets.card_label("", 8, Color(0.44, 0.20, 0.16, 0.90), true, false)
 	care.size_flags_horizontal = Control.SIZE_EXPAND_FILL

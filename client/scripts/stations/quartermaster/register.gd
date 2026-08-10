@@ -174,9 +174,15 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	# Why the counter cannot issue yet. The server refuses REQUISITION outside
 	# DEPLOYING (R65 — the bag is a bet on the contract's intel) and the station is
 	# reachable before then, so the reason is stated rather than met as an error.
+	# NOT a child of the foot. This is the ROOT CAUSE of the overlap: a variable-height
+	# message sharing a fixed-height container with the plate pushed the plate out of
+	# its own rect and onto the motto positioned beneath it. The gate is a status line
+	# about the counter, not part of the rite, so it sits above the foot on its own.
 	var gate := Widgets.card_label("", 8, Color(0.72, 0.42, 0.34), true, true)
-	gate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	foot.add_child(gate)
+	gate.position = Vector2(seal_rect.position.x, seal_rect.position.y - 21.0)
+	gate.size = Vector2(seal_rect.size.x, 20.0)
+	gate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(gate)
 	view["gate_label"] = gate
 
 	# The rite, as a crimson plate rather than a bordered box. Its 9-slice CENTRE is a
@@ -194,6 +200,16 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	# The order's disc at the plate's left hand, and the motto beneath it. Both are
 	# scenery: the plate is the control, and a seal you can click would be a second
 	# button that does the same thing.
+	# Beneath the plate, and a CHILD of the foot rather than a label positioned at
+	# `seal_rect.end.y`. Absolute placement assumed the plate ends where its rect ends;
+	# a container guarantees it.
+	var motto := Widgets.card_label("\u2720   THE COLLEGIUM STANDS WITNESS   \u2720",
+		8, Color(0.66, 0.56, 0.38), false, true)
+	motto.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	motto.custom_minimum_size = Vector2(0, 10)
+	motto.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	foot.add_child(motto)
+
 	var disc := TextureRect.new()
 	disc.texture = load(RITE_SEAL) as Texture2D
 	disc.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -203,12 +219,6 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(disc)
 
-	var motto := Widgets.card_label("\u2720   THE COLLEGIUM STANDS WITNESS   \u2720",
-		8, Color(0.66, 0.56, 0.38), false, true)
-	motto.position = Vector2(seal_rect.position.x, seal_rect.end.y + 2.0)
-	motto.size = Vector2(seal_rect.size.x, 10.0)
-	motto.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(motto)
 
 
 static func refresh(view: Dictionary) -> void:

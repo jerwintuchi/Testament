@@ -295,8 +295,8 @@
 - `client/scripts/stations/quartermaster/pack.gd:201` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:217` — `load/preload SLOT`
 - `client/scripts/stations/quartermaster/register.gd:121` — `load/preload SHEET`
-- `client/scripts/stations/quartermaster/register.gd:198` — `load/preload RITE_SEAL`
-- `client/scripts/stations/quartermaster/register.gd:400` — `load/preload RITE`
+- `client/scripts/stations/quartermaster/register.gd:214` — `load/preload RITE_SEAL`
+- `client/scripts/stations/quartermaster/register.gd:410` — `load/preload RITE`
 - `client/scripts/stations/quartermaster/room.gd:224` — `load/preload FLOOR`
 - `client/scripts/stations/quartermaster/room.gd:237` — `load/preload path`
 - `client/scripts/stations/quartermaster/room.gd:252` — `load/preload WALL`
