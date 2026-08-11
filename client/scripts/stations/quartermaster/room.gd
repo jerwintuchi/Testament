@@ -46,14 +46,30 @@ const FLOOR   := "res://assets/ui/stations/qm_floor.png"
 const LABEL_M   := 7
 
 # ── the cabinet, measured off `qm_cabinet.png` ───────────────────────────────
-# The cabinet is drawn 1:1 and never stretched, so these are absolutes, not fractions.
-# Its three alcoves are found by their lit plank edges; the TOP one is left to the
-# crates the author baked into it, and the lower two carry the instruments.
-const CAB_PX     := Vector2(143, 154)
-const CAB_IN_X   := 16.0     # first pixel inside the left upright
-const CAB_IN_W   := 111.0    # clear span between the uprights
-const CAB_FEET   := [73.0, 111.0]   # the lit top row of each instrument plank
-const CAB_STOCK_Y := 39.0    # the top alcove's plank — the author's crates stand here
+# ONE cabinet, not two (TD-114). The author's closed cabinet is 166 wide and the column
+# is 339: a pair would leave 2px of air between them and against both edges, which reads
+# as crammed rather than as fitted joinery. It is also unnecessary — the piece is drawn
+# with a central stile and TWO BAYS, which is exactly the division the screen needs, so
+# the asset's own structure carries the two kinds of instrument.
+#
+# Drawn 1:1 and never stretched, so these are absolutes. Every row is measured off the
+# art: uprights at x 6-10 / 81-85 / 155-159, and a shelf is found by its lit top edge.
+const CAB_PX := Vector2(166, 166)
+
+# Per bay: the clear span between its uprights, and the lit top row of each shelf an
+# instrument may stand on. The left bay carries three shelves and the right two, which
+# is what the six Instruments of Sight and four of Trial need.
+const CAB_BAYS := [
+	{"x": 13.0, "w": 66.0, "feet": [36.0, 69.0, 102.0]},
+	{"x": 88.0, "w": 65.0, "feet": [67.0, 97.0]},
+]
+# Shelves no instrument stands on. The author's crates go here, so the cabinet reads as
+# stores rather than as a rack of exactly ten things (R363) — the right bay's top shelf,
+# and the full-width deck above the drawers.
+const CAB_STOCK := [
+	{"x": 88.0, "w": 65.0, "y": 41.0},
+	{"x": 13.0, "w": 140.0, "y": 127.0},
+]
 
 # ── the bench, measured off `qm_table.png` ───────────────────────────────────
 # An object set down on the bench stands on its TOP PLANE, so its feet come from here
@@ -126,11 +142,13 @@ const LEFT_X    := 0.030
 const LEFT_W    := 0.530   # narrowed for the gutter (TD-110 T414)
 const RIGHT_X   := 0.625
 const RIGHT_W   := 0.347
-# Row 1 is now exactly one cabinet tall (154px at 640x360). The fraction is DERIVED from
-# the art rather than chosen, because the cabinet is drawn 1:1 and a row that disagreed
-# with it would either clip the piece or leave a band of wall under it.
-const SHELVES_Y := 0.13333
-const SHELVES_H := 0.42778
+# Row 1 is exactly one cabinet tall (166px at 640x360). The fraction is DERIVED from the
+# art rather than chosen, because the cabinet is drawn 1:1 and a row that disagreed with
+# it would either clip the piece or leave a band of wall under it. It runs to the bench,
+# which then overlaps the cabinet's plinth by a few pixels — furniture standing against
+# a wall with a counter in front of it, which is the depth the room wants anyway.
+const SHELVES_Y := 0.12778
+const SHELVES_H := 0.46111
 const COUNTER_Y  := 0.590
 const COUNTER_H2 := 0.255      # row 2's height, shared by the counter and the satchel
 const SEAL_Y     := 0.852      # the rite, spanning the full width beneath both columns
@@ -239,8 +257,9 @@ static func build(host: Control, vp: Vector2) -> Dictionary:
 		"right_rect": right_rect,
 		"satchel_rect": satchel_rect,
 		"seal_rect": seal_rect,
-		"units": shelving[0],    # per cabinet, the rows instruments may stand on
-		"frames": shelving[1],   # the cabinets themselves, for their labels
+		"units": shelving[0],    # per bay, the shelf rows instruments may stand on
+		"frames": shelving[1],   # per bay, where its label plate is nailed
+		"stock": shelving[2],    # the shelves left to the author's crates
 	}
 
 
@@ -325,32 +344,35 @@ static func _header(host: Control, vp: Vector2) -> void:
 	box.add_child(s)
 
 
-## Two cabinets, side by side — one per kind of instrument. The reference's
-## PROVISIONS / RELICS / TOOLS do not exist in the catalog and are not invented here.
+## One cabinet, centred, its two bays carrying the two kinds of instrument. The
+## reference's PROVISIONS / RELICS / TOOLS do not exist in the catalog and are not
+## invented here — the brief's own §4 forbids that.
 ##
-## They stand SIDE BY SIDE rather than stacked because the author's cabinet is drawn at
-## a fixed 143x154 and is never scaled: two of them fit the column across, and stacking
-## would have meant squashing a hand-drawn object to half its height.
-##
-## Each returns TWO instrument rows — its lower two alcoves. The top alcove is left to
-## the crates the author baked into the art, which is where the room's non-interactive
-## stock now comes from (R363): it costs no nodes, it can never be hovered, and it was
-## drawn by the same hand as the cabinet it sits in.
+## Returns, per bay, the shelf rows an instrument may stand on; plus the label anchors
+## and the shelves left to stock. Nothing here knows what an instrument IS.
 static func _shelving(host: Control, rect: Rect2) -> Array:
+	var at := Vector2(rect.position.x + (rect.size.x - CAB_PX.x) * 0.5, rect.position.y)
+	_sprite(host, CABINET, at)
+
 	var rows: Array = []
 	var frames: Array = []
-	# Even gaps outside and between, so the pair reads as fitted joinery rather than as
-	# two objects that happen to be near each other.
-	var gap := (rect.size.x - CAB_PX.x * 2.0) / 3.0
-	for i in 2:
-		var at := Vector2(rect.position.x + gap * (i + 1) + CAB_PX.x * i, rect.position.y)
-		_sprite(host, CABINET, at)
-		frames.append(Rect2(at, CAB_PX))
+	for bay in CAB_BAYS:
 		var unit: Array = []
-		for feet in CAB_FEET:
-			unit.append(Rect2(at.x + CAB_IN_X, at.y + feet - 24.0, CAB_IN_W, 24.0))
+		for feet in bay["feet"]:
+			unit.append(Rect2(at.x + float(bay["x"]), at.y + float(feet) - 24.0,
+				float(bay["w"]), 24.0))
 		rows.append(unit)
-	return [rows, frames]
+		# The label rides the cabinet's crown, over the bay it names, and sits two pixels
+		# PROUD of it — nailed on rather than inlaid. Proud also keeps it clear of the
+		# top shelf: the left bay uses all three of its shelves, so an instrument stands
+		# directly under the crown and a plate flush with it would clip that row.
+		frames.append(Rect2(at.x + float(bay["x"]), at.y - 2.0, float(bay["w"]), 13.0))
+
+	var stock: Array = []
+	for band in CAB_STOCK:
+		stock.append(Rect2(at.x + float(band["x"]), at.y + float(band["y"]) - 18.0,
+			float(band["w"]), 18.0))
+	return [rows, frames, stock]
 
 
 ## Where the cloth is draped, and therefore where an instrument is set down. ONE

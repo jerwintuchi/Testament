@@ -92,7 +92,7 @@ static func build(body: Node, host: Node, selected: Array,
 	var geo := Room.build(root, vp)
 	view["counter"] = Counter.build(root, geo["counter_rect"])
 	view["items"] = Shelf.build(root, view, geo["units"],
-		func(id): _select(view, String(id)), geo["frames"])
+		func(id): _select(view, String(id)), geo["frames"], geo["stock"])
 
 	_right_column(view, root, geo["right_rect"], geo["satchel_rect"], geo["seal_rect"])
 

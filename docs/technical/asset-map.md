@@ -33,11 +33,6 @@
 ### `client/assets/ui/_src/qm/`
 
 - **`qm-open-cabinet.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_qm_furniture.py` (reads)
-- **`qm-quill-and-ink.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_qm_furniture.py` (reads)
-- **`qm-scale.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_qm_furniture.py` (reads)
-- **`qm-seal-stamp.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_qm_furniture.py` (reads)
-- **`qm-table.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_qm_furniture.py` (reads)
-- **`qm-wooden-description-parchment.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_qm_furniture.py` (reads)
 
 ### `client/assets/ui/board/`
 
@@ -121,7 +116,7 @@
 - **`client/assets/ui/gen_parch_v1.py`**
   - loads: `paper_band1.png`
 - **`client/assets/ui/gen_qm_furniture.py`**
-  - loads: `qm-open-cabinet.png`, `qm-quill-and-ink.png`, `qm-scale.png`, `qm-seal-stamp.png`, `qm-table.png`, `qm-wooden-description-parchment.png`
+  - loads: `qm-open-cabinet.png`
 - **`client/assets/ui/gen_qm_shadows.py`**
   - loads: `gear_icons.png`, `gear_shadows.png`
 - **`client/assets/ui/gen_title_furniture.py`**
@@ -257,6 +252,12 @@
 - `client/assets/fonts/Almendra.ttf`
 - `client/assets/fonts/AlmendraDisplay.ttf`
 - `client/assets/ui/_src/_proto_board.png`
+- `client/assets/ui/_src/qm/qm-closed-cabinet.png`
+- `client/assets/ui/_src/qm/qm-quill-and-ink.png`
+- `client/assets/ui/_src/qm/qm-scale.png`
+- `client/assets/ui/_src/qm/qm-seal-stamp.png`
+- `client/assets/ui/_src/qm/qm-table.png`
+- `client/assets/ui/_src/qm/qm-wooden-description-parchment.png`
 - `client/assets/ui/shared/key_e.png`
 - `client/assets/ui/shared/panel.png`
 - `client/assets/ui/stations/contract_board.png`
@@ -280,6 +281,7 @@
 - `client/assets/ui/stations/qm_rite_seal.png`
 - `client/assets/ui/stations/qm_satchel.png`
 - `client/assets/ui/stations/qm_satchel_n.png`
+- `client/assets/ui/stations/qm_stock.png`
 - `client/assets/ui/stations/qm_table.png`
 - `client/assets/ui/stations/qm_wall.png`
 - `client/assets/ui/stations/qm_wall_n.png`
@@ -307,17 +309,18 @@
 - `client/scripts/stations/quartermaster/register.gd:134` — `load/preload SHEET`
 - `client/scripts/stations/quartermaster/register.gd:252` — `load/preload RITE_SEAL`
 - `client/scripts/stations/quartermaster/register.gd:448` — `load/preload RITE`
-- `client/scripts/stations/quartermaster/room.gd:265` — `load/preload FLOOR`
-- `client/scripts/stations/quartermaster/room.gd:278` — `load/preload path`
-- `client/scripts/stations/quartermaster/room.gd:293` — `load/preload WALL`
-- `client/scripts/stations/quartermaster/room.gd:407` — `load/preload CLOTH`
-- `client/scripts/stations/quartermaster/room.gd:442` — `load/preload path`
-- `client/scripts/stations/quartermaster/room.gd:451` — `load/preload PROPS`
-- `client/scripts/stations/quartermaster/room.gd:509` — `load/preload path`
-- `client/scripts/stations/quartermaster/room.gd:527` — `load/preload path`
+- `client/scripts/stations/quartermaster/room.gd:284` — `load/preload FLOOR`
+- `client/scripts/stations/quartermaster/room.gd:297` — `load/preload path`
+- `client/scripts/stations/quartermaster/room.gd:312` — `load/preload WALL`
+- `client/scripts/stations/quartermaster/room.gd:429` — `load/preload CLOTH`
+- `client/scripts/stations/quartermaster/room.gd:464` — `load/preload path`
+- `client/scripts/stations/quartermaster/room.gd:473` — `load/preload PROPS`
+- `client/scripts/stations/quartermaster/room.gd:531` — `load/preload path`
+- `client/scripts/stations/quartermaster/room.gd:549` — `load/preload path`
 - `client/scripts/stations/quartermaster/seal_rite.gd:40` — `load/preload SEAL_TEX`
-- `client/scripts/stations/quartermaster/shelf.gd:209` — `load/preload ICONS`
-- `client/scripts/stations/quartermaster/shelf.gd:225` — `load/preload SHADOWS`
+- `client/scripts/stations/quartermaster/shelf.gd:218` — `load/preload STOCK`
+- `client/scripts/stations/quartermaster/shelf.gd:273` — `load/preload ICONS`
+- `client/scripts/stations/quartermaster/shelf.gd:289` — `load/preload SHADOWS`
 - `client/scripts/ui/fonts.gd:67` — `load/preload path`
 - `client/scripts/ui/title_scene.gd:120` — `load/preload p`
 - `client/scripts/ui/title_scene.gd:184` — `load/preload DIR + "title_air.gdshader"`

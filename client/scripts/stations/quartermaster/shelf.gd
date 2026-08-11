@@ -25,6 +25,14 @@ const SHADOWS := "res://assets/ui/stations/gear_shadows.png"
 const SHADOW_H := 3
 const ICON_PX  := 24
 
+# The dressing atlas — the author's own crates, cut out of the retired open cabinet.
+# Cells match `gen_qm_furniture._emit_stock`; the crates are bottom-aligned in them,
+# because a centred cell would hang the short ones in mid-air.
+const STOCK    := "res://assets/ui/stations/qm_stock.png"
+const STOCK_W  := 28
+const STOCK_H  := 18
+const STOCK_N  := 7
+
 # ── the item state machine (P164) ────────────────────────────────────────────
 enum { AVAILABLE, HOVERED, SELECTED, ON_COUNTER, PACKING, PACKED, REMOVING }
 
@@ -57,22 +65,33 @@ static func next_state(state: int, event: String) -> int:
 const GOLD_EDGE := Color(0.86, 0.70, 0.38, 1.0)
 
 
-## `units[u]` is one cabinet's instrument ROWS (its lower two alcoves); `frames[u]` is
-## the cabinet itself, for its label.
+## `units[u]` is one BAY's shelf rows; `frames[u]` is where that bay's label is nailed;
+## `stock` is the shelves no instrument stands on.
 ##
-## The generated stock scatter is GONE. The author's cabinet has crates drawn into its
-## alcoves, so the room's non-interactive dressing (R363) is now baked art: it costs no
-## nodes, it cannot be hovered by construction rather than by remembering to set
-## `MOUSE_FILTER_IGNORE` on every piece (P167), and it reads as the same object as the
-## shelving it sits in. The instruments stand IN FRONT of it, which is also the right
-## depth cue — reachable things near, stores behind.
+## The stock is the AUTHOR'S OWN CRATES, lifted out of the retired open cabinet by
+## `gen_qm_furniture.py` — so the dressing is the same hand and the same resolution as
+## the shelving it sits in, rather than a second set of objects drawn to sit beside it.
+## It is seeded, so the store is the same room every time it is opened (P166), and it is
+## never interactive (P167): a player who hovers scenery and gets nothing learns the room
+## is lying to them.
 static func build(host: Control, view: Dictionary, units: Array,
-		on_select: Callable, frames: Array = []) -> Dictionary:
+		on_select: Callable, frames: Array = [], stock: Array = []) -> Dictionary:
 	var items := {}
+	# Terse on purpose. A bay is 66px wide and "INSTRUMENTS OF SIGHT" measures ~90 at
+	# 8px, so the old label ran off both ends of its own plate. The full term is not
+	# lost — the record names the class ("Instrument of Sight") for whatever is chosen,
+	# and this is signage on a cabinet, which is exactly where a word is enough.
 	var kinds := [
-		{"kind": "PERCEPTION", "label": "INSTRUMENTS OF SIGHT"},
-		{"kind": "PROBE",      "label": "INSTRUMENTS OF TRIAL"},
+		{"kind": "PERCEPTION", "label": "SIGHT"},
+		{"kind": "PROBE",      "label": "TRIAL"},
 	]
+
+	# Dressing FIRST, so child order alone puts it behind every real instrument. An
+	# earlier pass reached for `move_child(t, 0)` instead and sent the stock behind the
+	# WALL — index 0 is the backdrop, not the back of the shelf. Build order is the
+	# predictable tool; z-shuffling after the fact is not.
+	for i in range(stock.size()):
+		_stock(host, stock[i], i)
 
 	for u in range(min(kinds.size(), units.size())):
 		var rows: Array = units[u]
@@ -82,16 +101,15 @@ static func build(host: Control, view: Dictionary, units: Array,
 			if String(item["kind"]) == kind:
 				ids.append(String(item["id"]))
 
-		# The label rides the cabinet's TOP RAIL, where a store actually nails one, and
-		# spans its full width so it reads as belonging to that cabinet.
+		# The label rides the cabinet's crown, over the bay it names.
 		if u < frames.size():
 			var f: Rect2 = frames[u]
-			Room.label_plate(host, String(kinds[u]["label"]),
-				Vector2(f.position.x + 3.0, f.position.y - 1.0), f.size.x - 6.0)
+			Room.label_plate(host, String(kinds[u]["label"]), f.position, f.size.x)
 
-		# Split across the cabinet's rows, fuller row first, so six instruments fill two
-		# alcoves 3-and-3 and four fill them 2-and-2 — both derived from the count, so a
-		# new instrument lands on a shelf without a line changing here (R362).
+		# Split across the bay's shelves, fuller shelf first, so six instruments fill
+		# three shelves 2-and-2-and-2 and four fill two shelves 2-and-2 — both derived
+		# from the count, so a new instrument lands on a shelf without a line changing
+		# here (R362).
 		var n := ids.size()
 		var nrows: int = max(rows.size(), 1)
 		var at := 0
@@ -187,6 +205,52 @@ static func _set_hover(_view: Dictionary, rec: Dictionary, on: bool) -> void:
 	# The whole of it. No tween, no movement, no tint — the instrument stays exactly
 	# where it was placed and simply takes an edge of light.
 	(rec["edge"] as Control).visible = on
+
+
+# ── dressing: scenery, never an item (R363 / P167) ──────────────────────────
+
+## Fills one shelf with the author's crates, left to right with the odd gap so the row
+## reads as stores that have been drawn from rather than as a tile pattern.
+##
+## Seeded from the band index alone, so two openings of the room produce the same shelf
+## (P166) — a store that reshuffles between visits is not a place.
+static func _stock(host: Control, band: Rect2, seed: int) -> void:
+	var sheet := load(STOCK) as Texture2D
+	if sheet == null:
+		return
+	var x := band.position.x
+	var i := 0
+	while x + STOCK_W <= band.end.x:
+		var r := _hash(seed, i, 5)
+		if r > 0.80:                       # a gap where something has been taken
+			x += STOCK_W * 0.5
+			i += 1
+			continue
+		var t := TextureRect.new()
+		var at := AtlasTexture.new()
+		at.atlas = sheet
+		at.region = Rect2(int(_hash(seed, i, 13) * STOCK_N) % STOCK_N * STOCK_W, 0,
+			STOCK_W, STOCK_H)
+		t.texture = at
+		t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		t.stretch_mode = TextureRect.STRETCH_KEEP
+		t.position = Vector2(x, band.end.y - STOCK_H)
+		t.size = Vector2(STOCK_W, STOCK_H)
+		# NEVER interactive, and visibly subordinate. Both halves matter: the reachable
+		# objects have to be the lit ones, or the room offers an affordance it will not
+		# honour. It is dimmed rather than shrunk — these are the author's crates at the
+		# author's scale, and scaling them would be the one thing the art forbids.
+		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		t.modulate = Color(0.72, 0.70, 0.68, 0.94)
+		host.add_child(t)
+		x += STOCK_W + 1.0
+		i += 1
+
+
+static func _hash(a: int, b: int, salt: int) -> float:
+	var n := (a * 73856093) ^ (b * 19349663) ^ (salt * 83492791)
+	n = (n ^ (n >> 13)) * 1274126177
+	return float((n ^ (n >> 16)) & 0xFFFF) / 65535.0
 
 
 # ── the instrument icons ────────────────────────────────────────────────────
