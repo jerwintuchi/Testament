@@ -610,9 +610,27 @@ its WARNING without scrolling, which R374 wanted and the layout work could not r
 key's name and the writer then rewrites that as garbage, deleting the setting. Reasons live in
 `fonts.gd`. DECISION_LOG **TD-102** + addendum.
 
-@specs/quartermaster-room/requirements.md
-@specs/quartermaster-room/design.md
-@specs/quartermaster-room/tasks.md
+Active spec: **`specs/quartermaster-form/`** (TD-115) — **the stores gain form.** The room
+is built from two kinds of art and they no longer belong to each other: the author's
+furniture is hand-drawn with baked form, while the generated surfaces (wall, cloth, rite
+plate, satchel, lantern, banner) are flat colour fields with a border. **The wall is the
+worst and for an instructive reason** — a nearly featureless diffuse carrying a normal map
+and a shader, and a smooth gradient painted over nothing is exactly what reads as a 3D
+render. **The author draws the replacements; this spec briefs, grades, wires and verifies**
+(`asset-briefs.md`). **Phase 1–2 DONE (T426–T431):** the seal-stamp drops to bench scale;
+the cabinet is **rebuilt bigger at 1:1** by repeating bands of the author's own drawing
+(166x166 → 240x199, four shelves a bay, and the column cuts landed on drawer dividers so
+it gained two WHOLE drawers); hover carries the light. **The lighting change measured as a
+no-op, which was the real finding** — the four numbers moved the wall −15% but the frame
+mean only −1.1%, because the author's furniture carries no shader and ended up BRIGHTER
+than the wall behind it. Fixed with a **flat normal map**: the shader's lit term is
+`ndl * atten`, so a normal pointing straight out takes the pool's falloff and none of its
+direction, keeping TD-081's double-shading trap shut. Lit-to-shadow on the bench went from
+**1.09 (flat) to 3.08**. **Phase 3 (T432–T437) waits on art.**
+
+@specs/quartermaster-form/requirements.md
+@specs/quartermaster-form/design.md
+@specs/quartermaster-form/tasks.md
 
 Completed: **`specs/board-blend/`** (TD-059) — a Contract Board **blend pass** (client render +
 generated art only) on the user's review of the TD-058 board: the header + flanking **banners** don't

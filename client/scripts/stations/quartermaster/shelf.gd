@@ -33,6 +33,10 @@ const STOCK_W  := 28
 const STOCK_H  := 18
 const STOCK_N  := 7
 
+# How many instruments a rebuilt bay holds comfortably: 3 x 24px in a ~103px span leaves
+# 30px of air. The shelves this leaves over become stock (R397).
+const PER_SHELF := 3
+
 # ── the item state machine (P164) ────────────────────────────────────────────
 enum { AVAILABLE, HOVERED, SELECTED, ON_COUNTER, PACKING, PACKED, REMOVING }
 
@@ -63,6 +67,19 @@ static func next_state(state: int, event: String) -> int:
 # reads at low resolution where a shader outline would smear, and it is built once and
 # toggled, so hovering allocates nothing and runs no tween at all.
 const GOLD_EDGE := Color(0.86, 0.70, 0.38, 1.0)
+
+# HOVER CARRIES THE LIGHT (R404, author ruling, TD-115). The room is deliberately dark
+# now, so the instrument under the cursor is lifted out of shadow as well as edged: a
+# warm multiplier a little above white, so it reads as catching the candle rather than
+# as a UI highlight.
+#
+# It is a property SET, not a tween — hovering allocates nothing and runs nothing per
+# frame, which is also why reduced motion needs no special case here: there is no motion
+# to reduce, only an instant brighten. And it is presentation ONLY (P181): no state is
+# recorded, nothing is sent, and the object does not move, because TD-103 retired the
+# lift on purpose — an object that rises under the cursor reads as a UI element
+# responding to a mouse rather than as one the Quartermaster has noticed.
+const LIT := Color(1.34, 1.22, 1.02, 1.0)
 
 
 ## `units[u]` is one BAY's shelf rows; `frames[u]` is where that bay's label is nailed;
@@ -106,14 +123,23 @@ static func build(host: Control, view: Dictionary, units: Array,
 			var f: Rect2 = frames[u]
 			Room.label_plate(host, String(kinds[u]["label"]), f.position, f.size.x)
 
-		# Split across the bay's shelves, fuller shelf first, so six instruments fill
-		# three shelves 2-and-2-and-2 and four fill two shelves 2-and-2 — both derived
-		# from the count, so a new instrument lands on a shelf without a line changing
-		# here (R362).
+		# Instruments fill from the BOTTOM shelves up, at most PER_SHELF to a shelf; the
+		# shelves left over go to stock. Bottom-up because the lower shelves are nearer
+		# the bench and its candle, and the room is deliberately dark at the top now
+		# (R403) — a player should not have to hunt the unlit rows for the things they
+		# can actually take.
+		#
+		# Both the count per shelf and how many shelves are used are DERIVED, so a new
+		# instrument lands on a shelf without a line changing here (R362).
 		var n := ids.size()
 		var nrows: int = max(rows.size(), 1)
+		var used: int = min(nrows, int(ceil(float(n) / float(PER_SHELF))))
+		var first: int = nrows - used            # rows above this carry stock
+		for r in range(first):
+			_stock(host, rows[r], u * 8 + r)
+
 		var at := 0
-		for r in range(nrows):
+		for r in range(first, nrows):
 			var take := int(ceil(float(n - at) / float(nrows - r)))
 			var row: Rect2 = rows[r]
 			var pitch := row.size.x / float(max(take, 1))
@@ -202,9 +228,10 @@ static func _set_hover(_view: Dictionary, rec: Dictionary, on: bool) -> void:
 	if want < 0:
 		return                      # only AVAILABLE objects respond; nothing else moves
 	rec["state"] = want
-	# The whole of it. No tween, no movement, no tint — the instrument stays exactly
-	# where it was placed and simply takes an edge of light.
+	# The whole of it. No tween, no movement — the instrument stays exactly where it was
+	# placed, takes an edge of light, and is lifted out of the dark.
 	(rec["edge"] as Control).visible = on
+	(rec["icon"] as CanvasItem).modulate = LIT if on else Color(1, 1, 1, 1)
 
 
 # ── dressing: scenery, never an item (R363 / P167) ──────────────────────────

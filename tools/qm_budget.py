@@ -179,8 +179,54 @@ def findings(srcs):
                                         reg, re.S).group(0) if re.search(
                                             r"static func _select\(.*?(?=\nstatic func )", reg, re.S) else ""),
          "_select must update the record and the moved object only, never rebuild"),
+
+        # P182 — art and placement cannot drift apart. The cabinet's shelf rows are
+        # MEASURED off the emitted PNG here and compared against the constants room.gd
+        # places instruments on. Without this the two are simply two lists of numbers
+        # that happen to agree today: re-derive the cabinet with a different band and
+        # every instrument silently floats or sinks into a shelf.
+        ("cabinet geometry matches the emitted art",) + _cabinet_geometry(srcs),
     ]
     return numeric, structural
+
+
+def _cabinet_geometry(srcs):
+    """(ok, why) — room.gd's CAB_PX and CAB_BAYS against the real qm_cabinet.png."""
+    png = os.path.join(ROOT, "client/assets/ui/stations/qm_cabinet.png")
+    if not os.path.exists(png):
+        return (False, "qm_cabinet.png is missing — nothing to measure against")
+    sys.path.insert(0, os.path.join(ROOT, "client/assets/ui"))
+    from pngio import read_png                      # noqa: E402  (path set above)
+    w, h, px = read_png(png)
+
+    room = srcs["room.gd"]
+    m = re.search(r"CAB_PX\s*:=\s*Vector2\((\d+),\s*(\d+)\)", room)
+    if not m or (int(m.group(1)), int(m.group(2))) != (w, h):
+        return (False, "CAB_PX says %s, the PNG is %dx%d"
+                % (m.groups() if m else "?", w, h))
+
+    def lum(x, y):
+        p = px(x, y)
+        return (p[0] + p[1] + p[2]) / 3 if p[3] > 8 else -1
+
+    declared = re.findall(r'\{"x":\s*([\d.]+),\s*"w":\s*([\d.]+),\s*"feet":\s*\[([^\]]+)\]',
+                          room)
+    if len(declared) != 2:
+        return (False, "expected two bays in CAB_BAYS, found %d" % len(declared))
+    for bx, bw, feet in declared:
+        x0, x1 = int(float(bx)), int(float(bx) + float(bw))
+        want = [int(float(f)) for f in feet.split(",")]
+        found, prev = [], -9
+        for y in range(18, h - 40):
+            vals = [t for t in (lum(x, y) for x in range(x0, min(x1, w))) if t >= 0]
+            if vals and sum(vals) / len(vals) > 100:
+                if y - prev > 4:
+                    found.append(y)
+                prev = y
+        if found != want:
+            return (False, "bay at x%s declares shelves %s; the art has %s"
+                    % (bx, want, found))
+    return (True, "")
 
 
 def report(srcs):

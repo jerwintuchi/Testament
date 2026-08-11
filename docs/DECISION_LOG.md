@@ -4717,3 +4717,95 @@ than the art bent to keep an obsolete number true.
 
 The derived contact shadows were regenerated from the new sheet, so they cannot go on describing
 silhouettes that no longer exist (P173).
+
+## 2026-08-11 — TD-113: the author's furniture replaces the generated stores
+
+The author supplied six hand-drawn pieces for the Quartermaster. They are genuine 1:1
+pixel art (a block probe finds no upscaling; 20–57 colours each), so they are already in
+the register TD-046 set and are not the painted concept art TD-055/TD-075 rejected.
+
+**The measurement that shaped it:** all six are drawn on a 200×200 canvas regardless of
+the object's real size, so the canvas says nothing about scale and the OBJECT has to. The
+cabinet and the bench are already consistent with the room and ship 1:1; the three small
+props are hero renders at roughly 6× room scale. Reduction is POINT-SAMPLED after
+comparing against a 3×3 mode filter on a contact sheet — the mode filter thickened the
+scale's chains until they broke and ate the seal-stamp's rim bolts, because the majority
+colour in a block is background wherever a detail is one pixel wide.
+
+The bench is the one piece stretched, and its middle TILES rather than scales: its front
+is vertical planking with iron bolts, so stretching would have widened every plank and
+ovalised every bolt.
+
+**The crates the author drew into the cabinet became the room's stock**, so the generated
+scatter was deleted — it cannot be hovered by construction rather than by remembering a
+flag on every piece (P167), and the room dropped 209 → 164 nodes.
+
+**A finding about the dependency map:** `gen_qm_room.py` writes through a table, so the
+literal is not at the `write_png` call site and all seven retired files showed as
+producer-less orphans. The deletions were verified by grepping the generators directly.
+The orphan list is advisory and was, again, dangerous.
+
+## 2026-08-11 — TD-114: one cabinet, and the grade that had to be a gain
+
+The author's closed cabinet replaced the two open ones. **One, not two:** the piece is
+166 wide against a 339 column, so a pair would leave 2px of air between them and against
+both edges. It is also unnecessary — the cabinet is drawn with a central stile and two
+bays, which is exactly the division the screen needs.
+
+**The grade, and the three ways it was got wrong first.** Measured on screen rather than
+in the source files, because the room's generated surfaces are lit by a warm candle
+shader and their PNGs are not what the eye compares: the room renders at hue 25–27 with
+saturation 0.41–0.45, the furniture at hue 0–7 with saturation 0.26–0.34 — duller AS WELL
+AS redder. Rejected by looking at them: an HSL rotation to 27° turned everything khaki,
+because hue 25 reads as rich brown only at high saturation and as olive at 0.27; rotation
+plus a saturation boost gave brassy mustard; a gain fitted PER ASSET was right on the
+wooden pieces but pushed the scale copper and the stamp sickly yellow, since a gain fitted
+to wood is wrong for brass and no gain at all can fix a plum.
+
+What works is what a colour grade actually is: **ONE gain for everything**
+(R1.0593 G1.0869 B0.8538), derived by matching the wooden pieces' body tone to the room's
+own timber, so materials keep their relationship to each other. The stamp's plum takes an
+extra half pull toward the room.
+
+**The record board is deliberately not graded.** Measured at hue 29.9, it is already the
+room's warmth; grading it would move the one piece that was correct.
+
+## 2026-08-11 — TD-115: the stores gain form, and light that reaches the furniture
+
+Author brief on the shipped room: the generated surfaces look flat and 3D-generated
+beside the hand-drawn furniture. A 3× contact sheet of every generated piece confirms it
+literally — the cloth is a red rectangle with two flat crosses, the rite plate a red
+rectangle with a gold rule, the satchel a dark box with a lid strip.
+
+**The wall is the worst, and for an instructive reason:** it is a nearly featureless
+diffuse carrying a normal map and a lighting shader, and a smooth gradient painted over
+nothing is exactly what reads as a render. The fault is not the shader; the art gives it
+nothing to describe.
+
+Spec `specs/quartermaster-form/`. Author rulings: the cabinet is **rebuilt bigger at 1:1**
+(never scaled); **the author draws** the replacements and this spec briefs, grades and
+wires them; the wall **keeps its shader** and gains drawn form; lighting goes **moodier**;
+and **hover carries the light**, so the room can be dark at rest and legible on demand.
+
+**The cabinet is made larger by repeating bands of the author's own drawing** — one
+alcove-and-shelf band full width, one backboard slice inside each bay — 166×166 → 240×199
+with four shelves per bay. The column cuts landed on drawer dividers, so it gained two
+whole drawers rather than widening two.
+
+**The lighting change measured as a no-op, and that was the real finding.** Wall ambient,
+candle radius/energy, fill and vignette moved the WALL by −15% and the frame mean by
+−1.1%, because the author's furniture carries no shader and is immune to the room's light
+— it ended up brighter than the wall behind it, the opposite of the brief. The fix is a
+**flat normal map**: in `board_surface.gdshader` the lit term is `ndl * atten`, and with
+the normal pointing straight out `ndl` varies with distance alone, so the art takes the
+pool's falloff and none of its direction — which is what keeps TD-081's double-shading
+trap shut. After: frame 44.08 → 38.89, wall 48.2 → 27.3, bench far from the candle
+51.5 → 26.4, bench at the candle 55.9 → 81.4. The lit-to-shadow ratio went from **1.09
+(flat) to 3.08**.
+
+**P182 is a check, not a claim:** `qm_budget.py` re-measures `qm_cabinet.png` and compares
+the shelf rows and bay spans it finds against the constants `room.gd` places instruments
+on, proven to bite against both a moved shelf row and a wrong `CAB_PX`.
+
+**Noted:** TD-111 and TD-112 are cited in nine commits and appear nowhere in this log.
+They predate this session and still need writing by whoever did that work.

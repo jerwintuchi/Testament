@@ -71,7 +71,28 @@ STAMP   = ( 43,  13, 112, 171)
 OPEN_CAB = (29, 25, 143, 154)          # retired as shelving; still the source of stock
 
 PROP_DIV = 3   # the hero props' reduction. /2 is too big for the bench, /4 breaks the
-               # scale's stand — this is the largest divisor the forms survive.
+               # scale's stand — this is the largest divisor those forms survive.
+# The stamp is the exception (R402): it is a small desk object, and at /3 it stood as
+# tall as the scale beside it. Its forms are blockier than the scale's chains, so it
+# survives the extra step where the scale would not.
+STAMP_DIV = 4
+
+# ── the cabinet, rebuilt bigger at 1:1 (R397) ────────────────────────────────
+# NEVER a scale factor. The piece is made larger by repeating bands of the author's own
+# drawing, so its pixels stay exactly the size of a 24px instrument icon — which is the
+# entire reason 1:1 is canon (TD-050/TD-055).
+#
+# VERTICAL: one alcove-and-shelf band, copied full width. The band is chosen so BOTH
+# bays are mid-alcove across it (the left bay's shelf at 102 and the right bay's at 97
+# both fall inside), so one insert gives each bay one more shelf. A band straddling only
+# one bay would make the two bays different heights, which one object cannot be.
+CAB_ROW_FROM, CAB_ROW_TO = 70, 102          # the band that is repeated
+# HORIZONTAL: one backboard slice inside each bay. The closed cabinet's bays are drawn
+# EMPTY — vertical planking with no contents — so a middle column slice is genuinely
+# repeatable, and a shelf board crossing it simply gets longer.
+CAB_CUT_L, CAB_CUT_R = 66, 141              # insert after these columns
+CAB_CUT_FROM_L, CAB_CUT_FROM_R = 30, 105    # the slice each copies
+CAB_CUT_W = 37                              # how much each bay gains
 
 # The table's front panel is uniform vertical planking, so the bench is SHORTENED by
 # cutting a band out of the middle of it rather than by scaling the whole object. The
@@ -168,6 +189,37 @@ def _emit(out, path, box, div=1, cut=None, pull=0.0, graded=True):
     print("  %-40s %dx%d" % (out, ow, oh))
 
 
+def _cab_row(y):
+    """Output row -> source row. Everything below the repeated band shifts down by it."""
+    return y if y <= CAB_ROW_TO else y - (CAB_ROW_TO - CAB_ROW_FROM + 1)
+
+
+def _cab_col(x):
+    """Output column -> source column, for the two per-bay inserts."""
+    if x <= CAB_CUT_L:
+        return x
+    if x <= CAB_CUT_L + CAB_CUT_W:                       # the left bay's copied slice
+        return x - (CAB_CUT_L + 1) + CAB_CUT_FROM_L
+    if x <= CAB_CUT_R + CAB_CUT_W:                       # untouched middle, shifted
+        return x - CAB_CUT_W
+    if x <= CAB_CUT_R + CAB_CUT_W * 2:                   # the right bay's copied slice
+        return x - (CAB_CUT_R + CAB_CUT_W + 1) + CAB_CUT_FROM_R
+    return x - CAB_CUT_W * 2                             # the right upright, shifted
+
+
+def _emit_cabinet(out):
+    read = _sub(read_png("_src/qm/qm-closed-cabinet.png"), CABINET)
+    ow = CABINET[2] + CAB_CUT_W * 2
+    oh = CABINET[3] + (CAB_ROW_TO - CAB_ROW_FROM + 1)
+
+    def pixel(x, y):
+        return _grade(read(_cab_col(x), _cab_row(y)))
+
+    A.write_png(out, ow, oh, pixel)
+    print("  %-40s %dx%d  (was %dx%d, rebuilt at 1:1)"
+          % (out, ow, oh, CABINET[2], CABINET[3]))
+
+
 def _emit_stock(out):
     """The dressing atlas: the author's own crates, cropped out of the open cabinet.
 
@@ -207,10 +259,27 @@ def _emit_stock(out):
     return cw, ch, len(found)
 
 
+def _emit_flat_normal(out):
+    """A normal map that points straight at the viewer, for the author's furniture.
+
+    The furniture is drawn with its own baked light, so it must NOT be given relief
+    shading a second time — that is the first of TD-081's three lessons. But it must
+    still sit in the room's light, and TD-115 measured what happens when it does not:
+    the wall darkened 15% while the bench moved 0.2%, leaving the furniture brighter
+    than the wall behind it, which is the opposite of the mood being asked for.
+
+    A flat normal resolves both. In `board_surface.gdshader` the lit term is
+    `ndl * atten`, and with N straight out `ndl` depends only on distance to the light
+    — so the furniture takes the pool's FALLOFF and none of its direction.
+    """
+    A.write_png(out, 4, 4, lambda x, y: (128, 128, 255, 255))
+    print("  %-40s 4x4   (flat: falloff without relief)" % out)
+
+
 def main():
     print("[gen_qm_furniture] author-painted stores furniture")
     print("  grade: gain R%.4f G%.4f B%.4f (fitted on the wooden pieces)" % tuple(GAIN))
-    _emit("stations/qm_cabinet.png", "_src/qm/qm-closed-cabinet.png", CABINET)
+    _emit_cabinet("stations/qm_cabinet.png")
     _emit("stations/qm_table.png", "_src/qm/qm-table.png", TABLE,
           cut=(TABLE_CUT_Y, TABLE_CUT_H))
     # The record board is the ONE piece that is left alone: measured at hue 29.9, it is
@@ -221,9 +290,10 @@ def main():
     _emit("stations/qm_prop_quill.png", "_src/qm/qm-quill-and-ink.png", QUILL, PROP_DIV)
     # The stamp's body is plum (#3E213B), which is a hue error rather than a cast, so it
     # gets a half pull toward the room before the same gain everything else takes.
-    _emit("stations/qm_prop_stamp.png", "_src/qm/qm-seal-stamp.png", STAMP, PROP_DIV,
+    _emit("stations/qm_prop_stamp.png", "_src/qm/qm-seal-stamp.png", STAMP, STAMP_DIV,
           pull=0.50)
     _emit_stock("stations/qm_stock.png")
+    _emit_flat_normal("stations/qm_flat_n.png")
 
 
 if __name__ == "__main__":

@@ -32,6 +32,17 @@ const PROPS   := "res://assets/ui/stations/qm_props.png"
 # which is the first of TD-081's three lessons about authoring for a lit scene. The room
 # still lights the wall it stands against, so the furniture reads as being IN the light
 # rather than as emitting it.
+## The furniture DOES take the room's light after all (TD-115), through a FLAT normal
+## map: the shader's lit term is `ndl * atten`, and with the normal pointing straight out
+## `ndl` varies with distance alone — so the art receives the candle's falloff and none of
+## its direction, which is what keeps it from being relief-shaded twice (TD-081).
+##
+## This was measured, not assumed. Leaving the furniture unlit darkened the wall by 15%
+## while the bench moved 0.2%, so the furniture ended up BRIGHTER than the wall behind
+## it — the opposite of the mood being asked for.
+const FLAT_N := "res://assets/ui/stations/qm_flat_n.png"
+const FURN_AMBIENT := 0.60
+
 const CABINET := "res://assets/ui/stations/qm_cabinet.png"
 const TABLE   := "res://assets/ui/stations/qm_table.png"
 const PR_SCALE := "res://assets/ui/stations/qm_prop_scale.png"
@@ -54,21 +65,25 @@ const LABEL_M   := 7
 #
 # Drawn 1:1 and never stretched, so these are absolutes. Every row is measured off the
 # art: uprights at x 6-10 / 81-85 / 155-159, and a shelf is found by its lit top edge.
-const CAB_PX := Vector2(166, 166)
+## REBUILT BIGGER AT 1:1 (R397, TD-115). 166x166 -> 240x199, by repeating bands of the
+## author's own drawing rather than scaling it — see `gen_qm_furniture._emit_cabinet`.
+## Four shelves per bay now, and a bay wide enough for three instruments instead of two.
+const CAB_PX := Vector2(240, 199)
 
-# Per bay: the clear span between its uprights, and the lit top row of each shelf an
-# instrument may stand on. The left bay carries three shelves and the right two, which
-# is what the six Instruments of Sight and four of Trial need.
+# Per bay: the clear span between its uprights, and the lit top row of every shelf,
+# ordered top to bottom. MEASURED off the emitted PNG, never typed from the design
+# (P182) — `gen_qm_furniture` prints what it emitted and `qm_budget.py` asserts these
+# agree, so art and placement cannot drift apart.
 const CAB_BAYS := [
-	{"x": 13.0, "w": 66.0, "feet": [36.0, 69.0, 102.0]},
-	{"x": 88.0, "w": 65.0, "feet": [67.0, 97.0]},
+	{"x": 13.0, "w": 104.0, "feet": [36.0, 69.0, 102.0, 135.0]},
+	{"x": 125.0, "w": 103.0, "feet": [41.0, 67.0, 97.0, 130.0]},
 ]
-# Shelves no instrument stands on. The author's crates go here, so the cabinet reads as
-# stores rather than as a rack of exactly ten things (R363) — the right bay's top shelf,
-# and the full-width deck above the drawers.
+# The deck above the drawers, spanning both bays. Always stock: it is below every shelf
+# and in front of the drawers, so an instrument there would read as left out rather than
+# stored. Whichever SHELVES end up unused are added to this by `shelf.gd`, which is the
+# only place that knows how many instruments there are.
 const CAB_STOCK := [
-	{"x": 88.0, "w": 65.0, "y": 41.0},
-	{"x": 13.0, "w": 140.0, "y": 127.0},
+	{"x": 13.0, "w": 214.0, "y": 160.0},
 ]
 
 # ── the bench, measured off `qm_table.png` ───────────────────────────────────
@@ -107,7 +122,15 @@ const DUST_COUNT := 14
 # surface it fills — but it does need a visible fixture (P95), which the lantern already
 # is. One fewer object on the bench, and the light now comes from the thing you can see
 # glowing.
-const LAMP_ENERGY := 0.34
+## Moodier (R403, author ruling). The room was evenly browsable and read as flat; it is
+## now dark at the edges with the bench as the lit working spot. Four numbers, not a
+## lighting rewrite: this ambient, the candle's radius/energy below, this fill, and the
+## vignette in `_wall`. Text is exempt — the header, the record and the rite plate are
+## drawn above the surfaces and keep their own colours, because drama is spent on
+## surfaces and never on legibility (TD-098's spirit).
+const LAMP_ENERGY := 0.22
+const WALL_AMBIENT := 0.13
+const VIGNETTE := 0.38
 
 const CANDLE_FEET := 5.0     # how far the base sinks into the surface it stands on
 const FLAME_UP    := 4.0     # the flame, measured down from the prop's top edge
@@ -209,8 +232,9 @@ static func candle_rig(vp: Vector2) -> Array:
 		{
 			"uv": Vector2(flame.x / vp.x, flame.y / vp.y),
 			"color": Color(1.0, 0.74, 0.44),
-			"radius": 0.44,
-			"energy": 0.9,
+			# Tighter and hotter than before: a pool, not a wash (R403).
+			"radius": 0.34,
+			"energy": 1.05,
 		},
 		{
 			# The fill. Weak and wide: it lifts the far shelves off black without
@@ -268,7 +292,7 @@ static func build(host: Control, vp: Vector2) -> Dictionary:
 ## and it earns its own node by doing so.
 static func _furniture(host: Control, vp: Vector2, shelves: Rect2) -> void:
 	# The banner takes the corner the header used to sit in.
-	_sprite(host, BANNER, Vector2(vp.x * 0.008, vp.y * 0.020))
+	_sprite(host, BANNER, Vector2(vp.x * 0.008, vp.y * 0.020), furn_lit(vp))
 
 	# The gutter between the shelves and the record column: the lantern hangs at its
 	# head and the pinned notes sit beneath, exactly as the reference stages them.
@@ -276,7 +300,7 @@ static func _furniture(host: Control, vp: Vector2, shelves: Rect2) -> void:
 	# is the fill's fixture now, so the two may not be declared separately (P95).
 	var at := lantern_pos(vp)
 	_flicker(_sprite(host, LANTERN, at))
-	_sprite(host, NOTES, Vector2(at.x - 6.0, vp.y * 0.400))
+	_sprite(host, NOTES, Vector2(at.x - 6.0, vp.y * 0.400), furn_lit(vp))
 
 	# Flagstones along the foot, tiling across. The room has a floor now, so the frame
 	# stops in a place rather than fading into black.
@@ -287,20 +311,29 @@ static func _furniture(host: Control, vp: Vector2, shelves: Rect2) -> void:
 	fl.position = Vector2(0, vp.y * 0.966)
 	fl.size = Vector2(vp.x, vp.y * 0.034)
 	fl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fl.material = furn_lit(vp)
 	host.add_child(fl)
 
 
 ## One static sprite drawn 1:1 NEAREST. Never scaled: everything here is authored at
 ## the size it is shown, which is what keeps the pixels square (TD-050/TD-055).
-static func _sprite(host: Control, path: String, at: Vector2) -> TextureRect:
+static func _sprite(host: Control, path: String, at: Vector2,
+		mat: Material = null) -> TextureRect:
 	var t := TextureRect.new()
 	t.texture = load(path) as Texture2D
 	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	t.stretch_mode = TextureRect.STRETCH_KEEP
 	t.position = at
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.material = mat
 	host.add_child(t)
 	return t
+
+
+## A material that puts an already-lit piece of art into the room's pools — falloff
+## only, never relief. See the FLAT_N block for why that distinction matters.
+static func furn_lit(vp: Vector2) -> ShaderMaterial:
+	return lit(vp, FLAT_N, FURN_AMBIENT)
 
 
 # ── the environment ─────────────────────────────────────────────────────────
@@ -316,14 +349,14 @@ static func _wall(host: Control, vp: Vector2) -> void:
 	w.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Tiled sampling: the shader repeats the 64px stone across the frame, so the wall is
 	# one draw and one small texture rather than a screen-sized image.
-	w.material = lit(vp, "res://assets/ui/stations/qm_wall_n.png", 0.22, 1.0,
+	w.material = lit(vp, "res://assets/ui/stations/qm_wall_n.png", WALL_AMBIENT, 1.0,
 		Vector2(vp.x / 64.0, vp.y / 64.0))
 	host.add_child(w)
 
 	# The room falls off into darkness at the edges, so the lamp-lit middle is where
 	# the eye settles. One baked gradient, not a full-frame additive layer.
 	var vig := ColorRect.new()
-	vig.color = Color(0, 0, 0, 0.26)
+	vig.color = Color(0, 0, 0, VIGNETTE)
 	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(vig)
@@ -352,7 +385,7 @@ static func _header(host: Control, vp: Vector2) -> void:
 ## and the shelves left to stock. Nothing here knows what an instrument IS.
 static func _shelving(host: Control, rect: Rect2) -> Array:
 	var at := Vector2(rect.position.x + (rect.size.x - CAB_PX.x) * 0.5, rect.position.y)
-	_sprite(host, CABINET, at)
+	_sprite(host, CABINET, at, furn_lit(vp_of(host)))
 
 	var rows: Array = []
 	var frames: Array = []
@@ -417,6 +450,7 @@ static func _counter(host: Control, rect: Rect2) -> void:
 	var c := _nine4(TABLE, COUNTER_ML, COUNTER_MT, COUNTER_MR, COUNTER_MB, true)
 	c.position = rect.position
 	c.size = rect.size
+	c.material = furn_lit(vp_of(host))
 	host.add_child(c)
 
 	# The altar cloth. NOT decoration (author ruling, TD-110): this is the inspection
@@ -433,6 +467,7 @@ static func _counter(host: Control, rect: Rect2) -> void:
 	cl.position = cr.position
 	cl.size = cr.size
 	cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cl.material = furn_lit(vp_of(host))
 	host.add_child(cl)
 
 	# THREE ZONES (R371), so the bench reads as a place someone works rather than a
@@ -464,7 +499,7 @@ static func _bench_prop(host: Control, path: String, vp: Vector2, dx: float) -> 
 	var tex := load(path) as Texture2D
 	if tex == null:
 		return null
-	return _sprite(host, path, bench_stand(vp, dx, tex.get_size()))
+	return _sprite(host, path, bench_stand(vp, dx, tex.get_size()), furn_lit(vp))
 
 
 static func _prop(host: Control, index: int, at: Vector2) -> TextureRect:
