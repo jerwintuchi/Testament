@@ -9,14 +9,13 @@
 
 These are disagreements between what a spec says and what the tree contains.
 
+### `specs/quartermaster-form/` — 🟢 active
+
+- **LIKELY-SHIPPED** — 1 open task(s) name only files that already exist — check whether the work shipped and the box was never ticked: T439
+
 ### `specs/mobile-input/` — 🟡 dormant
 
 - **MISSING** — open tasks name 7 file(s) not in the tree: client/scripts/input/floating_stick.gd, client/scripts/input/geometry_selftest.gd, geometry_selftest.gd, client/scripts/input/touch_hud.gd
-
-### `specs/quartermaster-form/` — 🟡 dormant
-
-- **LIKELY-SHIPPED** — 1 open task(s) name only files that already exist — check whether the work shipped and the box was never ticked: T439
-- **STALE** — 8 open task(s), untouched for 1000000 days
 
 ### `specs/quartermaster-reference/` — 🟡 dormant
 
@@ -27,8 +26,8 @@ These are disagreements between what a spec says and what the tree contains.
 
 | spec | status | done | open | superseded | last touched | flags |
 |---|---|---:|---:|---:|---|---|
+| `quartermaster-form` | 🟢 active | 6 | 8 | 0 | 2026-08-11 | LIKELY-SHIPPED |
 | `mobile-input` | 🟡 dormant | 0 | 10 | 0 | 2026-07-11 | MISSING |
-| `quartermaster-form` | 🟡 dormant | 6 | 8 | 0 | — | LIKELY-SHIPPED, STALE |
 | `quartermaster-reference` | 🟡 dormant | 5 | 4 | 0 | 2026-08-10 | MISSING, LIKELY-SHIPPED |
 | `rank-gate` | 🟢 active | 6 | 1 | 0 | 2026-08-08 | — |
 | `title-scene` | ⛔ blocked | 19 | 1 | 0 | 2026-08-07 | — |
