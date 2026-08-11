@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c87pnxf3ssnh3"
-path="res://.godot/imported/qm_board_n.png-98b9e3155eacc4c22e2c66f70b0def9b.ctex"
+uid="uid://ccj5f1ac52eor"
+path="res://.godot/imported/qm_prop_scale.png-a7d467740363e9cf6af28ed2b5c86a78.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/stations/qm_board_n.png"
-dest_files=["res://.godot/imported/qm_board_n.png-98b9e3155eacc4c22e2c66f70b0def9b.ctex"]
+source_file="res://assets/ui/stations/qm_prop_scale.png"
+dest_files=["res://.godot/imported/qm_prop_scale.png-a7d467740363e9cf6af28ed2b5c86a78.ctex"]
 
 [params]
 

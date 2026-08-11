@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://yex4k4ljokqj"
-path="res://.godot/imported/qm_board.png-06b9ca0ca4829057309761e0365e9625.ctex"
+uid="uid://bej5d7unm18cj"
+path="res://.godot/imported/qm_cabinet.png-754b03497c6e6be64d76f65c0978d043.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/stations/qm_board.png"
-dest_files=["res://.godot/imported/qm_board.png-06b9ca0ca4829057309761e0365e9625.ctex"]
+source_file="res://assets/ui/stations/qm_cabinet.png"
+dest_files=["res://.godot/imported/qm_cabinet.png-754b03497c6e6be64d76f65c0978d043.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c6ak6lmnw4rnl"
-path="res://.godot/imported/qm_stock.png-588cc23d1705fbfa0eb71394b4e0bafb.ctex"
+uid="uid://d71rmm0c6e4i"
+path="res://.godot/imported/qm-scale.png-0d18ceb3b4b39f5c906c73c397289e01.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/stations/qm_stock.png"
-dest_files=["res://.godot/imported/qm_stock.png-588cc23d1705fbfa0eb71394b4e0bafb.ctex"]
+source_file="res://assets/ui/_src/qm/qm-scale.png"
+dest_files=["res://.godot/imported/qm-scale.png-0d18ceb3b4b39f5c906c73c397289e01.ctex"]
 
 [params]
 

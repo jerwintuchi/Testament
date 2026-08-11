@@ -19,39 +19,60 @@ const Fonts   := preload("res://scripts/ui/fonts.gd")
 const BoardDecor := preload("res://scripts/board/board_decor.gd")
 
 const WALL    := "res://assets/ui/stations/qm_wall.png"
-const SHELF   := "res://assets/ui/stations/qm_shelf.png"
-const BOARD   := "res://assets/ui/stations/qm_board.png"
 const LABEL   := "res://assets/ui/stations/qm_label.png"
-const COUNTER := "res://assets/ui/stations/qm_counter.png"
 const PROPS   := "res://assets/ui/stations/qm_props.png"
+
+# ── the author's furniture (TD-113) ──────────────────────────────────────────
+# Six hand-drawn pieces replace the generated shelving, bench and bench props. They
+# are derived into runtime PNGs by `gen_qm_furniture.py`, which records why each is
+# cropped or reduced the way it is; the geometry below is measured off those outputs.
+#
+# They carry their OWN baked light, drawn from the upper left — so they are NOT given
+# `board_surface.gdshader` materials. Lighting art that is already lit darkens it twice,
+# which is the first of TD-081's three lessons about authoring for a lit scene. The room
+# still lights the wall it stands against, so the furniture reads as being IN the light
+# rather than as emitting it.
+const CABINET := "res://assets/ui/stations/qm_cabinet.png"
+const TABLE   := "res://assets/ui/stations/qm_table.png"
+const PR_SCALE := "res://assets/ui/stations/qm_prop_scale.png"
+const PR_QUILL := "res://assets/ui/stations/qm_prop_quill.png"
+const PR_STAMP := "res://assets/ui/stations/qm_prop_stamp.png"
 const CLOTH   := "res://assets/ui/stations/qm_cloth.png"
 const LANTERN := "res://assets/ui/stations/qm_lantern.png"
 const BANNER  := "res://assets/ui/stations/qm_banner.png"
 const NOTES   := "res://assets/ui/stations/qm_notes.png"
 const FLOOR   := "res://assets/ui/stations/qm_floor.png"
 
-const SHELF_M   := 16      # 9-slice margins, matching gen_qm_room.py
-# Per-side, matching gen_qm_room.BOARD_M*. The plank is drawn at exactly its texture
-# height so nothing stretches vertically and its top plane is authored 1:1.
-const BOARD_ML := 4
-const BOARD_MT := 6
-const BOARD_MR := 4
-const BOARD_MB := 3
 const LABEL_M   := 7
-# Per-side, and asymmetric on purpose: the top margin carries the whole receding top
-# plane, the bottom only the plinth. Must match gen_qm_room.CTR_M*.
-# The counter's own plane geometry, mirroring gen_qm_room.CTR_TOP_Y*/CTR_ARRIS. An
-# object set down on the counter stands on the TOP PLANE, so its feet come from here
+
+# ── the cabinet, measured off `qm_cabinet.png` ───────────────────────────────
+# The cabinet is drawn 1:1 and never stretched, so these are absolutes, not fractions.
+# Its three alcoves are found by their lit plank edges; the TOP one is left to the
+# crates the author baked into it, and the lower two carry the instruments.
+const CAB_PX     := Vector2(143, 154)
+const CAB_IN_X   := 16.0     # first pixel inside the left upright
+const CAB_IN_W   := 111.0    # clear span between the uprights
+const CAB_FEET   := [73.0, 111.0]   # the lit top row of each instrument plank
+const CAB_STOCK_Y := 39.0    # the top alcove's plank — the author's crates stand here
+
+# ── the bench, measured off `qm_table.png` ───────────────────────────────────
+# An object set down on the bench stands on its TOP PLANE, so its feet come from here
 # rather than from a hand-picked offset — the coupling P176 already forced between the
 # cloth and the rest point, now extended to the plane the cloth is draped over.
-const COUNTER_TOP_Y1 := 17.0            # the last row of the receding top surface
-const COUNTER_ARRIS  := 18.0            # the lit front edge
+const COUNTER_TOP_Y1 := 31.0            # the last row of the receding top surface
+const COUNTER_ARRIS  := 32.0            # the lit front edge
 
-const COUNTER_ML := 28
-const COUNTER_MT := 26
-const COUNTER_MR := 28
-const COUNTER_MB := 16
-const CLOTH_PX  := Vector2(128, 80)   # matches gen_qm_room.CLOTH_W/H
+# The bench is the ONE piece that is stretched, because it must span the column while
+# the cabinets above it must not. Its middle is TILED rather than scaled: the front is
+# vertical planking with iron bolts in it, and stretching would have widened every plank
+# and ovalised every bolt. Tiling repeats them instead, which is what a longer bench
+# would actually look like. The margins hold the corner brackets, the whole top plane
+# and the plinth, so none of those repeat.
+const COUNTER_ML := 26
+const COUNTER_MT := 45
+const COUNTER_MR := 26
+const COUNTER_MB := 22
+const CLOTH_PX  := Vector2(104, 46)   # matches gen_qm_room.CLOTH_W/H
 const PROP_PX   := 24
 
 # Dust motes in the candle's reach. Declared here so `tools/qm_budget.py` can read it.
@@ -64,30 +85,31 @@ const DUST_COUNT := 14
 # declared: a candle stands ON the surface, so its feet come from `COUNTER_Y` and only
 # the flame's height above them is a constant. Declaring both independently is how the
 # first pass ended up with a candle hovering seven pixels off the bench.
-# The lamp at the NEAR end of the bench. A FILL: weak and wide, so the far instruments
-# are browsable without the bench losing its place as the lit spot. It has a visible
-# fixture on purpose — a light with no source is a cheat, and the board couples every
-# flame to its sconce (P95).
-#
-# It stands on the counter rather than hanging on the wall, and that is a correction:
-# hung at the shelf end it was drawn BEHIND the shelving, which fills that whole side
-# of the room, so the fixture was invisible while its light was not. A lamp standing by
-# the paperwork is both plausible and actually on screen.
-const LAMP_FX     := 0.058
+# The FILL, and it is now sourced at the HANGING LANTERN in the gutter rather than at a
+# second lamp on the bench. The author's furniture needs the bench's whole length for the
+# writing set, the scale and the seal, and a fill light does not need to stand on the
+# surface it fills — but it does need a visible fixture (P95), which the lantern already
+# is. One fewer object on the bench, and the light now comes from the thing you can see
+# glowing.
 const LAMP_ENERGY := 0.34
 
-const CANDLE_FX   := 0.500
 const CANDLE_FEET := 5.0     # how far the base sinks into the surface it stands on
 const FLAME_UP    := 4.0     # the flame, measured down from the prop's top edge
 
-# Prop indices in qm_props.png.
-const P_LEDGER := 0
+# ── the bench's three zones, as offsets ALONG the counter (R371) ─────────────
+# Local x, so the staging survives any change to the column's width or position. The
+# centre is deliberately empty between the writing end and the sealing end: that gap is
+# where the chosen instrument is set down, and the cloth marks it.
+const Z_QUILL := 4.0
+const Z_STAMP := 64.0
+const Z_SCALE := -99.2      # from the RIGHT edge (negative = measured back from `end.x`)
+const Z_CANDLE := -39.2
+
+# Prop indices in qm_props.png. Only the CANDLE is still drawn: the author's quill-and-
+# ink, scale and seal-stamp replace the generated ledger/papers/ink/scale/wax, and the
+# bench lamp is retired in favour of the hanging lantern. The atlas is kept whole rather
+# than re-cut — a sheet that loses a frame renumbers every frame after it.
 const P_CANDLE := 1
-const P_INK    := 2
-const P_SCALE  := 3
-const P_WAX    := 4
-const P_PAPERS := 5
-const P_LAMP   := 6
 
 # ── the room's geometry, in fractions of the viewport ────────────────────────
 # Fractions, never fixed pixels: the canon is that anything on screen is sized from
@@ -104,8 +126,11 @@ const LEFT_X    := 0.030
 const LEFT_W    := 0.530   # narrowed for the gutter (TD-110 T414)
 const RIGHT_X   := 0.625
 const RIGHT_W   := 0.347
-const SHELVES_Y := 0.135
-const SHELVES_H := 0.415
+# Row 1 is now exactly one cabinet tall (154px at 640x360). The fraction is DERIVED from
+# the art rather than chosen, because the cabinet is drawn 1:1 and a row that disagreed
+# with it would either clip the piece or leave a band of wall under it.
+const SHELVES_Y := 0.13333
+const SHELVES_H := 0.42778
 const COUNTER_Y  := 0.590
 const COUNTER_H2 := 0.255      # row 2's height, shared by the counter and the satchel
 const SEAL_Y     := 0.852      # the rite, spanning the full width beneath both columns
@@ -113,7 +138,10 @@ const SEAL_H     := 0.085
 # The right column runs nearly to the foot of the frame: at 0.72 it left a band of
 # dead black under the rite while the RECORD — the thing with the most to say — was
 # squeezed to 119px and hid its WARNING behind a scroll (R374/§19).
-const RIGHT_H   := 0.415       # the record occupies ROW 1 only now
+# The record runs from the cabinets' line down to the bench's. It takes the gutter row 1
+# leaves as well, because the framed board spends 56px of its height on frame and title
+# plate and the field note is the thing that pays for it.
+const RIGHT_H   := 0.44722
 
 # The ink of this room. Warmer and darker than the writ's parchment, because you are
 # in a cellar store rather than reading a document.
@@ -131,21 +159,34 @@ const INK_FAINT := Color(0.62, 0.54, 0.40)
 ## A generous radius, unlike the board's tight 0.24 sconce halo: the board wants its
 ## wall to stay dungeon-dark around a framed object, while a WORKROOM should read as
 ## occupied — the light has to reach the shelves the player is being asked to browse.
+## The bench's rect, derived from the same constants `build` uses. Public because both
+## the light rig and the prop staging need it before `build` has run — declaring it in
+## two places is how the candle and its light drifted apart in TD-105.
+static func counter_rect_of(vp: Vector2) -> Rect2:
+	return Rect2(vp.x * LEFT_X, vp.y * COUNTER_Y, vp.x * LEFT_W, vp.y * COUNTER_H2)
+
+
+## Where the hanging lantern's fixture is, so its glow and its body are one point.
+static func lantern_pos(vp: Vector2) -> Vector2:
+	return Vector2(vp.x * LEFT_X + vp.x * LEFT_W + 8.0, vp.y * 0.100)
+
+
+## An object's feet on the bench's top plane, `dx` along it. Negative `dx` measures back
+## from the right edge, so the sealing end stays put when the column is re-proportioned.
+static func bench_stand(vp: Vector2, dx: float, size: Vector2) -> Vector2:
+	var r := counter_rect_of(vp)
+	var x := (r.position.x + dx) if dx >= 0.0 else (r.end.x + dx)
+	return Vector2(x, counter_stand_y(r) - size.y)
+
+
 ## The candle prop's top-left corner. ONE source for the object and its light.
 static func candle_pos(vp: Vector2) -> Vector2:
-	return Vector2(vp.x * CANDLE_FX - PROP_PX * 0.5,
-		vp.y * COUNTER_Y - PROP_PX + CANDLE_FEET)
-
-
-static func lamp_pos(vp: Vector2) -> Vector2:
-	# Feet on the counter, derived exactly as the candle's are, so neither can float.
-	return Vector2(vp.x * LAMP_FX - PROP_PX * 0.5,
-		vp.y * COUNTER_Y - PROP_PX + CANDLE_FEET)
+	return bench_stand(vp, Z_CANDLE, Vector2(PROP_PX, PROP_PX)) + Vector2(0, CANDLE_FEET)
 
 
 static func candle_rig(vp: Vector2) -> Array:
 	var flame := candle_pos(vp) + Vector2(PROP_PX * 0.5, FLAME_UP)
-	var lamp := lamp_pos(vp) + Vector2(PROP_PX * 0.44, PROP_PX * 0.5)
+	var lamp := lantern_pos(vp) + Vector2(10.0, 26.0)
 	return [
 		{
 			"uv": Vector2(flame.x / vp.x, flame.y / vp.y),
@@ -198,9 +239,8 @@ static func build(host: Control, vp: Vector2) -> Dictionary:
 		"right_rect": right_rect,
 		"satchel_rect": satchel_rect,
 		"seal_rect": seal_rect,
-		"units": shelving[0],    # one rect per shelf unit: where instruments may stand
-		"dress": shelving[1],    # the upper boards: stock only, never an instrument
-		"frames": shelving[2],   # the shelving units themselves, for their labels
+		"units": shelving[0],    # per cabinet, the rows instruments may stand on
+		"frames": shelving[1],   # the cabinets themselves, for their labels
 	}
 
 
@@ -213,10 +253,11 @@ static func _furniture(host: Control, vp: Vector2, shelves: Rect2) -> void:
 
 	# The gutter between the shelves and the record column: the lantern hangs at its
 	# head and the pinned notes sit beneath, exactly as the reference stages them.
-	var gx := shelves.end.x + 8.0
-	var lantern := _sprite(host, LANTERN, Vector2(gx, vp.y * 0.100))
-	_flicker(lantern)
-	_sprite(host, NOTES, Vector2(gx - 6.0, vp.y * 0.400))
+	# Its position comes from `lantern_pos`, which the light rig also reads — the lantern
+	# is the fill's fixture now, so the two may not be declared separately (P95).
+	var at := lantern_pos(vp)
+	_flicker(_sprite(host, LANTERN, at))
+	_sprite(host, NOTES, Vector2(at.x - 6.0, vp.y * 0.400))
 
 	# Flagstones along the foot, tiling across. The room has a floor now, so the frame
 	# stops in a place rather than fading into black.
@@ -284,54 +325,32 @@ static func _header(host: Control, vp: Vector2) -> void:
 	box.add_child(s)
 
 
+## Two cabinets, side by side — one per kind of instrument. The reference's
+## PROVISIONS / RELICS / TOOLS do not exist in the catalog and are not invented here.
+##
+## They stand SIDE BY SIDE rather than stacked because the author's cabinet is drawn at
+## a fixed 143x154 and is never scaled: two of them fit the column across, and stacking
+## would have meant squashing a hand-drawn object to half its height.
+##
+## Each returns TWO instrument rows — its lower two alcoves. The top alcove is left to
+## the crates the author baked into the art, which is where the room's non-interactive
+## stock now comes from (R363): it costs no nodes, it can never be hovered, and it was
+## drawn by the same hand as the cabinet it sits in.
 static func _shelving(host: Control, rect: Rect2) -> Array:
-	# Two units, because there are exactly two kinds of instrument. The reference's
-	# PROVISIONS / RELICS / TOOLS do not exist in the catalog and are not invented
-	# here — the brief's own §4 forbids that.
-	var units: Array = []
-	var dress: Array = []
+	var rows: Array = []
 	var frames: Array = []
-	var unit_h := rect.size.y / 2.0
+	# Even gaps outside and between, so the pair reads as fitted joinery rather than as
+	# two objects that happen to be near each other.
+	var gap := (rect.size.x - CAB_PX.x * 2.0) / 3.0
 	for i in 2:
-		var top := rect.position.y + unit_h * i
-		var frame := _nine(SHELF, SHELF_M)
-		frame.position = Vector2(rect.position.x, top)
-		frame.size = Vector2(rect.size.x, unit_h - 3.0)
-		frame.material = lit(vp_of(host), "res://assets/ui/stations/qm_shelf_n.png", 0.13)
-		host.add_child(frame)
-		frames.append(Rect2(frame.position, frame.size))
-
-		var board_h := 12.0
-		# An UPPER board carrying stock only. A unit tall enough for one row left a
-		# band of dead black above the instruments, which reads as an empty rack rather
-		# than a store — the brief's §4 wants shelving that looks used.
-		var upper := _nine4(BOARD, BOARD_ML, BOARD_MT, BOARD_MR, BOARD_MB)
-		upper.position = Vector2(rect.position.x + 5.0, top + 24.0)
-		upper.size = Vector2(rect.size.x - 10.0, board_h)
-		upper.material = lit(vp_of(host), "res://assets/ui/stations/qm_board_n.png", 0.24)
-		host.add_child(upper)
-		dress.append(Rect2(
-			upper.position.x + 6.0, upper.position.y - 16.0,
-			upper.size.x - 12.0, 16.0))
-
-		# The plank objects stand on, at the foot of the unit.
-		var board := _nine4(BOARD, BOARD_ML, BOARD_MT, BOARD_MR, BOARD_MB)
-		board.position = Vector2(rect.position.x + 5.0, top + unit_h - board_h - 9.0)
-		board.size = Vector2(rect.size.x - 10.0, board_h)
-		board.material = lit(vp_of(host), "res://assets/ui/stations/qm_board_n.png", 0.24)
-		host.add_child(board)
-
-		# Objects stand ON the board's lit top edge.
-		# Feet land 2px DOWN the plank's top plane, not on its very top edge. The
-		# plank now has a surface (TD-112 T422), and a thing standing on a surface has
-		# depth — so part of that surface reads behind the object and the lit front
-		# arris reads in front of it. Landing on row 0 would put every instrument on
-		# the plank's back edge, hanging over the alcove.
-		var stand := board.position.y + 2.0
-		units.append(Rect2(
-			board.position.x + 6.0, upper.position.y + board_h,
-			board.size.x - 12.0, stand - (upper.position.y + board_h)))
-	return [units, dress, frames]
+		var at := Vector2(rect.position.x + gap * (i + 1) + CAB_PX.x * i, rect.position.y)
+		_sprite(host, CABINET, at)
+		frames.append(Rect2(at, CAB_PX))
+		var unit: Array = []
+		for feet in CAB_FEET:
+			unit.append(Rect2(at.x + CAB_IN_X, at.y + feet - 24.0, CAB_IN_W, 24.0))
+		rows.append(unit)
+	return [rows, frames]
 
 
 ## Where the cloth is draped, and therefore where an instrument is set down. ONE
@@ -346,9 +365,12 @@ static func counter_stand_y(counter_rect: Rect2) -> float:
 static func cloth_rect(counter_rect: Rect2) -> Rect2:
 	# The cloth's OWN authored size, drawn 1:1 — never scaled to fit the counter,
 	# because scaling is what destroyed its crosses the first time.
+	# Its top edge sits ON the bench's back edge, not above it. At -7 the cloth's first
+	# rows hung against the wall behind and read as a floating rectangle; the author's
+	# bench has a real back edge to lay it against, which the generated one did not.
 	return Rect2(
 		counter_rect.position.x + counter_rect.size.x * 0.5 - CLOTH_PX.x * 0.5,
-		counter_rect.position.y - 7.0, CLOTH_PX.x, CLOTH_PX.y)
+		counter_rect.position.y, CLOTH_PX.x, CLOTH_PX.y)
 
 
 ## A shelf's label plate. Public so `shelf.gd` can name each unit from the catalog's
@@ -370,10 +392,9 @@ static func label_plate(host: Control, text: String, at: Vector2, width: float) 
 
 
 static func _counter(host: Control, rect: Rect2) -> void:
-	var c := _nine4(COUNTER, COUNTER_ML, COUNTER_MT, COUNTER_MR, COUNTER_MB)
+	var c := _nine4(TABLE, COUNTER_ML, COUNTER_MT, COUNTER_MR, COUNTER_MB, true)
 	c.position = rect.position
 	c.size = rect.size
-	c.material = lit(vp_of(host), "res://assets/ui/stations/qm_counter_n.png", 0.32)
 	host.add_child(c)
 
 	# The altar cloth. NOT decoration (author ruling, TD-110): this is the inspection
@@ -393,28 +414,35 @@ static func _counter(host: Control, rect: Rect2) -> void:
 	host.add_child(cl)
 
 	# THREE ZONES (R371), so the bench reads as a place someone works rather than a
-	# plank with ornaments on it: the Quartermaster WRITES on the left, the instrument
-	# is inspected in the middle, and the SEALING tools live on the right, next to the
-	# light. The centre is deliberately clear — that space is where the object lands.
+	# plank with ornaments on it: the Quartermaster WRITES at the left end, the
+	# instrument is inspected in the middle, and the SEALING tools live at the right,
+	# next to the candle. The centre is deliberately clear — that gap is where the chosen
+	# object is set down, and the cloth marks it.
 	#
 	# Every prop is scenery: ignore-filtered, unfocusable, no tooltip (P169). A room
 	# must not offer an affordance it will not honour.
-	var top := rect.position.y - 19.0
-	# left — the lamp, then the writing set beside it
-	var vp0 := vp_of(host)
-	_flicker(_prop(host, P_LAMP, lamp_pos(vp0)))
-	_prop(host, P_PAPERS, Vector2(rect.position.x + 36.0, top + 2.0))
-	_prop(host, P_LEDGER, Vector2(rect.position.x + 60.0, top))
-	_prop(host, P_INK,    Vector2(rect.position.x + 86.0, top + 1.0))
-	# right — the sealing end, and the light that serves it
-	_prop(host, P_SCALE,  Vector2(rect.end.x - 34.0, top - 1.0))
-	_prop(host, P_WAX,    Vector2(rect.end.x - 62.0, top + 2.0))
+	#
+	# All four stand on the bench's TOP PLANE, from the same `bench_stand` the instrument
+	# uses. They are tall — the scale rises well above the bench and in front of the
+	# cabinets behind it, which is what a scale on a bench in front of a cabinet does.
+	var vp := vp_of(host)
+	_bench_prop(host, PR_QUILL, vp, Z_QUILL)
+	_bench_prop(host, PR_STAMP, vp, Z_STAMP)
+	_bench_prop(host, PR_SCALE, vp, Z_SCALE)
 	# Placed FROM the rig's constants, so flame and light are the same point by
 	# construction (the coupling the board keeps between its sconce and `torch_rig`, P95).
-	var vp := vp_of(host)
 	var candle := _prop(host, P_CANDLE, candle_pos(vp))
 	_flicker(candle)
 	_dust(host, rect)
+
+
+## One of the author's bench props, standing on the top plane at `dx` along it. Drawn
+## 1:1 NEAREST and unlit for the reason in the const block: the art is already lit.
+static func _bench_prop(host: Control, path: String, vp: Vector2, dx: float) -> TextureRect:
+	var tex := load(path) as Texture2D
+	if tex == null:
+		return null
+	return _sprite(host, path, bench_stand(vp, dx, tex.get_size()))
 
 
 static func _prop(host: Control, index: int, at: Vector2) -> TextureRect:
@@ -474,7 +502,8 @@ static func vp_of(host: Control) -> Vector2:
 ## A 9-slice with PER-SIDE margins. The counter needs them: its top margin holds a
 ## whole receding plane (26px) while its foot holds only the plinth (16px), and a
 ## single margin would have to compromise one of them.
-static func _nine4(path: String, l: int, t: int, r: int, b: int) -> Panel:
+static func _nine4(path: String, l: int, t: int, r: int, b: int,
+		tile_h: bool = false) -> Panel:
 	var p := Panel.new()
 	var sb := StyleBoxTexture.new()
 	sb.texture = load(path) as Texture2D
@@ -482,6 +511,11 @@ static func _nine4(path: String, l: int, t: int, r: int, b: int) -> Panel:
 	sb.texture_margin_top = float(t)
 	sb.texture_margin_right = float(r)
 	sb.texture_margin_bottom = float(b)
+	if tile_h:
+		# TILE_FIT, not TILE: it rounds to a whole number of repeats, so the bench never
+		# ends on half a plank. See the counter's const block for why the middle repeats
+		# instead of stretching.
+		sb.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE_FIT
 	p.add_theme_stylebox_override("panel", sb)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return p

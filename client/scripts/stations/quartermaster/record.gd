@@ -46,7 +46,10 @@ static func _ornament_rule() -> Control:
 
 ## `host` takes the scrolling body; `action_host` takes the commit button, which is
 ## pinned OUTSIDE the scroll — a long record must never carry the decision off-screen.
-static func build(host: Node, action_host: Node = null) -> Dictionary:
+## `plate` is the record board's own engraved title plate (TD-113). The instrument's
+## NAME is written there rather than in this column: the frame already has a place for a
+## title, and moving it out gives the short right-hand column a whole heading back.
+static func build(host: Node, action_host: Node = null, plate: Label = null) -> Dictionary:
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 2)
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -75,19 +78,27 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 	# was a clipped sentence; the cause was a heading three rows above it.
 	# Clipping a name that overruns is the right trade: a name is recognisable from its
 	# first word, a field note is not.
-	var name_l := Widgets.card_label("", 15, PopupTheme.INK, false, false)
-	name_l.add_theme_font_override("font", Fonts.heading())
-	name_l.clip_text = true
+	# The name is engraved on the frame's plate; this column carries the classification,
+	# which is the assertion the Collegium makes ABOUT the named thing (R374/R376).
+	var name_l: Label = plate if plate != null else \
+		Widgets.card_label("", 15, PopupTheme.INK, false, false)
+	if plate == null:
+		name_l.add_theme_font_override("font", Fonts.heading())
+		name_l.clip_text = true
+		titles.add_child(name_l)
 	var class_l := Widgets.card_label("", 9, Color(0.44, 0.34, 0.14), false, false)
 	class_l.clip_text = true
-	titles.add_child(name_l)
+	class_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	class_l.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	titles.add_child(class_l)
 
-	root.add_child(_ornament_rule())
+	var rule_a := _ornament_rule()
+	root.add_child(rule_a)
 	var asks := Widgets.card_label("", 11, PopupTheme.INK, true, false)
 	asks.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(asks)
-	root.add_child(_ornament_rule())
+	var rule_b := _ornament_rule()
+	root.add_child(rule_b)
 	# The body is filed under a heading, the way a record actually is.
 	var rec_head := Widgets.card_label("QUARTERMASTER RECORD", 8, Color(0.34, 0.26, 0.14), false, false)
 	rec_head.add_theme_font_override("font", Fonts.heading())
@@ -125,7 +136,12 @@ static func build(host: Node, action_host: Node = null) -> Dictionary:
 
 	return {"root": root, "icon": icon, "name": name_l, "class": class_l,
 		"asks": asks, "note": note, "care": care, "warn_head": warn_head,
-		"party": party, "foot": foot, "foot_rule": foot_rule, "action": act}
+		"party": party, "foot": foot, "foot_rule": foot_rule, "action": act,
+		# The head and the two rules that bracket the question. Hidden when nothing is
+		# selected: with the name moved to the frame's plate the head row holds only a
+		# blank icon, and an empty row between two rules reads as a document with a
+		# section torn out of it rather than as one waiting to be filled in.
+		"head": head, "rule_a": rule_a, "rule_b": rule_b}
 
 
 ## `state` is "shelf" (can be packed), "packed" (can be removed) or "full".
@@ -135,6 +151,8 @@ static func show_item(view: Dictionary, item: Dictionary, tex: Texture2D,
 		clear(view)
 		return
 	var rec := Lore.of(String(item["id"]))
+	for k in ["head", "rule_a", "rule_b"]:
+		(view[k] as Control).visible = true
 	(view["icon"] as TextureRect).texture = tex
 	(view["name"] as Label).text = String(item["name"]).to_upper()
 	(view["class"] as Label).text = String(rec["class"])
@@ -175,6 +193,8 @@ static func show_item(view: Dictionary, item: Dictionary, tex: Texture2D,
 
 
 static func clear(view: Dictionary) -> void:
+	for k in ["head", "rule_a", "rule_b"]:
+		(view[k] as Control).visible = false
 	(view["icon"] as TextureRect).texture = null
 	(view["name"] as Label).text = ""
 	(view["class"] as Label).text = ""

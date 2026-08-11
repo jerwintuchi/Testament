@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cl2b8kmybbbg0"
-path="res://.godot/imported/qm_shelf_n.png-9b19b8a7aaaee0fa3c11cde6235df9d9.ctex"
+uid="uid://cd3306m13j5vc"
+path="res://.godot/imported/qm-wooden-description-parchment.png-f675b07a4913c27e61507ad501912640.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/stations/qm_shelf_n.png"
-dest_files=["res://.godot/imported/qm_shelf_n.png-9b19b8a7aaaee0fa3c11cde6235df9d9.ctex"]
+source_file="res://assets/ui/_src/qm/qm-wooden-description-parchment.png"
+dest_files=["res://.godot/imported/qm-wooden-description-parchment.png-f675b07a4913c27e61507ad501912640.ctex"]
 
 [params]
 

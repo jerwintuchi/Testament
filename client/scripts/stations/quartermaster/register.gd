@@ -36,7 +36,20 @@ const Record     := preload("res://scripts/stations/quartermaster/record.gd")
 const Lore       := preload("res://scripts/stations/quartermaster/lore.gd")
 const SealRite   := preload("res://scripts/stations/quartermaster/seal_rite.gd")
 
-const SHEET := "res://assets/ui/board/parch_v1_0.png"
+# The record's board — the author's framed parchment (TD-113). It replaces the Contract
+# Board's bare `parch_v1_0` sheet, which was the one object on this screen that came from
+# another feature. Its own title plate is now where the instrument's NAME is written, so
+# the name leaves the scrolling body and the short column gains a whole heading back.
+const SHEET := "res://assets/ui/stations/qm_record_frame.png"
+# Per side. The top holds the title plate AND the parchment's ragged top edge; the rest
+# hold the corner brackets. Measured off the art, not guessed.
+const SHEET_ML := 22
+const SHEET_MT := 42
+const SHEET_MR := 22
+const SHEET_MB := 22
+# The plate's own band inside the frame, for the name that is written on it.
+const PLATE_Y  := 11.0
+const PLATE_H  := 17.0
 const RITE      := "res://assets/ui/stations/qm_rite.png"
 const RITE_SEAL := "res://assets/ui/stations/qm_rite_seal.png"
 const RITE_M    := 10
@@ -79,7 +92,7 @@ static func build(body: Node, host: Node, selected: Array,
 	var geo := Room.build(root, vp)
 	view["counter"] = Counter.build(root, geo["counter_rect"])
 	view["items"] = Shelf.build(root, view, geo["units"],
-		func(id): _select(view, String(id)), geo["dress"], geo["frames"])
+		func(id): _select(view, String(id)), geo["frames"])
 
 	_right_column(view, root, geo["right_rect"], geo["satchel_rect"], geo["seal_rect"])
 
@@ -119,13 +132,38 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	var sheet := PanelContainer.new()
 	var sb := StyleBoxTexture.new()
 	sb.texture = load(SHEET) as Texture2D
-	for side in ["left", "top", "right", "bottom"]:
-		sb.set("texture_margin_" + side, 18.0)
-	sb.set_content_margin_all(11.0)
+	sb.texture_margin_left = float(SHEET_ML)
+	sb.texture_margin_top = float(SHEET_MT)
+	sb.texture_margin_right = float(SHEET_MR)
+	sb.texture_margin_bottom = float(SHEET_MB)
+	# Content clears the frame AND the title plate above it — the plate is drawn inside
+	# the top margin, so a content margin equal to the texture margin would put the
+	# record's first line straight over the name written on it.
+	# Trimmed to the paper's real edge rather than to the frame's: the record column is
+	# short, and every pixel of margin here is a line of the field note that scrolls out
+	# of sight. The paper starts two rows under the plate and runs to the lower brackets.
+	sb.content_margin_left = 21.0
+	sb.content_margin_top = float(SHEET_MT) - 3.0
+	sb.content_margin_right = 21.0
+	sb.content_margin_bottom = 10.0
 	sheet.add_theme_stylebox_override("panel", sb)
 	sheet.position = rec_rect.position
 	sheet.size = rec_rect.size
 	root.add_child(sheet)
+
+	# The name, engraved on the frame's own plate. A child of `root`, NOT of the frame:
+	# the frame is a PanelContainer, and a container LAYS OUT its children — parenting it
+	# there threw the plate down into the content rect and printed the name across the
+	# record's first sentence. The same trap the record's own column carries a comment
+	# about, met one level further out.
+	var plate := Widgets.card_label("", 11, Color(0.30, 0.22, 0.12), false, true)
+	plate.add_theme_font_override("font", Fonts.heading())
+	plate.clip_text = true
+	plate.position = rec_rect.position + Vector2(rec_rect.size.x * 0.16, PLATE_Y)
+	plate.size = Vector2(rec_rect.size.x * 0.68, PLATE_H)
+	plate.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(plate)
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 2)
@@ -138,7 +176,7 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	body_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	col.add_child(body_scroll)
 	Widgets.ink_scrollbar(body_scroll.get_v_scroll_bar())
-	view["record"] = Record.build(body_scroll, col)
+	view["record"] = Record.build(body_scroll, col, plate)
 
 	# Row 2 right — the open satchel, level with the counter. It sits BESIDE the bench
 	# rather than under the record because that is where a bag being loaded actually is:

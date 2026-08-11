@@ -21,14 +21,9 @@ const Widgets := preload("res://scripts/ui/widgets.gd")
 const Catalog := preload("res://scripts/core/catalog.gd")
 const Room    := preload("res://scripts/stations/quartermaster/room.gd")
 
-const STOCK   := "res://assets/ui/stations/qm_stock.png"
 const SHADOWS := "res://assets/ui/stations/gear_shadows.png"
 const SHADOW_H := 3
-const STOCK_PX := 16
-const STOCK_N  := 8
 const ICON_PX  := 24
-# The category plaque's width, so the upper dressing row can start clear of it.
-const PLAQUE_W := 112.0
 
 # ── the item state machine (P164) ────────────────────────────────────────────
 enum { AVAILABLE, HOVERED, SELECTED, ON_COUNTER, PACKING, PACKED, REMOVING }
@@ -62,8 +57,17 @@ static func next_state(state: int, event: String) -> int:
 const GOLD_EDGE := Color(0.86, 0.70, 0.38, 1.0)
 
 
+## `units[u]` is one cabinet's instrument ROWS (its lower two alcoves); `frames[u]` is
+## the cabinet itself, for its label.
+##
+## The generated stock scatter is GONE. The author's cabinet has crates drawn into its
+## alcoves, so the room's non-interactive dressing (R363) is now baked art: it costs no
+## nodes, it cannot be hovered by construction rather than by remembering to set
+## `MOUSE_FILTER_IGNORE` on every piece (P167), and it reads as the same object as the
+## shelving it sits in. The instruments stand IN FRONT of it, which is also the right
+## depth cue — reachable things near, stores behind.
 static func build(host: Control, view: Dictionary, units: Array,
-		on_select: Callable, dress: Array = [], frames: Array = []) -> Dictionary:
+		on_select: Callable, frames: Array = []) -> Dictionary:
 	var items := {}
 	var kinds := [
 		{"kind": "PERCEPTION", "label": "INSTRUMENTS OF SIGHT"},
@@ -71,43 +75,35 @@ static func build(host: Control, view: Dictionary, units: Array,
 	]
 
 	for u in range(min(kinds.size(), units.size())):
-		var unit: Rect2 = units[u]
+		var rows: Array = units[u]
 		var kind: String = kinds[u]["kind"]
 		var ids: Array = []
 		for item in Catalog.GEAR:
 			if String(item["kind"]) == kind:
 				ids.append(String(item["id"]))
 
-		# The label rides the unit's TOP RAIL, where a store actually nails one. Hung
-		# just above the instruments it sat on top of the upper shelf's stock instead.
-		var lp: Vector2 = (Vector2(frames[u].position.x + 7.0, frames[u].position.y + 3.0)
-			if u < frames.size() else Vector2(unit.position.x, unit.position.y - 15.0))
-		Room.label_plate(host, String(kinds[u]["label"]), lp, PLAQUE_W - 6.0)
+		# The label rides the cabinet's TOP RAIL, where a store actually nails one, and
+		# spans its full width so it reads as belonging to that cabinet.
+		if u < frames.size():
+			var f: Rect2 = frames[u]
+			Room.label_plate(host, String(kinds[u]["label"]),
+				Vector2(f.position.x + 3.0, f.position.y - 1.0), f.size.x - 6.0)
 
+		# Split across the cabinet's rows, fuller row first, so six instruments fill two
+		# alcoves 3-and-3 and four fill them 2-and-2 — both derived from the count, so a
+		# new instrument lands on a shelf without a line changing here (R362).
 		var n := ids.size()
-		var pitch := unit.size.x / float(n)
-		var base_y := unit.end.y - ICON_PX
-
-		# Dressing FIRST, so child order alone puts it behind every real instrument.
-		# The first pass used `move_child(t, 0)` instead and sent the stock behind the
-		# WALL — index 0 is the backdrop, not the back of the shelf. Build order is the
-		# predictable tool; z-shuffling after the fact is not.
-		_stock(host, unit, n, pitch, u)
-		# The upper board carries stock only — never an instrument, so a player never
-		# has to hunt two rows for something they can actually take.
-		if u < dress.size():
-			# Clear of the plaque: the label is nailed to the same rail, and stock drawn
-			# under it read as clutter behind a sign rather than as stored goods.
-			var band: Rect2 = dress[u]
-			_fill(host, Rect2(band.position + Vector2(PLAQUE_W, 0.0),
-				Vector2(band.size.x - PLAQUE_W, band.size.y)), u + 40)
-
-		# Even pitch across the unit, computed from the count — so six instruments and
-		# four instruments both sit centred on their own board.
-		for i in range(n):
-			var cx := unit.position.x + pitch * (i + 0.5)
-			var home := Vector2(cx - ICON_PX * 0.5, base_y)
-			items[ids[i]] = _object(host, view, ids[i], home, on_select)
+		var nrows: int = max(rows.size(), 1)
+		var at := 0
+		for r in range(nrows):
+			var take := int(ceil(float(n - at) / float(nrows - r)))
+			var row: Rect2 = rows[r]
+			var pitch := row.size.x / float(max(take, 1))
+			for i in range(take):
+				var cx := row.position.x + pitch * (i + 0.5)
+				var home := Vector2(cx - ICON_PX * 0.5, row.end.y - ICON_PX)
+				items[ids[at + i]] = _object(host, view, ids[at + i], home, on_select)
+			at += take
 
 	return items
 
@@ -191,82 +187,6 @@ static func _set_hover(_view: Dictionary, rec: Dictionary, on: bool) -> void:
 	# The whole of it. No tween, no movement, no tint — the instrument stays exactly
 	# where it was placed and simply takes an edge of light.
 	(rec["edge"] as Control).visible = on
-
-
-# ── dressing: scenery, never an item (R363 / P167) ──────────────────────────
-
-static func _stock(host: Control, unit: Rect2, n: int, pitch: float, seed: int) -> void:
-	var sheet := load(STOCK) as Texture2D
-	if sheet == null:
-		return
-	# One or two pieces in each gap, chosen by a seeded hash so the room is the same
-	# every time it is opened (P166) — a store that reshuffles is not a place.
-	for i in range(n + 1):
-		var gx := unit.position.x + pitch * i
-		var span := pitch - ICON_PX
-		if span < STOCK_PX + 2.0:
-			continue
-		var count := 1 + int(_hash(seed, i, 3) * 2.0)
-		for k in range(count):
-			var idx := int(_hash(seed, i * 7 + k, 11) * STOCK_N) % STOCK_N
-			var ox := gx + (ICON_PX * 0.5) + 2.0 + k * (STOCK_PX + 1.0)
-			if ox + STOCK_PX > unit.end.x:
-				break
-			var t := TextureRect.new()
-			var at := AtlasTexture.new()
-			at.atlas = sheet
-			at.region = Rect2(idx * STOCK_PX, 0, STOCK_PX, STOCK_PX)
-			t.texture = at
-			t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			t.stretch_mode = TextureRect.STRETCH_KEEP
-			t.position = Vector2(ox, unit.end.y - STOCK_PX)
-			t.size = Vector2(STOCK_PX, STOCK_PX)
-			# NEVER interactive, and visibly subordinate. Both halves matter: a player
-			# who hovers scenery and gets nothing learns the room is lying to them.
-			t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			t.modulate = Color(0.74, 0.72, 0.70, 0.92)
-			host.add_child(t)
-
-
-## Fills a whole board edge to edge with stock, for the shelves that hold no
-## instruments. Seeded, so the store is the same room every time it is opened (P166).
-static func _fill(host: Control, band: Rect2, seed: int) -> void:
-	var sheet := load(STOCK) as Texture2D
-	if sheet == null:
-		return
-	var x := band.position.x
-	var i := 0
-	while x + STOCK_PX <= band.end.x:
-		var r := _hash(seed, i, 5)
-		# A gap now and then, so the row reads as stock that has been drawn from
-		# rather than as a tile pattern.
-		if r > 0.82:
-			x += STOCK_PX * 0.6
-			i += 1
-			continue
-		var idx := int(_hash(seed, i, 13) * STOCK_N) % STOCK_N
-		var t := TextureRect.new()
-		var at := AtlasTexture.new()
-		at.atlas = sheet
-		at.region = Rect2(idx * STOCK_PX, 0, STOCK_PX, STOCK_PX)
-		t.texture = at
-		t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		t.stretch_mode = TextureRect.STRETCH_KEEP
-		t.position = Vector2(x, band.end.y - STOCK_PX)
-		t.size = Vector2(STOCK_PX, STOCK_PX)
-		t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Dimmer than the lower shelf's stock: it is further from the lamp, and it
-		# must never pull the eye off the row that can actually be taken from.
-		t.modulate = Color(0.60, 0.58, 0.56, 0.88)
-		host.add_child(t)
-		x += STOCK_PX + 1.0 + (2.0 if r > 0.55 else 0.0)
-		i += 1
-
-
-static func _hash(a: int, b: int, salt: int) -> float:
-	var n := (a * 73856093) ^ (b * 19349663) ^ (salt * 83492791)
-	n = (n ^ (n >> 13)) * 1274126177
-	return float((n ^ (n >> 16)) & 0xFFFF) / 65535.0
 
 
 # ── the instrument icons ────────────────────────────────────────────────────

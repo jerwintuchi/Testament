@@ -7,6 +7,12 @@ lamp. This generator emits the MODULAR pieces that room is assembled from, never
 single painted backdrop — the brief forbids that (§17), and TD-072 already recorded
 a procedurally generated hero plate as a structural failure.
 
+The SHELVING, the PLANK, the BENCH and the STOCK sheet are no longer here (TD-113):
+the author drew that furniture by hand, and `gen_qm_furniture.py` derives the runtime
+pieces from it. Their painters and normal maps are deleted rather than left dormant —
+generated art with no consumer is what TD-070 had to go back and clean up. This file
+now covers the wall, the label plate, the props and the room's smaller fittings.
+
 Authored at DISPLAY size and shown 1:1 NEAREST (TD-050/TD-055: the client rasterises
 UI at native resolution, so a downscale is mush). Chunky clusters, hard edges, no
 anti-aliasing, no gradients; every opaque colour resolves to an Ash & Ember stop,
@@ -15,16 +21,12 @@ which `assert_on_palette` proves.
 `navestone` is reused deliberately: it is the nave's own ashlar, so this room and the
 title screen's hall are the same building (the TD-081 rule).
 
-Deterministic and safe to re-run: same bytes every time, and it writes only the seven
-files named below.
+Deterministic and safe to re-run: same bytes every time, and it writes only the files
+named below.
 
     cd client/assets/ui && python3 gen_qm_room.py
       -> stations/qm_wall.png      64x64   tiling ashlar backdrop
-      -> stations/qm_shelf.png     48x48   9-slice shelving frame, 16px margins
-      -> stations/qm_board.png     16x12   9-slice plank (L4 T6 R4 B3), top plane
       -> stations/qm_label.png     24x14   9-slice label plate, 7px margins
-      -> stations/qm_counter.png   96x64   9-slice counter (L28 T26 R28 B16), two planes
-      -> stations/qm_stock.png    128x16   8 dressing objects (never interactive)
       -> stations/qm_props.png     96x24   4 counter props
 """
 import ashember as A
@@ -143,143 +145,6 @@ def _wall(x, y):
     return _op(A.quantize(A.ramp_shade("navestone", 0.06 + hgt * 0.42)))
 
 
-# ── qm_board.png — one shelf plank ───────────────────────────────────────────
-# 9-slice with 4px margins so it stretches to any shelf width while the lit top edge
-# and the shadow beneath stay one pixel each. Objects STAND on the top edge.
-BOARD_W, BOARD_H = 16, 12
-# Per-side. Drawn at EXACTLY 12px tall, so nothing stretches vertically and every row
-# below is authored 1:1 — the plank's whole depth is a decision, not a stretch.
-BOARD_ML, BOARD_MT, BOARD_MR, BOARD_MB = 4, 6, 4, 3
-BOARD_SEAM = 1                          # one plank joint, foreshortened toward the eye
-
-
-def _board_h(x, y):
-    """A plank seen from slightly above: a TOP SURFACE, an arris, and a front edge.
-
-    The old plank was a rounded front edge and nothing else — six rows rolling from
-    light to dark, which is a moulding, not a board. An object standing on it had no
-    surface to stand ON. Rows 0-2 are now the top plane receding away from the eye,
-    row 3 is the lit front arris, and rows 5-9 are the edge falling into shadow.
-    """
-    if y <= 2:                          # the top plane, tilting away toward the wall
-        return [0.46, 0.60, 0.74][y]
-    if y == 3:
-        return 1.00                     # the front arris: the plank's high point
-    if y == 4:
-        return 0.24                     # and the cliff below it
-    if y <= 8:
-        return 0.46 - 0.04 * (y - 5)    # the front edge
-    if y == 9:
-        return 0.28                     # the plank's underside arris
-    return 0.0
-
-
-def _board(x, y):
-    """One shelf plank, painted along the wood ramp with grain (TD-103).
-
-    The first pass was five flat bands. A plank has a rounded front arris, end grain,
-    and a shadow it throws on whatever is beneath — all of which the height field above
-    now carries, so the normal map tilts with the paint.
-    """
-    if y >= 10:
-        # Under the plank: the shadow it throws, fading out. Alpha, not a colour, so it
-        # darkens whatever it happens to fall across.
-        fall = (y - 10) / float(BOARD_H - 10)
-        return (BLACK[0], BLACK[1], BLACK[2], max(int(165 * (1.0 - fall)), 0))
-    hgt = _board_h(x, y)
-    # Grain runs ALONG the plank in long strokes, never as scattered dots — a modulo on
-    # (x + y) makes diagonal hatching, which is what an earlier pass shipped by accident.
-    # Grain varies in Y ONLY. The centre columns stretch horizontally to the width of
-    # the shelf, so any x-variation there would smear into bars — the same constraint
-    # the counter's top surface works under.
-    grain = 0.0
-    if _rnd(0, y, 17) > 0.70:
-        grain -= 0.06
-    if y == BOARD_SEAM:
-        grain -= 0.13                   # the joint between planks, foreshortened
-    if y == 3 and _rnd(0, 3, 23) > 0.5:
-        grain += 0.05                   # the arris, worn brighter where hands pass
-    return _op(A.quantize(A.ramp_shade("wood", 0.10 + hgt * 0.72 + grain)))
-
-
-# ── qm_shelf.png — the shelving frame ────────────────────────────────────────
-# 9-slice, 16px margins: uprights left and right, a top rail with iron brackets, a
-# base rail. The centre is the dark back of the shelf, so contents read against it.
-SHELF_W = SHELF_H = 48
-SHELF_M = 16
-
-
-# ── the alcove ──────────────────────────────────────────────────────────────
-# The shelves are an OPENING CUT INTO THE WALL, not a carcass standing in front of it
-# (author ruling, TD-108). Rings from the outside in:
-#   0        the shadow line where the cut meets the wall face
-#   1..4     the REVEAL — the wall's own thickness, 4px
-#   5..6     an occlusion ramp falling into the interior
-#   7+       the interior, near-black, lifting a little at the foot
-#
-# The reveal is `navestone`, the same ashlar as the wall and the Great Hall: a wooden
-# lining would say "a cabinet was fitted here", and the brief asks for shelves cut into
-# the building (TD-081 — one stone, one building).
-REVEAL_PX = 4
-
-
-def _alcove_ring(x, y):
-    """Distance in from the opening's edge, in pixels."""
-    return min(min(x, SHELF_W - 1 - x), min(y, SHELF_H - 1 - y))
-
-
-def _shelf_h(x, y):
-    ring = _alcove_ring(x, y)
-    if ring == 0:
-        return 0.20                     # the cut's outer shadow line
-    if ring <= REVEAL_PX:
-        # The reveal FACES the room. A cut's top face catches light and its bottom face
-        # is in shadow wherever the alcove sits — that is what makes it read as a hole
-        # rather than as a printed border.
-        top = y <= REVEAL_PX
-        bottom = (SHELF_H - 1 - y) <= REVEAL_PX
-        # INVERTED at TD-112, and the inversion is the whole point. The cut's TOP
-        # reveal is a face you see the UNDERSIDE of — it points down, away from every
-        # light in the room — while the BOTTOM reveal is the sill, whose top face
-        # catches the lamp. The first pass had it the other way round, which is why
-        # the shelves read as printed borders rather than as holes: a bright band
-        # above and a dark one below is what a raised frame looks like, not a cut.
-        # Same error as the horn's bore, and the same fix — light a face by which way
-        # it points, not by where it sits on the sprite.
-        if top:
-            return 0.26 - 0.03 * ring   # the underside of the cut, in its own shadow
-        if bottom:
-            return 0.88 - 0.07 * ring   # the sill, the brightest stone in the alcove
-        return 0.56 - 0.05 * ring       # the side faces, between the two
-    if ring <= REVEAL_PX + 2:
-        return 0.16                     # occlusion ramp into the interior
-    # The interior RECEDES: the top reveal casts down the back wall, so light falls
-    # off fast going up into the cut and lifts again at the sill where the stone
-    # bounces. A linear ramp read as a flat gradient; squaring it puts the change
-    # where a real cut puts it — hard under the lintel, gentle at the foot.
-    down = y / float(SHELF_H)
-    return 0.015 + 0.17 * (down * down)
-
-
-def _shelf(x, y):
-    """The alcove, painted from the height field that also drives its normal map."""
-    ring = _alcove_ring(x, y)
-    hgt = _shelf_h(x, y)
-
-    if ring == 0:
-        return _op(A.RAMP["black"][0])                     # the cut line
-    if ring <= REVEAL_PX:
-        # Stone, and lit by facing. Grain is per-block-ish rather than per-pixel so the
-        # reveal reads as cut masonry and not as noise.
-        grain = -0.04 if _rnd(x // 3, y // 3, 29) > 0.74 else 0.0
-        # The cut's own arris is the most-handled stone in the room — the edge every
-        # hand and every crate corner meets. It chips first, and only there.
-        if ring == 1 and _rnd(x, y, 71) > 0.84:
-            grain -= 0.14
-        return _op(A.quantize(A.ramp_shade("navestone", 0.06 + hgt * 0.60 + grain)))
-    return _op(A.quantize(A.ramp_shade("navestone", 0.015 + hgt * 0.30)))
-
-
 # ── qm_label.png — a shelf's label plate ─────────────────────────────────────
 # Brass-edged parchment, tied on. 9-slice so a heading of any length keeps its ends.
 LABEL_W, LABEL_H, LABEL_M = 24, 14, 7
@@ -317,248 +182,6 @@ def _label(x, y):
     if _rnd(x, y, 61) > 0.93:
         t -= 0.10                                  # flaked paint, sparse
     return _op(A.quantize(A.ramp_shade("wax", t)))
-
-
-# ── qm_counter.png — the inspection counter ──────────────────────────────────
-# 9-slice, 16px margins. A worn top surface the lamp lands on, a panelled front, and
-# iron feet. The object under inspection sits ON the top band.
-CTR_W, CTR_H = 96, 64
-CTR_ML, CTR_MT, CTR_MR, CTR_MB = 28, 26, 28, 16
-
-# The counter is seen from slightly ABOVE, so it shows two planes, not one face:
-# a TOP SURFACE receding away and a FRONT FACE below it, split by a hard lit arris.
-# That split is what gives the object volume — a single shaded rectangle cannot have
-# any, however well it is shaded (TD-112).
-#
-# Why this may still be a 9-slice, when the cloth and the record's rule may not:
-# **the recession runs VERTICALLY.** The plank seams on the top face foreshorten
-# toward the back, which is variation in y and none in x — so the stretched centre
-# regions are uniform along the axis they stretch. The end returns, where the top
-# face narrows into the room, live inside the LEFT and RIGHT margins, which never
-# stretch. A perspective that ran horizontally would have to be authored at display
-# size; this one does not.
-CTR_TOP_Y0, CTR_TOP_Y1 = 2, 17      # the working surface
-CTR_ARRIS = 18                      # the worn front edge, where the lamp lands
-CTR_SEAMS = (5, 9, 14)              # plank joints, spaced 3/4/5 — wider toward the eye
-
-
-def _counter_h(x, y):
-    """Height field for the normal map. Mirrors the plane structure exactly, so the
-    lit surface and the shading agree about where the object turns."""
-    edge_x = min(x, CTR_W - 1 - x)
-    if y < CTR_TOP_Y0:
-        return 0.0
-    if y <= CTR_TOP_Y1:                         # the top plane, tilting away
-        h = 0.58 + 0.30 * ((y - CTR_TOP_Y0) / float(CTR_TOP_Y1 - CTR_TOP_Y0))
-        return h - 0.10 if y in CTR_SEAMS else h
-    if y == CTR_ARRIS:
-        return 1.00                             # the arris is the room's high point
-    if y == 19:
-        return 0.22                             # and it falls off a cliff
-    if y <= 21:
-        return 0.54                             # the apron
-    if y <= 25:
-        return 0.62 - 0.06 * (y - 22)           # the panel's head bevel
-    if y <= 47:
-        if edge_x < 4:
-            return 0.52                         # the stile
-        if edge_x == 4:
-            return 0.70
-        if edge_x == 5:
-            return 0.30
-        return 0.38                             # the recessed field
-    if y <= 51:
-        return 0.44 if y == 48 else 0.26        # the panel's foot bevel
-    if y <= 59:
-        return 0.30                             # the plinth
-    return 0.16 if edge_x < 7 else 0.04         # iron feet, deep shadow between
-
-
-def _counter_inset(y):
-    """How far the top face is cut in at this row. The back edge is NARROWER than the
-    front, which is the whole reason the surface reads as receding rather than as a
-    stripe. Contained inside the 28px side margins, so it never stretches."""
-    if y < CTR_TOP_Y0 or y > CTR_TOP_Y1:
-        return 0
-    return int(round((CTR_TOP_Y1 - y) / float(CTR_TOP_Y1 - CTR_TOP_Y0) * 7.0))
-
-
-def _counter(x, y):
-    """The inspection counter, painted to the board's register (TD-103).
-
-    Two planes and a hard edge. The top is the brightest wood in the room because it
-    faces the light and because it is where you look; the front falls into shadow
-    below the arris. Wear concentrates AT THAT ARRIS, where a quartermaster's forearms
-    have rested for a century — wear that is even across a surface reads as noise,
-    wear with a cause reads as age.
-
-    All texture varies in **y only** across the stretched middle (R394): grain is
-    drawn as lines running with the plank, never as per-pixel scatter. Scatter has
-    shipped here twice by accident and is what makes pixel art look dirty rather than
-    detailed — and under a 15x horizontal stretch it would smear into bars.
-    """
-    edge_x = min(x, CTR_W - 1 - x)
-    hgt = _counter_h(x, y)
-
-    if y < CTR_TOP_Y0:
-        return (0, 0, 0, 0)
-
-    # ── the top plane ────────────────────────────────────────────────────────
-    if y <= CTR_TOP_Y1:
-        if edge_x < _counter_inset(y):
-            return (0, 0, 0, 0)                 # the room, seen past the narrowing top
-        t = 0.26 + 0.50 * ((y - CTR_TOP_Y0) / float(CTR_TOP_Y1 - CTR_TOP_Y0))
-        if y in CTR_SEAMS:
-            t -= 0.26                           # the joint between planks
-        elif (y - 1) in CTR_SEAMS:
-            t += 0.11                           # and the lit lip of the next plank
-        if _rnd(0, y, 7) > 0.62:
-            t -= 0.035                          # grain, running WITH the plank
-        if edge_x == _counter_inset(y):
-            t -= 0.20                           # the end return, turning away
-        elif edge_x == _counter_inset(y) + 1:
-            t -= 0.08
-        # One knot, in a corner where nothing stretches.
-        if 11 <= x <= 14 and 9 <= y <= 11:
-            t -= 0.22 if (x + y) % 3 else 0.10
-        return _op(A.quantize(A.ramp_shade("wood", t)))
-
-    # ── the arris, and the cliff below it ────────────────────────────────────
-    if y == CTR_ARRIS:
-        t = 0.88 if _rnd(0, x // 3, 41) > 0.35 else 0.74   # polished unevenly
-        return _op(A.quantize(A.ramp_shade("wood", t)))
-    if y == 19:
-        return _op(A.quantize(A.ramp_shade("wood", 0.12)))
-
-    # ── the plinth and the feet ──────────────────────────────────────────────
-    if y >= 60:
-        if edge_x >= 7:
-            return _op(BLACK_SOFT)
-        return _op(A.quantize(A.ramp_shade("stone", 0.06 + hgt * 0.9)))
-    if y >= 52:
-        return _op(A.quantize(A.ramp_shade("stone", 0.10 + hgt * 0.55)))
-
-    # ── the front face, in shadow ────────────────────────────────────────────
-    t = 0.06 + hgt * 0.52
-    if _rnd(0, y, 11) > 0.80:
-        t -= 0.03                               # grain in the panel, again in lines
-    return _op(A.quantize(A.ramp_shade("wood", t)))
-
-
-# ── qm_stock.png — dressing. NEVER interactive (R363/P167) ───────────────────
-# Eight objects at 16x16. Deliberately low-contrast and small: they say "this
-# institution stores hundreds of things" without ever competing with the ten real
-# instruments, which are the only lit, reachable objects on the shelves.
-STOCK_TILE = 16
-STOCK_N = 8
-STOCK_W, STOCK_H = STOCK_TILE * STOCK_N, STOCK_TILE
-
-
-def _crate(x, y):
-    if not (1 <= x <= 14 and 4 <= y <= 15):
-        return CLEAR
-    if x in (1, 14) or y in (4, 15):
-        return _op(WOOD_DEEP)
-    if y == 5:
-        return _op(WOOD_BASE)
-    if y in (9, 10):
-        return _op(WOOD_DARK)           # the banding strap
-    return _op(WOOD_DARK if (x + y) % 5 else WOOD_DEEP)
-
-
-def _bottle(x, y):
-    if 6 <= x <= 9 and 2 <= y <= 4:
-        return _op(WOOD_BASE if x in (7, 8) else WOOD_DEEP)   # the stopper
-    if 6 <= x <= 9 and 5 <= y <= 7:
-        return _op(WOOD_DARK if x in (7, 8) else WOOD_DEEP)   # the neck
-    # The shoulder: the body widens over two rows rather than starting square.
-    if 8 <= y <= 15:
-        half = 2 if y == 8 else (3 if y == 9 else 4)
-        if abs(x - 7) <= half or abs(x - 8) <= half:
-            if y == 15 or abs(x - 7) == half or abs(x - 8) == half:
-                return _op(WOOD_DEEP)
-            if x == 5:
-                return _op(PARCH_DEEP)  # a dull highlight down the glass
-            return _op(WOOD_DARK)
-    return CLEAR
-
-
-def _jar(x, y):
-    if 3 <= x <= 12 and 5 <= y <= 15:
-        if y == 5 or y == 15 or x in (3, 12):
-            return _op(WOOD_DEEP)
-        if y == 6:
-            return _op(WOOD_BASE)       # the lid's rim
-        return _op(WOOD_DARK if x > 4 else IRON_DARK)
-    return CLEAR
-
-
-def _books(x, y):
-    if not (2 <= x <= 13 and 6 <= y <= 15):
-        return CLEAR
-    band = (y - 6) // 3                 # three stacked volumes
-    if (y - 6) % 3 == 0:
-        return _op(WOOD_DEEP)           # the gap between them
-    if x in (2, 13):
-        return _op(WOOD_DEEP)
-    return _op([WOOD_DARK, WOOD_BASE, WOOD_DARK][band % 3])
-
-
-def _tin(x, y):
-    # Warm, not cold. `stone` reads blue against lamp-lit wood, and a cold box in
-    # the middle of the shelf pulls the eye harder than the real instruments do.
-    if 3 <= x <= 12 and 7 <= y <= 15:
-        if y == 7 or x in (3, 12) or y == 15:
-            return _op(WOOD_DEEP)
-        if y == 8:
-            return _op(BRASS_DIM)       # a banded lid
-        return _op(WOOD_DARK if y % 3 else WOOD_BASE)
-    return CLEAR
-
-
-def _roll(x, y):
-    # Rolled charts stacked on their sides: three tubes, each with a lit top and a
-    # dark mouth, so they read as rolls rather than as one filled block.
-    if not (1 <= x <= 14 and 7 <= y <= 15):
-        return CLEAR
-    tube = (y - 7) // 3
-    ly = (y - 7) % 3
-    if ly == 0:
-        return _op(PARCH_DEEP)          # the shadow between rolls
-    # Kept at the DEEP end of parchment: stock must never be the brightest thing on
-    # the shelf, or the eye goes to the scenery instead of the ten real instruments.
-    if ly == 1:
-        return _op(PARCH_DEEP if tube != 1 else PARCH)
-    return _op(INK if x in (3, 4) else A.RAMP["foxing"][0])   # the hollow end
-
-
-def _sack(x, y):
-    if 4 <= x <= 11 and 4 <= y <= 15:
-        if y <= 5:
-            return _op(WOOD_DEEP) if 6 <= x <= 9 else CLEAR   # the tied neck
-        if x in (4, 11) or y == 15:
-            return _op(WOOD_DEEP)
-        return _op(WOOD_DARK)
-    return CLEAR
-
-
-def _case(x, y):
-    if 1 <= x <= 14 and 5 <= y <= 15:
-        if x in (1, 14) or y in (5, 15):
-            return _op(WOOD_DEEP)
-        if y == 10:
-            return _op(IRON_DARK)       # the seam where it opens
-        if x in (7, 8) and 9 <= y <= 11:
-            return _op(BRASS_DIM)       # a small clasp
-        return _op(WOOD_DARK)
-    return CLEAR
-
-
-STOCK = [_crate, _bottle, _jar, _books, _tin, _roll, _sack, _case]
-
-
-def _stock(x, y):
-    return STOCK[x // STOCK_TILE](x % STOCK_TILE, y)
 
 
 # ── qm_props.png — the counter's few props ───────────────────────────────────
@@ -751,7 +374,13 @@ def _satchel(x, y):
 # it a 9-slice and the crosses live in the centre — which is the region a 9-slice
 # STRETCHES, so they smeared into gold streaks. A 9-slice is for frames whose middle is
 # a uniform fill; a patterned cloth has to be drawn at the size it is shown.
-CLOTH_W, CLOTH_H = 128, 80
+# Re-cut for the author's bench (TD-113). At 128x80 it covered a 92px-tall table almost
+# entirely and read as a banner hung over it rather than as a cloth laid on it — the
+# generated counter it was drawn for had no visible top plane to lay against. 104x46 sits
+# on the top plane and hangs the hem a little past the arris, which is what a cloth on a
+# table does, and it leaves the bench's own wood showing at both ends where the writing
+# set and the sealing tools stand.
+CLOTH_W, CLOTH_H = 104, 46
 FRINGE = 11           # rows of loose thread at the hem
 
 
@@ -938,9 +567,6 @@ def _rite_seal(x, y):
 # reach Control nodes (TD-047), which is exactly why that shader exists.
 NORMALS = [
     ("stations/qm_wall_n.png",    WALL_W,  WALL_H,  _wall_h,    2.6),
-    ("stations/qm_shelf_n.png",   SHELF_W, SHELF_H, _shelf_h,   3.0),
-    ("stations/qm_board_n.png",   BOARD_W, BOARD_H, _board_h,   3.0),
-    ("stations/qm_counter_n.png", CTR_W,   CTR_H,   _counter_h, 2.4),
     ("stations/qm_satchel_n.png", SATCH_W, SATCH_H, _satchel_h, 2.6),
 ]
 
@@ -953,10 +579,7 @@ def _emit_normal(path, w, h, hfn, strength):
 
 TARGETS = [
     ("stations/qm_wall.png",    WALL_W,  WALL_H,  _wall),
-    ("stations/qm_shelf.png",   SHELF_W, SHELF_H, _shelf),
-    ("stations/qm_board.png",   BOARD_W, BOARD_H, _board),
     ("stations/qm_label.png",   LABEL_W, LABEL_H, _label),
-    ("stations/qm_counter.png", CTR_W,   CTR_H,   _counter),
     ("stations/qm_satchel.png", SATCH_W, SATCH_H, _satchel),
     ("stations/qm_cloth.png",   CLOTH_W, CLOTH_H, _cloth),   # 1:1, never 9-sliced
     ("stations/qm_lantern.png", LANT_W,  LANT_H,  _lantern),
@@ -965,7 +588,6 @@ TARGETS = [
     ("stations/qm_floor.png",   FLOOR_W, FLOOR_H, _floor),
     ("stations/qm_rite.png",    RITE_W,  RITE_H,  _rite),
     ("stations/qm_rite_seal.png", SEAL_W, SEAL_H, _rite_seal),
-    ("stations/qm_stock.png",   STOCK_W, STOCK_H, _stock),
     ("stations/qm_props.png",   PROP_W,  PROP_H,  _props),
 ]
 
@@ -995,6 +617,7 @@ if __name__ == "__main__":
         print("wrote %s (%dx%d)" % (path, w, h))
     for path, w, h, hfn, strength in NORMALS:
         _emit_normal(path, w, h, hfn, strength)
-    print("9-slice margins: shelf=%d label=%d board=L%d,T%d,R%d,B%d counter=L%d,T%d,R%d,B%d"
-          % (SHELF_M, LABEL_M, BOARD_ML, BOARD_MT, BOARD_MR, BOARD_MB,
-             CTR_ML, CTR_MT, CTR_MR, CTR_MB))
+    # The label plate is the only 9-slice this generator still emits: the shelving, the
+    # plank and the bench are the author's hand-drawn furniture now, and their margins
+    # are declared beside the art in `gen_qm_furniture.py` and `room.gd`.
+    print("9-slice margins: label=%d" % LABEL_M)

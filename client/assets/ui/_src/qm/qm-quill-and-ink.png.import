@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cbjqliay8kodl"
-path="res://.godot/imported/qm_counter.png-b9af74b4a3591d5cdf73b3ea0832dcfb.ctex"
+uid="uid://bb16iy8qb2fbx"
+path="res://.godot/imported/qm-quill-and-ink.png-38fc1ac26a5974e9d285c4f4ec9cb356.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/stations/qm_counter.png"
-dest_files=["res://.godot/imported/qm_counter.png-b9af74b4a3591d5cdf73b3ea0832dcfb.ctex"]
+source_file="res://assets/ui/_src/qm/qm-quill-and-ink.png"
+dest_files=["res://.godot/imported/qm-quill-and-ink.png-38fc1ac26a5974e9d285c4f4ec9cb356.ctex"]
 
 [params]
 
