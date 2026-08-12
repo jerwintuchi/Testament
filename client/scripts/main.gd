@@ -414,6 +414,12 @@ func _ready() -> void:
 	# and no intent is ever sent from it. Debug builds only.
 	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--board-preview"):
 		call_deferred("_board_preview")
+	# `-- --type-sheet` renders one sentence at every candidate size in the game's own
+	# faces, so the readable floor is CHOSEN BY LOOKING rather than guessed (TD-117).
+	# It exists because a defect was found by eye that no contrast measurement could see:
+	# at 9px Almendra drops its descenders, and "the party may" renders "the vartu mau".
+	if OS.is_debug_build() and OS.get_cmdline_user_args().has("--type-sheet"):
+		call_deferred("_type_sheet")
 	# `-- --lobby-preview` shows the WAITING lobby over a fixture Collegium, so the walkable
 	# screen can be captured with no server and no input (station names, roster, the room
 	# scroll). Same discipline as _board_preview: a fabricated *display* snapshot, never game
@@ -624,6 +630,51 @@ func _lobby_preview() -> void:
 	}
 	_show_lobby()
 	_log("lobby preview: room %s" % _snapshot["roomCode"])
+
+## A type specimen: the same words at every candidate size, in the game's own faces.
+##
+## Built because a text defect was found by EYE that no contrast measurement could see —
+## at 9px Almendra loses its descenders, so "the party may" rendered as "the vartu mau".
+## Contrast was fine; the letterforms were gone. A still capture is all an unattended run
+## has, so the readable floor has to be chosen by looking at one.
+##
+## Each size prints TWO rows: a word with descenders and the same word without. A checker
+## can then ask whether the descender row's ink reaches lower than the flat row's — if it
+## does not, the tails have been rasterised away. That is the whole test, and it is what
+## `tools/type_check.py` reads.
+func _type_sheet() -> void:
+	_clear()
+	var host := Control.new()
+	host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	host.custom_minimum_size = get_viewport_rect().size
+	_root.add_child(host)
+
+	var bg := ColorRect.new()
+	bg.color = Color(0.06, 0.05, 0.04)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	host.add_child(bg)
+
+	var col := VBoxContainer.new()
+	col.position = Vector2(14, 6)
+	col.add_theme_constant_override("separation", 1)
+	host.add_child(col)
+
+	for px_size in [7, 8, 9, 10, 11, 12, 13, 14]:
+		for pair in [["pay quickly, jumpy fox", "roman non-arc scene"],
+				["PAY QUICKLY", "ROMAN NON ARC"]]:
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 10)
+			col.add_child(row)
+			var tag := Widgets.card_label("%2dpx" % px_size, 8,
+				Color(0.55, 0.48, 0.36), false, false)
+			tag.custom_minimum_size = Vector2(30, 0)
+			row.add_child(tag)
+			for s in pair:
+				var l := Widgets.card_label(s, px_size, Color(0.88, 0.80, 0.62), false, false)
+				l.custom_minimum_size = Vector2(190, 0)
+				row.add_child(l)
+	print("[client] type-sheet rows=%d" % col.get_child_count())
+
 
 func _board_preview() -> void:
 	# `-- --board-empty` previews the empty wall (L8); default is the 8-contract fixture.

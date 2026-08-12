@@ -23,7 +23,7 @@ const ICON_PX := 24
 ## cannot be drawn correctly.
 static func _ornament_rule() -> Control:
 	var wrap := Control.new()
-	wrap.custom_minimum_size = Vector2(0, 9)
+	wrap.custom_minimum_size = Vector2(0, 11)
 	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -35,7 +35,7 @@ static func _ornament_rule() -> Control:
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wrap.add_child(line)
 
-	var cross := Widgets.card_label("\u2720", 9, Color(0.34, 0.26, 0.14), false, true)
+	var cross := Widgets.card_label("\u2720", 10, Color(0.34, 0.26, 0.14), false, true)
 	cross.set_anchors_preset(Control.PRESET_FULL_RECT)
 	cross.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -86,7 +86,7 @@ static func build(host: Node, action_host: Node = null, plate: Label = null) -> 
 		name_l.add_theme_font_override("font", Fonts.heading())
 		name_l.clip_text = true
 		titles.add_child(name_l)
-	var class_l := Widgets.card_label("", 9, Color(0.44, 0.34, 0.14), false, false)
+	var class_l := Widgets.card_label("", 11, Color(0.44, 0.34, 0.14), false, false)
 	class_l.clip_text = true
 	class_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	class_l.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -94,36 +94,36 @@ static func build(host: Node, action_host: Node = null, plate: Label = null) -> 
 
 	var rule_a := _ornament_rule()
 	root.add_child(rule_a)
-	var asks := Widgets.card_label("", 11, PopupTheme.INK, true, false)
+	var asks := Widgets.card_label("", 12, PopupTheme.INK, true, false)
 	asks.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(asks)
 	var rule_b := _ornament_rule()
 	root.add_child(rule_b)
 	# The body is filed under a heading, the way a record actually is.
-	var rec_head := Widgets.card_label("QUARTERMASTER RECORD", 8, Color(0.34, 0.26, 0.14), false, false)
+	var rec_head := Widgets.card_label("QUARTERMASTER RECORD", 10, Color(0.34, 0.26, 0.14), false, false)
 	rec_head.add_theme_font_override("font", Fonts.heading())
 	rec_head.clip_text = true
 	root.add_child(rec_head)
-	var note := Widgets.card_label("", 9, PopupTheme.INK_DIM, true, false)
+	var note := Widgets.card_label("", 11, PopupTheme.INK_DIM, true, false)
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(note)
 	# The handling note is a WARNING and is labelled as one: a heading, then the text,
 	# in muted burgundy. Unheaded, it read as one more line of description.
 	root.add_child(_ornament_rule())
-	var warn_head := Widgets.card_label("WARNING", 8, Color(0.46, 0.19, 0.15), false, false)
+	var warn_head := Widgets.card_label("WARNING", 10, Color(0.46, 0.19, 0.15), false, false)
 	warn_head.add_theme_font_override("font", Fonts.heading())
 	warn_head.clip_text = true
 	root.add_child(warn_head)
-	var care := Widgets.card_label("", 8, Color(0.44, 0.20, 0.16, 0.90), true, false)
+	var care := Widgets.card_label("", 10, Color(0.44, 0.20, 0.16, 0.90), true, false)
 	care.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(care)
-	var party := Widgets.card_label("", 9, Color(0.24, 0.40, 0.32, 0.95), true, false)
+	var party := Widgets.card_label("", 11, Color(0.24, 0.40, 0.32, 0.95), true, false)
 	party.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(party)
 
 	var foot_rule := Widgets.hrule(Color(PopupTheme.RULE.r, PopupTheme.RULE.g, PopupTheme.RULE.b, 0.30))
 	root.add_child(foot_rule)
-	var foot := Widgets.card_label("", 6, Color(PopupTheme.INK_DIM.r, PopupTheme.INK_DIM.g, PopupTheme.INK_DIM.b, 0.45), true, false)
+	var foot := Widgets.card_label("", 10, Color(PopupTheme.INK_DIM.r, PopupTheme.INK_DIM.g, PopupTheme.INK_DIM.b, 0.45), true, false)
 	foot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.add_child(foot)
 
@@ -218,7 +218,7 @@ static func _ink(b: Button) -> void:
 		b.add_theme_color_override(st, PopupTheme.INK)
 	b.add_theme_color_override("font_disabled_color",
 		Color(PopupTheme.INK.r, PopupTheme.INK.g, PopupTheme.INK.b, 0.35))
-	b.add_theme_font_size_override("font_size", 11)
+	b.add_theme_font_size_override("font_size", 13)
 	var f := Fonts.heading()
 	if f != null:
 		b.add_theme_font_override("font", f)

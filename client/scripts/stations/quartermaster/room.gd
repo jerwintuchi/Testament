@@ -21,8 +21,14 @@ const BoardDecor := preload("res://scripts/board/board_decor.gd")
 # The Contract Board's own masonry, shared rather than copied (TD-116). See `_wall`.
 const WALL    := "res://assets/ui/board/stone_tile.png"
 const WALL_N  := "res://assets/ui/board/stone_tile_n.png"
-# The board's own tiling, so the courses are the same size on both screens.
-const WALL_TILE := Vector2(5.0, 4.2)
+# A WHOLE-NUMBER scale (TD-117). The board tiles its 48x32 stone at 5.0 x 4.2 across the
+# frame, which works out to 2.67x — so some source pixels land two screen pixels wide and
+# some three, and the grid dissolves. On the board that hardly shows, because the board
+# itself covers nearly all of it; here the wall is the backdrop and it read as smear.
+# 640/48 = 13.33 and 360/32 = 11.25, so tiling at 1:1 is not whole either — but drawing
+# the tile at exactly 2x IS: 6.67 repeats of a 96x64 block, every source pixel two screen
+# pixels square.
+const WALL_TILE := Vector2(640.0 / 96.0, 360.0 / 64.0)
 const LABEL   := "res://assets/ui/stations/qm_label.png"
 const PROPS   := "res://assets/ui/stations/qm_props.png"
 
@@ -136,7 +142,10 @@ const LAMP_ENERGY := 0.22
 # The Contract Board's own wall ambient, not a number of this room's own: the two
 # screens share the texture, so sharing the fill is what actually makes them match
 # (TD-116). At 0.13 the same stone read near-black here and grey there.
-const WALL_AMBIENT := 0.24
+# Lifted above the board's 0.24: the board's wall is almost entirely covered by the board,
+# so it only ever has to whisper. Here it is the backdrop, and at 0.24 the courses did not
+# read at all (TD-117).
+const WALL_AMBIENT := 0.34
 const VIGNETTE := 0.38
 
 const CANDLE_FEET := 5.0     # how far the base sinks into the surface it stands on
@@ -186,10 +195,18 @@ const SEAL_H     := 0.085
 # The right column runs nearly to the foot of the frame: at 0.72 it left a band of
 # dead black under the rite while the RECORD — the thing with the most to say — was
 # squeezed to 119px and hid its WARNING behind a scroll (R374/§19).
-# The record runs from the cabinets' line down to the bench's. It takes the gutter row 1
-# leaves as well, because the framed board spends 56px of its height on frame and title
-# plate and the field note is the thing that pays for it.
-const RIGHT_H   := 0.44722
+# The record runs from the cabinets' line down PAST the bench's, and the pack row shrinks
+# to pay for it (TD-117). Type below ~10px is not readable, so every size on this screen
+# went up; the record holds the most words and therefore lost the most lines. It is the
+# panel that earns the space back, because the pack is four slots and a tally and does not
+# grow with the type.
+# The vertical budget of the right column is FIXED and small: the header ends at 44 and
+# the rite begins at 318, so record + pack + tally + the gate line share 274px. These
+# three fractions are the whole of it, and they must not overlap — the first attempt gave
+# the record everything it wanted and pushed the pack through the rite plate.
+const RIGHT_H   := 0.48889     # record  46 .. 222
+const RIGHT2_Y  := 0.62778     # pack   226 .. 294
+const RIGHT2_H  := 0.22222     # .. and its tally has to fit INSIDE that, not below it
 
 # The ink of this room. Warmer and darker than the writ's parchment, because you are
 # in a cellar store rather than reading a document.
@@ -276,7 +293,7 @@ static func build(host: Control, vp: Vector2) -> Dictionary:
 	var counter_rect := Rect2(vp.x * LEFT_X, vp.y * COUNTER_Y, vp.x * LEFT_W, vp.y * COUNTER_H2)
 	# Row 1 right: the record. Row 2 right: the satchel, level with the counter.
 	var right_rect := Rect2(vp.x * RIGHT_X, vp.y * SHELVES_Y, vp.x * RIGHT_W, vp.y * RIGHT_H)
-	var satchel_rect := Rect2(vp.x * RIGHT_X, vp.y * COUNTER_Y, vp.x * RIGHT_W, vp.y * COUNTER_H2)
+	var satchel_rect := Rect2(vp.x * RIGHT_X, vp.y * RIGHT2_Y, vp.x * RIGHT_W, vp.y * RIGHT2_H)
 	var seal_rect := Rect2(vp.x * LEFT_X, vp.y * SEAL_Y,
 		vp.x * (RIGHT_X + RIGHT_W) - vp.x * LEFT_X, vp.y * SEAL_H)
 
@@ -395,7 +412,7 @@ static func _header(host: Control, vp: Vector2) -> void:
 	var t := Widgets.card_label("QUARTERMASTER", 15, INK_WARM, false, false)
 	t.add_theme_font_override("font", Fonts.heading())
 	box.add_child(t)
-	var s := Widgets.card_label("COLLEGIUM STORES · EXPEDITION ISSUE", 8, INK_FAINT, false, false)
+	var s := Widgets.card_label("COLLEGIUM STORES · EXPEDITION ISSUE", 10, INK_FAINT, false, false)
 	box.add_child(s)
 
 
@@ -463,7 +480,7 @@ static func label_plate(host: Control, text: String, at: Vector2, width: float) 
 	# Measured at 3.38:1 against its own crimson plate, under the 4.5 floor (TD-116).
 	# Lifted rather than the plate darkened: the plaque is the order's cloth colour and
 	# the gold is the lettering, so the lettering is the half that may move.
-	var l := Widgets.card_label(text, 8, Color(0.96, 0.86, 0.60), false, true)
+	var l := Widgets.card_label(text, 10, Color(0.96, 0.86, 0.60), false, true)
 	l.set_anchors_preset(Control.PRESET_FULL_RECT)
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE

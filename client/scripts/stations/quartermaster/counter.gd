@@ -47,7 +47,7 @@ static func build(host: Control, counter_rect: Rect2) -> Dictionary:
 	# Directly under the cloth, not at the foot of the bench. At the foot it collided with
 	# the gate line that sits above the rite — and it names the object lying on the cloth,
 	# so it belongs beneath the cloth rather than a bench-height away from it.
-	var caption := Widgets.card_label("", 8, Color(0.70, 0.62, 0.46), false, true)
+	var caption := Widgets.card_label("", 10, Color(0.70, 0.62, 0.46), false, true)
 	caption.position = Vector2(counter_rect.position.x,
 		Room.cloth_rect(counter_rect).end.y + 2.0)
 	caption.size = Vector2(counter_rect.size.x, 10.0)

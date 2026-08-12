@@ -125,6 +125,12 @@ static func _descendants(n: Node) -> int:
 
 # ── the right-hand column: record, pack, tally, seal ────────────────────────
 
+## The left column's width, for the gate line that sits under the bench. Derived from
+## the rite's own rect so it cannot drift from the composition around it.
+static func vp_left_w(seal_rect: Rect2) -> float:
+	return seal_rect.size.x * 0.60
+
+
 static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 		satchel_rect: Rect2, seal_rect: Rect2) -> void:
 	# Row 1 right — the record, on the board's own parchment: the one paper object in a
@@ -160,7 +166,7 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	# there threw the plate down into the content rect and printed the name across the
 	# record's first sentence. The same trap the record's own column carries a comment
 	# about, met one level further out.
-	var plate := Widgets.card_label("", 11, Color(0.30, 0.22, 0.12), false, true)
+	var plate := Widgets.card_label("", 13, Color(0.30, 0.22, 0.12), false, true)
 	plate.add_theme_font_override("font", Fonts.heading())
 	plate.clip_text = true
 	plate.position = rec_rect.position + Vector2(rec_rect.size.x * 0.16, PLATE_Y)
@@ -189,18 +195,27 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	pack_host.position = satchel_rect.position
 	pack_host.size = satchel_rect.size
 	root.add_child(pack_host)
+	# The tally is RESERVED FOR, not appended after. As a third child of a VBox it was
+	# simply pushed out of the host when the pack's own minimum height grew with the
+	# type — and what it was pushed onto was the rite plate (TD-117). Its band is taken
+	# off the bottom first and the pack gets what is left, so it cannot be displaced.
+	var tally_h := 15.0
 	var pack_col := VBoxContainer.new()
-	pack_col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pack_col.position = Vector2.ZERO
+	pack_col.size = Vector2(pack_host.size.x, pack_host.size.y - tally_h)
 	pack_col.add_theme_constant_override("separation", 2)
+	pack_col.clip_contents = true
 	pack_host.add_child(pack_col)
 	view["pack"] = Pack.build(pack_col, Catalog.BAG_SLOTS)
 
 	var tally := HBoxContainer.new()
 	tally.alignment = BoxContainer.ALIGNMENT_CENTER
 	tally.add_theme_constant_override("separation", 14)
-	pack_col.add_child(tally)
-	var packed_l := Widgets.card_label("", 9, Room.INK_WARM, false, false)
-	var shape_l := Widgets.card_label("", 9, Room.INK_FAINT, false, false)
+	tally.position = Vector2(0.0, pack_host.size.y - tally_h)
+	tally.size = Vector2(pack_host.size.x, tally_h)
+	pack_host.add_child(tally)
+	var packed_l := Widgets.card_label("", 11, Room.INK_WARM, false, false)
+	var shape_l := Widgets.card_label("", 11, Room.INK_FAINT, false, false)
 	tally.add_child(packed_l); tally.add_child(shape_l)
 	view["packed_label"] = packed_l
 	view["shape_label"] = shape_l
@@ -220,9 +235,12 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	# message sharing a fixed-height container with the plate pushed the plate out of
 	# its own rect and onto the motto positioned beneath it. The gate is a status line
 	# about the counter, not part of the rite, so it sits above the foot on its own.
-	var gate := Widgets.card_label("", 8, Color(0.72, 0.42, 0.34), true, true)
-	gate.position = Vector2(seal_rect.position.x, seal_rect.position.y - 21.0)
-	gate.size = Vector2(seal_rect.size.x, 20.0)
+	# ONE line, under the bench and over the LEFT column only. Two lines spanning the full
+	# width no longer fit: the type went up (TD-117) and the pack row moved down to meet
+	# it, so the old two-line block ran through both the pack and the rite plate.
+	var gate := Widgets.card_label("", 10, Color(0.78, 0.50, 0.42), false, true)
+	gate.position = Vector2(seal_rect.position.x, seal_rect.position.y - 14.0)
+	gate.size = Vector2(vp_left_w(seal_rect), 13.0)
 	gate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(gate)
 	view["gate_label"] = gate
@@ -246,7 +264,7 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	# `seal_rect.end.y`. Absolute placement assumed the plate ends where its rect ends;
 	# a container guarantees it.
 	var motto := Widgets.card_label("\u2720   THE COLLEGIUM STANDS WITNESS   \u2720",
-		8, Color(0.66, 0.56, 0.38), false, true)
+		10, Color(0.66, 0.56, 0.38), false, true)
 	motto.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	motto.custom_minimum_size = Vector2(0, 10)
 	motto.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -291,7 +309,7 @@ static func refresh(view: Dictionary) -> void:
 	seal_btn.disabled = view["sealed"] or not issuable or packed.is_empty()
 	_seal_state(seal_btn, not seal_btn.disabled)
 	(view["gate_label"] as Label).text = ("" if issuable else
-		"The Collegium issues instruments against a contract.\nTake one from the board first.")
+		"Take a contract from the board first.")
 
 	var sel := String(view["sel"])
 	if sel == "":
@@ -435,7 +453,7 @@ static func _seal_ink(b: Button) -> void:
 	# room, not to the record.
 	b.add_theme_stylebox_override("disabled", _plate(Color(0.30, 0.24, 0.14, 0.40), 1))
 	b.add_theme_color_override("font_disabled_color", Color(0.52, 0.46, 0.36, 0.45))
-	b.add_theme_font_size_override("font_size", 11)
+	b.add_theme_font_size_override("font_size", 13)
 	var f := Fonts.heading()
 	if f != null:
 		b.add_theme_font_override("font", f)

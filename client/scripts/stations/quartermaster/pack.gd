@@ -49,7 +49,7 @@ static func build(host: Node, slot_count: int) -> Dictionary:
 	plate.add_theme_stylebox_override("panel", psb)
 	plate.custom_minimum_size = Vector2(0, 13)
 	root.add_child(plate)
-	var pcap := Widgets.card_label("EXPEDITION PACK", 8, Color(0.78, 0.64, 0.34), false, true)
+	var pcap := Widgets.card_label("EXPEDITION PACK", 10, Color(0.78, 0.64, 0.34), false, true)
 	pcap.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pcap.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	pcap.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -233,7 +233,7 @@ static func _compartment() -> Button:
 
 	# A numeral, so the pack reads as four ISSUED places rather than four blanks. It is
 	# drawn under the instrument and hidden when one lands.
-	var num := Widgets.card_label("", 7, Color(0.60, 0.52, 0.38, 0.60), false, true)
+	var num := Widgets.card_label("", 10, Color(0.60, 0.52, 0.38, 0.60), false, true)
 	num.name = "Num"
 	num.set_anchors_preset(Control.PRESET_FULL_RECT)
 	num.vertical_alignment = VERTICAL_ALIGNMENT_TOP
