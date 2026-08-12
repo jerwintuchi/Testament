@@ -53,6 +53,10 @@ const PLATE_H  := 17.0
 const RITE      := "res://assets/ui/stations/qm_rite.png"
 const RITE_SEAL := "res://assets/ui/stations/qm_rite_seal.png"
 const RITE_M    := 10
+# The not-ready letter. Subdued is the design (R376: gold is earned by departure), but
+# subdued is not the same as illegible — the old value measured 3.81:1 against its own
+# plate, under the 4.5 floor. This is still visibly held back from the ready gold.
+const NOT_READY_INK := Color(0.74, 0.67, 0.53)
 
 # ── the render budget (canon: performance.md P0/P3) ─────────────────────────
 #
@@ -453,8 +457,8 @@ static func _seal_state(b: Button, ready: bool) -> void:
 	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
 		b.add_theme_stylebox_override(st, sb)
 	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(st, Color(0.94, 0.82, 0.54) if ready else Color(0.52, 0.46, 0.36))
-	b.add_theme_color_override("font_disabled_color", Color(0.52, 0.46, 0.36))
+		b.add_theme_color_override(st, Color(0.94, 0.82, 0.54) if ready else NOT_READY_INK)
+	b.add_theme_color_override("font_disabled_color", NOT_READY_INK)
 
 
 static func _plate(edge: Color, width: int = 1) -> StyleBoxFlat:

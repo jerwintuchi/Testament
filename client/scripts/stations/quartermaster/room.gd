@@ -18,7 +18,11 @@ const Widgets := preload("res://scripts/ui/widgets.gd")
 const Fonts   := preload("res://scripts/ui/fonts.gd")
 const BoardDecor := preload("res://scripts/board/board_decor.gd")
 
-const WALL    := "res://assets/ui/stations/qm_wall.png"
+# The Contract Board's own masonry, shared rather than copied (TD-116). See `_wall`.
+const WALL    := "res://assets/ui/board/stone_tile.png"
+const WALL_N  := "res://assets/ui/board/stone_tile_n.png"
+# The board's own tiling, so the courses are the same size on both screens.
+const WALL_TILE := Vector2(5.0, 4.2)
 const LABEL   := "res://assets/ui/stations/qm_label.png"
 const PROPS   := "res://assets/ui/stations/qm_props.png"
 
@@ -129,7 +133,10 @@ const DUST_COUNT := 14
 ## drawn above the surfaces and keep their own colours, because drama is spent on
 ## surfaces and never on legibility (TD-098's spirit).
 const LAMP_ENERGY := 0.22
-const WALL_AMBIENT := 0.13
+# The Contract Board's own wall ambient, not a number of this room's own: the two
+# screens share the texture, so sharing the fill is what actually makes them match
+# (TD-116). At 0.13 the same stone read near-black here and grey there.
+const WALL_AMBIENT := 0.24
 const VIGNETTE := 0.38
 
 const CANDLE_FEET := 5.0     # how far the base sinks into the surface it stands on
@@ -232,9 +239,12 @@ static func candle_rig(vp: Vector2) -> Array:
 		{
 			"uv": Vector2(flame.x / vp.x, flame.y / vp.y),
 			"color": Color(1.0, 0.74, 0.44),
-			# Tighter and hotter than before: a pool, not a wash (R403).
-			"radius": 0.34,
-			"energy": 1.05,
+			# Calmer (TD-116, author review: "the candle light looks so bright"). At
+			# 0.34/1.05 the bench measured 81.4 against 26.4 a metre away — a hotspot
+			# rather than a pool. Wider and weaker reaches the same distance without
+			# blowing out the wood it stands on.
+			"radius": 0.42,
+			"energy": 0.72,
 		},
 		{
 			# The fill. Weak and wide: it lifts the far shelves off black without
@@ -338,19 +348,31 @@ static func furn_lit(vp: Vector2) -> ShaderMaterial:
 
 # ── the environment ─────────────────────────────────────────────────────────
 
+## THE BOARD'S OWN MASONRY (TD-116, author review: "the wall doesn't look consistent
+## with the contract board").
+##
+## The Quartermaster used to draw its own `qm_wall.png` in `navestone`, on the TD-081
+## reasoning that the stores and the Great Hall should be the same building. Put beside
+## the board it was plainly a different one: measured off the two textures, the board's
+## stone is cool grey with speckled, pitted block interiors and small courses, while the
+## Quartermaster's was warm brown with block interiors that are UNIFORM FIELDS carrying
+## nothing but a dotted joint. That emptiness is also why the shader read as a render —
+## a smooth gradient painted across nothing.
+##
+## So the room now hangs on the Contract Board's wall, with the board's own tiling and
+## its own treatment: `STRETCH_SCALE` plus `texture_repeat`, the shader doing the tiling
+## at the board's scale, ambient low so the masonry is REVEALED by the candle rather
+## than lit evenly. One texture for both screens is also the only way the two can never
+## drift apart again.
 static func _wall(host: Control, vp: Vector2) -> void:
-	# A tiling ashlar backdrop. `navestone` is the nave's own stone, so the stores and
-	# the Great Hall are the same building (TD-081).
 	var w := TextureRect.new()
 	w.texture = load(WALL) as Texture2D
 	w.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	w.stretch_mode = TextureRect.STRETCH_TILE
+	w.stretch_mode = TextureRect.STRETCH_SCALE       # UV 0..1; the shader does the tiling
+	w.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	w.set_anchors_preset(Control.PRESET_FULL_RECT)
 	w.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Tiled sampling: the shader repeats the 64px stone across the frame, so the wall is
-	# one draw and one small texture rather than a screen-sized image.
-	w.material = lit(vp, "res://assets/ui/stations/qm_wall_n.png", WALL_AMBIENT, 1.0,
-		Vector2(vp.x / 64.0, vp.y / 64.0))
+	w.material = lit(vp, WALL_N, WALL_AMBIENT, 1.0, WALL_TILE)
 	host.add_child(w)
 
 	# The room falls off into darkness at the edges, so the lamp-lit middle is where
@@ -438,7 +460,10 @@ static func label_plate(host: Control, text: String, at: Vector2, width: float) 
 	# Aged gold on crimson. Gold is scarce in this room by rule (P168) and a category
 	# plaque is a HEADING — the one place besides the seal and the ready state where the
 	# order puts gold on something.
-	var l := Widgets.card_label(text, 8, Color(0.78, 0.64, 0.34), false, true)
+	# Measured at 3.38:1 against its own crimson plate, under the 4.5 floor (TD-116).
+	# Lifted rather than the plate darkened: the plaque is the order's cloth colour and
+	# the gold is the lettering, so the lettering is the half that may move.
+	var l := Widgets.card_label(text, 8, Color(0.96, 0.86, 0.60), false, true)
 	l.set_anchors_preset(Control.PRESET_FULL_RECT)
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
