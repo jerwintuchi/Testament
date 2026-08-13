@@ -96,6 +96,20 @@ not-ready state is the same object at a dim modulate, so please do not draw two.
 
 ## 4. `qm-satchel.png` — the expedition pack · **64 × 48** · 9-slice
 
+> **DELIVERED 2026-08-12 as `qm-satchel-pack-base.png`, and it does not fit this brief.**
+> The art is right — 174×151 of clean 33-colour pixel art, exactly the register. The
+> problem is the SHAPE of the job: this brief asked for a 9-slice, and a 9-slice stretches
+> its centre across the whole 222px row. The delivered pack is a front-facing satchel with
+> a flap and a buckle *in the middle*, so stretching it smears both. It is drawn to be seen
+> whole, at one size.
+>
+> Two honest ways forward, and this is the author's call:
+> **(a)** the pack row is re-laid so the satchel is a fixed object at 1:1 beside the four
+> slots, rather than a panel behind them — a small layout change, no redrawing; or
+> **(b)** a second, plainer version is drawn to the 9-slice rule below, and the delivered
+> one is used elsewhere as a hero object.
+
+
 The open pack the instruments fly into. Currently a dark box with a lid strip.
 
 **Also a 9-slice** — margins 18 on all sides — so again the **centre must be uniform**.
@@ -152,3 +166,54 @@ them; a **frayed or swallowtail hem** at the bottom.
 
 **Until a file arrives the room keeps the current generated art** (P179), so you can send
 them one at a time and nothing breaks in between.
+
+---
+
+## 7. The ten instrument icons · **24 × 24 each** · one per file
+
+**DELIVERED 2026-08-12 and held back, for a measurable reason.** The five that arrived —
+ashen lens, chirurgeon's glass, witness prism, tracker's fetish, cantor's ear — are
+beautiful, but they carry **7,187 to 10,390 colours each**. They are anti-aliased,
+soft-shaded artwork at ~200px. Everything in this game is drawn through NEAREST with no
+antialiasing, and the icon slot is 24px — so they would have to be reduced about eight
+times, and at that ratio a one-pixel chain link is either wholly there or wholly gone.
+
+This project has measured that twice (TD-054, TD-056) and reached the same answer both
+times: **at icon size, hand-placed pixels beat any reduction.** A reduction samples a
+curve; it cannot decide which pixel carries the crossguard.
+
+**Draw them at 24 × 24.** Not larger and reduced — at the size they are shown.
+
+- **Hard edges only.** No antialiasing, no soft shading, no gradients. Aim for **12–16
+  colours** per icon, the way your satchel (33 colours) and parchment (57) already are.
+- **Read at a glance, in the dark.** The room is dim and these sit on a shelf; a silhouette
+  that is recognisable at 24px matters more than internal detail.
+- **A lit side and a shadow side**, as your furniture has — the light comes from upper left.
+- **No bright gold.** Gold is the order's scarce accent and a budget check enforces it
+  (`qm_budget.py` measures the gold fraction of every icon).
+- **Transparent background**, trimmed to the object.
+
+The ten, by their catalog ids — the filename should be `qm-icon-<id>.png`:
+
+| Instruments of Sight | Instruments of Trial |
+|---|---|
+| `ashen-lens` | `censer-of-embers` |
+| `chirurgeons-glass` | `phial-of-hoarfrost` |
+| `witness-prism` | `consecrated-salt` |
+| `trackers-fetish` | `lantern-of-the-creed` |
+| `cantors-ear` | |
+| `augurs-bead` | |
+
+**As they land, they swap in one at a time** (author ruling): the five delivered replace
+their icons and the rest keep the existing hand-placed art until they arrive.
+
+**The 200px versions are not wasted.** They are the right size for the record board, where
+an instrument is shown large while it is being read — that is a separate slot and a
+separate brief when you want it.
+
+---
+
+## Not for the Quartermaster
+
+`qm-parchment.png` (the hanging scroll) — the author ruled it belongs to another screen.
+Left untouched.
