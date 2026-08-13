@@ -64,7 +64,14 @@ PULL_HUE = 30.0
 #            x0   y0    w    h
 CABINET = ( 17,  17, 166, 166)
 TABLE   = (  6,  46, 188, 115)
-FRAME   = ( 19,  18, 161, 164)
+# The record board, re-drawn by the author 2026-08-13 (TD-119). Delivered at 1487x1058
+# with 82,211 colours — anti-aliased, like the gear icons — but unlike a 24px icon its
+# forms are LARGE (frame rails, corner plates, a title plate, a parchment field), and
+# large forms survive a reduction where a one-pixel chain link cannot. The arithmetic is
+# also kind: 1409x997 of content at /6 is 234x166, almost exactly the 222x176 slot, so the
+# 9-slice barely has to stretch at all.
+FRAME   = ( 40,  24, 1409, 997)
+FRAME_DIV = 6
 SCALE   = ( 29,   9, 146, 182)
 QUILL   = ( 11,  11, 170, 177)
 STAMP   = ( 43,  13, 112, 171)
@@ -285,7 +292,7 @@ def main():
     # The record board is the ONE piece that is left alone: measured at hue 29.9, it is
     # already the room's own warmth. Grading it would move a piece that is correct.
     _emit("stations/qm_record_frame.png",
-          "_src/qm/qm-wooden-description-parchment.png", FRAME, graded=False)
+          "_src/qm/qm-wooden-parchment.png", FRAME, FRAME_DIV, graded=False)
     _emit("stations/qm_prop_scale.png", "_src/qm/qm-scale.png", SCALE, PROP_DIV)
     _emit("stations/qm_prop_quill.png", "_src/qm/qm-quill-and-ink.png", QUILL, PROP_DIV)
     # The stamp's body is plum (#3E213B), which is a hue error rather than a cast, so it

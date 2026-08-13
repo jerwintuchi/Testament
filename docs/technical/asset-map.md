@@ -258,6 +258,7 @@
 - `client/assets/ui/_src/qm/qm-seal-stamp.png`
 - `client/assets/ui/_src/qm/qm-table.png`
 - `client/assets/ui/_src/qm/qm-wooden-description-parchment.png`
+- `client/assets/ui/_src/qm/qm-wooden-parchment.png`
 - `client/assets/ui/shared/key_e.png`
 - `client/assets/ui/shared/panel.png`
 - `client/assets/ui/stations/contract_board.png`
@@ -307,9 +308,9 @@
 - `client/scripts/stations/quartermaster/pack.gd:187` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:201` — `load/preload path`
 - `client/scripts/stations/quartermaster/pack.gd:217` — `load/preload SLOT`
-- `client/scripts/stations/quartermaster/register.gd:144` — `load/preload SHEET`
-- `client/scripts/stations/quartermaster/register.gd:274` — `load/preload RITE_SEAL`
-- `client/scripts/stations/quartermaster/register.gd:470` — `load/preload RITE`
+- `client/scripts/stations/quartermaster/register.gd:153` — `load/preload SHEET`
+- `client/scripts/stations/quartermaster/register.gd:289` — `load/preload RITE_SEAL`
+- `client/scripts/stations/quartermaster/register.gd:485` — `load/preload RITE`
 - `client/scripts/stations/quartermaster/room.gd:335` — `load/preload FLOOR`
 - `client/scripts/stations/quartermaster/room.gd:350` — `load/preload path`
 - `client/scripts/stations/quartermaster/room.gd:386` — `load/preload WALL`

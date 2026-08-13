@@ -43,13 +43,22 @@ const SealRite   := preload("res://scripts/stations/quartermaster/seal_rite.gd")
 const SHEET := "res://assets/ui/stations/qm_record_frame.png"
 # Per side. The top holds the title plate AND the parchment's ragged top edge; the rest
 # hold the corner brackets. Measured off the art, not guessed.
-const SHEET_ML := 22
-const SHEET_MT := 42
-const SHEET_MR := 22
-const SHEET_MB := 22
-# The plate's own band inside the frame, for the name that is written on it.
-const PLATE_Y  := 11.0
-const PLATE_H  := 17.0
+# 9-slice margins, MEASURED off the emitted 234x166 (TD-119). Each must contain the
+# fixed furniture it protects: the top holds the title plate AND the iron corner plates,
+# the sides hold those corners and the hanging banner tatters, the foot holds the lower
+# rail. Only the parchment field between them is allowed to stretch.
+const SHEET_ML := 30
+const SHEET_MT := 34
+const SHEET_MR := 30
+const SHEET_MB := 26
+# The plate's own band inside the frame, for the name written on it. Measured at source
+# y 8..22, and horizontally at x 63..173 of 234 — which after the 9-slice's centre squeeze
+# lands at roughly 0.275 to 0.734 of the frame's width. Fractions rather than pixels, so
+# the name stays on its plate if the column is ever re-proportioned.
+const PLATE_Y  := 9.0
+const PLATE_H  := 13.0
+const PLATE_X_FRAC := 0.275
+const PLATE_W_FRAC := 0.459
 const RITE      := "res://assets/ui/stations/qm_rite.png"
 const RITE_SEAL := "res://assets/ui/stations/qm_rite_seal.png"
 const RITE_M    := 10
@@ -152,10 +161,16 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	# Trimmed to the paper's real edge rather than to the frame's: the record column is
 	# short, and every pixel of margin here is a line of the field note that scrolls out
 	# of sight. The paper starts two rows under the plate and runs to the lower brackets.
-	sb.content_margin_left = 21.0
-	sb.content_margin_top = float(SHEET_MT) - 3.0
-	sb.content_margin_right = 21.0
-	sb.content_margin_bottom = 10.0
+	# Content is inset to the PARCHMENT, not to the frame, and the numbers are measured
+	# THROUGH the 9-slice rather than off the source — the centre stretches, so the source
+	# edge is not where the paper lands. In target space the ragged edge sits at a median
+	# of 28 with bites as deep as 45; at 24 the opening quote of the record's question was
+	# being clipped by a tear. These clear the median with room to spare and accept that a
+	# letter may occasionally touch a deep bite, which reads as paper rather than as damage.
+	sb.content_margin_left = 32.0
+	sb.content_margin_top = 35.0
+	sb.content_margin_right = 32.0
+	sb.content_margin_bottom = 21.0
 	sheet.add_theme_stylebox_override("panel", sb)
 	sheet.position = rec_rect.position
 	sheet.size = rec_rect.size
@@ -169,8 +184,8 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	var plate := Widgets.card_label("", 13, Color(0.30, 0.22, 0.12), false, true)
 	plate.add_theme_font_override("font", Fonts.heading())
 	plate.clip_text = true
-	plate.position = rec_rect.position + Vector2(rec_rect.size.x * 0.16, PLATE_Y)
-	plate.size = Vector2(rec_rect.size.x * 0.68, PLATE_H)
+	plate.position = rec_rect.position + Vector2(rec_rect.size.x * PLATE_X_FRAC, PLATE_Y)
+	plate.size = Vector2(rec_rect.size.x * PLATE_W_FRAC, PLATE_H)
 	plate.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(plate)
