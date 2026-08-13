@@ -263,19 +263,3 @@ static func _static_flame(base: Vector2, ember: Color) -> Sprite2D:
 	spr.modulate = ember
 	spr.z_index = 4
 	return spr
-
-# A soft radial light-falloff (white centre -> transparent edge) for the torch PointLight2D.
-# Runtime GradientTexture2D, no PNG import.
-static func light_falloff() -> GradientTexture2D:
-	var grad := Gradient.new()
-	grad.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
-	grad.colors = PackedColorArray([
-		Color(1, 1, 1, 1.0), Color(1, 1, 1, 0.35), Color(1, 1, 1, 0.0)])
-	var gt := GradientTexture2D.new()
-	gt.gradient = grad
-	gt.fill = GradientTexture2D.FILL_RADIAL
-	gt.fill_from = Vector2(0.5, 0.5)
-	gt.fill_to = Vector2(1.0, 0.5)
-	gt.width = 128
-	gt.height = 128
-	return gt
