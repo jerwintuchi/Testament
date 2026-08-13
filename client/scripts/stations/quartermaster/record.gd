@@ -51,7 +51,11 @@ static func _ornament_rule() -> Control:
 ## title, and moving it out gives the short right-hand column a whole heading back.
 static func build(host: Node, action_host: Node = null, plate: Label = null) -> Dictionary:
 	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 2)
+	# 4, not 2 (TD-120). At 2 the ornament rules sat on the cap-height of the line under
+	# them and the column read as overlapping text — the rule is 11px tall and the prose
+	# went to 12px, so the two simply met. This is the cheapest half of the fix; the other
+	# half was moving the action button out of the column entirely.
+	root.add_theme_constant_override("separation", 4)
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.custom_minimum_size = Vector2(150, 0)   # so the wrap has a width to work against
 	host.add_child(root)
@@ -208,17 +212,38 @@ static func clear(view: Dictionary) -> void:
 	(view["action"] as Button).visible = false
 
 
+## The verb, as a BRASS PLATE on the bench (TD-120) rather than ink ruled on paper.
+##
+## It moved out of the record for two reasons: the column had no room left, and a verb
+## pinned under a document is a long way from the object it acts on. On the bench it sits
+## directly beneath the instrument it will pack, which is where a hand would be.
+##
+## Hover and press are real states, not a tint: the plate lifts to a lit brass and the
+## letter warms. Styleboxes, so it costs nothing per frame.
 static func _ink(b: Button) -> void:
-	b.add_theme_stylebox_override("normal", PopupTheme.ruled(PopupTheme.RULE))
-	for st in ["hover", "pressed", "focus"]:
-		b.add_theme_stylebox_override(st, PopupTheme.ruled(PopupTheme.RULE_LIT))
-	b.add_theme_stylebox_override("disabled",
-		PopupTheme.ruled(Color(PopupTheme.RULE.r, PopupTheme.RULE.g, PopupTheme.RULE.b, 0.25)))
-	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(st, PopupTheme.INK)
-	b.add_theme_color_override("font_disabled_color",
-		Color(PopupTheme.INK.r, PopupTheme.INK.g, PopupTheme.INK.b, 0.35))
-	b.add_theme_font_size_override("font_size", 13)
+	b.add_theme_stylebox_override("normal", _plate(Color(0.32, 0.24, 0.13), Color(0.52, 0.40, 0.20)))
+	b.add_theme_stylebox_override("hover", _plate(Color(0.46, 0.35, 0.18), Color(0.78, 0.62, 0.32)))
+	b.add_theme_stylebox_override("focus", _plate(Color(0.46, 0.35, 0.18), Color(0.78, 0.62, 0.32)))
+	b.add_theme_stylebox_override("pressed", _plate(Color(0.24, 0.18, 0.10), Color(0.66, 0.52, 0.26)))
+	b.add_theme_stylebox_override("disabled", _plate(Color(0.20, 0.17, 0.13), Color(0.32, 0.28, 0.22)))
+	b.add_theme_color_override("font_color", Color(0.88, 0.78, 0.54))
+	for st in ["font_hover_color", "font_focus_color"]:
+		b.add_theme_color_override(st, Color(1.0, 0.92, 0.70))
+	b.add_theme_color_override("font_pressed_color", Color(0.80, 0.70, 0.48))
+	b.add_theme_color_override("font_disabled_color", Color(0.50, 0.45, 0.36))
+	b.add_theme_font_size_override("font_size", 12)
 	var f := Fonts.heading()
 	if f != null:
 		b.add_theme_font_override("font", f)
+
+
+static func _plate(fill: Color, edge: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.border_color = edge
+	sb.set_border_width_all(1)
+	sb.border_width_top = 2          # a lit top edge, so it reads as a struck plate
+	sb.set_content_margin_all(4)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	return sb

@@ -18,6 +18,11 @@ const Fonts      := preload("res://scripts/ui/fonts.gd")
 # The OPEN satchel (TD-107): a closed case says "storage", an open bag says "being
 # loaded", which is what this screen is for.
 const CASE  := "res://assets/ui/stations/qm_satchel.png"
+# The author's own pack, shown WHOLE beside the compartments (TD-120). It could not be
+# the 9-slice: it is drawn front-facing with a flap and a buckle in the middle, which is
+# exactly the region a 9-slice stretches. So the case behind stays the panel, and this
+# stands in it as the bag the instruments are being loaded into.
+const SATCHEL := "res://assets/ui/stations/qm_satchel_obj.png"
 const SLOT  := "res://assets/ui/stations/pack_slot.png"
 const CLASP := "res://assets/ui/stations/pack_clasp.png"
 const LABEL := "res://assets/ui/stations/label_strip.png"
@@ -69,11 +74,25 @@ static func build(host: Node, slot_count: int) -> Dictionary:
 	case_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(case_panel)
 
-	# A PanelContainer takes ONE child, so the case holds a column: the compartments
-	# across the top, the clasp beneath them.
+	# The case holds ONE child, so that child is a row: the author's satchel at the left,
+	# and the compartments beside it.
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	case_panel.add_child(row)
+
+	var bag := TextureRect.new()
+	bag.texture = load(SATCHEL) as Texture2D
+	bag.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	bag.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	bag.custom_minimum_size = Vector2(58, 0)
+	bag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(bag)
+
 	var stack := VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 2)
-	case_panel.add_child(stack)
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(stack)
 
 	# Compartments run ACROSS, not down. A satchel's slots sit side by side, and a
 	# stacked column was also half as tall again as the space the room gives it — it

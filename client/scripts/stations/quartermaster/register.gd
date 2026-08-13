@@ -201,7 +201,9 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	body_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	col.add_child(body_scroll)
 	Widgets.ink_scrollbar(body_scroll.get_v_scroll_bar())
-	view["record"] = Record.build(body_scroll, col, plate)
+	# The verb goes to the BENCH, not the bottom of this column (TD-120). Its host was
+	# built with the counter, so it is already positioned under the cloth.
+	view["record"] = Record.build(body_scroll, view["counter"]["action_host"], plate)
 
 	# Row 2 right — the open satchel, level with the counter. It sits BESIDE the bench
 	# rather than under the record because that is where a bag being loaded actually is:
@@ -224,13 +226,16 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	view["pack"] = Pack.build(pack_col, Catalog.BAG_SLOTS)
 
 	var tally := HBoxContainer.new()
-	tally.alignment = BoxContainer.ALIGNMENT_CENTER
+	# Split to the ENDS, not centred: the clasp the seal rite presses hangs down the middle
+	# of the pack, and a centred tally ran its "0 / 4" straight through it.
+	tally.alignment = BoxContainer.ALIGNMENT_BEGIN
 	tally.add_theme_constant_override("separation", 14)
 	tally.position = Vector2(0.0, pack_host.size.y - tally_h)
 	tally.size = Vector2(pack_host.size.x, tally_h)
 	pack_host.add_child(tally)
 	var packed_l := Widgets.card_label("", 11, Room.INK_WARM, false, false)
-	var shape_l := Widgets.card_label("", 11, Room.INK_FAINT, false, false)
+	packed_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var shape_l := Widgets.card_label("", 11, Room.INK_FAINT, false, true)
 	tally.add_child(packed_l); tally.add_child(shape_l)
 	view["packed_label"] = packed_l
 	view["shape_label"] = shape_l
@@ -263,10 +268,14 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	# The rite, as a crimson plate rather than a bordered box. Its 9-slice CENTRE is a
 	# uniform field, which is the only shape a 9-slice may safely take — the lesson the
 	# altar cloth and the record's divider each taught once (TD-110).
+	# ONE WORD, and no longer a bar across the whole screen (TD-120). "SEAL & DEPART"
+	# spanning 600px read as a page footer; the rite is a single act, and a struck plate
+	# the size of an act is more emphatic than a banner the size of the room.
 	var seal := Button.new()
-	seal.text = "SEAL & DEPART"
-	seal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	seal.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	seal.text = "SEAL"
+	seal.custom_minimum_size = Vector2(150, 30)
+	seal.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	seal.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_seal_ink(seal)
 	seal.pressed.connect(func(): _seal(view))
 	foot.add_child(seal)
@@ -289,7 +298,9 @@ static func _right_column(view: Dictionary, root: Control, rec_rect: Rect2,
 	disc.texture = load(RITE_SEAL) as Texture2D
 	disc.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	disc.stretch_mode = TextureRect.STRETCH_KEEP
-	disc.position = Vector2(seal_rect.position.x + 7.0,
+	# Beside the plate, not at the far edge of the row. The plate is 150px and centred now
+	# (TD-120), so an emblem pinned to the row's left margin was simply alone out there.
+	disc.position = Vector2(seal_rect.position.x + seal_rect.size.x * 0.5 - 96.0,
 		seal_rect.position.y + seal_rect.size.y * 0.30)
 	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(disc)
@@ -329,13 +340,11 @@ static func refresh(view: Dictionary) -> void:
 	var sel := String(view["sel"])
 	if sel == "":
 		Record.clear(view["record"])
-		Counter.set_caption(view["counter"], "")
 	else:
 		var item := Catalog.item_by_id(sel)
 		var state := "packed" if sel in packed else ("full" if full else "shelf")
 		Record.show_item(view["record"], item, icon_for(sel), state,
 			func(): _act(view, sel), _carried_by(view, sel))
-		Counter.set_caption(view["counter"], String(item.get("name", "")).to_upper())
 
 
 ## The instrument icons. Delegated to `shelf.gd`, which owns the sheet — kept here as
@@ -468,7 +477,7 @@ static func _seal_ink(b: Button) -> void:
 	# room, not to the record.
 	b.add_theme_stylebox_override("disabled", _plate(Color(0.30, 0.24, 0.14, 0.40), 1))
 	b.add_theme_color_override("font_disabled_color", Color(0.52, 0.46, 0.36, 0.45))
-	b.add_theme_font_size_override("font_size", 13)
+	b.add_theme_font_size_override("font_size", 14)
 	var f := Fonts.heading()
 	if f != null:
 		b.add_theme_font_override("font", f)
@@ -487,10 +496,31 @@ static func _seal_state(b: Button, ready: bool) -> void:
 		sb.set("texture_margin_" + side, float(RITE_M))
 	sb.set_content_margin_all(6.0)
 	sb.modulate_color = Color(1, 1, 1, 1) if ready else Color(0.46, 0.44, 0.42, 0.75)
-	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+	for st in ["normal", "disabled"]:
 		b.add_theme_stylebox_override(st, sb)
-	for st in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+	# HOVER AND PRESS ARE REAL STATES (TD-120). The rite used one stylebox for all five,
+	# so the one irreversible act on the screen gave no answer to the cursor at all. They
+	# are separate StyleBoxTextures over the SAME plate — one object brightening, never a
+	# second control — and only while it can actually be pressed.
+	var lit := StyleBoxTexture.new()
+	lit.texture = sb.texture
+	for side in ["left", "top", "right", "bottom"]:
+		lit.set("texture_margin_" + side, float(RITE_M))
+	lit.set_content_margin_all(6.0)
+	lit.modulate_color = Color(1.22, 1.14, 1.00) if ready else sb.modulate_color
+	for st in ["hover", "focus"]:
+		b.add_theme_stylebox_override(st, lit)
+	var pressed := StyleBoxTexture.new()
+	pressed.texture = sb.texture
+	for side in ["left", "top", "right", "bottom"]:
+		pressed.set("texture_margin_" + side, float(RITE_M))
+	pressed.set_content_margin_all(6.0)
+	pressed.modulate_color = Color(0.86, 0.80, 0.72) if ready else sb.modulate_color
+	b.add_theme_stylebox_override("pressed", pressed)
+	for st in ["font_color", "font_pressed_color"]:
 		b.add_theme_color_override(st, Color(0.94, 0.82, 0.54) if ready else NOT_READY_INK)
+	for st in ["font_hover_color", "font_focus_color"]:
+		b.add_theme_color_override(st, Color(1.0, 0.92, 0.68) if ready else NOT_READY_INK)
 	b.add_theme_color_override("font_disabled_color", NOT_READY_INK)
 
 

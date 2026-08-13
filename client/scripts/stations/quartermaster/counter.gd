@@ -44,15 +44,18 @@ static func build(host: Control, counter_rect: Rect2) -> Dictionary:
 	var at := rest_point(counter_rect)
 	# No mat: the altar cloth IS the surface now (TD-110), drawn by the room, so a
 	# second rectangle under the instrument would be a mat laid on a cloth.
-	# Directly under the cloth, not at the foot of the bench. At the foot it collided with
-	# the gate line that sits above the rite — and it names the object lying on the cloth,
-	# so it belongs beneath the cloth rather than a bench-height away from it.
-	var caption := Widgets.card_label("", 10, Color(0.70, 0.62, 0.46), false, true)
-	caption.position = Vector2(counter_rect.position.x,
-		Room.cloth_rect(counter_rect).end.y + 2.0)
-	caption.size = Vector2(counter_rect.size.x, 10.0)
-	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(caption)
+	# THE DECISION LIVES ON THE BENCH NOW (TD-120). What stood here was the instrument's
+	# NAME, and the name is already engraved on the record board's title plate — so the
+	# caption was the same word twice while the verb sat across the room, pinned under a
+	# document. The verb belongs beside the object it acts on.
+	# A CenterContainer, so the verb sits UNDER the instrument rather than at the far end
+	# of the bench. A plain Control would leave the button at its own origin, which is
+	# what put "Pack it" against the left wall on the first pass.
+	var act_host := CenterContainer.new()
+	act_host.position = Vector2(counter_rect.position.x,
+		Room.cloth_rect(counter_rect).end.y + 3.0)
+	act_host.size = Vector2(counter_rect.size.x, 20.0)
+	host.add_child(act_host)
 
 	# The counter's own contact shadow. The shelf shadow travels with the object only
 	# in the sense that it is switched OFF — so until now an instrument on the counter
@@ -73,7 +76,7 @@ static func build(host: Control, counter_rect: Rect2) -> Dictionary:
 	cshadow.visible = false
 	host.add_child(cshadow)
 
-	return {"caption": caption, "rest": at, "holding": "", "shadow": cshadow}
+	return {"action_host": act_host, "rest": at, "holding": "", "shadow": cshadow}
 
 
 ## Carries `rec`'s object from wherever it stands to the counter. `done` fires when it
@@ -142,6 +145,4 @@ static func carry_out(rec: Dictionary, reduced: bool, done: Callable = Callable(
 	tw.finished.connect(land)
 
 
-## What the counter says under the object. Empty when nothing is set down.
-static func set_caption(view: Dictionary, text: String) -> void:
-	(view["caption"] as Label).text = text
+## Retired with the caption it set (TD-120): the record board's plate carries the name.

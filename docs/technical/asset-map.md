@@ -10,6 +10,10 @@
 ## Assets — producer(s) & consumer(s)
 
 
+### `art/src/`
+
+- **`gear_icons.png`** — produced-by: — · consumed-by: `client/assets/ui/gen_qm_furniture.py` (reads)
+
 ### `client/assets/entities/player/`
 
 - **`Unarmed_Idle_with_shadow.png`** — produced-by: — · consumed-by: `client/scripts/world/player.gd` (preload)
@@ -117,7 +121,7 @@
 - **`client/assets/ui/gen_parch_v1.py`**
   - loads: `paper_band1.png`
 - **`client/assets/ui/gen_qm_furniture.py`**
-  - loads: `qm-closed-cabinet.png`, `qm-open-cabinet.png`
+  - loads: `gear_icons.png`, `qm-closed-cabinet.png`, `qm-open-cabinet.png`
 - **`client/assets/ui/gen_qm_shadows.py`**
   - loads: `gear_icons.png`, `gear_shadows.png`
 - **`client/assets/ui/gen_title_furniture.py`**
@@ -253,10 +257,16 @@
 - `client/assets/fonts/Almendra.ttf`
 - `client/assets/fonts/AlmendraDisplay.ttf`
 - `client/assets/ui/_src/_proto_board.png`
+- `client/assets/ui/_src/qm/qm-ashen-lens.png`
+- `client/assets/ui/_src/qm/qm-cantor-ear.png`
+- `client/assets/ui/_src/qm/qm-chirurgeon-glass.png`
 - `client/assets/ui/_src/qm/qm-quill-and-ink.png`
+- `client/assets/ui/_src/qm/qm-satchel-pack-base.png`
 - `client/assets/ui/_src/qm/qm-scale.png`
 - `client/assets/ui/_src/qm/qm-seal-stamp.png`
 - `client/assets/ui/_src/qm/qm-table.png`
+- `client/assets/ui/_src/qm/qm-tracker's-fetish.png`
+- `client/assets/ui/_src/qm/qm-witness-prism.png`
 - `client/assets/ui/_src/qm/qm-wooden-description-parchment.png`
 - `client/assets/ui/_src/qm/qm-wooden-parchment.png`
 - `client/assets/ui/shared/key_e.png`
@@ -283,6 +293,7 @@
 - `client/assets/ui/stations/qm_rite_seal.png`
 - `client/assets/ui/stations/qm_satchel.png`
 - `client/assets/ui/stations/qm_satchel_n.png`
+- `client/assets/ui/stations/qm_satchel_obj.png`
 - `client/assets/ui/stations/qm_stock.png`
 - `client/assets/ui/stations/qm_table.png`
 - `client/assets/ui/stations/qm_wall.png`
@@ -304,13 +315,14 @@
 - `client/scripts/core/settings.gd:32` — `load/preload PATH`
 - `client/scripts/main.gd:2103` — `load/preload path`
 - `client/scripts/main.gd:2107` — `load/preload normal_path`
-- `client/scripts/stations/quartermaster/pack.gd:97` — `load/preload CLASP`
-- `client/scripts/stations/quartermaster/pack.gd:187` — `load/preload path`
-- `client/scripts/stations/quartermaster/pack.gd:201` — `load/preload path`
-- `client/scripts/stations/quartermaster/pack.gd:217` — `load/preload SLOT`
+- `client/scripts/stations/quartermaster/pack.gd:84` — `load/preload SATCHEL`
+- `client/scripts/stations/quartermaster/pack.gd:116` — `load/preload CLASP`
+- `client/scripts/stations/quartermaster/pack.gd:206` — `load/preload path`
+- `client/scripts/stations/quartermaster/pack.gd:220` — `load/preload path`
+- `client/scripts/stations/quartermaster/pack.gd:236` — `load/preload SLOT`
 - `client/scripts/stations/quartermaster/register.gd:153` — `load/preload SHEET`
-- `client/scripts/stations/quartermaster/register.gd:289` — `load/preload RITE_SEAL`
-- `client/scripts/stations/quartermaster/register.gd:485` — `load/preload RITE`
+- `client/scripts/stations/quartermaster/register.gd:298` — `load/preload RITE_SEAL`
+- `client/scripts/stations/quartermaster/register.gd:494` — `load/preload RITE`
 - `client/scripts/stations/quartermaster/room.gd:335` — `load/preload FLOOR`
 - `client/scripts/stations/quartermaster/room.gd:350` — `load/preload path`
 - `client/scripts/stations/quartermaster/room.gd:386` — `load/preload WALL`

@@ -76,6 +76,11 @@ SCALE   = ( 29,   9, 146, 182)
 QUILL   = ( 11,  11, 170, 177)
 STAMP   = ( 43,  13, 112, 171)
 OPEN_CAB = (29, 25, 143, 154)          # retired as shelving; still the source of stock
+# The author's pack, used as an OBJECT rather than a 9-slice (TD-120). It is drawn as a
+# front-facing satchel with a flap and a buckle in the middle — exactly the region a
+# 9-slice stretches — so it is shown whole at one size, standing beside the compartments.
+SATCHEL  = (13, 25, 174, 151)
+SATCH_DIV = 4   # /3 (58x50) crowded the tally band; /4 clears it
 
 PROP_DIV = 3   # the hero props' reduction. /2 is too big for the bench, /4 breaks the
                # scale's stand — this is the largest divisor those forms survive.
@@ -283,6 +288,70 @@ def _emit_flat_normal(out):
     print("  %-40s 4x4   (flat: falloff without relief)" % out)
 
 
+
+
+# ── the instrument icons (TD-120) ───────────────────────────────────────────
+# The author delivered five of the ten at ~200px, anti-aliased. They are reduced to the
+# 24px slot and composited over the Aseprite master, so the five that have NOT been
+# re-drawn keep their hand-placed art and nothing is lost.
+#
+# The earlier reading — that an 8x reduction would destroy them, as it destroyed a 17x22
+# medallion in TD-054 — was tested rather than assumed, and does not hold for THESE. That
+# finding was about fine linework; these are chunky designs whose silhouettes, brass
+# frames and crosses all survive. Point-sampled, like every other reduction here.
+ICON_PX = 24
+ICON_SRC = [
+    (0, "_src/qm/qm-ashen-lens.png"),
+    (1, "_src/qm/qm-chirurgeon-glass.png"),
+    (2, "_src/qm/qm-witness-prism.png"),
+    (3, "_src/qm/qm-tracker's-fetish.png"),
+    (4, "_src/qm/qm-cantor-ear.png"),
+]
+
+
+def _bbox(read, w, h):
+    x0, y0, x1, y1 = w, h, -1, -1
+    for y in range(h):
+        for x in range(w):
+            if read(x, y)[3] > 8:
+                x0, x1 = min(x0, x), max(x1, x)
+                y0, y1 = min(y0, y), max(y1, y)
+    return x0, y0, x1 - x0 + 1, y1 - y0 + 1
+
+
+def _emit_icons(out):
+    """The runtime icon sheet: the Aseprite master with the delivered cells replaced.
+
+    The master (`art/src/gear_icons.png`) is read rather than the runtime sheet, so
+    re-running cannot compound — every cell is derived from a stable source each time.
+    """
+    _mw, _mh, master = read_png("../../../art/src/gear_icons.png")
+    cells = {}
+    for idx, path in ICON_SRC:
+        sw, sh, sp = read_png(path)
+        bx, by, bw, bh = _bbox(sp, sw, sh)
+        # Fit the longest side into the cell so nothing is cropped, and centre it.
+        span = max(bw, bh)
+        ox = (ICON_PX - (bw * ICON_PX) // span) // 2
+        oy = ICON_PX - (bh * ICON_PX) // span      # stand on the cell's floor
+        cells[idx] = (sp, bx, by, bw, bh, span, ox, oy)
+
+    def pixel(x, y):
+        idx, lx = x // ICON_PX, x % ICON_PX
+        if idx not in cells:
+            return master(x, y)
+        sp, bx, by, bw, bh, span, ox, oy = cells[idx]
+        tx, ty = lx - ox, y - oy
+        if tx < 0 or ty < 0 or tx * span >= bw * ICON_PX or ty * span >= bh * ICON_PX:
+            return (0, 0, 0, 0)
+        p = sp(bx + tx * span // ICON_PX, by + ty * span // ICON_PX)
+        return p if p[3] > 90 else (0, 0, 0, 0)
+
+    A.write_png(out, _mw, _mh, pixel)
+    print("  %-40s %dx%d  (%d of %d cells re-drawn)"
+          % (out, _mw, _mh, len(cells), _mw // ICON_PX))
+
+
 def main():
     print("[gen_qm_furniture] author-painted stores furniture")
     print("  grade: gain R%.4f G%.4f B%.4f (fitted on the wooden pieces)" % tuple(GAIN))
@@ -301,6 +370,9 @@ def main():
           pull=0.50)
     _emit_stock("stations/qm_stock.png")
     _emit_flat_normal("stations/qm_flat_n.png")
+    _emit_icons("stations/gear_icons.png")
+    _emit("stations/qm_satchel_obj.png", "_src/qm/qm-satchel-pack-base.png",
+          SATCHEL, SATCH_DIV)
 
 
 if __name__ == "__main__":
