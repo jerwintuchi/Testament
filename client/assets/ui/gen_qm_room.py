@@ -325,44 +325,129 @@ def _props(x, y):
     return PROPS[x // PROP_TILE](x % PROP_TILE, y)
 
 
-# ── qm_satchel.png — the pack, OPEN ─────────────────────────────────────────
-# A closed case says "storage". An OPEN satchel says "being loaded", which is what
-# this screen is for (author brief): the flap is folded back over the top, the mouth
-# gapes, and the compartments inside are what the instruments drop into.
+# ── qm_satchel.png — the expedition pack, OPEN ──────────────────────────────
+# Re-drawn to the author's `qm-satchel-pack.png` reference (TD-118): dark grained
+# leather, aged brass buckles, cream stitching, and a mouth that gapes so instruments
+# have somewhere to drop. The reference itself cannot ship — it is 615px with 32,573
+# colours, which is the anti-aliased register this project does not use — so it is what
+# it says it is: a reference.
+#
+# THE 9-SLICE RULE GOVERNS EVERY PIXEL HERE, and it is why the author's pack could not be
+# used directly. The panel is stretched to about 222x68, so each region may only vary
+# along the axis it does NOT stretch:
+#
+#     corners        18x18   free — this is the only place a buckle can live
+#     top / bottom   f(y)    stretched horizontally, so no x term at all
+#     left / right   f(x)    stretched vertically, so no y term at all
+#     centre         const   stretched both ways; anything but a flat fill smears
+#
+# A dashed stitch line along the top would therefore smear into a solid bar. The stitches
+# live in the corners and the side bands, where the axis they run along is fixed.
 SATCH_W, SATCH_H, SATCH_M = 64, 48, 18
+
+# Leather, as explicit stops rather than a slide along `wood`. The first pass shaded the
+# wood ramp and the panel read as a TIMBER FRAME: that ramp's middle is orange, which is
+# right for a bench and wrong for a bag. Leather wants the desaturated browns — `ink` and
+# `foxing` — with wood only at the lit end.
+L0 = A.RAMP["black"][2]        # #1C1813  the deepest crease, and the outline
+L1 = A.RAMP["ink"][0]          # #2A2115  leather in shadow
+L2 = A.RAMP["wood"][1]         # #3A2617  the body
+L3 = A.RAMP["wood"][2]         # #5A3D28  the body, lit
+L4 = A.RAMP["foxing"][1]       # #6B4A2A  a worn highlight
+STITCH = A.RAMP["parchment"][0]  # #8A7A54  waxed thread — muted, never bright cream
+MOUTH  = A.RAMP["black"][0]    # #0A0806  the inside of the bag
+
+
+def _satch_band_y(y):
+    """The top and bottom margins, as a function of y ALONE (they stretch across).
+
+    Top: the flap folded back, its hem stitched, then the mouth gaping below it. The
+    stitch is a solid line here on purpose — this band stretches horizontally, so a
+    dashed one would smear into a bar. Dashes live in the corners, where nothing moves.
+    """
+    if y < SATCH_M:
+        return [L0, L2, L3, L4, L3, L2, STITCH, L1, L0][y] if y <= 8 else MOUTH
+    b = SATCH_H - 1 - y
+    if b <= 1:
+        return L0
+    if b == 2:
+        return L1
+    if y == SATCH_H - SATCH_M:
+        return L4                      # the front pocket's lit rim
+    if y == SATCH_H - SATCH_M + 1:
+        return L3
+    if y == SATCH_H - SATCH_M + 2:
+        return STITCH                  # and its stitched seam
+    return L2
+
+
+def _satch_band_x(x):
+    """The left and right margins, as a function of x ALONE (they stretch downward)."""
+    e = min(x, SATCH_W - 1 - x)
+    if e == 0:
+        return L0
+    if e == 1:
+        return L1
+    if e in (2, 3):
+        return L2
+    if e == 4:
+        return STITCH                  # the seam, running the way the band stretches
+    if e in (5, 6):
+        return L2
+    if e <= 13:
+        return L3                      # the bag's face
+    if e == 14:
+        return L4                      # the lip, catching the light over the mouth
+    if e == 15:
+        return L2
+    return L0                          # and falling straight into the interior
+
+
+def _satch_buckle(lx, ly):
+    """A brass buckle, or None. Corners only — the one region a 9-slice never stretches.
+
+    Small: at 11x9 the first pass read as a window frame rather than a fitting.
+    """
+    if not (5 <= lx <= 11 and 7 <= ly <= 14):
+        return None
+    if ly in (7, 14) or lx in (5, 11):
+        return A.RAMP["gold"][1]       # the frame
+    if lx == 8 and 8 <= ly <= 13:
+        return A.RAMP["gold"][3]       # the tongue, catching light
+    if ly in (8, 13):
+        return A.RAMP["gold"][0]
+    return L1                          # the strap showing through
 
 
 def _satchel_h(x, y):
-    edge_x = min(x, SATCH_W - 1 - x)
-    if y <= 6:
-        return 0.86 - 0.05 * y          # the flap, folded back and catching light
-    if y == 7:
-        return 0.20                     # the fold's shadow
-    if y <= 10:
-        return 0.12                     # the open mouth, dark
-    if edge_x < 4:
-        return 0.62                     # the bag's sides
-    return 0.26                         # the interior
+    """Height field for the normal map — the same regions, as relief."""
+    if SATCH_M <= x < SATCH_W - SATCH_M and SATCH_M <= y < SATCH_H - SATCH_M:
+        return 0.10                                # the interior, flat and deep
+    if y < SATCH_M or y >= SATCH_H - SATCH_M:
+        return 0.30 if y < 7 else 0.55
+    e = min(x, SATCH_W - 1 - x)
+    return 0.30 + 0.30 * (e / float(SATCH_M))
 
 
 def _satchel(x, y):
-    edge_x = min(x, SATCH_W - 1 - x)
-    bottom = SATCH_H - 1 - y
-    hgt = _satchel_h(x, y)
+    in_x = SATCH_M <= x < SATCH_W - SATCH_M
+    in_y = SATCH_M <= y < SATCH_H - SATCH_M
 
-    if y <= 7:                                     # the folded-back flap
-        if y == 6 and (x % 4) in (1, 2):
-            return _op(A.RAMP["parchment"][0])     # a stitch line along the hem
-        return _op(A.quantize(A.ramp_shade("wood", 0.16 + hgt * 0.62)))
-    if y <= 10:                                    # the mouth: darkest band on the
-        return _op(BLACK_SOFT if y < 10 else WOOD_DEEP)   # object, so it reads OPEN
-    if edge_x < 4:
-        if edge_x == 3:
-            return _op(WOOD_BASE)                  # the lit inner lip
-        return _op(A.quantize(A.ramp_shade("wood", 0.10 + hgt * 0.55)))
-    if bottom < 3:
-        return _op(A.quantize(A.ramp_shade("wood", 0.10 + (3 - bottom) * 0.12)))
-    return _op(A.quantize(A.ramp_shade("navestone", 0.03 + hgt * 0.10)))
+    if in_x and in_y:
+        return _op(MOUTH)                          # THE CENTRE: one flat colour, always
+    if in_x:
+        return _op(_satch_band_y(y))               # top / bottom: no x term
+    if in_y:
+        return _op(_satch_band_x(x))               # left / right: no y term
+    # a corner: the buckle sits over the side band's leather
+    lx = x if x < SATCH_M else SATCH_W - 1 - x
+    ly = y if y < SATCH_M else SATCH_H - 1 - y
+    b = _satch_buckle(lx, ly)
+    if b is not None:
+        return _op(b)
+    if y < SATCH_M and y <= 6:
+        return _op(_satch_band_y(y))               # the flap runs over the corners too
+    return _op(_satch_band_x(x))
 
 
 # ── qm_cloth.png — the altar cloth over the bench ───────────────────────────
